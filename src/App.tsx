@@ -1,14 +1,12 @@
 
-import { TextField } from "@mui/material";
-import { Camera } from 'lucide-react';
+import { BrowserRouter } from "react-router-dom";
+import AppRoutes from "./AppRoutes";
 
 function App() {
-
   return (
-    <>
-      <TextField id="outlined-basic" label="Outlined" variant="outlined" />
-      <Camera />
-    </>
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
   );
 }
 
