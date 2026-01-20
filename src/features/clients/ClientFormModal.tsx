@@ -1,23 +1,20 @@
-import { styled } from "@mui/material/styles";
-import Dialog from "@mui/material/Dialog";
-import DialogTitle from "@mui/material/DialogTitle";
-import DialogContent from "@mui/material/DialogContent";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
-
-import ClientForm from "./ClientForm";
+import {
+  Box,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+} from "@mui/material";
+import { useState } from "react";
 import apiClient from "../../api/apiClient";
+import ClientForm, { type ClientFormData } from "./ClientForm";
+import { Button } from "../../components/Button/Button";
+import type { Client } from "../../pages/ClientsPage";
+import PetForm from "../pets/PetForm";
 
-const BootstrapDialog = styled(Dialog)(({ theme }) => ({
-  "& .MuiDialogContent-root": {
-    padding: theme.spacing(2),
-  },
-  "& .MuiDialogActions-root": {
-    padding: theme.spacing(1),
-  },
-}));
+type Step = "client" | "pet";
 
-type ClientFormModalProps = {
+type Props = {
   open: boolean;
   onClose: () => void;
 };
@@ -25,56 +22,82 @@ type ClientFormModalProps = {
 export default function ClientFormModal({
   open,
   onClose,
-}: ClientFormModalProps) {
-  const TENANT_ID = 1;
-
-  const handleSubmit = async (data: {
-    name: string;
-    email: string;
-    phone: string;
-  }) => {
-    try {
-      const payload = {
-        name: data.name,
-        email: data.email || undefined,
-        phone: data.phone || undefined,
-        is_active: true,
-      };
-
-      await apiClient.post("/api/v1/clients/", payload, {
-        params: {
-          tenant_id: TENANT_ID,
-        },
-      });
-
-    //   await fetchClients();
-      onClose();
-    } catch (err) {
-      console.error("Erro ao criar cliente", err);
-    }
+}: Props) {
+  const [step, setStep] = useState<Step>("client");
+  const [form, setForm] = useState<ClientFormData>({
+    name: "",
+    email: "",
+    phone: "",
+  });
+  const [clientId, setClientId] = useState<number | null>(null);
+  console.log("clientId", clientId);
+  const reset = () => {
+    setStep("client");
+    setForm({ name: "", email: "", phone: "" });
+    setClientId(null);
   };
+
+  const handleClose = () => {
+    reset();
+    onClose();
+  };
+
+  const createClient = async () => {
+    if (!form.name.trim()) return null;
+
+    const response = await apiClient.post<Client>(
+      "/api/v1/clients/",
+      { ...form, is_active: true },
+      { params: { tenant_id: 1 } }
+    );
+
+    return response.data;
+  };
+
+  const handleSave = async () => {
+    const client = await createClient();
+    if (!client) return;
+    handleClose();
+  };
+
+  const handleSaveAndAddPet = async () => {
+    const client = await createClient();
+    if (!client) return;
+
+    setClientId(client.id);
+    setStep("pet");
+  };
+
   return (
-    <>
-      <BootstrapDialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-        <DialogTitle sx={{ m: 0, p: 2 }}>Novo Cliente</DialogTitle>
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+      <DialogTitle>
+        {step === "client" ? "Novo Cliente" : "Cadastrar pet"}
+      </DialogTitle>
 
-        <IconButton
-          aria-label="close"
-          onClick={onClose}
-          sx={{
-            position: "absolute",
-            right: 8,
-            top: 8,
-            color: "grey.500",
-          }}
-        >
-          <CloseIcon />
-        </IconButton>
+      <DialogContent>
+        {step === "client" && (
+          <ClientForm value={form} onChange={setForm} />
+        )}
 
-        <DialogContent dividers sx={{ bgcolor: "background.default" }}>
-          <ClientForm onSubmit={handleSubmit} />
-        </DialogContent>
-      </BootstrapDialog>
-    </>
+        {step === "pet" && <PetForm />}
+      </DialogContent>
+
+      <DialogActions
+        sx={{ display: "flex", justifyContent: "space-between", px: 3 }}
+      >
+        <Button onClick={handleClose} variant="text">Cancelar</Button>
+
+        {step === "client" && (
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button variant="outlined" onClick={handleSave}>
+              Salvar
+            </Button>
+            <Button variant="contained" onClick={handleSaveAndAddPet}>
+              Salvar e cadastrar pet
+            </Button>
+          </Box>
+        )}
+      </DialogActions>
+    </Dialog>
   );
 }

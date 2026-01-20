@@ -1,75 +1,57 @@
-import { Box, Button, FormControl, FormLabel } from "@mui/material";
-import { useState } from "react";
+import { Box, FormControl, FormLabel } from "@mui/material";
+
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 
-type ClientFormData = {
+export type ClientFormData = {
   name: string;
-  email: string;
-  phone: string;
+  email?: string;
+  phone?: string;
 };
 
 type Props = {
-  onSubmit: (data: ClientFormData) => void;
+  value: ClientFormData;
+  onChange: (data: ClientFormData) => void;
 };
 
-const ClientForm = ({ onSubmit }: Props) => {
-  const [form, setForm] = useState<ClientFormData>({
-    name: "",
-    email: "",
-    phone: "",
-  });
-
+export default function ClientForm({ value, onChange }: Props) {
   const handleChange =
     (field: keyof ClientFormData) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setForm((prev) => ({
-        ...prev,
+      onChange({
+        ...value,
         [field]: e.target.value,
-      }));
+      });
     };
 
   return (
-    <Box
-      component="form"
-      sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit(form);
-      }}
-    >
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <FormControl>
-        <FormLabel sx={{color:'text.primary'}}>Nome completo</FormLabel>
+        <FormLabel sx={{ color: "text.primary" }}>Nome completo</FormLabel>
         <CustomTextField
-          placeholder="Ex: João da Silva"
-          value={form.name}
+          value={value.name}
           onChange={handleChange("name")}
           required
+          placeholder="ex: Pedro da Silva"
         />
       </FormControl>
 
       <FormControl>
-        <FormLabel sx={{color:'text.primary'}}>E-mail</FormLabel>
+        <FormLabel sx={{ color: "text.primary" }}>E-mail</FormLabel>
         <CustomTextField
-          placeholder="exemplo@email.com"
-          value={form.email}
+          value={value.email}
           onChange={handleChange("email")}
+          placeholder="ex: email@exemplo.com"
         />
       </FormControl>
 
       <FormControl>
-        <FormLabel sx={{color:'text.primary'}}>Telefone</FormLabel>
+        <FormLabel sx={{ color: "text.primary" }}>Telefone</FormLabel>
         <CustomTextField
-          placeholder="(11) 99999-9999"
-          value={form.phone}
+          value={value.phone}
           onChange={handleChange("phone")}
+          placeholder="ex: (11) 99999-9999"
         />
       </FormControl>
-
-      <Button type="submit" variant="contained">
-        Salvar
-      </Button>
     </Box>
   );
-};
-
-export default ClientForm;
+}

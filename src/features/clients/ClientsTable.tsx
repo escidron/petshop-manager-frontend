@@ -16,7 +16,6 @@ import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
 import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
-import apiClient from "../../api/apiClient";
 import { Chip } from "@mui/material";
 import { Pencil, Trash2 } from "lucide-react";
 
@@ -85,32 +84,15 @@ interface Client {
   phone: string | null;
   is_active: boolean;
 }
-
-export default function ClientsTable() {
+type Props = {
+  rows: Client[];
+  loading: boolean;
+  onRowClick?: (id: number) => void;
+};
+export default function ClientsTable({ rows, loading, onRowClick }: Props) {
   const [page, setPage] = React.useState(0);
-  const [rowsPerPage, setRowsPerPage] = React.useState(5);
-  const [rows, setRows] = React.useState<Client[]>([]);
-  const [loading, setLoading] = React.useState(false);
-
-  React.useEffect(() => {
-    fetchClients();
-  }, []);
-
-  const fetchClients = async () => {
-    try {
-      setLoading(true);
-      const TENANT_ID = 1;
-      const response = await apiClient.get<Client[]>("/api/v1/clients/", {
-        params: { tenant_id: TENANT_ID },
-      });
-      setRows(response.data);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
+  const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  console.log("ross", rows);
   const handleChangePage = (
     _event: React.MouseEvent<HTMLButtonElement> | null,
     newPage: number,
@@ -125,6 +107,11 @@ export default function ClientsTable() {
 
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
+
+  // 🔥 sempre que rows mudar, volta para página 0
+  React.useEffect(() => {
+    setPage(0);
+  }, [rows]);
 
   return (
     <TableContainer
@@ -208,6 +195,7 @@ export default function ClientsTable() {
             ).map((row) => (
               <TableRow
                 key={row.id}
+                onClick={() => onRowClick?.(row.id)}
                 sx={{
                   cursor: "pointer",
                   transition: "background-color 0.2s ease",
@@ -244,7 +232,7 @@ export default function ClientsTable() {
                       sx={{
                         color: "primary.main",
                       }}
-                      onClick={() => row}
+                      onClick={() => alert("Editar")}
                     >
                       <Pencil size={16} />
                     </IconButton>

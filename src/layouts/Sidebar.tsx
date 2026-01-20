@@ -31,7 +31,6 @@ const menu: SidebarItemConfig[] = [
 ];
 
 const Sidebar = ({collapsed}: {collapsed: boolean}) => {
-  console.log('asd',collapsed)
   return (
     <List
       sx={{ bgcolor: "primary.main" }}

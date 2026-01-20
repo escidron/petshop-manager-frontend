@@ -43,7 +43,7 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
       navigate(item.path);
     }
   };
-  console.log('collapse',collapsed)
+
   return (
     <>
       <ListItemButton
