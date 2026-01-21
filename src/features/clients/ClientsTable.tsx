@@ -18,6 +18,7 @@ import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Chip } from "@mui/material";
 import { Pencil, Trash2 } from "lucide-react";
+import type { Client } from "../../pages/ClientsPage";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -77,22 +78,18 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   );
 }
 
-interface Client {
-  id: number;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  is_active: boolean;
-}
+
 type Props = {
   rows: Client[];
   loading: boolean;
   onRowClick?: (id: number) => void;
+  onEdit: (client: Client) => void;
+  onDelete: (client: Client) => void;
 };
-export default function ClientsTable({ rows, loading, onRowClick }: Props) {
+export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDelete }: Props) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
-  console.log("ross", rows);
+
   const handleChangePage = (
     _event: React.MouseEvent<HTMLButtonElement> | null,
     newPage: number,
@@ -108,7 +105,6 @@ export default function ClientsTable({ rows, loading, onRowClick }: Props) {
   const emptyRows =
     page > 0 ? Math.max(0, (1 + page) * rowsPerPage - rows.length) : 0;
 
-  // 🔥 sempre que rows mudar, volta para página 0
   React.useEffect(() => {
     setPage(0);
   }, [rows]);
@@ -116,7 +112,7 @@ export default function ClientsTable({ rows, loading, onRowClick }: Props) {
   return (
     <TableContainer
       component={Paper}
-      sx={{ borderRadius: 2, overflow: "hidden" }} // borda arredondada
+      sx={{ borderRadius: 2, overflow: "hidden" }}
     >
       {loading ? (
         <Box display="flex" justifyContent="center" p={2}>
@@ -132,8 +128,8 @@ export default function ClientsTable({ rows, loading, onRowClick }: Props) {
                   backgroundColor: "secondary.main",
                   fontWeight: 600,
                   color: "text.primary",
-                  py: 1.25, // padding vertical (top + bottom)
-                  fontSize: "0.875rem", // tamanho de fonte menor (opcional)
+                  py: 1.25, 
+                  fontSize: "0.875rem",
                 }}
               >
                 Nome
@@ -228,21 +224,27 @@ export default function ClientsTable({ rows, loading, onRowClick }: Props) {
                     }}
                   >
                     <IconButton
-                      size="small"
+                      size="medium"
                       sx={{
                         color: "primary.main",
                       }}
-                      onClick={() => alert("Editar")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit?.(row)
+                      }}
                     >
                       <Pencil size={16} />
                     </IconButton>
 
                     <IconButton
-                      size="small"
+                      size="medium"
                       sx={{
                         color: "error.main",
                       }}
-                      onClick={() => row}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.(row);
+                      }}
                     >
                       <Trash2 size={16} />
                     </IconButton>

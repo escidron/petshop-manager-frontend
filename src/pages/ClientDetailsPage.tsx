@@ -4,7 +4,6 @@ import {
   CircularProgress,
   Divider,
   Typography,
-  Button,
   IconButton,
   Avatar,
 } from "@mui/material";
@@ -14,6 +13,7 @@ import apiClient from "../api/apiClient";
 import { Mail, Mars, Pencil, Phone, Plus, Trash2, Venus } from "lucide-react";
 import CustomCard from "../components/Card/CustomCard";
 import theme from "../theme";
+import { Button } from "../components/Button/Button";
 
 type Client = {
   id: number;
