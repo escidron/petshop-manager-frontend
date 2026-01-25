@@ -6,83 +6,118 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { useEffect, useState } from "react";
-import apiClient from "../../api/apiClient";
 import ClientForm, { type ClientFormData } from "./ClientForm";
 import { Button } from "../../components/Button/Button";
-import type { Client } from "../../pages/ClientsPage";
-import PetForm from "../pets/PetForm";
-
-type Step = "client" | "pet";
+import type { Client, Pet, Step } from "../../pages/ClientsPage";
+import PetForm, { type PetFormData } from "../pets/PetForm";
+import { DEFAULT_CLIENT_FORM } from "./constants";
+import { DEFAULT_PET_FORM } from "../pets/constants";
+import { createClient, updateClient } from "../../api/services/clients";
+import { createPet, updatePet } from "../../api/services/pets";
 
 type Props = {
   open: boolean;
   mode: "create" | "edit";
   client?: Client;
+  pet?: Pet;
   onClose: () => void;
   onSuccess: () => void;
+  step: Step;
+  setStep: (step: Step) => void;
+  existingClientId?: number;
 };
 
 export default function ClientFormModal({
   open,
   mode,
   client,
+  pet,
   onClose,
   onSuccess,
+  step,
+  setStep,
+  existingClientId,
 }: Props) {
-  const [step, setStep] = useState<Step>("client");
-  const [form, setForm] = useState<ClientFormData>({
-    name: "",
-    email: "",
-    phone: "",
-  });
-  const [clientId, setClientId] = useState<number | null>(null);
-  console.log("clientId", clientId);
+  const [clientForm, setClientForm] =
+    useState<ClientFormData>(DEFAULT_CLIENT_FORM);
+  const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
+  const [clientId, setClientId] = useState<number | null>(
+    existingClientId ?? null,
+  );
+
   useEffect(() => {
     if (mode === "edit" && client) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({
+      setClientForm({
         name: client.name,
         email: client.email ?? "",
         phone: client.phone ?? "",
       });
     }
-  }, [mode, client]);
+    if (mode === "edit" && pet) {
+      setPetForm({
+        name: pet.name ?? "",
+        species: pet.species ?? "other",
+        gender: pet.gender ?? undefined,
+        breed: pet.breed,
+        age: pet.age,
+        ageUnit: pet.ageUnit,
+      });
+    }
+  }, [mode, client, pet]);
 
   const reset = () => {
     setStep("client");
-    setForm({ name: "", email: "", phone: "" });
-    setClientId(null);
+    setClientForm(DEFAULT_CLIENT_FORM);
+    setPetForm(DEFAULT_PET_FORM);
   };
 
   const handleClose = () => {
+    console.log("handleClose");
     reset();
     onClose();
   };
 
   const saveClient = async () => {
-    if (!form.name.trim()) return null;
+    if (!clientForm.name.trim()) return null;
 
     if (mode === "create") {
-      const response = await apiClient.post<Client>(
-        "/api/v1/clients/",
-        { ...form, is_active: true },
-        { params: { tenant_id: 1 } }
-      );
-      return response.data;
+      return await createClient(clientForm);
     }
 
-    await apiClient.patch(
-      `/api/v1/clients/${client!.id}`,
-      { ...form },
-      { params: { tenant_id: 1 } }
-    );
+    return await updateClient(client!.id.toString(), clientForm);
+  };
 
-    return client!;
+  const savePet = async () => {
+    if (!petForm.name.trim()) return null;
+
+    if (mode === "create") {
+      return createPet({
+        ...petForm,
+        client_id: clientId!,
+      });
+    }
+
+    return updatePet(pet!.id, {
+      ...petForm,
+      client_id: clientId!,
+      is_active: true,
+    });
   };
 
   const handleSave = async () => {
-    const saved = await saveClient();
+    const saveByStep = {
+      client: saveClient,
+      pet: savePet,
+    } as const;
+
+    const saveFn = saveByStep[step];
+    if (!saveFn) return;
+
+    const saved = await saveFn();
+    console.log("saved", saved);
     if (!saved) return;
+
     onSuccess();
     handleClose();
   };
@@ -108,14 +143,14 @@ export default function ClientFormModal({
 
       <DialogContent>
         {step === "client" && (
-          <ClientForm value={form} onChange={setForm} />
+          <ClientForm client={clientForm} onChange={setClientForm} />
         )}
 
-        {step === "pet" && <PetForm />}
+        {step === "pet" && <PetForm pet={petForm} onChange={setPetForm} />}
       </DialogContent>
 
       <DialogActions
-        sx={{ display: "flex", justifyContent: "space-between", p:3 }}
+        sx={{ display: "flex", justifyContent: "space-between", p: 3 }}
       >
         <Button onClick={handleClose} variant="text">
           Cancelar
@@ -132,6 +167,11 @@ export default function ClientFormModal({
                 Salvar e cadastrar pet
               </Button>
             )}
+          </Box>
+        )}
+        {step === "pet" && (
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button onClick={handleSave}>Salvar</Button>
           </Box>
         )}
       </DialogActions>

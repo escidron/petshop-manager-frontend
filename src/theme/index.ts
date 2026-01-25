@@ -5,7 +5,8 @@ import { red, grey, green } from '@mui/material/colors';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1E4A78',
+      // main: '#1E4A78',
+      main: '#313485',
     },
     secondary: {
       main: '#EAECEF', // cinza para backgrounds
@@ -28,8 +29,9 @@ const theme = createTheme({
     },
 
     text: {
-      primary: '#2A2D34',   // quase preto (confortável)
+      primary: '#3d4048',   // quase preto (confortável)
       secondary: '#FAFAFA', // quase branco
+      // secondary: '#d6daf1', // quase branco
       disabled: '#9E9E9E',  // cinza padrão p/ textos desativados
     },
   },

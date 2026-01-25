@@ -9,16 +9,17 @@ export type ClientFormData = {
 };
 
 type Props = {
-  value: ClientFormData;
+  client: ClientFormData;
   onChange: (data: ClientFormData) => void;
 };
 
-export default function ClientForm({ value, onChange }: Props) {
+export default function ClientForm({ client, onChange }: Props) {
+  
   const handleChange =
     (field: keyof ClientFormData) =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange({
-        ...value,
+        ...client,
         [field]: e.target.value,
       });
     };
@@ -28,7 +29,7 @@ export default function ClientForm({ value, onChange }: Props) {
       <FormControl>
         <FormLabel sx={{ color: "text.primary" }}>Nome completo</FormLabel>
         <CustomTextField
-          value={value.name}
+          value={client.name}
           onChange={handleChange("name")}
           required
           placeholder="ex: Pedro da Silva"
@@ -38,7 +39,7 @@ export default function ClientForm({ value, onChange }: Props) {
       <FormControl>
         <FormLabel sx={{ color: "text.primary" }}>E-mail</FormLabel>
         <CustomTextField
-          value={value.email}
+          value={client.email}
           onChange={handleChange("email")}
           placeholder="ex: email@exemplo.com"
         />
@@ -47,7 +48,7 @@ export default function ClientForm({ value, onChange }: Props) {
       <FormControl>
         <FormLabel sx={{ color: "text.primary" }}>Telefone</FormLabel>
         <CustomTextField
-          value={value.phone}
+          value={client.phone}
           onChange={handleChange("phone")}
           placeholder="ex: (11) 99999-9999"
         />

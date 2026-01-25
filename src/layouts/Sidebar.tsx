@@ -1,8 +1,14 @@
 import { List } from "@mui/material";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
-import { NotebookTabs, PawPrint, ScanBarcode, Users } from "lucide-react";
+import { Home, NotebookTabs, PawPrint, ScanBarcode, Users } from "lucide-react";
 
 const menu: SidebarItemConfig[] = [
+  {
+    id: "dashboard",
+    label: "Dashboard",
+    icon: <Home />,
+    path: "/",
+  },
   {
     id: "cadastros",
     label: "Cadastros",
@@ -22,7 +28,7 @@ const menu: SidebarItemConfig[] = [
       },
       {
         id: "products",
-        label: "Products",
+        label: "Produtos",
         icon: <ScanBarcode />,
         path: "/registration/products",
       },
@@ -30,13 +36,11 @@ const menu: SidebarItemConfig[] = [
   },
 ];
 
-const Sidebar = ({collapsed}: {collapsed: boolean}) => {
+const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   return (
-    <List
-      sx={{ bgcolor: "primary.main" }}
-    >
+    <List sx={{ bgcolor: "primary.main" }}>
       {menu.map((item) => (
-        <SidebarItem key={item.id} item={item} collapsed={collapsed}/>
+        <SidebarItem key={item.id} item={item} collapsed={collapsed} />
       ))}
     </List>
   );
