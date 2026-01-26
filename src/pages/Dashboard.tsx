@@ -20,7 +20,7 @@ export type ModalState =
   | { open: true; mode: "edit"; entity: "client"; client: Client }
   | { open: true; mode: "edit"; entity: "pet"; pet: Pet };
 
-  export type Step = "client" | "pet" | "appointment";
+export type Step = "client" | "pet" | "appointment";
 
 const Dashboard = () => {
   const [date, setDate] = useState<Dayjs>(dayjs());
@@ -129,13 +129,34 @@ const Dashboard = () => {
             Agendas do dia
           </Typography>
           <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-            <CustomCard>asd</CustomCard>
-            <CustomCard>asd</CustomCard>
-            <CustomCard>asd</CustomCard>
-            <CustomCard>asd</CustomCard>
-            <CustomCard>asd</CustomCard>
-            <CustomCard>asd</CustomCard>
-            <CustomCard>asd</CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
+            <CustomCard>
+              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
+              eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            </CustomCard>
           </Box>
         </Box>
         <Box sx={{ width: "40%" }}>
@@ -151,9 +172,13 @@ const Dashboard = () => {
                 value={date}
                 onChange={(newDate) => {
                   if (newDate) {
-                    setDate(newDate)
-                    setModalState({ open: true, mode: "create", entity: "client" });
-                  };
+                    setDate(newDate);
+                    setModalState({
+                      open: true,
+                      mode: "create",
+                      entity: "client",
+                    });
+                  }
                 }}
                 sx={{
                   width: "100%",
@@ -174,7 +199,6 @@ const Dashboard = () => {
         onClose={() => setModalState({ open: false })}
         step={step}
         setStep={setStep}
-        
       />
     </Box>
   );

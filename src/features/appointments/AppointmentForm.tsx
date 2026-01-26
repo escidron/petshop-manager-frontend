@@ -6,26 +6,48 @@ import {
   FormLabel,
   TextField,
 } from "@mui/material";
-
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import type { Client, Pet } from "../../pages/ClientsPage";
+import type { Service } from "../../api/services/tenant_services";
+import type { Dayjs } from "dayjs";
+import { Button } from "../../components/Button/Button";
+import { Plus } from "lucide-react";
+import type { Step } from "../../pages/Dashboard";
 
 type Props = {
   clients: Client[];
   pets: Pet[];
-  setSelectedClient: (client: Client) => void;
-  setSelectedPet: (pet: Pet) => void;
+  services: Service[];
+  selectedServices: number[];
+  selectedClient: Client | null;
+  selectedPet: Pet | null;
+  onClientChange: (client: Client) => void;
+  onPetChange: (pet: Pet) => void;
+  onServiceToggle: (id: number) => void;
+  onDateChange: (date: Dayjs | null) => void;
+  onTimeChange: (time: Dayjs | null) => void;
+  onNotesChange: (notes: string) => void;
+  setStep: (step: Step) => void;
 };
 
 export default function AppointmentForm({
   clients,
   pets,
-  setSelectedClient,
-  setSelectedPet,
+  services,
+  selectedServices,
+  selectedClient,
+  selectedPet,
+  onClientChange,
+  onPetChange,
+  onServiceToggle,
+  onDateChange,
+  onTimeChange,
+  onNotesChange,
+  setStep,
 }: Props) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -34,44 +56,29 @@ export default function AppointmentForm({
           Data e hora
         </FormLabel>
         <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              width: "100%",
-              py: 1,
-            }}
-          >
-            {/* DATE — 70% */}
+          <Box sx={{ display: "flex", gap: 2, width: "100%", py: 1 }}>
             <Box sx={{ flex: 7 }}>
               <DatePicker
+                onChange={(value) => onDateChange(value)}
                 slotProps={{
                   textField: {
                     size: "small",
                     fullWidth: true,
-                    sx: {
-                      "& .MuiInputBase-root": {
-                        height: 30,
-                      },
-                    },
+                    sx: { "& .MuiInputBase-root": { height: 30 } },
                   },
                 }}
               />
             </Box>
 
-            {/* TIME — 30% */}
             <Box sx={{ flex: 3 }}>
               <TimePicker
                 ampm={false}
+                onChange={onTimeChange}
                 slotProps={{
                   textField: {
                     size: "small",
                     fullWidth: true,
-                    sx: {
-                      "& .MuiInputBase-root": {
-                        height: 30,
-                      },
-                    },
+                    sx: { "& .MuiInputBase-root": { height: 30 } },
                   },
                 }}
               />
@@ -82,71 +89,74 @@ export default function AppointmentForm({
 
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
-        <Autocomplete
-          options={clients}
-          size="small"
-          getOptionLabel={(option) => option.name}
-          sx={{ color: "text.primary" }}
-          onChange={(_, value) => setSelectedClient(value as Client)}
-          renderInput={(params) => (
-            <TextField {...params} placeholder="Pesquisar cliente" />
-          )}
-        />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Autocomplete
+            value={selectedClient}
+            sx={{ width: "75%" }}
+            options={clients}
+            size="small"
+            getOptionLabel={(option) => option.name}
+            onChange={(_, value) => value && onClientChange(value)}
+            renderInput={(params) => (
+              <TextField {...params} placeholder="Pesquisar cliente" />
+            )}
+          />
+
+          <Button
+            sx={{ width: "25%" }}
+            startIcon={<Plus size={18} />}
+            variant="outlined"
+            onClick={() => setStep("client")}
+          >
+            Novo Cliente
+          </Button>
+        </Box>
       </FormControl>
 
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Pet</FormLabel>
-        <Autocomplete
-          options={pets}
-          size="small"
-          getOptionLabel={(option) => option.name}
-          sx={{ color: "text.primary" }}
-          onChange={(_, value) => setSelectedPet(value as Pet)}
-          renderInput={(params) => (
-            <TextField {...params} placeholder="Pesquisar cliente" />
-          )}
-        />
+        <Box sx={{ display: "flex", gap: 1 }}>
+          <Autocomplete
+            value={selectedPet}
+            sx={{ width: "75%" }}
+            options={pets}
+            size="small"
+            getOptionLabel={(option) => option.name}
+            onChange={(_, value) => value && onPetChange(value)}
+            renderInput={(params) => (
+              <TextField {...params} placeholder="Pesquisar pet" />
+            )}
+          />
+
+          <Button
+            sx={{ width: "25%" }}
+            startIcon={<Plus size={18} />}
+            variant="outlined"
+            onClick={() => setStep("pet")}
+          >
+            Novo Pet
+          </Button>
+        </Box>
       </FormControl>
 
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Serviços</FormLabel>
-        {/* <FormGroup>
-          <FormControlLabel
-            control={<Checkbox sx={{ color: "text.primary" }} />}
-            label="Label"
-          />
-          <FormControlLabel control={<Checkbox />} label="Required" />
-          <FormControlLabel control={<Checkbox />} label="Disabled" />
-        </FormGroup> */}
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Chip
-            //   onClick={() => setFieldValue("species", "dog")}
-            label="Banho"
-            sx={{
-              color: "text.primary",
-              px: 1,
-              cursor: "pointer",
-              // bgcolor: pet.species === "dog" ? "secondary.main" : "transparent",
-              bgcolor: "transparent",
-              border: "1px solid",
-              borderColor: "secondary.main",
-              width: "fit-content",
-            }}
-          />
-          <Chip
-            //   onClick={() => setFieldValue("species", "dog")}
-            label="Tosa"
-            sx={{
-              color: "text.primary",
-              px: 1,
-              cursor: "pointer",
-              // bgcolor: pet.species === "dog" ? "secondary.main" : "transparent",
-              bgcolor: "transparent",
-              border: "1px solid",
-              borderColor: "secondary.main",
-              width: "fit-content",
-            }}
-          />
+          {services.map((service) => (
+            <Chip
+              key={service.id}
+              label={service.name}
+              onClick={() => onServiceToggle(service.id)}
+              sx={{
+                cursor: "pointer",
+                bgcolor: selectedServices.includes(service.id)
+                  ? "secondary.main"
+                  : "transparent",
+                border: "1px solid",
+                borderColor: "secondary.main",
+              }}
+            />
+          ))}
         </Box>
       </FormControl>
 
@@ -154,7 +164,11 @@ export default function AppointmentForm({
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Observações
         </FormLabel>
-        <CustomTextField multiline rows={4} />
+        <CustomTextField
+          multiline
+          rows={4}
+          onChange={(e) => onNotesChange(e.target.value)}
+        />
       </FormControl>
     </Box>
   );

@@ -40,7 +40,6 @@ const PetForm = ({ pet, onChange }: Props) => {
       setFieldValue(field, e.target.value);
     };
 
-    console.log('asdasd',pet.breed)
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <FormControl>

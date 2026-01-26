@@ -73,7 +73,6 @@ export default function ClientFormModal({
   };
 
   const handleClose = () => {
-    console.log("handleClose");
     reset();
     onClose();
   };
@@ -115,7 +114,6 @@ export default function ClientFormModal({
     if (!saveFn) return;
 
     const saved = await saveFn();
-    console.log("saved", saved);
     if (!saved) return;
 
     onSuccess();
@@ -125,7 +123,6 @@ export default function ClientFormModal({
   const handleSaveAndAddPet = async () => {
     const saved = await saveClient();
     if (!saved) return;
-
     setClientId(saved.id);
     setStep("pet");
     onSuccess();

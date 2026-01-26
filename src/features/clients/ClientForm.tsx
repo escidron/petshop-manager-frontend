@@ -27,7 +27,7 @@ export default function ClientForm({ client, onChange }: Props) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <FormControl>
-        <FormLabel sx={{ color: "text.primary" }}>Nome completo</FormLabel>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Nome completo</FormLabel>
         <CustomTextField
           value={client.name}
           onChange={handleChange("name")}
@@ -37,7 +37,7 @@ export default function ClientForm({ client, onChange }: Props) {
       </FormControl>
 
       <FormControl>
-        <FormLabel sx={{ color: "text.primary" }}>E-mail</FormLabel>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>E-mail</FormLabel>
         <CustomTextField
           value={client.email}
           onChange={handleChange("email")}
@@ -46,7 +46,7 @@ export default function ClientForm({ client, onChange }: Props) {
       </FormControl>
 
       <FormControl>
-        <FormLabel sx={{ color: "text.primary" }}>Telefone</FormLabel>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Telefone</FormLabel>
         <CustomTextField
           value={client.phone}
           onChange={handleChange("phone")}

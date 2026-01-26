@@ -8,11 +8,8 @@ import Dashboard from "./pages/Dashboard";
 export default function AppRoutes() {
   return (
     <Routes>
-      {/* Layout principal */}
       <Route element={<MainLayout />}>
         <Route path="/" element={<Dashboard />} />
-
-        {/* REGISTRATION */}
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">
             <Route index element={<ClientsPage />} />
