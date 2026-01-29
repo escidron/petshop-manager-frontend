@@ -7,6 +7,7 @@ import ClientFormModal from "../features/clients/ClientFormModal";
 import ClientDeleteModal from "../features/clients/ClientDeleteModal";
 import { useClients } from "../hooks/useClients";
 import { deleteClient } from "../api/services/clients";
+import PetFormModal from "../features/pets/PetFormModal";
 
 export type Client = {
   id: number;
@@ -16,32 +17,23 @@ export type Client = {
   is_active: boolean;
 };
 
-export type Pet = {
-  id: number;
-  name: string;
-  species: "dog" | "cat" | "other" | undefined;
-  gender: "male" | "female" | undefined;
-  breed: string;
-  age: number;
-  ageUnit: "year" | "month" | "day";
-};
-
-export type ModalState =
-  | { open: false }
-  | { open: true; mode: "create"; entity: "client" | "pet" }
-  | { open: true; mode: "edit"; entity: "client"; client: Client }
-  | { open: true; mode: "edit"; entity: "pet"; pet: Pet };
-
-export type Step = "client" | "pet";
-
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
-  const [modalState, setModalState] = useState<ModalState>({ open: false });
   const [deleting, setDeleting] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-  const [step, setStep] = useState<Step>("client");
-  const { clients, loading, getClients } = useClients();
 
+  const [clientModal, setClientModal] = useState<{
+    open: boolean;
+    mode: "create" | "edit";
+    client?: Client;
+  }>({ open: false, mode: "create" });
+
+  const [petModal, setPetModal] = useState<{
+    open: boolean;
+    clientId?: number;
+  }>({ open: false });
+  
+  const { clients, loading, getClients } = useClients();
   const navigate = useNavigate();
 
   const filteredRows = useMemo(() => {
@@ -57,7 +49,6 @@ export default function ClientsPage() {
 
   const handleConfirmDelete = async () => {
     if (!clientToDelete) return;
-
     try {
       setDeleting(true);
       await deleteClient(clientToDelete.id);
@@ -73,9 +64,7 @@ export default function ClientsPage() {
       <ClientsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() =>
-          setModalState({ open: true, mode: "create", entity: "client" })
-        }
+        onCreate={() => setClientModal({ open: true, mode: "create" })}
       />
 
       <ClientsTable
@@ -83,32 +72,32 @@ export default function ClientsPage() {
         loading={loading}
         onRowClick={(id) => navigate(`/registration/clients/${id}`)}
         onEdit={(client) =>
-          setModalState({ open: true, mode: "edit", entity: "client", client })
+          setClientModal({ open: true, mode: "edit", client })
         }
         onDelete={(client) => setClientToDelete(client)}
       />
 
+      {/* CLIENT MODAL */}
       <ClientFormModal
-        open={modalState.open}
-        mode={modalState.open ? modalState.mode : "create"}
-        client={
-          modalState.open &&
-          modalState.mode === "edit" &&
-          modalState.entity === "client"
-            ? modalState.client
-            : undefined
-        }
-        pet={
-          modalState.open &&
-          modalState.mode === "edit" &&
-          modalState.entity === "pet"
-            ? modalState.pet
-            : undefined
-        }
-        onClose={() => setModalState({ open: false })}
+        open={clientModal.open}
+        mode={clientModal.mode}
+        client={clientModal.client}
+        onClose={() => setClientModal({ open: false, mode: "create" })}
+        onSuccess={async () => {
+          await getClients();
+        }}
+        onSuccessAndAddPet={(client) => {
+          setPetModal({ open: true, clientId: client.id });
+        }}
+      />
+
+      {/* PET MODAL */}
+      <PetFormModal
+        open={petModal.open}
+        clientId={petModal.clientId}
+        onClose={() => setPetModal({ open: false })}
         onSuccess={getClients}
-        step={step}
-        setStep={setStep}
+        mode={"create"}
       />
 
       {clientToDelete && (

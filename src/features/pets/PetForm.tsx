@@ -10,8 +10,8 @@ import {
 } from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Mars, Venus } from "lucide-react";
-import theme from "../../theme";
 import { CAT_BREEDS, DOG_BREEDS } from "./constants";
+import type { Client } from "../../pages/ClientsPage";
 
 export type PetFormData = {
   name: string;
@@ -20,15 +20,29 @@ export type PetFormData = {
   breed: string;
   age: number;
   ageUnit: "year" | "month" | "day";
+  owner_name?: string;
+  client_id?: number;
 };
 
 type Props = {
   pet: PetFormData;
   onChange: (data: PetFormData) => void;
+  clients: Client[];
+  selectedClient: Client | null;
+  setSelectedClient: (client: Client | null) => void;
 };
 
-const PetForm = ({ pet, onChange }: Props) => {
-  const setFieldValue = (field: keyof PetFormData, value: string) => {
+const PetForm = ({
+  pet,
+  onChange,
+  clients,
+  selectedClient,
+  setSelectedClient,
+}: Props) => {
+  const setFieldValue = <K extends keyof PetFormData>(
+    field: K,
+    value: PetFormData[K],
+  ) => {
     onChange({
       ...pet,
       [field]: value,
@@ -42,6 +56,24 @@ const PetForm = ({ pet, onChange }: Props) => {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {/* DONO */}
+      <FormControl>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Dono</FormLabel>
+
+        <Autocomplete<Client>
+          value={selectedClient}
+          options={clients}
+          size="small"
+          getOptionLabel={(option) => option.name}
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          onChange={(_, value) => setSelectedClient(value)}
+          renderInput={(params) => (
+            <TextField {...params} placeholder="Pesquisar cliente" />
+          )}
+        />
+      </FormControl>
+
+      {/* NOME */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Nome</FormLabel>
         <CustomTextField
@@ -52,13 +84,8 @@ const PetForm = ({ pet, onChange }: Props) => {
         />
       </FormControl>
 
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}
-      >
+      {/* ESPÉCIE + GÊNERO */}
+      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
         <FormControl>
           <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Espécie</FormLabel>
           <Box sx={{ display: "flex", gap: 1 }}>
@@ -66,8 +93,6 @@ const PetForm = ({ pet, onChange }: Props) => {
               onClick={() => setFieldValue("species", "dog")}
               label="Cachorro"
               sx={{
-                color: "text.primary",
-                px: 1,
                 cursor: "pointer",
                 bgcolor:
                   pet.species === "dog" ? "secondary.main" : "transparent",
@@ -79,8 +104,6 @@ const PetForm = ({ pet, onChange }: Props) => {
               onClick={() => setFieldValue("species", "cat")}
               label="Gato"
               sx={{
-                color: "text.primary",
-                px: 1,
                 cursor: "pointer",
                 bgcolor:
                   pet.species === "cat" ? "secondary.main" : "transparent",
@@ -97,10 +120,8 @@ const PetForm = ({ pet, onChange }: Props) => {
             <Chip
               onClick={() => setFieldValue("gender", "male")}
               label="Macho"
-              icon={<Mars color={theme.palette.text.primary} size={16} />}
+              icon={<Mars size={16} />}
               sx={{
-                color: "text.primary",
-                px: 1,
                 cursor: "pointer",
                 bgcolor:
                   pet.gender === "male" ? "secondary.main" : "transparent",
@@ -110,11 +131,9 @@ const PetForm = ({ pet, onChange }: Props) => {
             />
             <Chip
               onClick={() => setFieldValue("gender", "female")}
-              label="Fêmea"
-              icon={<Venus color={theme.palette.text.primary} size={16} />}
+              label="Fêmea"
+              icon={<Venus size={16} />}
               sx={{
-                color: "text.primary",
-                px: 1,
                 cursor: "pointer",
                 bgcolor:
                   pet.gender === "female" ? "secondary.main" : "transparent",
@@ -126,13 +145,8 @@ const PetForm = ({ pet, onChange }: Props) => {
         </FormControl>
       </Box>
 
-      <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignContent: "center",
-        }}
-      >
+      {/* RAÇA + IDADE */}
+      <Box sx={{ display: "flex", justifyContent: "space-between" }}>
         <FormControl>
           <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Raça</FormLabel>
           <Autocomplete
@@ -140,8 +154,8 @@ const PetForm = ({ pet, onChange }: Props) => {
             disabled={!pet.species}
             options={pet.species === "dog" ? DOG_BREEDS : CAT_BREEDS}
             size="small"
-            onChange={(_, value) => setFieldValue("breed", value ?? "")}
             sx={{ width: 300, color: "text.primary", maxWidth: "80%" }}
+            onChange={(_, value) => setFieldValue("breed", value ?? "")}
             renderInput={(params) => (
               <TextField {...params} placeholder="Pesquisar raça" />
             )}
@@ -157,19 +171,16 @@ const PetForm = ({ pet, onChange }: Props) => {
               onChange={handleChange("age")}
               required
               sx={{ width: 70 }}
-              defaultValue={1}
             />
             <Select
-              labelId="demo-select-small-label"
-              id="demo-select-small"
               value={pet.ageUnit}
               onChange={(e) => setFieldValue("ageUnit", e.target.value)}
               size="small"
               sx={{ width: 140 }}
             >
-              <MenuItem value={"day"}>Dias</MenuItem>
-              <MenuItem value={"month"}>Meses</MenuItem>
-              <MenuItem value={"year"}>Anos</MenuItem>
+              <MenuItem value="day">Dias</MenuItem>
+              <MenuItem value="month">Meses</MenuItem>
+              <MenuItem value="year">Anos</MenuItem>
             </Select>
           </Box>
         </FormControl>

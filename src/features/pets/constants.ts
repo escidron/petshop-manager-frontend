@@ -7,6 +7,7 @@ export const DEFAULT_PET_FORM: PetFormData = {
   breed: "",
   age: 1,
   ageUnit: "month",
+  owner_name: undefined,
 };
 
 export const DOG_BREEDS = [

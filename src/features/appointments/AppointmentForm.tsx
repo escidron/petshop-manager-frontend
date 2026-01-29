@@ -11,12 +11,12 @@ import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
-import type { Client, Pet } from "../../pages/ClientsPage";
+import type { Client } from "../../pages/ClientsPage";
 import type { Service } from "../../api/services/tenant_services";
 import type { Dayjs } from "dayjs";
 import { Button } from "../../components/Button/Button";
 import { Plus } from "lucide-react";
-import type { Step } from "../../pages/Dashboard";
+import type { Pet } from "../../pages/PetsPage";
 
 type Props = {
   clients: Client[];
@@ -31,7 +31,8 @@ type Props = {
   onDateChange: (date: Dayjs | null) => void;
   onTimeChange: (time: Dayjs | null) => void;
   onNotesChange: (notes: string) => void;
-  setStep: (step: Step) => void;
+  onCreateClient: () => void;
+  onCreatePet: () => void;
 };
 
 export default function AppointmentForm({
@@ -47,7 +48,8 @@ export default function AppointmentForm({
   onDateChange,
   onTimeChange,
   onNotesChange,
-  setStep,
+  onCreateClient,
+  onCreatePet,
 }: Props) {
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
@@ -106,7 +108,7 @@ export default function AppointmentForm({
             sx={{ width: "25%" }}
             startIcon={<Plus size={18} />}
             variant="outlined"
-            onClick={() => setStep("client")}
+            onClick={onCreateClient}
           >
             Novo Cliente
           </Button>
@@ -132,7 +134,7 @@ export default function AppointmentForm({
             sx={{ width: "25%" }}
             startIcon={<Plus size={18} />}
             variant="outlined"
-            onClick={() => setStep("pet")}
+            onClick={onCreatePet}
           >
             Novo Pet
           </Button>

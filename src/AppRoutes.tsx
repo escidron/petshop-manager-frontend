@@ -4,6 +4,7 @@ import ClientsPage from "./pages/ClientsPage";
 import RegistrationLayout from "./layouts/RegistrationLayout";
 import ClientDetailsPage from "./pages/ClientDetailsPage";
 import Dashboard from "./pages/Dashboard";
+import PetsPage from "./pages/PetsPage";
 
 export default function AppRoutes() {
   return (
@@ -13,6 +14,10 @@ export default function AppRoutes() {
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">
             <Route index element={<ClientsPage />} />
+            <Route path=":id" element={<ClientDetailsPage />} />
+          </Route>
+          <Route path="pets">
+            <Route index element={<PetsPage />} />
             <Route path=":id" element={<ClientDetailsPage />} />
           </Route>
         </Route>

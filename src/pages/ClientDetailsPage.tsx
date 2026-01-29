@@ -2,22 +2,25 @@ import { Box, CircularProgress, Divider, Typography } from "@mui/material";
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "../components/Button/Button";
-import type { ModalState, Pet, Step } from "./ClientsPage";
 import ClientePersonalInfo from "../features/clients/ClientePersonalInfo";
 import PetDetailsCard from "../features/pets/PetDetailsCard";
 import { Plus } from "lucide-react";
-import ClientFormModal from "../features/clients/ClientFormModal";
 import PetDeleteModal from "../features/pets/PetDeleteModal";
 import { useClient } from "../hooks/useClient";
 import { deletePet } from "../api/services/pets";
+import PetFormModal from "../features/pets/PetFormModal";
+import type { Pet } from "./PetsPage";
 
 export default function ClientDetailsPage() {
   const { id } = useParams<{ id: string }>();
-  const [modalState, setModalState] = useState<ModalState>({ open: false });
-  const [step, setStep] = useState<Step>("client");
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { client, pets, loading, refetchPets } = useClient(parseInt(id!));
+  const [petModal, setPetModal] = useState<{
+    open: boolean;
+    mode?: "create" | "edit";
+    pet?: Pet;
+  }>({ open: false, mode: "create" });
 
   const handleConfirmDelete = async () => {
     if (!petToDelete) return;
@@ -39,7 +42,7 @@ export default function ClientDetailsPage() {
       </Box>
     );
   }
-
+  console.log('petmocal', petModal);
   return (
     <Box
       sx={{
@@ -71,8 +74,7 @@ export default function ClientDetailsPage() {
               variant="contained"
               startIcon={<Plus size={16} />}
               onClick={() => {
-                setStep("pet");
-                setModalState({ open: true, mode: "create", entity: "pet" });
+                setPetModal({ open: true, mode: "create" });
               }}
             >
               Novo Pet
@@ -83,11 +85,9 @@ export default function ClientDetailsPage() {
               key={pet.id}
               pet={pet}
               onEdit={(pet) => {
-                setStep("pet");
-                setModalState({
+                setPetModal({
                   open: true,
                   mode: "edit",
-                  entity: "pet",
                   pet,
                 });
               }}
@@ -98,28 +98,13 @@ export default function ClientDetailsPage() {
         <Box sx={{ width: "40%" }}></Box>
       </Box>
 
-      <ClientFormModal
-        open={modalState.open}
-        mode={modalState.open ? modalState.mode : "create"}
-        client={
-          modalState.open &&
-          modalState.mode === "edit" &&
-          modalState.entity === "client"
-            ? modalState.client
-            : undefined
-        }
-        pet={
-          modalState.open &&
-          modalState.mode === "edit" &&
-          modalState.entity === "pet"
-            ? modalState.pet
-            : undefined
-        }
-        onClose={() => setModalState({ open: false })}
+      <PetFormModal
+        pet={petModal.pet}
+        open={petModal.open}
+        clientId={client.id}
+        onClose={() => setPetModal({ open: false })}
         onSuccess={refetchPets}
-        step={step}
-        setStep={setStep}
-        existingClientId={client.id}
+        mode={petModal.mode || "create"}
       />
 
       {petToDelete && (
