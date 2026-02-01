@@ -8,6 +8,10 @@ import ClientDeleteModal from "../features/clients/ClientDeleteModal";
 import { useClients } from "../hooks/useClients";
 import { deleteClient } from "../api/services/clients";
 import PetFormModal from "../features/pets/PetFormModal";
+import type { PetFormData } from "../features/pets/PetForm";
+import { DEFAULT_PET_FORM } from "../features/pets/constants";
+import type { ClientFormData } from "../features/clients/ClientForm";
+import { DEFAULT_CLIENT_FORM } from "../features/clients/constants";
 
 export type Client = {
   id: number;
@@ -21,6 +25,8 @@ export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
+  const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
+  const [clientForm, setClientForm] = useState<ClientFormData>(DEFAULT_CLIENT_FORM);
 
   const [clientModal, setClientModal] = useState<{
     open: boolean;
@@ -30,9 +36,9 @@ export default function ClientsPage() {
 
   const [petModal, setPetModal] = useState<{
     open: boolean;
-    clientId?: number;
+    client?: Client;
   }>({ open: false });
-  
+
   const { clients, loading, getClients } = useClients();
   const navigate = useNavigate();
 
@@ -58,6 +64,9 @@ export default function ClientsPage() {
       setDeleting(false);
     }
   };
+  
+  const resetPetForm = () => setPetForm(DEFAULT_PET_FORM);
+  const resetClientForm = () => setClientForm(DEFAULT_CLIENT_FORM);
 
   return (
     <Box sx={{ maxWidth: "60%", mx: "auto", p: 3 }}>
@@ -82,22 +91,35 @@ export default function ClientsPage() {
         open={clientModal.open}
         mode={clientModal.mode}
         client={clientModal.client}
+        clientForm={clientForm}
+        setClientForm={setClientForm}
         onClose={() => setClientModal({ open: false, mode: "create" })}
         onSuccess={async () => {
           await getClients();
+          setClientModal({ open: false, mode: "create" });
+          resetClientForm();
+          resetPetForm();
         }}
         onSuccessAndAddPet={(client) => {
-          setPetModal({ open: true, clientId: client.id });
+          setPetModal({ open: true, client: client });
         }}
       />
 
       {/* PET MODAL */}
       <PetFormModal
         open={petModal.open}
-        clientId={petModal.clientId}
+        client={petModal.client}
         onClose={() => setPetModal({ open: false })}
-        onSuccess={getClients}
+        onSuccess={() => {
+          getClients();
+          setPetModal({ open: false })
+          setClientModal({ open: false, mode: "create" });
+          resetPetForm();
+          resetClientForm();
+        }}
         mode={"create"}
+        petForm={petForm}
+        setPetForm={setPetForm}
       />
 
       {clientToDelete && (

@@ -1,4 +1,4 @@
-import type { Pet } from "../../pages/PetsPage";
+import type { AgeUnit, Pet } from "../../pages/PetsPage";
 import apiClient from "../apiClient";
 
 interface SavePetPayload extends Partial<Pet> {
@@ -11,7 +11,7 @@ export type UpdatePetPayload = {
   gender?: "male" | "female";
   breed?: string;
   age?: number;
-  ageUnit?: "year" | "month" | "day";
+  ageUnit?: AgeUnit;
 };
 
 const TENANT_PARAMS = { tenant_id: 1 };

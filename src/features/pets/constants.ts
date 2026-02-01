@@ -1,3 +1,4 @@
+import type { AgeUnit } from "../../pages/PetsPage";
 import type { PetFormData } from "./PetForm";
 
 export const DEFAULT_PET_FORM: PetFormData = {
@@ -156,7 +157,7 @@ export const CAT_BREEDS = [
 ];
 
 export const AGE_UNIT_LABELS: Record<
-  "year" | "month" | "day",
+  AgeUnit,
   { singular: string; plural: string }
 > = {
   year: { singular: "ano", plural: "anos" },

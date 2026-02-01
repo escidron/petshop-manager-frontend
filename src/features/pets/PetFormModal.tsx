@@ -23,35 +23,30 @@ type Props = {
   open: boolean;
   mode: "create" | "edit";
   pet?: Pet;
-  clientId?: number;
+  client?: Client;
+  petForm: PetFormData;
+  setPetForm: (data: PetFormData) => void;
   onClose: () => void;
   onSuccess: (pet: Pet) => void; // 👈 mudou aqui
 };
-
-/* =======================
-   Component
-======================= */
 
 export default function PetFormModal({
   open,
   mode,
   pet,
-  clientId,
+  client,
+  petForm,
+  setPetForm,
   onClose,
   onSuccess,
 }: Props) {
   const { clients } = useClients();
-
-  const [form, setForm] = useState<PetFormData>(DEFAULT_PET_FORM);
   const [saving, setSaving] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  console.log("pet", clientId, pet);
-  console.log("form", form);
-  console.log("mode", mode);
   useEffect(() => {
     if (mode === "edit" && pet) {
-      setForm({
+      setPetForm({
         name: pet.name,
         species: pet.species,
         gender: pet.gender,
@@ -63,59 +58,52 @@ export default function PetFormModal({
       setSelectedClient(owner ?? null);
     }
 
-    if (mode === "create") {
-      setForm(DEFAULT_PET_FORM);
+    if (mode === "create" && client) {
+      setPetForm({ ...DEFAULT_PET_FORM, owner_name: client.name });
+      setSelectedClient(client ?? null);
     }
-  }, [clients, mode, pet]);
-
-  /* =======================
-     Save
-  ======================= */
+  }, [clients, mode, pet, client, setPetForm]);
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!petForm.name.trim()) return;
 
     try {
       setSaving(true);
 
       if (mode === "create") {
-        const resolvedClientId = clientId ?? selectedClient?.id;
+        const resolvedClientId = client?.id ?? selectedClient?.id;
 
         if (!resolvedClientId) return;
 
         const createdPet = await createPet({
-          ...form,
+          ...petForm,
           client_id: resolvedClientId,
         });
 
-        onSuccess(createdPet); // 👈 agora retorna o pet
+        onSuccess(createdPet);
       }
 
       if (mode === "edit" && pet) {
-        const updated = await updatePet(pet.id, form);
+        const updated = await updatePet(pet.id, petForm);
         onSuccess(updated);
       }
-
       onClose();
     } finally {
       setSaving(false);
     }
   };
 
-  /* =======================
-     Render
-  ======================= */
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} fullWidth maxWidth="sm">
       <DialogTitle>
         {mode === "create" ? "Cadastrar pet" : "Editar pet"}
       </DialogTitle>
 
       <DialogContent>
         <PetForm
-          pet={form}
-          onChange={setForm}
+          pet={petForm}
+          onChange={setPetForm}
           clients={clients}
           selectedClient={selectedClient}
           setSelectedClient={setSelectedClient}

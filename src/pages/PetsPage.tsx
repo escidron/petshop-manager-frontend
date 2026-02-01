@@ -9,6 +9,10 @@ import PetFormModal from "../features/pets/PetFormModal";
 import { usePets } from "../hooks/usePets";
 import { deletePet } from "../api/services/pets";
 import PetsToolbar from "../features/pets/PetsToolbar";
+import type { PetFormData } from "../features/pets/PetForm";
+import { DEFAULT_PET_FORM } from "../features/pets/constants";
+
+export type AgeUnit = "year" | "month" | "day";
 
 export type Pet = {
   id: number;
@@ -17,7 +21,7 @@ export type Pet = {
   gender?: "male" | "female";
   breed: string;
   age: number;
-  ageUnit: "year" | "month" | "day";
+  ageUnit: AgeUnit;
   owner_name?: string;
   client_id?: number;
 };
@@ -26,6 +30,8 @@ export default function PetsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
+  const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
+
   const [petModal, setPetModal] = useState<{
     open: boolean;
     mode?: "create" | "edit";
@@ -81,6 +87,8 @@ export default function PetsPage() {
             setPetModal({ open: false });
             getPets();
           }}
+          petForm={petForm}
+          setPetForm={setPetForm}
         />
       )}
 

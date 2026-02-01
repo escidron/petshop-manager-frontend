@@ -9,8 +9,8 @@ import {
 } from "@mui/material";
 import { Mars, Pencil, Trash2, Venus } from "lucide-react";
 import theme from "../../theme";
-import type { Pet } from "../../pages/ClientsPage";
-import { AGE_UNIT_LABELS } from "./constants";
+import type { Pet } from "../../pages/PetsPage";
+import { getAgeUnitLabel } from "../../utils/getAgeUnitLabel";
 
 type Props = {
   pet: Pet;
@@ -19,12 +19,6 @@ type Props = {
 };
 
 const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
-
-
-  const ageLabel =
-    pet.age === 1
-      ? AGE_UNIT_LABELS[pet.ageUnit].singular
-      : AGE_UNIT_LABELS[pet.ageUnit].plural;
 
   return (
     <CustomCard
@@ -65,7 +59,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
               {pet.name}
             </Typography>
             <Typography color="text.disabled">
-              {pet.age} {ageLabel}
+              {pet.age} {getAgeUnitLabel(pet.age, pet.ageUnit)}
             </Typography>
           </Box>
           <Chip

@@ -25,8 +25,11 @@ type Props = {
   selectedServices: number[];
   selectedClient: Client | null;
   selectedPet: Pet | null;
-  onClientChange: (client: Client) => void;
-  onPetChange: (pet: Pet) => void;
+  date?: Dayjs;
+  time?: Dayjs;
+  notes?: string;
+  onClientChange: (client?: Client) => void;
+  onPetChange: (pet?: Pet) => void;
   onServiceToggle: (id: number) => void;
   onDateChange: (date: Dayjs | null) => void;
   onTimeChange: (time: Dayjs | null) => void;
@@ -42,6 +45,9 @@ export default function AppointmentForm({
   selectedServices,
   selectedClient,
   selectedPet,
+  date,
+  time,
+  notes,
   onClientChange,
   onPetChange,
   onServiceToggle,
@@ -61,6 +67,7 @@ export default function AppointmentForm({
           <Box sx={{ display: "flex", gap: 2, width: "100%", py: 1 }}>
             <Box sx={{ flex: 7 }}>
               <DatePicker
+                value={date}
                 onChange={(value) => onDateChange(value)}
                 slotProps={{
                   textField: {
@@ -74,6 +81,7 @@ export default function AppointmentForm({
 
             <Box sx={{ flex: 3 }}>
               <TimePicker
+                value={time}
                 ampm={false}
                 onChange={onTimeChange}
                 slotProps={{
@@ -98,7 +106,7 @@ export default function AppointmentForm({
             options={clients}
             size="small"
             getOptionLabel={(option) => option.name}
-            onChange={(_, value) => value && onClientChange(value)}
+            onChange={(_, value) => onClientChange(value || undefined)}
             renderInput={(params) => (
               <TextField {...params} placeholder="Pesquisar cliente" />
             )}
@@ -124,7 +132,7 @@ export default function AppointmentForm({
             options={pets}
             size="small"
             getOptionLabel={(option) => option.name}
-            onChange={(_, value) => value && onPetChange(value)}
+            onChange={(_, value) => onPetChange(value || undefined)}
             renderInput={(params) => (
               <TextField {...params} placeholder="Pesquisar pet" />
             )}
@@ -167,6 +175,7 @@ export default function AppointmentForm({
           Observações
         </FormLabel>
         <CustomTextField
+          value={notes}
           multiline
           rows={4}
           onChange={(e) => onNotesChange(e.target.value)}

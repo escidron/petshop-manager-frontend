@@ -5,7 +5,6 @@ import type { Pet } from "../pages/PetsPage"
 export function usePets() {
   const [pets, setPets] = useState<Pet[]>([])
   const [loading, setLoading] = useState(false)
-    console.log(pets)
   const loadPets = useCallback(async () => {
     setLoading(true)
     try {

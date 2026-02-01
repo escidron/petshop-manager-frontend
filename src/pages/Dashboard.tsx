@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
 import type { Client } from "./ClientsPage";
 import type { Pet } from "./PetsPage";
@@ -17,6 +17,18 @@ import {
 } from "lucide-react";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
+import { useClient } from "../hooks/useClient";
+import { DEFAULT_PET_FORM } from "../features/pets/constants";
+import type { PetFormData } from "../features/pets/PetForm";
+import { DEFAULT_CLIENT_FORM } from "../features/clients/constants";
+import type { ClientFormData } from "../features/clients/ClientForm";
+import {
+  applyAppointmentAction,
+  getAppointmentsByDay,
+  type Appointment,
+  type AppointmentAction,
+} from "../api/services/appointments";
 
 type AppointmentFlowState =
   | { open: false }
@@ -29,14 +41,36 @@ type AppointmentFlowState =
 
 const Dashboard = () => {
   const [date, setDate] = useState<Dayjs>(dayjs());
+  const { pets, setClientId, setPets } = useClient();
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
+  const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
+  const [clientForm, setClientForm] =
+    useState<ClientFormData>(DEFAULT_CLIENT_FORM);
   const isFlowOpen = (
     flow: AppointmentFlowState,
   ): flow is Extract<AppointmentFlowState, { open: true }> => {
     return flow.open;
   };
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
 
-  console.log("flow", flow);
+  const fetchAppointments = useCallback(async () => {
+    const appointments = await getAppointmentsByDay(date.format("YYYY-MM-DD"));
+    setAppointments(appointments);
+  }, [date]);
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const handleAction = async (
+    appointment: Appointment,
+    action: AppointmentAction,
+  ) => {
+    await applyAppointmentAction(appointment.id, action);
+    fetchAppointments();
+  };
+
   return (
     <Box>
       <Box
@@ -51,7 +85,7 @@ const Dashboard = () => {
         <CustomCard sx={{ maxWidth: "280px", height: "120px" }}>
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             <CalendarDays size={24} />
-            <Typography fontWeight={400}>Agendamentos de hoje</Typography>
+            <Typography fontWeight={400}>Agendamentos de dia</Typography>
           </Box>
           <Box
             sx={{
@@ -63,7 +97,13 @@ const Dashboard = () => {
             }}
           >
             <Typography variant="h4" fontWeight={600}>
-              10
+              {
+                appointments.filter(
+                  (appointment) =>
+                    dayjs(appointment.scheduled_at).format("YYYY-MM-DD") ===
+                    date.format("YYYY-MM-DD"),
+                ).length
+              }
             </Typography>
           </Box>
         </CustomCard>
@@ -82,7 +122,7 @@ const Dashboard = () => {
             }}
           >
             <Typography variant="h4" fontWeight={600}>
-              10
+              0
             </Typography>
           </Box>
         </CustomCard>
@@ -120,7 +160,7 @@ const Dashboard = () => {
             }}
           >
             <Typography variant="h4" fontWeight={600}>
-              R$ 4000
+              R$ 8000
             </Typography>
           </Box>
         </CustomCard>
@@ -131,43 +171,20 @@ const Dashboard = () => {
           mx: "auto",
           mt: 6,
           display: "flex",
-          gap: 2,
+          gap: 6,
         }}
       >
         <Box sx={{ width: "60%" }}>
-          <Typography variant="h5" fontWeight={600}>
-            Agendas do dia
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-            <CustomCard>
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
-              eiusmod tempor incididunt ut labore et dolore magna aliqua.
-            </CustomCard>
-          </Box>
+          <AppointmentsDailyList
+            handleAction={handleAction}
+            appointments={appointments}
+            openFlow={() =>
+              setFlow({
+                open: true,
+                step: "appointment",
+              })
+            }
+          />
         </Box>
         <Box sx={{ width: "40%" }}>
           <Typography variant="h5" fontWeight={600}>
@@ -183,10 +200,6 @@ const Dashboard = () => {
                 onChange={(newDate) => {
                   if (newDate) {
                     setDate(newDate);
-                    setFlow({
-                      open: true,
-                      step: "appointment",
-                    });
                   }
                 }}
                 sx={{
@@ -202,57 +215,74 @@ const Dashboard = () => {
         </Box>
       </Box>
 
-      {/* APPOINTMENT */}
       {isFlowOpen(flow) && (
         <AppointmentModal
           open={flow.step === "appointment"}
+          pets={pets}
+          currentDate={date}
           selectedClient={flow.selectedClient}
           selectedPet={flow.selectedPet}
+          onSuccess={() => {
+            fetchAppointments();
+            setFlow({ open: false });
+          }}
           onCreateClient={() =>
-            setFlow((f) => (f.open ? { ...f, step: "client" } : f))
+            setFlow((flow) => (flow.open ? { ...flow, step: "client" } : flow))
           }
           onCreatePet={() =>
-            setFlow((f) => (f.open ? { ...f, step: "pet" } : f))
+            setFlow((flow) => (flow.open ? { ...flow, step: "pet" } : flow))
           }
-          onClientSelect={(client) =>
-            setFlow((f) => (f.open ? { ...f, selectedClient: client } : f))
-          }
+          onClientSelect={(client) => {
+            setFlow((flow) =>
+              flow.open
+                ? { ...flow, selectedClient: client, selectedPet: undefined }
+                : flow,
+            );
+            setClientId(client?.id || undefined);
+            if (!client) setPets([]);
+          }}
           onPetSelect={(pet) =>
-            setFlow((f) => (f.open ? { ...f, selectedPet: pet } : f))
+            setFlow((flow) =>
+              flow.open ? { ...flow, selectedPet: pet } : flow,
+            )
           }
           onClose={() => setFlow({ open: false })}
         />
       )}
 
-      {/* CLIENT */}
-      <ClientFormModal
-        open={flow.open && flow.step === "client"}
-        mode="create"
-        onClose={() => setFlow({ open: false })}
-        onSuccess={(client) =>
-          setFlow((f) => ({
-            ...f,
-            selectedClient: client,
-            step: "appointment",
-            open: true,
-          }))
-        }
-        onSuccessAndAddPet={(client) =>
-          setFlow((f) => ({
-            ...f,
-            selectedClient: client,
-            step: "pet",
-            open: true, // 👈 mantém modal aberto
-          }))
-        }
-      />
+      {isFlowOpen(flow) && flow.step === "client" && (
+        <ClientFormModal
+          open={flow.open && flow.step === "client"}
+          mode="create"
+          onClose={() =>
+            setFlow((f) => (f.open ? { ...f, step: "appointment" } : f))
+          }
+          onSuccess={(client) =>
+            setFlow((f) => ({
+              ...f,
+              selectedClient: client,
+              step: "appointment",
+              open: true,
+            }))
+          }
+          onSuccessAndAddPet={(client) =>
+            setFlow((f) => ({
+              ...f,
+              selectedClient: client,
+              step: "pet",
+              open: true, // 👈 mantém modal aberto
+            }))
+          }
+          clientForm={clientForm}
+          setClientForm={setClientForm}
+        />
+      )}
 
-      {/* PET */}
       {isFlowOpen(flow) && flow.step === "pet" && (
         <PetFormModal
-          open
+          open={flow.step === "pet"}
           mode="create"
-          clientId={flow.selectedClient?.id}
+          client={flow.selectedClient}
           onClose={() =>
             setFlow((f) => (f.open ? { ...f, step: "appointment" } : f))
           }
@@ -267,6 +297,8 @@ const Dashboard = () => {
                 : f,
             )
           }
+          petForm={petForm}
+          setPetForm={setPetForm}
         />
       )}
     </Box>

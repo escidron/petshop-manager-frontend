@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useClient } from "../../hooks/useClient";
 import { useClients } from "../../hooks/useClients";
 import {
   fetchServices,
@@ -22,25 +21,30 @@ type Props = {
   open: boolean;
   selectedClient?: Client;
   selectedPet?: Pet;
-  onClientSelect: (client: Client) => void;
-  onPetSelect: (pet: Pet) => void;
+  currentDate?: Dayjs;
+  pets?: Pet[];
+  onClientSelect: (client?: Client) => void;
+  onPetSelect: (pet?: Pet) => void;
   onCreateClient: () => void;
   onCreatePet: () => void;
   onClose: () => void;
+  onSuccess: () => void;
 };
 
 export default function AppointmentModal({
   open,
   selectedClient,
   selectedPet,
+  currentDate,
+  pets,
   onClientSelect,
   onPetSelect,
   onCreateClient,
   onCreatePet,
   onClose,
+  onSuccess,
 }: Props) {
   const { clients } = useClients();
-  const { pets } = useClient();
   const [services, setServices] = useState<Service[]>([]);
   const [selectedServices, setSelectedServices] = useState<number[]>([]);
   const [date, setDate] = useState<Dayjs | null>(null);
@@ -52,9 +56,10 @@ export default function AppointmentModal({
   }, []);
 
   const handleSave = async () => {
-    if (!selectedClient || !selectedPet || !date || !time) return;
+    const baseDate = date ?? currentDate;
+    if (!selectedClient || !selectedPet || !baseDate || !time) return;
 
-    const scheduled_at = date
+    const scheduled_at = baseDate
       .hour(time.hour())
       .minute(time.minute())
       .second(0)
@@ -67,7 +72,7 @@ export default function AppointmentModal({
       service_ids: selectedServices,
       notes,
     });
-
+    onSuccess();
     onClose();
   };
 
@@ -77,7 +82,6 @@ export default function AppointmentModal({
     );
   };
   const handleCreateClient = () => {
-    // só dispara a intenção
     onCreateClient();
   };
 
@@ -85,17 +89,20 @@ export default function AppointmentModal({
     onCreatePet();
   };
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} fullWidth maxWidth="sm">
       <DialogTitle>Novo Agendamento</DialogTitle>
 
       <DialogContent>
         <AppointmentForm
           clients={clients}
-          pets={pets}
+          pets={pets ?? []}
           services={services}
           selectedClient={selectedClient ?? null}
           selectedPet={selectedPet ?? null}
           selectedServices={selectedServices}
+          date={date ?? currentDate}
+          time={time ?? undefined}
+          notes={notes}
           onClientChange={onClientSelect}
           onPetChange={onPetSelect}
           onServiceToggle={handleToggleService}

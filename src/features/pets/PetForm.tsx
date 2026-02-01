@@ -12,6 +12,7 @@ import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Mars, Venus } from "lucide-react";
 import { CAT_BREEDS, DOG_BREEDS } from "./constants";
 import type { Client } from "../../pages/ClientsPage";
+import type { AgeUnit } from "../../pages/PetsPage";
 
 export type PetFormData = {
   name: string;
@@ -19,7 +20,7 @@ export type PetFormData = {
   gender: "male" | "female" | undefined;
   breed: string;
   age: number;
-  ageUnit: "year" | "month" | "day";
+  ageUnit: AgeUnit;
   owner_name?: string;
   client_id?: number;
 };

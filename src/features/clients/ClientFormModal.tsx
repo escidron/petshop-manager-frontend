@@ -5,7 +5,7 @@ import {
   DialogTitle,
   Box,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import ClientForm, { type ClientFormData } from "./ClientForm";
 import { Button } from "../../components/Button/Button";
 import type { Client } from "../../pages/ClientsPage";
@@ -16,6 +16,8 @@ type Props = {
   open: boolean;
   mode: "create" | "edit";
   client?: Client;
+  clientForm: ClientFormData;
+  setClientForm: (data: ClientFormData) => void;
   onClose: () => void;
   onSuccess: (client: Client) => void;
   onSuccessAndAddPet?: (client: Client) => void;
@@ -25,53 +27,59 @@ export default function ClientFormModal({
   open,
   mode,
   client,
+  clientForm,
+  setClientForm,
   onClose,
   onSuccess,
   onSuccessAndAddPet,
 }: Props) {
-  const [form, setForm] = useState<ClientFormData>(DEFAULT_CLIENT_FORM);
-
   useEffect(() => {
     if (mode === "edit" && client) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setForm({
+      if (!client) return; 
+      setClientForm({
         name: client.name,
         email: client.email ?? "",
         phone: client.phone ?? "",
       });
     }
-  }, [mode, client]);
+  }, [mode, client, setClientForm]);
 
   const handleSave = async () => {
-    if (!form.name.trim()) return;
+    if (!clientForm.name.trim()) return;
 
     const saved =
       mode === "create"
-        ? await createClient(form)
-        : await updateClient(client!.id.toString(), form);
-
+        ? await createClient(clientForm)
+        : await updateClient(client!.id.toString(), clientForm);
     onSuccess(saved);
+    resetForm();
   };
 
   const handleSaveAndAddPet = async () => {
-    if (!form.name.trim()) return;
-    const saved = await createClient(form);
-    console.log("saved", saved);
+    if (!clientForm.name.trim()) return;
+    const saved = await createClient(clientForm);
     onSuccessAndAddPet?.(saved);
   };
 
+  const resetForm = () => setClientForm(DEFAULT_CLIENT_FORM);
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} fullWidth maxWidth="sm">
       <DialogTitle>
         {mode === "create" ? "Novo Cliente" : "Editar Cliente"}
       </DialogTitle>
 
       <DialogContent>
-        <ClientForm client={form} onChange={setForm} />
+        <ClientForm client={clientForm} onChange={setClientForm} />
       </DialogContent>
 
       <DialogActions sx={{ justifyContent: "space-between", p: 3 }}>
-        <Button variant="text" onClick={onClose}>
+        <Button
+          variant="text"
+          onClick={() => {
+            resetForm();
+            onClose();
+          }}
+        >
           Cancelar
         </Button>
 

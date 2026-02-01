@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchPetsByClient } from "../api/services/pets";
 import { fetchClientById } from "../api/services/clients";
-import type { Client, Pet } from "../pages/ClientsPage";
+import type { Client } from "../pages/ClientsPage";
+import type { Pet } from "../pages/PetsPage";
 
 export function useClient(initialClientId?: number) {
   const [clientId, setClientId] = useState<number | undefined>(
@@ -24,7 +25,11 @@ export function useClient(initialClientId?: number) {
   }, [clientId]);
 
   const fetchPets = useCallback(async () => {
-    if (!clientId) return;
+    console.log('clieent id', clientId);
+    if (!clientId) {
+      setPets([]);
+      return
+    };
 
     const data = await fetchPetsByClient(clientId);
     setPets(data);
@@ -40,6 +45,7 @@ export function useClient(initialClientId?: number) {
     client,
     pets,
     loading,
+    setPets,
     setClientId,   // 🔑 isso é o gatilho
     refetchPets: fetchPets,
   };
