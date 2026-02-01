@@ -12,6 +12,7 @@ import ExpandLess from "@mui/icons-material/ExpandLess";
 import ExpandMore from "@mui/icons-material/ExpandMore";
 import { useNavigate } from "react-router";
 import theme from "../theme";
+import { useLocation } from "react-router-dom";
 
 export type SidebarItemConfig = {
   id: string;
@@ -30,7 +31,9 @@ type Props = {
 const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
   const [open, setOpen] = React.useState(true);
   const navigate = useNavigate();
-
+  const location = useLocation();
+  console.log("location", location.pathname);
+  console.log("item", item);
   const hasChildren = Boolean(item.children?.length);
 
   const handleClick = () => {
@@ -52,6 +55,10 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
           pl: 2 + depth * 2,
           gap: 1,
           color: "text.secondary",
+          backgroundColor:
+            location.pathname == item.path
+              ? alpha(lighten(theme.palette.primary.main, 0.3), 0.3)
+              : "transparent",
           borderRadius: 1,
           "&:hover": {
             backgroundColor: alpha(
@@ -74,7 +81,12 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
         <Collapse in={open} timeout="auto" unmountOnExit>
           <List component="div" disablePadding>
             {item.children!.map((child) => (
-              <SidebarItem key={child.id} item={child} depth={depth + 1} collapsed={collapsed}/>
+              <SidebarItem
+                key={child.id}
+                item={child}
+                depth={depth + 1}
+                collapsed={collapsed}
+              />
             ))}
           </List>
         </Collapse>

@@ -30,6 +30,8 @@ const AppointmentsDailyList = ({
   openFlow,
   handleAction,
 }: Props) => {
+
+
   return (
     <>
       <Box
@@ -274,6 +276,13 @@ const AppointmentsDailyList = ({
             );
           }
         })}
+        {
+          appointments.length === 0 && (
+            <Typography variant="body1" color="text.disabled">
+              Nenhum agendamento para hoje
+            </Typography>
+          )
+        }
       </Box>
     </>
   );
