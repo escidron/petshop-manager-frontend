@@ -16,6 +16,7 @@ import {
 } from "@mui/material";
 import AppointmentForm from "./AppointmentForm";
 import { Button } from "../../components/Button/Button";
+import { useToast } from "../../hooks/useToast";
 
 type Props = {
   open: boolean;
@@ -50,7 +51,7 @@ export default function AppointmentModal({
   const [date, setDate] = useState<Dayjs | null>(null);
   const [time, setTime] = useState<Dayjs | null>(null);
   const [notes, setNotes] = useState("");
-
+  const toast = useToast();
   useEffect(() => {
     fetchServices().then(setServices);
   }, []);
@@ -74,6 +75,7 @@ export default function AppointmentModal({
     });
     onSuccess();
     onClose();
+    toast.success("Agendamento criado com sucesso");
   };
 
   const handleToggleService = (id: number) => {

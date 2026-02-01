@@ -11,6 +11,7 @@ import { Button } from "../../components/Button/Button";
 import type { Client } from "../../pages/ClientsPage";
 import { DEFAULT_CLIENT_FORM } from "./constants";
 import { createClient, updateClient } from "../../api/services/clients";
+import { useToast } from "../../hooks/useToast";
 
 type Props = {
   open: boolean;
@@ -33,9 +34,10 @@ export default function ClientFormModal({
   onSuccess,
   onSuccessAndAddPet,
 }: Props) {
+  const toast = useToast();
   useEffect(() => {
     if (mode === "edit" && client) {
-      if (!client) return; 
+      if (!client) return;
       setClientForm({
         name: client.name,
         email: client.email ?? "",
@@ -52,6 +54,12 @@ export default function ClientFormModal({
         ? await createClient(clientForm)
         : await updateClient(client!.id.toString(), clientForm);
     onSuccess(saved);
+    toast.success(
+      mode === "create"
+        ? "Cliente cadastrado com sucesso"
+        : "Cliente atualizado com sucesso",
+    );
+
     resetForm();
   };
 
@@ -59,6 +67,7 @@ export default function ClientFormModal({
     if (!clientForm.name.trim()) return;
     const saved = await createClient(clientForm);
     onSuccessAndAddPet?.(saved);
+    toast.success("Clieeente cadastrado com sucesso");
   };
 
   const resetForm = () => setClientForm(DEFAULT_CLIENT_FORM);

@@ -14,6 +14,7 @@ import { createPet, updatePet } from "../../api/services/pets";
 import { useClients } from "../../hooks/useClients";
 import type { Pet } from "../../pages/PetsPage";
 import type { Client } from "../../pages/ClientsPage";
+import { useToast } from "../../hooks/useToast";
 
 /* =======================
    Types
@@ -43,6 +44,7 @@ export default function PetFormModal({
   const { clients } = useClients();
   const [saving, setSaving] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     if (mode === "edit" && pet) {
@@ -81,11 +83,13 @@ export default function PetFormModal({
         });
 
         onSuccess(createdPet);
+        toast.success("Pet cadastrado com sucesso");
       }
 
       if (mode === "edit" && pet) {
         const updated = await updatePet(pet.id, petForm);
         onSuccess(updated);
+        toast.success("Pet atualizado com sucesso");
       }
       onClose();
     } finally {

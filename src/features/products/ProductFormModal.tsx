@@ -13,6 +13,7 @@ import type { Product } from "../../pages/ProductsPage";
 import { DEFAULT_PRODUCT_FORM } from "./constants";
 import { createProduct, updateProduct } from "../../api/services/products";
 import ProductForm from "./ProductForm";
+import { useToast } from "../../hooks/useToast";
 
 type Props = {
   open: boolean;
@@ -34,6 +35,7 @@ export default function ProductFormModal({
   onSuccess,
 }: Props) {
   const [saving, setSaving] = useState(false);
+  const toast = useToast();
 
   useEffect(() => {
     if (mode === "edit" && product) {
@@ -61,17 +63,18 @@ export default function ProductFormModal({
       setSaving(true);
 
       if (mode === "create") {
-
         const createdProduct = await createProduct({
           ...productForm,
         });
 
         onSuccess(createdProduct);
+        toast.success("Produto cadastrado com sucesso");
       }
 
       if (mode === "edit" && product) {
         const updated = await updateProduct(product.id, productForm);
         onSuccess(updated);
+        toast.success("Produto atualizado com sucesso");
       }
       onClose();
     } finally {
@@ -86,10 +89,7 @@ export default function ProductFormModal({
       </DialogTitle>
 
       <DialogContent>
-        <ProductForm
-          product={productForm}
-          onChange={setProductForm}
-        />
+        <ProductForm product={productForm} onChange={setProductForm} />
       </DialogContent>
 
       <DialogActions sx={{ justifyContent: "space-between", p: 3 }}>

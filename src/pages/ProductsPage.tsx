@@ -9,6 +9,7 @@ import ProductDeleteModal from "../features/products/ProductToDeleteModal";
 import ProductsToolbar from "../features/products/ProductsToolbar";
 import ProductsTable from "../features/products/ProductsTable";
 import { deleteProduct } from "../api/services/products";
+import { useToast } from "../hooks/useToast";
 
 export type Product = {
   id: number;
@@ -27,8 +28,9 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [productForm, setProductForm] = useState<ProductFormData>(DEFAULT_PRODUCT_FORM);
-
+  const [productForm, setProductForm] =
+    useState<ProductFormData>(DEFAULT_PRODUCT_FORM);
+  const toast = useToast();
   const [productModal, setProductModal] = useState<{
     open: boolean;
     mode?: "create" | "edit";
@@ -41,7 +43,9 @@ export default function ProductsPage() {
     if (!search) return products;
 
     const term = search.toLowerCase();
-    return products.filter((product) => product.name.toLowerCase().includes(term));
+    return products.filter((product) =>
+      product.name.toLowerCase().includes(term),
+    );
   }, [products, search]);
 
   const handleConfirmDelete = async () => {
@@ -52,6 +56,7 @@ export default function ProductsPage() {
       await deleteProduct(productToDelete.id);
       await getProducts();
       setProductToDelete(null);
+      toast.success("Produto apagado com sucesso");
     } finally {
       setDeleting(false);
     }
@@ -69,7 +74,9 @@ export default function ProductsPage() {
         rows={filteredRows}
         loading={loading}
         onRowClick={(id) => navigate(`/registration/pets/${id}`)}
-        onEdit={(product) => setProductModal({ open: true, mode: "edit", product })}
+        onEdit={(product) =>
+          setProductModal({ open: true, mode: "edit", product })
+        }
         onDelete={(pet) => setProductToDelete(pet)}
       />
 
@@ -78,7 +85,9 @@ export default function ProductsPage() {
         <ProductFormModal
           open
           mode={productModal.mode ? productModal.mode : "create"}
-          product={productModal.mode === "edit" ? productModal.product : undefined}
+          product={
+            productModal.mode === "edit" ? productModal.product : undefined
+          }
           onClose={() => setProductModal({ open: false })}
           onSuccess={() => {
             setProductModal({ open: false });
