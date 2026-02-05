@@ -10,29 +10,28 @@ const menu: SidebarItemConfig[] = [
     path: "/",
   },
   {
-    id: "cadastros",
-    label: "Cadastros",
+    id: "clients",
+    label: "Clientes",
+    icon: <Users />,
+    path: "/registration/clients",
+  },
+  {
+    id: "pets",
+    label: "Pets",
+    icon: <PawPrint />,
+    path: "/registration/pets",
+  },
+  {
+    id: "products",
+    label: "Produtos",
+    icon: <ScanBarcode />,
+    path: "/registration/products",
+  },
+  {
+    id: "services",
+    label: "Serviços",
     icon: <NotebookTabs />,
-    children: [
-      {
-        id: "clients",
-        label: "Clientes",
-        icon: <Users />,
-        path: "/registration/clients",
-      },
-      {
-        id: "pets",
-        label: "Pets",
-        icon: <PawPrint />,
-        path: "/registration/pets",
-      },
-      {
-        id: "products",
-        label: "Produtos",
-        icon: <ScanBarcode />,
-        path: "/registration/products",
-      },
-    ],
+    path: "/registration/services",
   },
 ];
 

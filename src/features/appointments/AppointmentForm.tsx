@@ -102,10 +102,12 @@ export default function AppointmentForm({
         <Box sx={{ display: "flex", gap: 1 }}>
           <Autocomplete
             value={selectedClient}
-            sx={{ width: "75%" }}
+            sx={{ width: "70%" }}
             options={clients}
             size="small"
             getOptionLabel={(option) => option.name}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            getOptionKey={(option) => option.id}
             onChange={(_, value) => onClientChange(value || undefined)}
             renderInput={(params) => (
               <TextField {...params} placeholder="Pesquisar cliente" />
@@ -113,7 +115,7 @@ export default function AppointmentForm({
           />
 
           <Button
-            sx={{ width: "25%" }}
+            sx={{ width: "30%", minWidth: '160px' }}
             startIcon={<Plus size={18} />}
             variant="outlined"
             onClick={onCreateClient}
@@ -128,7 +130,7 @@ export default function AppointmentForm({
         <Box sx={{ display: "flex", gap: 1 }}>
           <Autocomplete
             value={selectedPet}
-            sx={{ width: "75%" }}
+            sx={{ width: "70%" }}
             options={pets}
             size="small"
             getOptionLabel={(option) => option.name}
@@ -139,7 +141,7 @@ export default function AppointmentForm({
           />
 
           <Button
-            sx={{ width: "25%" }}
+            sx={{ width: "30%", minWidth: '160px' }}
             startIcon={<Plus size={18} />}
             variant="outlined"
             onClick={onCreatePet}

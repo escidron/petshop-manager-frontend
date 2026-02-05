@@ -6,10 +6,12 @@ import ClientDetailsPage from "./pages/ClientDetailsPage";
 import Dashboard from "./pages/Dashboard";
 import PetsPage from "./pages/PetsPage";
 import ProductsPage from "./pages/ProductsPage";
+import SignupPage from "./pages/SignupPage";
 
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/signup" element={<SignupPage />} />
       <Route element={<MainLayout />}>
         <Route path="/" element={<Dashboard />} />
         <Route path="registration" element={<RegistrationLayout />}>
@@ -23,7 +25,6 @@ export default function AppRoutes() {
           </Route>
           <Route path="products">
             <Route index element={<ProductsPage />} />
-            {/* <Route path=":id" element={<ClientDetailsPage />} /> */}
           </Route>
         </Route>
       </Route>

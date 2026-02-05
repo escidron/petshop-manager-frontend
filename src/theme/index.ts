@@ -47,10 +47,23 @@ const theme = createTheme({
   },
 
   typography: {
-    fontFamily: "Roboto, Arial, sans-serif",
+    // fontFamily: "'Inter', 'Roboto', 'Arial', sans-serif",
+    // fontFamily: "'Poppins', 'Roboto', sans-serif",
+    // fontFamily: "'Montserrat', 'Roboto', sans-serif",
+    // fontFamily: "'DM Sans', 'Roboto', sans-serif",
+    // fontFamily: "'Nunito', 'Roboto', sans-serif",
+    // fontFamily: "'IBM Plex Sans', 'Inter', sans-serif",
+    // fontFamily: "'Satoshi', 'Inter', sans-serif",
+    // fontFamily: "'Plus Jakarta Sans', sans-serif",
+    // fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+    // fontFamily: "'Manrope', 'Inter', sans-serif",
+
     h1: { fontSize: "2rem", fontWeight: 700 },
     h2: { fontSize: "1.75rem", fontWeight: 600 },
-    body1: { fontSize: "1rem" },
+    body1: {
+      fontSize: "0.95rem",
+      lineHeight: 1.6,
+    },
   },
 
   spacing: 8,
