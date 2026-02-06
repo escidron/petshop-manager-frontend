@@ -118,7 +118,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
           <CircularProgress />
         </Box>
       ) : (
-        <Table sx={{ minWidth: 500 }} aria-label="pets table">
+        <Table sx={{ minWidth: 500 }} aria-label="products table">
           <TableHead>
             <TableRow>
               <TableCell

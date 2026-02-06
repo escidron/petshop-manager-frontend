@@ -77,7 +77,7 @@ export default function ProductsPage() {
         onEdit={(product) =>
           setProductModal({ open: true, mode: "edit", product })
         }
-        onDelete={(pet) => setProductToDelete(pet)}
+        onDelete={(product) => setProductToDelete(product)}
       />
 
       {/* Create / Edit Modal */}
