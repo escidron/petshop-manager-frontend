@@ -67,7 +67,7 @@ export default function ClientFormModal({
     if (!clientForm.name.trim()) return;
     const saved = await createClient(clientForm);
     onSuccessAndAddPet?.(saved);
-    toast.success("Clieeente cadastrado com sucesso");
+    toast.success("Cliente cadastrado com sucesso");
   };
 
   const resetForm = () => setClientForm(DEFAULT_CLIENT_FORM);

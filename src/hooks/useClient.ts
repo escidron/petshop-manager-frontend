@@ -25,7 +25,6 @@ export function useClient(initialClientId?: number) {
   }, [clientId]);
 
   const fetchPets = useCallback(async () => {
-    console.log('clieent id', clientId);
     if (!clientId) {
       setPets([]);
       return
