@@ -64,7 +64,6 @@ export const createAppointment = async (
   const response = await apiClient.post(
     "/api/v1/appointments",
     payload,
-    { params: { tenant_id: 1 } }
   );
 
   return response.data;
@@ -75,7 +74,6 @@ export const getAppointmentsByDay = async (date: string) => {
     `/api/v1/appointments/day/${date}`,
     {
       params: {
-        tenant_id: 1,
         date, // format: YYYY-MM-DD
       },
     }
@@ -93,11 +91,6 @@ export const applyAppointmentAction = async (
     {
       action,
     },
-    {
-      params: {
-        tenant_id: 1,
-      },
-    }
   );
 
   return response.data;
