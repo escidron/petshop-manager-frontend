@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import MainLayout from "./layouts/MainLayout";
 import ClientsPage from "./pages/ClientsPage";
 import RegistrationLayout from "./layouts/RegistrationLayout";
@@ -8,12 +8,43 @@ import PetsPage from "./pages/PetsPage";
 import ProductsPage from "./pages/ProductsPage";
 import SignupPage from "./pages/SignupPage";
 import ServicesPage from "./pages/ServicesPage";
+import LoginPage from "./pages/LoginPage";
+import { useAuth } from "./hooks/useAuth";
+import type { JSX } from "react";
+
+type Props = {
+  children: JSX.Element;
+};
+
+export const ProtectedRoute = ({ children }: Props) => {
+  const { user, checking } = useAuth();
+  const location = useLocation();
+
+  if (checking) {
+    // 🔹 ainda checando login → renderiza o layout normalmente, sem redirecionamento
+    return children; 
+  }
+
+  if (!user) {
+    // não está logado → redireciona
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return children;
+};
 
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
-      <Route element={<MainLayout />}>
+      <Route
+        element={
+          <ProtectedRoute>
+            <MainLayout />
+          </ProtectedRoute>
+        }
+      >
         <Route path="/" element={<Dashboard />} />
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">

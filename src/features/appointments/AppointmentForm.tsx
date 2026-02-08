@@ -12,11 +12,11 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import type { Client } from "../../pages/ClientsPage";
-import type { Service } from "../../api/services/tenant_services";
 import type { Dayjs } from "dayjs";
 import { Button } from "../../components/Button/Button";
 import { Plus } from "lucide-react";
 import type { Pet } from "../../pages/PetsPage";
+import type { Service } from "../../pages/ServicesPage";
 
 type Props = {
   clients: Client[];

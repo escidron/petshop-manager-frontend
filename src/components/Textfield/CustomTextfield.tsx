@@ -12,6 +12,7 @@ const CustomTextField: React.FC<CustomTextFieldProps> = ({
   icon,
   iconPosition = "start",
   size = "small",
+  slotProps,
   ...props
 }) => {
   return (
@@ -20,11 +21,10 @@ const CustomTextField: React.FC<CustomTextFieldProps> = ({
       {...props}
       slotProps={{
         input: {
+          ...slotProps?.input,
           ...(icon && {
             [iconPosition === "start" ? "startAdornment" : "endAdornment"]: (
-              <InputAdornment position={iconPosition}>
-                {icon}
-              </InputAdornment>
+              <InputAdornment position={iconPosition}>{icon}</InputAdornment>
             ),
           }),
           sx: {

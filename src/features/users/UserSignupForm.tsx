@@ -2,6 +2,7 @@ import { Box, FormControl, FormLabel, Stack, Typography } from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
 import { Lock, Mail, User } from "lucide-react";
+import { useNavigate } from "react-router";
 
 export type UserForm = {
   name: string;
@@ -26,6 +27,8 @@ type Props = {
   handleSubmit: () => void;
 };
 const UserSignupForm = ({ user, onChange, handleSubmit }: Props) => {
+  const navigate = useNavigate();
+  const handleRedirect = () => navigate("/login");
   const handleChange =
     (field: keyof UserForm) => (e: React.ChangeEvent<HTMLInputElement>) => {
       onChange({
@@ -103,6 +106,7 @@ const UserSignupForm = ({ user, onChange, handleSubmit }: Props) => {
       <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
         <Typography>Ja possui uma conta?</Typography>
         <Typography
+          onClick={handleRedirect}
           sx={{
             color: "primary.main",
             cursor: "pointer",

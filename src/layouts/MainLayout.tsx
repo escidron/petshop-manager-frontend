@@ -19,6 +19,10 @@ import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
+import { Typography } from "@mui/material";
+import { ChevronDown, User } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
+import UserMenu from "../features/users/UserMenu";
 
 const drawerWidth = 240;
 
@@ -107,6 +111,16 @@ const Drawer = styled(MuiDrawer, {
 export default function MainLayout() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
+  const { user } = useAuth();
+  const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
+  const openMenu = Boolean(anchorEl);
+
+  const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+  const handleClose = () => {
+    setAnchorEl(null);
+  };
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -127,6 +141,7 @@ export default function MainLayout() {
           backgroundColor: "white",
           color: "text.primary",
           borderBottom: "1px solid #e0e0e0",
+          display: { xs: "none", sm: "block" },
         }}
       >
         <Toolbar>
@@ -139,9 +154,48 @@ export default function MainLayout() {
           >
             <MenuIcon />
           </IconButton>
-          {/* <Typography variant="h6" noWrap component="div">
-            Route information
-          </Typography> */}
+          <Box
+            component="button"
+            onClick={handleClick}
+            sx={{
+              backgroundColor: "transparent",
+              border: "none",
+              display: "flex",
+              alignItems: "center",
+              marginLeft: "auto",
+              gap: 2,
+              cursor: "pointer",
+            }}
+          >
+            <Box
+              sx={{
+                backgroundColor: "secondary.main",
+                borderRadius: "100%",
+                p: 0.5,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <User size={16} />
+            </Box>
+            <Typography
+              variant="body1"
+              noWrap
+              component="div"
+              sx={{ display: { xs: "none", sm: "block" } }}
+            >
+              {user?.name}
+            </Typography>
+            <ChevronDown size={18} />
+          </Box>
+          <Box sx={{ marginTop: 3 }}>
+            <UserMenu
+              open={openMenu}
+              anchorEl={anchorEl}
+              handleClose={handleClose}
+            />
+          </Box>
         </Toolbar>
       </AppBar>
       <Drawer
@@ -149,12 +203,15 @@ export default function MainLayout() {
         open={open}
         PaperProps={{
           sx: {
-            backgroundColor: "primary.main", 
+            backgroundColor: "primary.main",
           },
         }}
       >
         <DrawerHeader sx={{ backgroundColor: "primary.main" }}>
-          <IconButton onClick={handleDrawerClose} sx={{color:'text.secondary'}}>
+          <IconButton
+            onClick={handleDrawerClose}
+            sx={{ color: "text.secondary" }}
+          >
             {theme.direction === "rtl" ? (
               <ChevronRightIcon />
             ) : (
