@@ -44,8 +44,7 @@ const Dashboard = () => {
   const { pets, setClientId, setPets } = useClient();
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
   const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
-  const [clientForm, setClientForm] =
-    useState<ClientFormData>(DEFAULT_CLIENT_FORM);
+  const [clientForm, setClientForm] = useState<ClientFormData>(DEFAULT_CLIENT_FORM);
   const isFlowOpen = (
     flow: AppointmentFlowState,
   ): flow is Extract<AppointmentFlowState, { open: true }> => {

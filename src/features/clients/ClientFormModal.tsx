@@ -1,24 +1,23 @@
 import {
+  Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
-  Box,
+  Typography,
 } from "@mui/material";
-import { useEffect } from "react";
-import ClientForm, { type ClientFormData } from "./ClientForm";
-import { Button } from "../../components/Button/Button";
-import type { Client } from "../../pages/ClientsPage";
-import { DEFAULT_CLIENT_FORM } from "./constants";
 import { createClient, updateClient } from "../../api/services/clients";
 import { useToast } from "../../hooks/useToast";
+import type { Client, ClientFormData } from "./types";
+import ClientForm from "./ClientForm";
+import { clientToFormData } from "./mapper";
+import { DEFAULT_CLIENT_FORM } from "./constants";
+import { X } from "lucide-react";
+import { useState } from "react";
 
 type Props = {
   open: boolean;
   mode: "create" | "edit";
   client?: Client;
-  clientForm: ClientFormData;
-  setClientForm: (data: ClientFormData) => void;
   onClose: () => void;
   onSuccess: (client: Client) => void;
   onSuccessAndAddPet?: (client: Client) => void;
@@ -28,82 +27,69 @@ export default function ClientFormModal({
   open,
   mode,
   client,
-  clientForm,
-  setClientForm,
   onClose,
   onSuccess,
   onSuccessAndAddPet,
 }: Props) {
   const toast = useToast();
-  useEffect(() => {
-    if (mode === "edit" && client) {
-      if (!client) return;
-      setClientForm({
-        name: client.name,
-        email: client.email ?? "",
-        phone: client.phone ?? "",
-      });
-    }
-  }, [mode, client, setClientForm]);
+  const defaultValues = client ? clientToFormData(client) : DEFAULT_CLIENT_FORM;
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
-  const handleSave = async () => {
-    if (!clientForm.name.trim()) return;
-
+  const handleSubmit = async (data: ClientFormData, action?: "addPet") => {
+    console.log('data', data);
     const saved =
       mode === "create"
-        ? await createClient(clientForm)
-        : await updateClient(client!.id.toString(), clientForm);
-    onSuccess(saved);
+        ? await createClient(data)
+        : await updateClient(client!.id.toString(), data);
+
     toast.success(
       mode === "create"
         ? "Cliente cadastrado com sucesso"
         : "Cliente atualizado com sucesso",
     );
 
-    resetForm();
+    if (action === "addPet") {
+      onSuccessAndAddPet?.(saved);
+    } else {
+      onSuccess(saved);
+    }
+
+    onClose();
   };
 
-  const handleSaveAndAddPet = async () => {
-    if (!clientForm.name.trim()) return;
-    const saved = await createClient(clientForm);
-    onSuccessAndAddPet?.(saved);
-    toast.success("Cliente cadastrado com sucesso");
-  };
-
-  const resetForm = () => setClientForm(DEFAULT_CLIENT_FORM);
   return (
-    <Dialog open={open} fullWidth maxWidth="sm">
-      <DialogTitle>
-        {mode === "create" ? "Novo Cliente" : "Editar Cliente"}
+    <Dialog
+      open={open}
+      maxWidth={false} // permite ultrapassar os limites padrões
+      slotProps={{
+        paper: {
+          sx: {
+            width: showAdditionalInfo ? "80%" : "500px", 
+            maxWidth: "1400px", // largura máxima
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+      >
+        <Typography variant="h5">
+          {mode === "create" ? "Novo Cliente" : "Editar Cliente"}
+        </Typography>
+        <Box sx={{ cursor: "pointer" }}>
+          <X onClick={onClose} />
+        </Box>
       </DialogTitle>
 
       <DialogContent>
-        <ClientForm client={clientForm} onChange={setClientForm} />
+        <ClientForm
+          mode={mode}
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
+          showAdditionalInfo={showAdditionalInfo}
+          setShowAdditionalInfo={setShowAdditionalInfo}
+        />
       </DialogContent>
-
-      <DialogActions sx={{ justifyContent: "space-between", p: 3 }}>
-        <Button
-          variant="text"
-          onClick={() => {
-            resetForm();
-            onClose();
-          }}
-        >
-          Cancelar
-        </Button>
-
-        <Box sx={{ display: "flex", gap: 2 }}>
-          <Button variant="outlined" onClick={handleSave}>
-            Salvar
-          </Button>
-
-          {mode === "create" && (
-            <Button onClick={handleSaveAndAddPet}>
-              Salvar e cadastrar pet
-            </Button>
-          )}
-        </Box>
-      </DialogActions>
     </Dialog>
   );
 }

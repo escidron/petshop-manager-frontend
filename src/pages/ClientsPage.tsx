@@ -10,23 +10,13 @@ import { deleteClient } from "../api/services/clients";
 import PetFormModal from "../features/pets/PetFormModal";
 import type { PetFormData } from "../features/pets/PetForm";
 import { DEFAULT_PET_FORM } from "../features/pets/constants";
-import type { ClientFormData } from "../features/clients/ClientForm";
-import { DEFAULT_CLIENT_FORM } from "../features/clients/constants";
-
-export type Client = {
-  id: number;
-  name: string;
-  email: string | null;
-  phone: string | null;
-  is_active: boolean;
-};
+import type { Client } from "../features/clients/types";
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
-  const [clientForm, setClientForm] = useState<ClientFormData>(DEFAULT_CLIENT_FORM);
 
   const [clientModal, setClientModal] = useState<{
     open: boolean;
@@ -66,7 +56,7 @@ export default function ClientsPage() {
   };
   
   const resetPetForm = () => setPetForm(DEFAULT_PET_FORM);
-  const resetClientForm = () => setClientForm(DEFAULT_CLIENT_FORM);
+  // const resetClientForm = () => setClientForm(DEFAULT_CLIENT_FORM);
 
   return (
     <Box sx={{ maxWidth: "60%", mx: "auto", p: 3 }}>
@@ -91,13 +81,10 @@ export default function ClientsPage() {
         open={clientModal.open}
         mode={clientModal.mode}
         client={clientModal.client}
-        clientForm={clientForm}
-        setClientForm={setClientForm}
         onClose={() => setClientModal({ open: false, mode: "create" })}
         onSuccess={async () => {
           await getClients();
           setClientModal({ open: false, mode: "create" });
-          resetClientForm();
           resetPetForm();
         }}
         onSuccessAndAddPet={(client) => {
@@ -115,7 +102,7 @@ export default function ClientsPage() {
           setPetModal({ open: false })
           setClientModal({ open: false, mode: "create" });
           resetPetForm();
-          resetClientForm();
+          // resetClientForm();
         }}
         mode={"create"}
         petForm={petForm}

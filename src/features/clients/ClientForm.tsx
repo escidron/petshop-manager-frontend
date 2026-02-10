@@ -1,338 +1,661 @@
 import {
   Autocomplete,
   Box,
+  ButtonGroup,
+  CircularProgress,
   Divider,
   FormControl,
   FormLabel,
   InputAdornment,
+  Skeleton,
   TextField,
   Typography,
 } from "@mui/material";
+import { Controller, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useEffect, useState } from "react";
 
 import CustomTextField from "../../components/Textfield/CustomTextfield";
-import { ChevronDown, ChevronUp, Info, Minus, Plus, Search } from "lucide-react";
-import theme from "../../theme";
-import { useState } from "react";
 import { Button } from "../../components/Button/Button";
 
-export type ClientFormData = {
-  name: string;
-  email?: string;
-  phone?: string;
-
-  phone_secondary_name?: string;
-  phone_secondary?: string;
-
-  phone_tertiary_name?: string;
-  phone_tertiary?: string;
-
-  cep?: string;
-  street?: string;
-  number?: string;
-  complement?: string;
-  neighborhood?: string;
-  city?: string;
-  state?: string;
-
-  instagram?: string;
-  facebook?: string;
-  x?: string;
-};
+import { Info, Minus, Plus, Search } from "lucide-react";
+import theme from "../../theme";
+import type { ClientFormData } from "./types";
+import { clientSchema } from "./schemas";
+import {
+  maskBirthDate,
+  maskCep,
+  maskCnpj,
+  maskCpf,
+  maskOnlyNumbers,
+  maskPhone,
+} from "../../utils/masks";
+import { BRAZIL_STATES } from "../../utils/countryStatesList";
+import { getAddressByCep } from "../../api/services/address";
 
 type Props = {
-  client: ClientFormData;
-  onChange: (data: ClientFormData) => void;
+  mode: "create" | "edit";
+  defaultValues?: Partial<ClientFormData>;
+  onSubmit: (data: ClientFormData, action?: "addPet") => void;
+  showAdditionalInfo: boolean;
+  setShowAdditionalInfo: (value: boolean) => void;
 };
 
-export default function ClientForm({ client, onChange }: Props) {
-  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+export default function ClientForm({
+  mode,
+  defaultValues,
+  onSubmit,
+  showAdditionalInfo,
+  setShowAdditionalInfo,
+}: Props) {
   const [addPhone, setAddPhone] = useState(false);
-  const handleChange =
-    (field: keyof ClientFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      onChange({
-        ...client,
-        [field]: e.target.value,
-      });
+  const [loadingCep, setLoadingCep] = useState(false);
+  const form = useForm<ClientFormData>({
+    resolver: zodResolver(clientSchema),
+    defaultValues: {
+      is_active: true,
+      ...defaultValues,
+    },
+  });
+
+  const {
+    control,
+    handleSubmit,
+    setValue,
+    resetField,
+    reset,
+    formState: { errors },
+  } = form;
+  const cepValue = useWatch({ control, name: "cep" });
+  const documentType = useWatch({ control, name: "document_type" });
+
+  const handleCepLookup = async (cep: string) => {
+    try {
+      setLoadingCep(true);
+      const address = await getAddressByCep(cep);
+
+      setValue("street", address.street || "");
+      setValue("neighborhood", address.neighborhood || "");
+      setValue("city", address.city || "");
+      setValue("state", address.state || "");
+    } catch (error) {
+      console.error("Erro ao buscar CEP", error);
+    } finally {
+      setLoadingCep(false);
+    }
+  };
+
+  const applyMasksOnEdit = (data?: Partial<ClientFormData>) => {
+    if (!data) return data;
+
+    return {
+      ...data,
+      phone: data.phone ? maskPhone(data.phone) : "",
+      phone_secondary: data.phone_secondary
+        ? maskPhone(data.phone_secondary)
+        : "",
+      phone_tertiary: data.phone_tertiary ? maskPhone(data.phone_tertiary) : "",
+      cep: data.cep ? maskCep(data.cep) : "",
+      document:
+        data.document && data.document_type === "CPF"
+          ? maskCpf(data.document)
+          : data.document && data.document_type === "CNPJ"
+            ? maskCnpj(data.document)
+            : "",
+      birth_date: data.birth_date
+        ? maskBirthDate(data.birth_date) // DD/MM/YYYY
+        : "",
     };
+  };
+
+  useEffect(() => {
+    if (!defaultValues) return;
+
+    reset({
+      is_active: true,
+      ...applyMasksOnEdit(defaultValues),
+    });
+  }, [defaultValues, reset]);
+
+  useEffect(() => {
+    const cleanCep = cepValue?.replace(/\D/g, "");
+
+    if (cleanCep?.length !== 8) return;
+
+    handleCepLookup(cleanCep);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cepValue]);
+
+  useEffect(() => {
+    console.log("FORM ERRORS 👉", errors);
+  }, [errors]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <Divider />
-      <Box>
-        <Typography variant="h6">Cadastro Básico</Typography>
-        <Typography fontSize={"12px"} color="text.disabled">
-          Campos obrigatórios
-        </Typography>
-      </Box>
-      <Box sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}>
-        <FormControl sx={{ width: "100%" }}>
-          <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-            Nome completo
-          </FormLabel>
-          <CustomTextField
-            value={client.name}
-            onChange={handleChange("name")}
-            required
-            placeholder="ex: Pedro da Silva"
-          />
-        </FormControl>
-        <FormControl sx={{ width: "100%" }}>
-          <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-            Telefone
-          </FormLabel>
-          <CustomTextField
-            value={client.phone}
-            onChange={handleChange("phone")}
-            placeholder="ex: (11) 99999-9999"
-          />
-        </FormControl>
-      </Box>
-      <Divider />
-      <Box>
-        <Typography variant="h6">Informações Opcionais</Typography>
-        <Typography fontSize={"12px"} color="text.disabled">
-          Campos não obrigatórios
-        </Typography>
-      </Box>
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>E-mail</FormLabel>
-        <CustomTextField
-          value={client.email}
-          onChange={handleChange("email")}
-          placeholder="ex: email@exemplo.com"
-        />
-      </FormControl>
-      <Button
-        onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
-        variant="text"
-        startIcon={showAdditionalInfo ? <ChevronUp /> : <ChevronDown />}
+    <form>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+        }}
       >
-        {showAdditionalInfo ? "Ocultar" : "Mostrar mais informações"}
-      </Button>
-      {showAdditionalInfo && (
+        <Divider />
         <Box
-          sx={{
-            display: "flex",
-            gap: 2,
-            justifyContent: "space-between",
-            flexDirection: "column",
-          }}
+          className="wrapper"
+          sx={{ display: "flex", justifyContent: "space-between" }}
         >
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-            <Info size={16} color={theme.palette.text.disabled} />
-            <Typography fontSize={"13px"} color="text.disabled">
-              O endereço ajuda no transporte do pet, quando necessário.
-            </Typography>
-          </Box>
+          {/* ================= BÁSICO ================= */}
+
           <Box
-            sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}
+            className="block-1"
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexDirection: "column",
+              width: showAdditionalInfo ? "30%" : "100%",
+            }}
           >
-            <FormControl sx={{ width: "25%" }}>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cep</FormLabel>
-              <CustomTextField
-                iconPosition="start"
-                icon={<Search size={18} />}
-                value={client.cep}
-                onChange={handleChange("cep")}
-                required
-              />
-            </FormControl>
-            <FormControl sx={{ width: "75%" }}>
+            <Box>
+              <Typography variant="h6">Cadastro Básico</Typography>
+              <Typography fontSize="12px" color="text.disabled">
+                Campos obrigatórios
+              </Typography>
+            </Box>
+            <FormControl fullWidth sx={{ color: "text.primary" }}>
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Endereço
+                Nome completo
               </FormLabel>
-              <CustomTextField
-                value={client.street}
-                onChange={handleChange("street")}
-                placeholder=""
-              />
-            </FormControl>
-          </Box>
-          <Box
-            sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}
-          >
-            <FormControl sx={{ width: "25%" }}>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Numero
-              </FormLabel>
-              <CustomTextField
-                value={client.number}
-                onChange={handleChange("number")}
-                required
-              />
-            </FormControl>
-            <FormControl sx={{ width: "75%" }}>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Complemento
-              </FormLabel>
-              <CustomTextField
-                value={client.complement}
-                onChange={handleChange("complement")}
-                placeholder=""
-              />
-            </FormControl>
-          </Box>
-          <Box
-            sx={{ display: "flex", gap: 2, justifyContent: "space-between" }}
-          >
-            <FormControl sx={{ width: "25%" }}>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>UF</FormLabel>
-              <Autocomplete
-                value={client.state}
-                // sx={{ width: "70%" }}
-                options={[]}
-                size="small"
-                // getOptionLabel={(option) => option.name}
-                // onChange={(_, value) => onPetChange(value || undefined)}
-                renderInput={(params) => <TextField {...params} />}
-              />
-            </FormControl>
-            <FormControl sx={{ width: "40%" }}>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Bairro
-              </FormLabel>
-              <CustomTextField
-                value={client.neighborhood}
-                onChange={handleChange("neighborhood")}
-                placeholder=""
-              />
-            </FormControl>
-            <FormControl sx={{ width: "30%" }}>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Cidade
-              </FormLabel>
-              <CustomTextField
-                value={client.city}
-                onChange={handleChange("city")}
-                placeholder=""
-              />
-            </FormControl>
-          </Box>
-          <Divider />
-          <Button
-          onClick={()=>setAddPhone(!addPhone)}
-            variant="text"
-            startIcon={addPhone ? <Minus size={16} /> : <Plus size={16} />}
-            sx={{ display: "flex", marginRight: "auto" }}
-          >
-            {addPhone ? "Ocultar telefones adicionais" : "Adicionar telefone de contato"}
-          </Button>
-          {addPhone && (
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <FormControl sx={{ width: "40%" }}>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Telefone 2
-                  </FormLabel>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field, fieldState }) => (
                   <CustomTextField
-                    value={client.email}
-                    onChange={handleChange("email")}
-                    placeholder="ex: (11) 99999-9999"
+                    {...field}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="ex: Pedro da Silva"
                   />
-                </FormControl>
-                <FormControl sx={{ width: "60%" }}>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Nome do contato 2
-                  </FormLabel>
+                )}
+              />
+            </FormControl>
+
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                Telefone
+              </FormLabel>
+              <Controller
+                name="phone"
+                control={control}
+                render={({ field, fieldState }) => (
                   <CustomTextField
-                    value={client.email}
-                    onChange={handleChange("email")}
+                    {...field}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="(00) 00000-0000"
+                    onChange={(e) => field.onChange(maskPhone(e.target.value))}
                   />
-                </FormControl>
+                )}
+              />
+            </FormControl>
+            <Button
+              variant="text"
+              startIcon={showAdditionalInfo ? <Minus /> : <Plus />}
+              onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
+            >
+              {showAdditionalInfo ? "Ocultar" : "Mostrar"} Cadastro Completo
+            </Button>
+          </Box>
+
+          {/* ================= Informacoes adicionais ================= */}
+          {showAdditionalInfo && (
+            <Box
+              className="block-2"
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexDirection: "column",
+                width: "30%",
+              }}
+            >
+              <Box>
+                <Typography variant="h6">Informações Adicionais</Typography>
+                <Typography fontSize="12px" color="text.disabled">
+                  Campos não obrigatórios
+                </Typography>
               </Box>
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <FormControl sx={{ width: "40%" }}>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Telefone 3
-                  </FormLabel>
-                  <CustomTextField
-                    value={client.email}
-                    onChange={handleChange("email")}
-                    placeholder="ex: (11) 99999-9999"
+
+              <FormControl>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  E-mail
+                </FormLabel>
+                <Controller
+                  name="email"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      placeholder="email@exemplo.com"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              {/* Documento */}
+
+              <FormControl>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Documento
+                </FormLabel>
+                <Box sx={{ display: "flex", gap: 2, flexDirection: "row" }}>
+                  <ButtonGroup disableElevation variant="contained">
+                    <Button
+                      variant={
+                        documentType === "CPF" ? "contained" : "outlined"
+                      }
+                      onClick={() => {
+                        resetField("document");
+                        setValue("document_type", "CPF");
+                      }}
+                    >
+                      CPF
+                    </Button>
+                    <Button
+                      variant={
+                        documentType === "CPF" ? "outlined" : "contained"
+                      }
+                      onClick={() => {
+                        resetField("document");
+                        setValue("document_type", "CNPJ");
+                      }}
+                    >
+                      CNPJ
+                    </Button>
+                  </ButtonGroup>
+                  <Controller
+                    name="document"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        sx={{ width: "100%" }}
+                        placeholder={
+                          documentType === "CPF"
+                            ? "000.000.000-00"
+                            : "00.000.000/0000-00"
+                        }
+                        onChange={(e) =>
+                          field.onChange(
+                            documentType === "CPF"
+                              ? maskCpf(e.target.value)
+                              : maskCnpj(e.target.value),
+                          )
+                        }
+                      />
+                    )}
                   />
-                </FormControl>
-                <FormControl sx={{ width: "60%" }}>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Nome do contato 3
-                  </FormLabel>
-                  <CustomTextField
-                    value={client.email}
-                    onChange={handleChange("email")}
+                </Box>
+              </FormControl>
+              <FormControl>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Data de nascimento
+                </FormLabel>
+                <Controller
+                  name="birth_date"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      placeholder="DD/MM/AAAA"
+                      onChange={(e) =>
+                        field.onChange(maskBirthDate(e.target.value))
+                      }
+                    />
+                  )}
+                />
+              </FormControl>
+              <FormControl>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Redes sociais
+                </FormLabel>
+                <Box sx={{ display: "flex", gap: 1 }}>
+                  <Controller
+                    name="instagram"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        placeholder="Instagram"
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Box
+                                  component="img"
+                                  src="/instagram.png"
+                                  sx={{ width: 24 }}
+                                />
+                              </InputAdornment>
+                            ),
+                          },
+                        }}
+                      />
+                    )}
                   />
-                </FormControl>
+                  <Controller
+                    name="facebook"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        placeholder="Facebook"
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Box
+                                  component="img"
+                                  src="/facebook.png"
+                                  sx={{ width: 24 }}
+                                />
+                              </InputAdornment>
+                            ),
+                          },
+                        }}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="x"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        placeholder="X(twitter)"
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Box
+                                  component="img"
+                                  src="/x.png"
+                                  sx={{ width: 24 }}
+                                />
+                              </InputAdornment>
+                            ),
+                          },
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
+              </FormControl>
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Button
+                  variant="text"
+                  startIcon={addPhone ? <Minus /> : <Plus />}
+                  onClick={() => setAddPhone((v) => !v)}
+                  sx={{ marginRight: "auto" }}
+                >
+                  {addPhone
+                    ? "Ocultar telefones adicionais"
+                    : "Adicionar telefone de contato"}
+                </Button>
+
+                {addPhone && (
+                  <Box
+                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
+                  >
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <Controller
+                        name="phone_secondary"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField
+                            {...field}
+                            placeholder="(00) 00000-0000"
+                            onChange={(e) =>
+                              field.onChange(maskPhone(e.target.value))
+                            }
+                          />
+                        )}
+                      />
+                      <Controller
+                        name="phone_secondary_name"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField {...field} placeholder="Contato 2" />
+                        )}
+                      />
+                    </Box>
+
+                    <Box sx={{ display: "flex", gap: 2 }}>
+                      <Controller
+                        name="phone_tertiary"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField
+                            {...field}
+                            placeholder="(00) 00000-0000"
+                            onChange={(e) =>
+                              field.onChange(maskPhone(e.target.value))
+                            }
+                          />
+                        )}
+                      />
+                      <Controller
+                        name="phone_tertiary_name"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField {...field} placeholder="Contato 3" />
+                        )}
+                      />
+                    </Box>
+                  </Box>
+                )}
               </Box>
             </Box>
           )}
 
-          <Divider />
+          {/* ================= Endereco ================= */}
+          {showAdditionalInfo && (
+            <Box
+              className="block-3"
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexDirection: "column",
+                width: "30%",
+              }}
+            >
+              <Box>
+                <Typography variant="h6">Endereço</Typography>
+                <Typography fontSize="12px" color="text.disabled">
+                  Campos não obrigatórios
+                </Typography>
+              </Box>
 
-          <FormControl>
-            <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-              Redes Sociais
-            </FormLabel>
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <CustomTextField
-                placeholder="Instagram"
-                value={client.instagram}
-                onChange={handleChange("instagram")}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Box
-                          component="img"
-                          src="/instagram.png"
-                          alt="Instagram"
-                          sx={{ width: 30, height: 30 }}
+              {/* ================= EXTRA ================= */}
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                {/* CEP + Endereço */}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <FormControl sx={{ width: "40%" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      CEP
+                    </FormLabel>
+                    <Controller
+                      name="cep"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          placeholder="00000-000"
+                          iconPosition="start"
+                          icon={loadingCep ? <CircularProgress size={18}/> : <Search size={18}/>}
+                          onBlur={() => handleCepLookup(field.value || "")}
+                          onChange={(e) =>
+                            field.onChange(maskCep(e.target.value))
+                          }
                         />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <CustomTextField
-                placeholder="Facebook"
-                value={client.facebook}
-                onChange={handleChange("facebook")}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Box
-                          component="img"
-                          src="/facebook.png"
-                          alt="Facebook"
-                          sx={{ width: 30, height: 30 }}
+                      )}
+                    />
+                  </FormControl>
+
+                  <FormControl sx={{ width: "60%" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Logradouro
+                    </FormLabel>
+                    {loadingCep ? (
+                      <Skeleton variant="rectangular" height={40} />
+                    ) : (
+                      <Controller
+                        name="street"
+                        control={control}
+                        render={({ field }) => <CustomTextField {...field} />}
+                      />
+                    )}
+                  </FormControl>
+                </Box>
+
+                {/* Numero + Complemento */}
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <FormControl sx={{ width: "40%" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Número
+                    </FormLabel>
+                    <Controller
+                      name="number"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          placeholder="Ex: 123"
+                          onChange={(e) =>
+                            field.onChange(maskOnlyNumbers(e.target.value))
+                          }
                         />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <CustomTextField
-                placeholder="x (Twitter)"
-                value={client.x}
-                onChange={handleChange("x")}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Box
-                          component="img"
-                          src="/x.png"
-                          alt="X"
-                          sx={{ width: 30, height: 30 }}
+                      )}
+                    />
+                  </FormControl>
+
+                  <FormControl sx={{ width: "60%" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Complemento
+                    </FormLabel>
+                    <Controller
+                      name="complement"
+                      control={control}
+                      render={({ field }) => <CustomTextField {...field} />}
+                    />
+                  </FormControl>
+                </Box>
+                <Box
+                  sx={{
+                    display: "flex",
+                    gap: 2,
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <FormControl sx={{ width: "40%" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Bairro
+                    </FormLabel>
+                    {loadingCep ? (
+                      <Skeleton variant="rectangular" height={40} />
+                    ) : (
+                      <Controller
+                        name="neighborhood"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField {...field} placeholder="" />
+                        )}
+                      />
+                    )}
+                  </FormControl>
+                  <FormControl sx={{ width: "60%" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Cidade
+                    </FormLabel>
+                    {loadingCep ? (
+                      <Skeleton variant="rectangular" height={40} />
+                    ) : (
+                      <Controller
+                        name="city"
+                        control={control}
+                        render={({ field }) => (
+                          <CustomTextField {...field} placeholder="" />
+                        )}
+                      />
+                    )}
+                  </FormControl>
+                </Box>
+                <FormControl sx={{ width: "100%" }}>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    UF
+                  </FormLabel>
+                  {loadingCep ? (
+                    <Skeleton variant="rectangular" height={40} />
+                  ) : (
+                    <Controller
+                      name="state"
+                      control={control}
+                      render={({ field }) => (
+                        <Autocomplete
+                          options={BRAZIL_STATES}
+                          size="small"
+                          getOptionLabel={(option) =>
+                            `${option.name} (${option.uf})`
+                          }
+                          isOptionEqualToValue={(opt, val) => opt.uf === val.uf}
+                          value={
+                            BRAZIL_STATES.find((s) => s.uf === field.value) ||
+                            null
+                          }
+                          onChange={(_, value) =>
+                            field.onChange(value?.uf ?? "")
+                          }
+                          renderInput={(params) => (
+                            <TextField {...params} sx={{ fontSize: "12px" }} />
+                          )}
                         />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
+                      )}
+                    />
+                  )}
+                </FormControl>
+                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Info size={16} color={theme.palette.text.disabled} />
+                  <Typography fontSize="13px" color="text.disabled">
+                    O endereço ajuda no transporte do pet, quando necessário.
+                  </Typography>
+                </Box>
+              </Box>
             </Box>
-          </FormControl>
+          )}
         </Box>
-      )}
-    </Box>
+
+        {/* ================= BOTÕES ================= */}
+        <Divider />
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+          <Button
+            variant="outlined"
+            onClick={handleSubmit((data: ClientFormData) => onSubmit(data))}
+            data-action="save"
+          >
+            Salvar
+          </Button>
+
+          {mode === "create" && (
+            <Button
+              onClick={handleSubmit((data: ClientFormData) =>
+                onSubmit(data, "addPet"),
+              )}
+              data-action="addPet"
+            >
+              Salvar e cadastrar pet
+            </Button>
+          )}
+        </Box>
+      </Box>
+    </form>
   );
 }

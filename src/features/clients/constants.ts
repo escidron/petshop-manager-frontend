@@ -1,15 +1,13 @@
-import type { ClientFormData } from "./ClientForm";
+import type { ClientFormData } from "./types";
 
 export const DEFAULT_CLIENT_FORM: ClientFormData = {
-  name: "",
-  email: "",
-  phone: "",
-  phone_secondary_name: "",
-  phone_secondary: "",
-
-  phone_tertiary_name: "",
-  phone_tertiary: "",
-
+  name: "",                  // obrigatório
+  phone: "",                 // obrigatório
+  is_active: false,         
+  email: undefined,                 
+  document_type: "CPF", 
+  document: undefined,
+  birth_date: undefined,
   cep: "",
   street: "",
   number: "",
@@ -17,8 +15,11 @@ export const DEFAULT_CLIENT_FORM: ClientFormData = {
   neighborhood: "",
   city: "",
   state: "",
-
   instagram: "",
   facebook: "",
   x: "",
+  phone_secondary_name: "",
+  phone_secondary:undefined,
+  phone_tertiary_name: "",
+  phone_tertiary: undefined,
 };
