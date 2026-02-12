@@ -9,8 +9,8 @@ import {
 } from "@mui/material";
 import { Mars, Pencil, Trash2, Venus } from "lucide-react";
 import theme from "../../theme";
-import type { Pet } from "../../pages/PetsPage";
 import { getAgeUnitLabel } from "../../utils/getAgeUnitLabel";
+import type { Pet } from "./types";
 
 type Props = {
   pet: Pet;
@@ -59,7 +59,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
               {pet.name}
             </Typography>
             <Typography color="text.disabled">
-              {pet.age} {getAgeUnitLabel(pet.age, pet.ageUnit)}
+              {pet.age} {getAgeUnitLabel(pet.age!, pet.age_unit!)}
             </Typography>
           </Box>
           <Chip

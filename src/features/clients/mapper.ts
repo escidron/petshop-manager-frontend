@@ -1,3 +1,4 @@
+import { isoToBrDate } from "../../utils/formatDates";
 import type { ClientFormData, Client } from "./types";
 
 export function clientToFormData(
@@ -13,7 +14,7 @@ export function clientToFormData(
 
     document_type: client.document_type ?? undefined,
     document: client.document ?? undefined,
-    birth_date: client.birth_date ?? undefined,
+    birth_date: client.birth_date ? isoToBrDate(client.birth_date) : undefined,
 
     phone: client.phone ,
 

@@ -9,20 +9,19 @@ import PetDeleteModal from "../features/pets/PetDeleteModal";
 import { useClient } from "../hooks/useClient";
 import { deletePet } from "../api/services/pets";
 import PetFormModal from "../features/pets/PetFormModal";
-import type { Pet } from "./PetsPage";
-import type { PetFormData } from "../features/pets/PetForm";
-import { DEFAULT_PET_FORM } from "../features/pets/constants";
+import { usePets } from "../hooks/usePets";
+import type { Pet } from "../features/pets/types";
 
 export default function ClientDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
   const [deleting, setDeleting] = useState(false);
   const { client, pets, loading, refetchPets } = useClient(parseInt(id!));
-  const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
+  const { getPets } = usePets();
 
   const [petModal, setPetModal] = useState<{
     open: boolean;
-    mode?: "create" | "edit";
+    mode: "create" | "edit";
     pet?: Pet;
   }>({ open: false, mode: "create" });
 
@@ -38,7 +37,6 @@ export default function ClientDetailsPage() {
       setDeleting(false);
     }
   };
-  const resetPetForm = () => setPetForm(DEFAULT_PET_FORM);
 
   if (loading || !client) {
     return (
@@ -104,17 +102,14 @@ export default function ClientDetailsPage() {
       </Box>
 
       <PetFormModal
-        pet={petModal.pet}
         open={petModal.open}
-        client={client}
-        onClose={() => setPetModal({ open: false })}
-        onSuccess={() => {
-          refetchPets()
-          resetPetForm();
+        mode={petModal.mode}
+        pet={petModal.pet}
+        onClose={() => setPetModal({ open: false, mode: "create" })}
+        onSuccess={async () => {
+          await getPets();
+          setPetModal({ open: false, mode: "create" });
         }}
-        mode={petModal.mode || "create"}
-        petForm={petForm}
-        setPetForm={setPetForm}
       />
 
       {petToDelete && (

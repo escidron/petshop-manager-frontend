@@ -1,5 +1,5 @@
-import type { Client } from "../../pages/ClientsPage";
-import type { Pet } from "../../pages/PetsPage";
+import type { Client } from "../../features/clients/types";
+import type { Pet } from "../../features/pets/types";
 import apiClient from "../apiClient";
 
 export type Service = {

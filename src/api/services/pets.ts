@@ -1,19 +1,10 @@
-import type { AgeUnit, Pet } from "../../pages/PetsPage";
+import type { Pet } from "../../features/pets/types";
 import apiClient from "../apiClient";
 
 interface SavePetPayload extends Partial<Pet> {
   client_id: number;
-  is_active?: boolean;
+  is_active: boolean;
 }
-export type UpdatePetPayload = {
-  name?: string;
-  species?: "dog" | "cat" | "other";
-  gender?: "male" | "female";
-  breed?: string;
-  age?: number;
-  ageUnit?: AgeUnit;
-};
-
 
 export const fetchPets = async () => {
   const response = await apiClient.get<Pet[]>(
@@ -37,7 +28,8 @@ export const createPet = async (payload: SavePetPayload) => {
   return response.data;
 };
 
-export const updatePet = async (petId: number, payload: UpdatePetPayload) => {
+export const updatePet = async (petId: number, payload: Partial<Pet>
+) => {
   const response = await apiClient.patch<Pet>(
     `/api/v1/pets/${petId}`,
     { ...payload },

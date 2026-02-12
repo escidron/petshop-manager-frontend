@@ -1,13 +1,8 @@
 import { useEffect, useState } from "react";
 import { useClients } from "../../hooks/useClients";
-import {
-  fetchServices,
-  type Service,
-} from "../../api/services/tenant_services";
+
 import type { Dayjs } from "dayjs";
-import type { Client } from "../../pages/ClientsPage";
-import type { Pet } from "../../pages/PetsPage";
-import { createAppointment } from "../../api/services/appointments";
+import { createAppointment, type Service } from "../../api/services/appointments";
 import {
   Dialog,
   DialogActions,
@@ -17,6 +12,9 @@ import {
 import AppointmentForm from "./AppointmentForm";
 import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
+import type { Client } from "../clients/types";
+import type { Pet } from "../pets/types";
+import { fetchServices } from "../../api/services/tenant_services";
 
 type Props = {
   open: boolean;

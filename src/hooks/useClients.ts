@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
 import { fetchClients } from "../api/services/clients"
-import type { Client } from "../pages/ClientsPage"
+import type { Client } from "../features/clients/types"
 
 export function useClients() {
   const [clients, setClients] = useState<Client[]>([])

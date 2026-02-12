@@ -11,12 +11,12 @@ import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
-import type { Client } from "../../pages/ClientsPage";
 import type { Dayjs } from "dayjs";
 import { Button } from "../../components/Button/Button";
 import { Plus } from "lucide-react";
-import type { Pet } from "../../pages/PetsPage";
 import type { Service } from "../../pages/ServicesPage";
+import type { Client } from "../clients/types";
+import type { Pet } from "../pets/types";
 
 type Props = {
   clients: Client[];

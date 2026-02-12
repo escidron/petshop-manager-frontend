@@ -9,32 +9,16 @@ import PetFormModal from "../features/pets/PetFormModal";
 import { usePets } from "../hooks/usePets";
 import { deletePet } from "../api/services/pets";
 import PetsToolbar from "../features/pets/PetsToolbar";
-import type { PetFormData } from "../features/pets/PetForm";
-import { DEFAULT_PET_FORM } from "../features/pets/constants";
-
-export type AgeUnit = "year" | "month" | "day";
-
-export type Pet = {
-  id: number;
-  name: string;
-  species?: "dog" | "cat" | "other";
-  gender?: "male" | "female";
-  breed: string;
-  age: number;
-  ageUnit: AgeUnit;
-  owner_name?: string;
-  client_id?: number;
-};
+import type { Pet } from "../features/pets/types";
 
 export default function PetsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
-  const [petForm, setPetForm] = useState<PetFormData>(DEFAULT_PET_FORM);
 
   const [petModal, setPetModal] = useState<{
     open: boolean;
-    mode?: "create" | "edit";
+    mode: "create" | "edit";
     pet?: Pet;
   }>({ open: false, mode: "create" });
   const { pets, loading, getPets } = usePets();
@@ -79,16 +63,14 @@ export default function PetsPage() {
       {/* Create / Edit Modal */}
       {petModal.open && (
         <PetFormModal
-          open
-          mode={petModal.mode ? petModal.mode : "create"}
-          pet={petModal.mode === "edit" ? petModal.pet : undefined}
-          onClose={() => setPetModal({ open: false })}
-          onSuccess={() => {
-            setPetModal({ open: false });
-            getPets();
+          open={petModal.open}
+          mode={petModal.mode}
+          pet={petModal.pet}
+          onClose={() => setPetModal({ open: false, mode: "create" })}
+          onSuccess={async () => {
+            await getPets();
+            setPetModal({ open: false, mode: "create" });
           }}
-          petForm={petForm}
-          setPetForm={setPetForm}
         />
       )}
 

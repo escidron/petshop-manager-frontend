@@ -1,15 +1,94 @@
-import type { AgeUnit } from "../../pages/PetsPage";
-import type { PetFormData } from "./PetForm";
+import type { PetAgeUnit, PetFormData } from "./types";
 
 export const DEFAULT_PET_FORM: PetFormData = {
-  name: "",
-  species: undefined,
-  gender: undefined,
+  // Obrigatórios
+  name: "",          // obrigatório
+  species: "",       // obrigatório
+  is_active: true,
+  client_id: 0,
+  // Básicos
   breed: "",
-  age: 1,
-  ageUnit: "month",
-  owner_name: undefined,
+  gender: "other",
+
+  // Porte e pelagem
+  size: undefined,
+  coat_type: "",
+  coat_color: "",
+
+  // Idade
+  age: 0,
+  age_unit: undefined,
+  birth_date: undefined,
+
+  // Observações
+  notes: "",
 };
+
+export const PET_SPECIES = [
+  "Canino",
+  "Felino",
+  "Bovino",
+  "Equino",
+  "Suíno",
+  "Caprino",
+  "Ovino",
+  "Aves",
+  "Roedores",
+  "Réptil",
+  "Exoticos",
+] as const;
+
+export const COAT_COLORS = [
+  "Branco",
+  "Preto",
+  "Cinza",
+  "Marrom",
+  "Caramelo",
+  "Bege",
+  "Dourado",
+  "Creme",
+  "Chocolate",
+  "Canela",
+  "Fulvo",
+  "Rajado",
+  "Tigrado",
+  "Malhado",
+  "Mesclado",
+  "Tricolor",
+  "Bicolor",
+  "Pardo",
+  "Amarelo",
+  "Vermelho",
+];
+
+export const COAT_TYPES = [
+  "Curta",
+  "Média",
+  "Longa",
+  "Lisa",
+  "Ondulada",
+  "Cacheada",
+  "Dura",
+  "Dupla",
+  "Sedosa",
+  "Áspera",
+  "Encaracolada",
+  "Sem pelo",
+];
+
+export const PET_SIZES = [
+  { value: "PP", label: "Muito pequeno (PP)" },
+  { value: "P", label: "Pequeno (P)" },
+  { value: "M", label: "Médio (M)" },
+  { value: "G", label: "Grande (G)" },
+  { value: "GG", label: "Muito grande (GG)" },
+] as const;
+
+export const PET_GENDERS = [
+  { value: "male", label: "Macho" },
+  { value: "female", label: "Fêmea" },
+  { value: "other", label: "Não informado" },
+] as const;
 
 export const DOG_BREEDS = [
   "Afghan Hound",
@@ -157,10 +236,21 @@ export const CAT_BREEDS = [
 ];
 
 export const AGE_UNIT_LABELS: Record<
-  AgeUnit,
+  PetAgeUnit,
   { singular: string; plural: string }
 > = {
-  year: { singular: "ano", plural: "anos" },
-  month: { singular: "mês", plural: "meses" },
-  day: { singular: "dia", plural: "dias" },
+  days: { singular: "dia", plural: "dias" },
+  weeks: { singular: "semana", plural: "semanas" },
+  months: { singular: "mês", plural: "meses" },
+  years: { singular: "ano", plural: "anos" },
 };
+
+export const AGE_UNIT_OPTIONS: {
+  value: PetAgeUnit;
+  label: string;
+}[] = Object.entries(AGE_UNIT_LABELS).map(
+  ([value, labels]) => ({
+    value: value as PetAgeUnit,
+    label: labels.plural, // no select faz mais sentido plural
+  })
+);

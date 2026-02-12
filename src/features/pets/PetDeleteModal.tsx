@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { Button } from "../../components/Button/Button";
-import type { Pet } from "../../pages/ClientsPage";
+import type { Pet } from "./types";
 
 type Props = {
   pet: Pet;

@@ -16,17 +16,20 @@ export const clientSchema = z.object({
   document: z
     .string()
     .transform(v => v.replace(/\D/g, ""))
-    .refine(v => v.length === 11 || v.length === 14, "Documento inválido")
+    .transform(v => (v === "" ? undefined : v))
+    .refine(v => !v || v.length === 11 || v.length === 14, "Documento inválido")
     .optional(),
   birth_date: z
     .string()
     .transform(v => v.replace(/\D/g, ""))
-    .refine(v => v.length === 8, "Data inválida")
+    .transform(v => (v === "" ? undefined : v))
+    .refine(v => !v || v.length === 8, "Data inválida")
     .optional(),
   cep: z
     .string()
     .transform(v => v.replace(/\D/g, ""))
-    .refine(v => v.length === 8, "CEP inválido")
+    .transform(v => (v === "" ? undefined : v))
+    .refine(v => !v || v.length === 8, "CEP inválido")
     .optional(),
   street: z.string().optional(),
   number: z.string().optional(),
@@ -41,12 +44,14 @@ export const clientSchema = z.object({
   phone_secondary: z
     .string()
     .transform((v) => v.replace(/\D/g, ""))
-    .refine((v) => v.length === 10 || v.length === 11, "Telefone inválido")
+    .transform(v => (v === "" ? undefined : v))
+    .refine((v) => !v || v.length === 10 || v.length === 11, "Telefone inválido")
     .optional(),
   phone_tertiary_name: z.string().optional(),
   phone_tertiary: z
     .string()
     .transform((v) => v.replace(/\D/g, ""))
-    .refine((v) => v.length === 10 || v.length === 11, "Telefone inválido")
+    .transform(v => (v === "" ? undefined : v))
+    .refine((v) => !v || v.length === 10 || v.length === 11, "Telefone inválido")
     .optional(),
 });

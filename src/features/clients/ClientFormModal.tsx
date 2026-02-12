@@ -13,6 +13,7 @@ import { clientToFormData } from "./mapper";
 import { DEFAULT_CLIENT_FORM } from "./constants";
 import { X } from "lucide-react";
 import { useState } from "react";
+import { brDateToISO } from "../../utils/formatDates";
 
 type Props = {
   open: boolean;
@@ -36,11 +37,16 @@ export default function ClientFormModal({
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
   const handleSubmit = async (data: ClientFormData, action?: "addPet") => {
-    console.log('data', data);
+    console.log("data", data);
+    const payload = {
+      ...data,
+      birth_date: brDateToISO(data.birth_date),
+    };
+    console.log("payload", payload);
     const saved =
       mode === "create"
-        ? await createClient(data)
-        : await updateClient(client!.id.toString(), data);
+        ? await createClient(payload)
+        : await updateClient(client!.id.toString(), payload);
 
     toast.success(
       mode === "create"
@@ -64,7 +70,7 @@ export default function ClientFormModal({
       slotProps={{
         paper: {
           sx: {
-            width: showAdditionalInfo ? "80%" : "500px", 
+            width: showAdditionalInfo ? "80%" : "500px",
             maxWidth: "1400px", // largura máxima
           },
         },

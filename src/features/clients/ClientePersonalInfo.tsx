@@ -1,7 +1,7 @@
 import CustomCard from "../../components/Card/CustomCard";
 import { Mail, Phone } from "lucide-react";
 import { Chip, Typography, Box } from "@mui/material";
-import type { Client } from "../../pages/ClientsPage";
+import type { Client } from "./types";
 
 type Props = {
   client: Client;

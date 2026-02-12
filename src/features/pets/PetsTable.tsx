@@ -17,7 +17,7 @@ import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Pet } from "../../pages/PetsPage";
+import type { Pet } from "./types";
 
 interface TablePaginationActionsProps {
   count: number;

@@ -1,5 +1,5 @@
-import type { ClientFormData } from "../../features/clients/ClientForm";
-import type { Client } from "../../pages/ClientsPage";
+
+import type { Client, ClientFormData } from "../../features/clients/types";
 import apiClient from "../apiClient";
 
 

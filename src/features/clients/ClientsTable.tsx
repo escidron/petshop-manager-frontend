@@ -18,7 +18,7 @@ import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Chip } from "@mui/material";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Client } from "../../pages/ClientsPage";
+import type { Client } from "./types";
 
 interface TablePaginationActionsProps {
   count: number;

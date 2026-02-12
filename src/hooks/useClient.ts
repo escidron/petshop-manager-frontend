@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
 import { fetchPetsByClient } from "../api/services/pets";
 import { fetchClientById } from "../api/services/clients";
-import type { Client } from "../pages/ClientsPage";
-import type { Pet } from "../pages/PetsPage";
+import type { Client } from "../features/clients/types";
+import type { Pet } from "../features/pets/types";
+
 
 export function useClient(initialClientId?: number) {
   const [clientId, setClientId] = useState<number | undefined>(
