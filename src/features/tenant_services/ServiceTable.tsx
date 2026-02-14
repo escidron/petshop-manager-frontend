@@ -17,7 +17,7 @@ import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Service } from "../../pages/ServicesPage";
+import type { Service } from "./types";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -77,7 +77,6 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   );
 }
 
-
 type Props = {
   rows: Service[];
   loading: boolean;
@@ -85,7 +84,13 @@ type Props = {
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
 };
-export default function ServiceTable({ rows, loading, onRowClick, onEdit, onDelete }: Props) {
+export default function ServiceTable({
+  rows,
+  loading,
+  onRowClick,
+  onEdit,
+  onDelete,
+}: Props) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -127,13 +132,13 @@ export default function ServiceTable({ rows, loading, onRowClick, onEdit, onDele
                   backgroundColor: "secondary.main",
                   fontWeight: 600,
                   color: "text.primary",
-                  py: 1.25, 
+                  py: 1.25,
                   fontSize: "0.875rem",
                 }}
               >
-                Nome
+                Nome do serviço
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -146,7 +151,46 @@ export default function ServiceTable({ rows, loading, onRowClick, onEdit, onDele
               >
                 Preco
               </TableCell>
-              
+
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Tipo de animal
+              </TableCell>
+
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Porte do animal
+              </TableCell>
+
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Tipo de pelagem
+              </TableCell>
+
               <TableCell
                 align="right"
                 sx={{
@@ -181,6 +225,9 @@ export default function ServiceTable({ rows, loading, onRowClick, onEdit, onDele
                   {row.name}
                 </TableCell>
                 <TableCell align="left">{row.price_cents ?? "-"}</TableCell>
+                <TableCell align="left">{row.species ?? "-"}</TableCell>{" "}
+                <TableCell align="left">{row.size ?? "-"}</TableCell>{" "}
+                <TableCell align="left">{row.coat_type ?? "-"}</TableCell>
                 <TableCell align="right">
                   <Box
                     sx={{
@@ -196,7 +243,7 @@ export default function ServiceTable({ rows, loading, onRowClick, onEdit, onDele
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit?.(row)
+                        onEdit?.(row);
                       }}
                     >
                       <Pencil size={16} />

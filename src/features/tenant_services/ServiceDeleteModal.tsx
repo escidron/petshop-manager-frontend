@@ -5,7 +5,7 @@ import {
   DialogTitle,
 } from "@mui/material";
 import { Button } from "../../components/Button/Button";
-import type { Service } from "../../pages/ServicesPage";
+import type { Service } from "./types";
 
 type Props = {
   service: Service;

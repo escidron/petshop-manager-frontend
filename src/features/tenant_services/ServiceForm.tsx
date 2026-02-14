@@ -4,6 +4,7 @@ import {
   Divider,
   FormControl,
   FormLabel,
+  InputAdornment,
   TextField,
   Typography,
 } from "@mui/material";
@@ -100,20 +101,49 @@ const ServiceForm = ({
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                 Preço do Serviço
               </FormLabel>
+
               <Controller
                 name="price_cents"
                 control={control}
                 render={({ field, fieldState }) => (
                   <TextField
                     {...field}
+                    sx={{
+                      "& input[type=number]": {
+                        MozAppearance: "textfield", // Firefox
+                      },
+                      "& input[type=number]::-webkit-outer-spin-button": {
+                        WebkitAppearance: "none",
+                        margin: 0,
+                      },
+                      "& input[type=number]::-webkit-inner-spin-button": {
+                        WebkitAppearance: "none",
+                        margin: 0,
+                      },
+                    }}
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     size="small"
                     type="number"
-                    placeholder="Ex: 3"
+                    placeholder="0"
                     slotProps={{
                       htmlInput: {
                         min: 0,
+                      },
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography
+                              sx={{
+                                color: "text.disabled",
+                                fontWeight: 500,
+                                mt: "2px",
+                              }}
+                            >
+                              R$
+                            </Typography>
+                          </InputAdornment>
+                        ),
                       },
                     }}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
@@ -166,7 +196,9 @@ const ServiceForm = ({
                         PET_SPECIES?.find((s) => s.value === field.value) ??
                         null
                       }
-                      onChange={(_, specie) => field.onChange(specie?.value ?? "")}
+                      onChange={(_, specie) =>
+                        field.onChange(specie?.value ?? "")
+                      }
                       getOptionLabel={(option) => option.label}
                       isOptionEqualToValue={(option, value) =>
                         option.value === value.value
@@ -259,15 +291,48 @@ const ServiceForm = ({
                   render={({ field }) => (
                     <TextField
                       {...field}
+                      sx={{
+                        "& input[type=number]": {
+                          MozAppearance: "textfield", // Firefox
+                        },
+                        "& input[type=number]::-webkit-outer-spin-button": {
+                          WebkitAppearance: "none",
+                          margin: 0,
+                        },
+                        "& input[type=number]::-webkit-inner-spin-button": {
+                          WebkitAppearance: "none",
+                          margin: 0,
+                        },
+                      }}
                       size="small"
                       type="number"
+                      placeholder="0"
                       slotProps={{
                         htmlInput: {
                           min: 0,
                         },
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Typography
+                                sx={{
+                                  color: "text.disabled",
+                                  fontWeight: 500,
+                                  paddingRight: 1,
+                                }}
+                              >
+                                minutos
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
                       }}
                       onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                        field.onChange(e.currentTarget.valueAsNumber)
+                        field.onChange(
+                          e.currentTarget.value === ""
+                            ? undefined
+                            : e.currentTarget.valueAsNumber,
+                        )
                       }
                     />
                   )}
