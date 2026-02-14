@@ -10,12 +10,13 @@ import { usePets } from "../hooks/usePets";
 import { deletePet } from "../api/services/pets";
 import PetsToolbar from "../features/pets/PetsToolbar";
 import type { Pet } from "../features/pets/types";
+import { useToast } from "../hooks/useToast";
 
 export default function PetsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
-
+  const toast = useToast();
   const [petModal, setPetModal] = useState<{
     open: boolean;
     mode: "create" | "edit";
@@ -39,6 +40,7 @@ export default function PetsPage() {
       await deletePet(petToDelete.id);
       await getPets();
       setPetToDelete(null);
+      toast.success("Pet removido com sucesso");
     } finally {
       setDeleting(false);
     }
@@ -60,7 +62,6 @@ export default function PetsPage() {
         onDelete={(pet) => setPetToDelete(pet)}
       />
 
-      {/* Create / Edit Modal */}
       {petModal.open && (
         <PetFormModal
           open={petModal.open}

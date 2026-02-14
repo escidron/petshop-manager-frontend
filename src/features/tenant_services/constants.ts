@@ -1,9 +1,12 @@
-import type { ServiceFormData } from "../tenant_services/ServiceForm";
+import type { ServiceFormData } from "./types";
 
 export const DEFAULT_SERVICE_FORM: ServiceFormData = {
   name: "",
+  is_active: true,
+  price_cents: undefined,
   description: "",
-  duration_minutes:0 ,
-  price_cents:0,
-  type: "BATH"
+  species: undefined,
+  size: undefined,
+  coat_type: "",
+  duration_minutes: undefined,
 };

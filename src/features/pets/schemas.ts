@@ -1,5 +1,10 @@
 import { z } from "zod";
-
+import { PET_SIZES } from "./constants";
+import type { PetSize } from "./types";
+const petSizeValues = PET_SIZES.map(s => s.value) as [
+  PetSize,
+  ...PetSize[]
+];
 export const petSchema = z
   .object({
     /* =========================
@@ -31,7 +36,7 @@ export const petSchema = z
      * Porte
      * ========================= */
     size: z
-      .enum(["PP", "P", "M", "G", "GG"])
+      .enum(petSizeValues)
       .optional(),
 
     /* =========================

@@ -24,18 +24,11 @@ export const DEFAULT_PET_FORM: PetFormData = {
   notes: "",
 };
 
+
 export const PET_SPECIES = [
-  "Canino",
-  "Felino",
-  "Bovino",
-  "Equino",
-  "Suíno",
-  "Caprino",
-  "Ovino",
-  "Aves",
-  "Roedores",
-  "Réptil",
-  "Exoticos",
+  { value: "Canino", label: "Canino" },
+  { value: "Felino", label: "Felino" },
+  { value: "Exotico", label: "Exotico" },
 ] as const;
 
 export const COAT_COLORS = [
@@ -62,19 +55,12 @@ export const COAT_COLORS = [
 ];
 
 export const COAT_TYPES = [
-  "Curta",
-  "Média",
-  "Longa",
-  "Lisa",
-  "Ondulada",
-  "Cacheada",
-  "Dura",
-  "Dupla",
-  "Sedosa",
-  "Áspera",
-  "Encaracolada",
-  "Sem pelo",
-];
+  { value: "short", label: "Curta" },
+  { value: "medium", label: "Média" },
+  { value: "long", label: "Longa" },
+  { value: "double", label: "Dupla camada" },
+  { value: "hairless", label: "Sem pelo" },
+] as const;
 
 export const PET_SIZES = [
   { value: "PP", label: "Muito pequeno (PP)" },

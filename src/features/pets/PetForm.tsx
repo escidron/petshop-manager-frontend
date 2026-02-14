@@ -170,8 +170,14 @@ const PetForm = ({
                   <Autocomplete
                     options={PET_SPECIES ?? []}
                     size="small"
-                    value={PET_SPECIES?.find((s) => s === field.value) ?? null}
+                    value={
+                      PET_SPECIES?.find((s) => s.value === field.value) ?? null
+                    }
                     onChange={(_, value) => field.onChange(value ?? "")}
+                    getOptionLabel={(option) => option.label}
+                    isOptionEqualToValue={(option, value) =>
+                      option.value === value.value
+                    }
                     renderInput={(params) => (
                       <TextField
                         {...params}
@@ -278,7 +284,7 @@ const PetForm = ({
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            placeholder="Selecionar porte"
+                            placeholder="Selecionar Porte"
                           />
                         )}
                       />
@@ -324,9 +330,14 @@ const PetForm = ({
                         options={COAT_TYPES ?? []}
                         size="small"
                         value={
-                          COAT_TYPES?.find((type) => type === field.value) ??
-                          null
+                          COAT_TYPES?.find(
+                            (type) => type.value === field.value,
+                          ) ?? null
                         }
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
+                        getOptionLabel={(option) => option.label}
                         onChange={(_, value) => field.onChange(value ?? "")}
                         renderInput={(params) => (
                           <TextField

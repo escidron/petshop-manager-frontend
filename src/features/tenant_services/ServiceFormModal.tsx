@@ -1,28 +1,27 @@
 import {
+  Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
+  Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import {  useState } from "react";
 
-import { Button } from "../../components/Button/Button";
 import { DEFAULT_SERVICE_FORM } from "./constants";
 import { useToast } from "../../hooks/useToast";
-import type { Service } from "../../pages/ServicesPage";
-import type { ServiceFormData } from "./ServiceForm";
-import ServiceForm from "./ServiceForm";
 import {
   createService,
   updateService,
 } from "../../api/services/tenant_services";
+import { serviceToFormData } from "./mapper";
+import { X } from "lucide-react";
+import type { Service, ServiceFormData } from "./types";
+import ServiceForm from "./ServiceForm";
 
 type Props = {
   open: boolean;
   mode: "create" | "edit";
   service?: Service;
-  serviceForm: ServiceFormData;
-  setServiceForm: (data: ServiceFormData) => void;
   onClose: () => void;
   onSuccess: (service: Service) => void;
 };
@@ -31,75 +30,65 @@ export default function ServiceFormModal({
   open,
   mode,
   service,
-  serviceForm,
-  setServiceForm,
   onClose,
   onSuccess,
 }: Props) {
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
+  const defaultValues = service
+    ? serviceToFormData(service)
+    : DEFAULT_SERVICE_FORM;
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(true);
 
-  useEffect(() => {
-    if (mode === "edit" && service) {
-      setServiceForm({
-        name: service.name,
-        description: service.description,
-        price_cents: service.price_cents,
-        duration_minutes: service.duration_minutes,
-        type: service.type,
-      });
-    }
+  const handleSubmit = async (data: ServiceFormData) => {
 
-    if (mode === "create") {
-      setServiceForm(DEFAULT_SERVICE_FORM);
-    }
-  }, [mode, service, setServiceForm]);
+    const saved =
+      mode === "create"
+        ? await createService(data)
+        : await updateService(service!.id, data);
 
-  const handleSave = async () => {
-    if (!serviceForm.name.trim()) return;
+    toast.success(
+      mode === "create"
+        ? "Serviço cadastrado com sucesso"
+        : "Serviço atualizado com sucesso",
+    );
 
-    try {
-      setSaving(true);
-
-      if (mode === "create") {
-        const createdService = await createService({
-          ...serviceForm,
-        });
-
-        onSuccess(createdService);
-        toast.success("Serviço cadastrado com sucesso");
-      }
-
-      if (mode === "edit" && service) {
-        const updated = await updateService(service.id, serviceForm);
-        onSuccess(updated);
-        toast.success("Serviço atualizado com sucesso");
-      }
-      onClose();
-    } finally {
-      setSaving(false);
-    }
+    onSuccess(saved);
+    onClose();
   };
 
   return (
-    <Dialog open={open} fullWidth maxWidth="sm">
-      <DialogTitle>
-        {mode === "create" ? "Cadastrar serviço" : "Editar serviço"}
+    <Dialog
+      open={open}
+      maxWidth={false} // permite ultrapassar os limites padrões
+      slotProps={{
+        paper: {
+          sx: {
+            width: showAdditionalInfo ? "80%" : "500px",
+            maxWidth: "800px", // largura máxima
+            minWidth: showAdditionalInfo ? "800px" : "400px",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+      >
+        <Typography variant="h5">
+          {mode === "create" ? "Novo Serviço" : "Editar Serviço"}
+        </Typography>
+        <Box sx={{ cursor: "pointer" }}>
+          <X onClick={onClose} />
+        </Box>
       </DialogTitle>
 
       <DialogContent>
-        <ServiceForm service={serviceForm} onChange={setServiceForm} />
+        <ServiceForm
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
+          showAdditionalInfo={showAdditionalInfo}
+          setShowAdditionalInfo={setShowAdditionalInfo}
+        />
       </DialogContent>
-
-      <DialogActions sx={{ justifyContent: "space-between", p: 3 }}>
-        <Button variant="text" onClick={onClose} disabled={saving}>
-          Cancelar
-        </Button>
-
-        <Button onClick={handleSave} loading={saving}>
-          {mode === "create" ? "Salvar" : "Atualizar"}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

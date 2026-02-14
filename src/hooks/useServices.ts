@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react"
-import type { Service } from "../pages/ServicesPage"
 import { fetchServices } from "../api/services/tenant_services"
+import type { Service } from "../features/tenant_services/types"
 
 export function useServices() {
   const [services, setServices] = useState<Service[]>([])

@@ -28,7 +28,7 @@ type Props = {
   mode: "create" | "edit";
   pet?: Pet;
   onClose: () => void;
-  onSuccess: (pet: Pet) => void; // 👈 mudou aqui
+  onSuccess: (pet: Pet) => void;
   client?: Client
 };
 
@@ -44,7 +44,7 @@ export default function PetFormModal({
   const defaultValues = pet ? petToFormData(pet) : DEFAULT_PET_FORM;
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const { clients } = useClients();
-  console.log("client", client);
+
   const handleSubmit = async (data: PetFormData) => {
     const payload = {
       ...data,
