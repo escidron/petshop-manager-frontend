@@ -1,5 +1,5 @@
-import type { LucideIcon } from "lucide-react";
-import { Hourglass,CalendarCheck, Play, CircleCheck, Ban,  X      } from 'lucide-react';
+import { Hourglass,CalendarCheck, Play, Ban,  X, Check      } from 'lucide-react';
+import type { AppointmentStatus, AppointmentStatusUI } from '../features/appointments/types';
 
 export const APPOINTMENT_STATUSES = [
   "pending",
@@ -10,16 +10,7 @@ export const APPOINTMENT_STATUSES = [
   "no_show",
 ] as const;
 
-export type AppointmentStatus =
-  (typeof APPOINTMENT_STATUSES)[number];
 
-export type StatusPalette = "success" | "error" | "warning" | "info";
-
-export interface AppointmentStatusUI {
-  label: string;
-  palette: StatusPalette;
-  icon: LucideIcon;
-}
 
 export const APPOINTMENT_STATUS_UI = {
   pending: {
@@ -40,7 +31,7 @@ export const APPOINTMENT_STATUS_UI = {
   completed: {
     label: "Finalizado",
     palette: "success",
-    icon: CircleCheck ,
+    icon: Check ,
   },
   canceled: {
     label: "Cancelado",
@@ -54,9 +45,6 @@ export const APPOINTMENT_STATUS_UI = {
   },
 } satisfies Record<AppointmentStatus, AppointmentStatusUI>;
 
-/**
- * Helper público
- */
 export function getAppointmentStatusUI(
   status: AppointmentStatus,
 ): AppointmentStatusUI {

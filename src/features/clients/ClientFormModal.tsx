@@ -37,7 +37,7 @@ export default function ClientFormModal({
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
   const handleSubmit = async (data: ClientFormData, action?: "addPet") => {
-    console.log("data", data);
+
     const payload = {
       ...data,
       birth_date: brDateToISO(data.birth_date),

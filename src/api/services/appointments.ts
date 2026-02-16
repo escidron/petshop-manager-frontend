@@ -1,44 +1,5 @@
-import type { Client } from "../../features/clients/types";
-import type { Pet } from "../../features/pets/types";
+import type { Appointment, AppointmentAction, AppointmentFormData, AppointmentStatus } from "../../features/appointments/types";
 import apiClient from "../apiClient";
-
-export type Service = {
-  name: string;
-  description?: string | null;
-  duration_minutes: number;
-  price_cents: number;
-  is_active: boolean;
-};
-
-export const AppointmentStatus = {
-  PENDING: "pending",
-  CONFIRMED: "confirmed",
-  IN_PROGRESS: "in_progress",
-  COMPLETED: "completed",
-  CANCELED: "canceled",
-  NO_SHOW: "no_show",
-} as const;
-
-export type AppointmentAction =
-  | "confirm"
-  | "start"
-  | "complete"
-  | "cancel"
-  | "no_show";
-
-export type AppointmentStatus =
-  (typeof AppointmentStatus)[keyof typeof AppointmentStatus];
-
-export type Appointment = {
-  id: number;
-  scheduled_at: string;
-  notes?: string | null;
-
-  client: Client;
-  pet: Pet;
-  services: Service[];
-  status: AppointmentStatus;
-};
 
 export const APPOINTMENT_STATUS_LABEL: Record<AppointmentStatus, string> = {
   pending: "Pendente",
@@ -49,23 +10,26 @@ export const APPOINTMENT_STATUS_LABEL: Record<AppointmentStatus, string> = {
   no_show: "Não compareceu",
 };
 
-export type createAppointment = {
-  scheduled_at: string;
-  client_id: number;
-  pet_id: number;
-  service_ids: number[];
-  notes?: string | null;
-}
-
 
 export const createAppointment = async (
-  payload: createAppointment
+  payload: AppointmentFormData
 ) => {
   const response = await apiClient.post(
     "/api/v1/appointments",
     payload,
   );
 
+  return response.data;
+};
+
+export const updateAppointment = async (
+  appointmentId: number,
+  payload: AppointmentFormData
+) => {
+  const response = await apiClient.patch<Appointment>(
+    `/api/v1/appointments/${appointmentId}`,
+    payload,
+  );
   return response.data;
 };
 

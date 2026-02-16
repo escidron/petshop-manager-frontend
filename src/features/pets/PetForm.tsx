@@ -35,6 +35,7 @@ type Props = {
   showAdditionalInfo: boolean;
   setShowAdditionalInfo: (value: boolean) => void;
   clients?: Client[];
+  selectedClient?: Client;
 };
 
 const PetForm = ({
@@ -43,6 +44,7 @@ const PetForm = ({
   showAdditionalInfo,
   setShowAdditionalInfo,
   clients,
+  selectedClient,
 }: Props) => {
   const form = useForm<PetFormData>({
     resolver: zodResolver(petSchema),
@@ -51,6 +53,7 @@ const PetForm = ({
       ...defaultValues,
     },
   });
+
   const {
     control,
     handleSubmit,
@@ -75,7 +78,13 @@ const PetForm = ({
       is_active: true,
       ...applyMasksOnEdit(defaultValues),
     });
-  }, [defaultValues, reset]);
+  }, [defaultValues, reset, selectedClient]);
+
+  useEffect(() => {
+  if (selectedClient) {
+    form.setValue("client_id", selectedClient.id);
+  }
+}, [form, selectedClient]);
 
   useEffect(() => {
     console.log("FORM ERRORS 👉", errors);
@@ -121,9 +130,14 @@ const PetForm = ({
                 control={control}
                 render={({ field, fieldState }) => (
                   <Autocomplete<Client>
+                    disabled={selectedClient !== undefined}
                     options={clients ?? []}
                     size="small"
-                    value={clients?.find((c) => c.id === field.value) ?? null}
+                    value={
+                      selectedClient ??
+                      clients?.find((c) => c.id === field.value) ??
+                      null
+                    }
                     getOptionLabel={(option) => option.name}
                     isOptionEqualToValue={(option, value) =>
                       option.id === value.id
@@ -173,7 +187,7 @@ const PetForm = ({
                     value={
                       PET_SPECIES?.find((s) => s.value === field.value) ?? null
                     }
-                    onChange={(_, value) => field.onChange(value ?? "")}
+                    onChange={(_, value) => field.onChange(value?.value ?? "")}
                     getOptionLabel={(option) => option.label}
                     isOptionEqualToValue={(option, value) =>
                       option.value === value.value

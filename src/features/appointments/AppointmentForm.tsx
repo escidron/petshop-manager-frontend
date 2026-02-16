@@ -1,7 +1,8 @@
 import {
   Autocomplete,
   Box,
-  Chip,
+  Checkbox,
+  Divider,
   FormControl,
   FormLabel,
   TextField,
@@ -11,178 +12,341 @@ import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
-import type { Dayjs } from "dayjs";
 import { Button } from "../../components/Button/Button";
-import { Plus } from "lucide-react";
-import type { Service } from "../../pages/ServicesPage";
+import { Plus, Trash } from "lucide-react";
 import type { Client } from "../clients/types";
 import type { Pet } from "../pets/types";
+import type { Service } from "../tenant_services/types";
+import type { AppointmentFormData } from "./types";
+import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { appointmentSchema } from "./schemas";
+import { useEffect } from "react";
+import dayjs from "dayjs";
+import { useClient } from "../../hooks/useClient";
 
 type Props = {
-  clients: Client[];
-  pets: Pet[];
-  services: Service[];
-  selectedServices: number[];
-  selectedClient: Client | null;
-  selectedPet: Pet | null;
-  date?: Dayjs;
-  time?: Dayjs;
-  notes?: string;
-  onClientChange: (client?: Client) => void;
-  onPetChange: (pet?: Pet) => void;
-  onServiceToggle: (id: number) => void;
-  onDateChange: (date: Dayjs | null) => void;
-  onTimeChange: (time: Dayjs | null) => void;
-  onNotesChange: (notes: string) => void;
-  onCreateClient: () => void;
-  onCreatePet: () => void;
+  defaultValues?: Partial<AppointmentFormData>;
+  onSubmit: (data: AppointmentFormData) => void;
+  clients?: Client[];
+  services?: Service[];
+  selectedClient?: Client;
+  selectedPet?: Pet;
 };
 
 export default function AppointmentForm({
+  defaultValues,
+  onSubmit,
   clients,
-  pets,
   services,
-  selectedServices,
   selectedClient,
-  selectedPet,
-  date,
-  time,
-  notes,
-  onClientChange,
-  onPetChange,
-  onServiceToggle,
-  onDateChange,
-  onTimeChange,
-  onNotesChange,
-  onCreateClient,
-  onCreatePet,
 }: Props) {
+  const { pets, setClientId } = useClient();
+
+  const form = useForm<AppointmentFormData>({
+    resolver: zodResolver(appointmentSchema),
+    defaultValues,
+  });
+
+  const {
+    control,
+    handleSubmit,
+    resetField,
+    formState: { errors },
+  } = form;
+  const items = useWatch({ control, name: "items" });
+
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: "items",
+  });
+
+  useEffect(() => {
+    console.log("FORM ERRORS 👉", errors);
+  }, [errors]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Data e hora
         </FormLabel>
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
-          <Box sx={{ display: "flex", gap: 2, width: "100%", py: 1 }}>
-            <Box sx={{ flex: 7 }}>
-              <DatePicker
-                value={date}
-                onChange={(value) => onDateChange(value)}
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    sx: { "& .MuiInputBase-root": { height: 30 } },
-                  },
-                }}
-              />
-            </Box>
+        <Controller
+          name="scheduled_at"
+          control={control}
+          render={({ field, fieldState }) => {
+            const scheduledValue = field.value ? dayjs(field.value) : null;
 
-            <Box sx={{ flex: 3 }}>
-              <TimePicker
-                value={time}
-                ampm={false}
-                onChange={onTimeChange}
-                slotProps={{
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    sx: { "& .MuiInputBase-root": { height: 30 } },
-                  },
-                }}
-              />
-            </Box>
-          </Box>
-        </LocalizationProvider>
+            return (
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                <Box sx={{ display: "flex", gap: 2 }}>
+                  <DatePicker
+                    value={scheduledValue}
+                    onChange={(newDate) => {
+                      if (!newDate) return;
+
+                      const current = scheduledValue ?? dayjs();
+
+                      const updated = newDate
+                        .hour(current.hour())
+                        .minute(current.minute())
+                        .second(0)
+                        .toISOString();
+
+                      field.onChange(updated);
+                    }}
+                    slotProps={{
+                      textField: {
+                        size: "small",
+                        fullWidth: true,
+                        error: !!fieldState.error,
+                        helperText: fieldState.error?.message,
+                      },
+                    }}
+                  />
+
+                  {/* TIME */}
+                  <TimePicker
+                    value={scheduledValue}
+                    ampm={false}
+                    onChange={(newTime) => {
+                      if (!newTime) return;
+
+                      const current = scheduledValue ?? dayjs();
+
+                      const updated = current
+                        .hour(newTime.hour())
+                        .minute(newTime.minute())
+                        .second(0)
+                        .toISOString();
+
+                      field.onChange(updated);
+                    }}
+                    slotProps={{
+                      textField: {
+                        size: "small",
+                        fullWidth: true,
+                        error: !!fieldState.error,
+                      },
+                    }}
+                  />
+                </Box>
+              </LocalizationProvider>
+            );
+          }}
+        />
       </FormControl>
 
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
         <Box sx={{ display: "flex", gap: 1 }}>
-          <Autocomplete
-            value={selectedClient}
-            sx={{ width: "70%" }}
-            options={clients}
-            size="small"
-            getOptionLabel={(option) => option.name}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            getOptionKey={(option) => option.id}
-            onChange={(_, value) => onClientChange(value || undefined)}
-            renderInput={(params) => (
-              <TextField {...params} placeholder="Pesquisar cliente" />
+          <Controller
+            name="client_id"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Autocomplete<Client>
+                sx={{ width: "70%" }}
+                options={clients ?? []}
+                size="small"
+                value={
+                  selectedClient ??
+                  clients?.find((c) => c.id === field.value) ??
+                  null
+                }
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                onChange={(_, value) => {
+                  const clientId = value?.id ?? 0;
+
+                  field.onChange(clientId);
+
+                  // 🔥 AQUI está o segredo
+                  setClientId(clientId);
+
+                  // 🔥 IMPORTANTE: limpar pets já selecionados
+                  resetField("items");
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Pesquisar cliente"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
+              />
             )}
           />
 
           <Button
-            sx={{ width: "30%", minWidth: '160px' }}
+            sx={{ width: "30%", minWidth: "160px" }}
             startIcon={<Plus size={18} />}
             variant="outlined"
-            onClick={onCreateClient}
+            // onClick={onCreateClient}
           >
-            Novo Cliente
+            Criar Cliente
           </Button>
         </Box>
       </FormControl>
 
       <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Pet</FormLabel>
-        <Box sx={{ display: "flex", gap: 1 }}>
-          <Autocomplete
-            value={selectedPet}
-            sx={{ width: "70%" }}
-            options={pets}
-            size="small"
-            getOptionLabel={(option) => option.name}
-            onChange={(_, value) => onPetChange(value || undefined)}
-            renderInput={(params) => (
-              <TextField {...params} placeholder="Pesquisar pet" />
-            )}
-          />
+        <FormLabel sx={{ color: "text.primary", mb: 1 }}>
+          Pets e Serviços
+        </FormLabel>
 
-          <Button
-            sx={{ width: "30%", minWidth: '160px' }}
-            startIcon={<Plus size={18} />}
-            variant="outlined"
-            onClick={onCreatePet}
-          >
-            Novo Pet
-          </Button>
-        </Box>
-      </FormControl>
+        {fields.map((item, index) => {
+          const itemError = errors.items?.[index];
 
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Serviços</FormLabel>
-        <Box sx={{ display: "flex", gap: 1 }}>
-          {services.map((service) => (
-            <Chip
-              key={service.id}
-              label={service.name}
-              onClick={() => onServiceToggle(service.id)}
+          return (
+            <Box
+              key={item.id}
               sx={{
-                cursor: "pointer",
-                bgcolor: selectedServices.includes(service.id)
-                  ? "secondary.main"
-                  : "transparent",
-                border: "1px solid",
-                borderColor: "secondary.main",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1,
+                mb: 2,
+                p: 2,
+                border: "1px solid #eee",
+                borderRadius: 2,
               }}
-            />
-          ))}
-        </Box>
+            >
+              {/* PET */}
+              <Controller
+                name={`items.${index}.pet_id`}
+                control={control}
+                render={({ field }) => {
+                  const selectedPetIds =
+                    items
+                      ?.map((item) => item.pet_id)
+                      .filter((id) => id && id !== field.value) ?? [];
+
+                  const availablePets =
+                    pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ??
+                    [];
+
+                  return (
+                    <Autocomplete<Pet>
+                      options={availablePets}
+                      size="small"
+                      value={pets?.find((p) => p.id === field.value) ?? null}
+                      getOptionLabel={(option) => option.name}
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                      onChange={(_, value) => field.onChange(value?.id ?? 0)}
+                      renderInput={(params) => (
+                        <TextField {...params} placeholder="Selecionar pet" />
+                      )}
+                    />
+                  );
+                }}
+              />
+
+              {/* SERVIÇOS */}
+              <Controller
+                name={`items.${index}.service_ids`}
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    multiple
+                    options={services ?? []}
+                    disableCloseOnSelect
+                    size="small"
+                    value={
+                      services?.filter((s) => field.value?.includes(s.id)) ?? []
+                    }
+                    getOptionLabel={(option) => option.name}
+                    isOptionEqualToValue={(o, v) => o.id === v.id}
+                    onChange={(_, value) =>
+                      field.onChange(value.map((v) => v.id))
+                    }
+                    renderOption={(props, option, { selected }) => (
+                      <li {...props}>
+                        <Checkbox
+                          checked={selected}
+                          disableRipple
+                          sx={{
+                            color: "primary.main",
+                          }}
+                        />
+                        {option.name}
+                      </li>
+                    )}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        placeholder="Selecionar serviços"
+                        error={!!itemError?.service_ids}
+                        helperText={itemError?.service_ids?.message}
+                      />
+                    )}
+                  />
+                )}
+              />
+
+              {/* BOTÃO REMOVER */}
+              {fields.length > 1 && (
+                <Button
+                  startIcon={<Trash size={15} />}
+                  variant="text"
+                  color="error"
+                  onClick={() => remove(index)}
+                >
+                  Remover Pet
+                </Button>
+              )}
+            </Box>
+          );
+        })}
+
+        {/* BOTÃO ADICIONAR */}
+        <Button
+        sx={{width:'150px',display:'flex',mx:'auto'}}
+          startIcon={<Plus size={18} />}
+          variant="text"
+          onClick={() =>
+            append({
+              pet_id: 0,
+              service_ids: [],
+            })
+          }
+        >
+          Adicionar Pet
+        </Button>
+
+        {errors.items && typeof errors.items?.message === "string" && (
+          <Box sx={{ color: "error.main", fontSize: 12 }}>
+            {errors.items.message}
+          </Box>
+        )}
       </FormControl>
 
-      <FormControl>
+      <FormControl fullWidth>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Observações
         </FormLabel>
-        <CustomTextField
-          value={notes}
-          multiline
-          rows={4}
-          onChange={(e) => onNotesChange(e.target.value)}
+
+        <Controller
+          name="notes"
+          control={control}
+          render={({ field }) => (
+            <CustomTextField
+              {...field}
+              multiline
+              rows={4}
+              placeholder="ex: Adicionais, comportamento, alergias, etc."
+            />
+          )}
         />
       </FormControl>
+      {/* ================= BOTÕES ================= */}
+      <Divider />
+      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Button
+          onClick={handleSubmit((data: AppointmentFormData) => onSubmit(data))}
+          data-action="save"
+        >
+          Salvar
+        </Button>
+      </Box>
     </Box>
   );
 }

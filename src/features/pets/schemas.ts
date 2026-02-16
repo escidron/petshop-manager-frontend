@@ -76,22 +76,4 @@ export const petSchema = z
       .max(1000, "Observações muito longas")
       .optional(),
   })
-  .superRefine((data, ctx) => {
-    /* Regra: age -> age_unit obrigatório */
-    if (data.age !== undefined && !data.age_unit) {
-      ctx.addIssue({
-        path: ["age_unit"],
-        message: "Informe a unidade da idade",
-        code: z.ZodIssueCode.custom,
-      });
-    }
-
-    /* Regra: age_unit não pode existir sem age */
-    if (data.age_unit && data.age === undefined) {
-      ctx.addIssue({
-        path: ["age"],
-        message: "Informe a idade",
-        code: z.ZodIssueCode.custom,
-      });
-    }
-  });
+  

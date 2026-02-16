@@ -97,6 +97,7 @@ export default function PetFormModal({
           showAdditionalInfo={showAdditionalInfo}
           setShowAdditionalInfo={setShowAdditionalInfo}
           clients={clients}
+          selectedClient={client}
         />
       </DialogContent>
     </Dialog>

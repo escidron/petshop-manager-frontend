@@ -1,0 +1,76 @@
+// types.ts
+
+import type { z } from "zod";
+import { appointmentSchema } from "./schemas";
+import type { Pet } from "../pets/types";
+import type { LucideIcon } from "lucide-react";
+import type dayjs from "dayjs";
+import type { Client } from "../clients/types";
+
+/* ======================================================
+ * STATUS (espelha backend enum)
+ * ====================================================== */
+
+export type AppointmentStatus =
+  | "pending"
+  | "confirmed"
+  | "in_progress"
+  | "completed"
+  | "canceled"
+  | "no_show";
+
+export type AppointmentAction =
+  | "confirm"
+  | "start"
+  | "complete"
+  | "cancel"
+  | "no_show";
+
+export type ServiceBase = {
+  id: number;
+  name: string;
+  price_cents: number;
+  duration_minutes?: number;
+};
+
+export type StatusPalette = "success" | "error" | "warning" | "info";
+
+export interface AppointmentStatusUI {
+  label: string;
+  palette: StatusPalette;
+  icon: LucideIcon;
+}
+
+export type TimelineBlock =
+  | {
+    type: "free"
+    start: dayjs.Dayjs
+    end: dayjs.Dayjs
+  }
+  | {
+    type: "appointment"
+    data: Appointment
+    start: dayjs.Dayjs
+    end: dayjs.Dayjs
+  }
+
+export type AppointmentItem = {
+  id: number;
+  pet: Pet;
+  services: ServiceBase[];
+};
+
+export type Appointment = {
+  id: number;
+  scheduled_at: string; // backend datetime vira string ISO
+  notes?: string | null;
+  status: AppointmentStatus;
+
+  client: Client;
+  items: AppointmentItem[];
+
+  created_at: string;
+};
+
+export type AppointmentFormData =
+  z.infer<typeof appointmentSchema>;

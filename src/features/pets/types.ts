@@ -36,5 +36,4 @@ export type Pet = {
   owner_name?: string | null;
 };
 
-
 export type PetFormData = z.infer<typeof petSchema>;

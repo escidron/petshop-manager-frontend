@@ -1,37 +1,57 @@
-import { Box, Divider, Typography } from "@mui/material";
-import CustomCard from "../../components/Card/CustomCard";
-import {
-  type Appointment,
-  type AppointmentAction,
-} from "../../api/services/appointments";
-import {
-  CalendarCheck,
-  CircleAlert,
-  CircleCheck,
-  Play,
-  Plus,
-  Scissors,
-  ShowerHead,
-  X,
-} from "lucide-react";
-import theme from "../../theme";
+import { Box, Typography } from "@mui/material";
+import { applyAppointmentAction } from "../../api/services/appointments";
+import { Plus } from "lucide-react";
 import dayjs from "dayjs";
 import { Button } from "../../components/Button/Button";
-import { getAppointmentStatusUI } from "../../utils/getAppointmentStatusColor";
-import { getAgeUnitLabel } from "../../utils/getAgeUnitLabel";
+import type { Appointment, AppointmentAction } from "./types";
+import { useEffect, useState } from "react";
+import AppointmentListItem from "./AppointmentListItem";
+import { buildDayTimeline } from "../../utils/getFreeSlotsforAppointment";
+import AppointmentFreeTimeCard from "./AppointmentFreeTimeCard";
+import AppointmentDetailsModal from "./AppointmentDetailsModal";
 
 type Props = {
-  appointments: Appointment[];
+  date: dayjs.Dayjs;
   openFlow: () => void;
-  handleAction: (appointment: Appointment, action: AppointmentAction) => void;
+  appointments: Appointment[];
+  fetchAppointments: () => Promise<void>;
 };
 const AppointmentsDailyList = ({
-  appointments,
   openFlow,
-  handleAction,
+  appointments,
+  fetchAppointments,
+  date,
 }: Props) => {
+  const [detailsModal, setDetailsModal] = useState<{
+    open: boolean;
+    appointmentId?: number;
+  }>({ open: false });
+  // Todo colocar em env config
+  const workStart = date.hour(8).minute(0).second(0);
+  const workEnd = date.hour(18).minute(0).second(0);
 
+  const timeline = buildDayTimeline(
+    appointments,
+    workStart,
+    workEnd,
+    30, // duração mínima para mostrar bloco livre
+  );
 
+  useEffect(() => {
+    fetchAppointments();
+  }, [fetchAppointments]);
+
+  const handleAction = async (
+    appointment: Appointment,
+    action: AppointmentAction,
+  ) => {
+    await applyAppointmentAction(appointment.id, action);
+    await fetchAppointments();
+  };
+
+  const selectedAppointment = appointments.find(
+    (a) => a.id === detailsModal.appointmentId,
+  );
   return (
     <>
       <Box
@@ -49,241 +69,47 @@ const AppointmentsDailyList = ({
         </Button>
       </Box>
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-        {appointments.map((appointment) => {
-          const statusUI = getAppointmentStatusUI(appointment.status);
-          const p = theme.palette[statusUI.palette];
-          {
+        {timeline.map((block, index) => {
+          if (block.type === "appointment") {
             return (
-              <CustomCard
-                key={appointment.id}
-                sx={{
-                  px: 2,
-                  py: 1,
-                  pb: 2,
-                  borderLeft: "5px solid",
-                  borderLeftColor: p.main,
+              <AppointmentListItem
+                key={block.data.id}
+                appointment={block.data}
+                openDetails={() => {
+                  setDetailsModal({
+                    open: true,
+                    appointmentId: block.data.id,
+                  });
                 }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    width: "100%",
-                  }}
-                >
-                  <Box>
-                    <Box sx={{ display: "flex", alignItems: "center" }}>
-                      <Typography variant="h6" fontWeight={600}>
-                        {appointment.pet.name},
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        sx={{ marginLeft: 0.5, marginTop: 1 }}
-                      >
-                        {appointment.pet.breed}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body2" color="text.disabled">
-                        {appointment.pet.species === "dog"
-                          ? "Canino"
-                          : "Felino"}{" "}
-                        -{" "}
-                        {appointment.pet.gender === "male" ? "Macho" : "Femea"}
-                      </Typography>
-                    </Box>
-                  </Box>
-                  <Box
-                    sx={{
-                      border: "1px solid",
-                      borderColor: "divider",
-                      px: 2,
-                      borderRadius: 3,
-                    }}
-                  >
-                    <Typography variant="h6" fontWeight={600}>
-                      {dayjs(appointment.scheduled_at).format("HH:mm")}
-                    </Typography>
-                  </Box>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: 0.5,
-                      bgcolor: p.light,
-                      color: "text.secondary",
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: 1,
-                      fontWeight: 500,
-                      width: "fit-content",
-                    }}
-                  >
-                    <statusUI.icon size={16} />
-                    <Typography variant="body2" fontWeight={500}>
-                      {statusUI.label}
-                    </Typography>
-                  </Box>
-                </Box>
-                <Divider sx={{ my: 1 }} />
-                <Box
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    justifyContent: "space-between",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: "100%",
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      borderRadius: 1,
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="body1" color="text.disabled">
-                        Serviços
-                      </Typography>
-                      <Box sx={{ display: "flex", gap: 2 }}>
-                        {appointment.services.map((service) => (
-                          <Box
-                            key={service.name}
-                            sx={{ display: "flex", gap: 0.5, marginTop: 0.5 }}
-                          >
-                            {service.name === "Tosa" ? (
-                              <Scissors size={16} />
-                            ) : (
-                              <ShowerHead size={16} />
-                            )}
-                            <Typography key={service.name} variant="body2">
-                              {service.name}
-                            </Typography>
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                    <Box>
-                      <Typography variant="body1" color="text.disabled">
-                        Dono
-                      </Typography>
-                      <Typography variant="body2">
-                        {appointment.client.name}
-                      </Typography>
-                    </Box>
-                    <Box>
-                      <Typography variant="body1" color="text.disabled">
-                        Idade
-                      </Typography>
-                      <Typography variant="body2">
-                        {appointment.pet.age}{" "}
-                        {getAgeUnitLabel(appointment.pet.age, appointment.pet.ageUnit)}
-                      </Typography>
-                    </Box>
-                  </Box>
-                </Box>
-                {appointment.notes && (
-                  <Box sx={{ mt: 2, pb: 1 }}>
-                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                      <CircleAlert
-                        size={17}
-                        color={theme.palette.text.disabled}
-                      />
-                      <Typography
-                        variant="body1"
-                        sx={{ mt: 0.2 }}
-                        color="text.disabled"
-                      >
-                        Observações
-                      </Typography>
-                    </Box>
-                    <Typography variant="body2">{appointment.notes}</Typography>
-                  </Box>
-                )}
-
-                {appointment.status === "pending" && (
-                  <>
-                    <Divider sx={{ my: 1 }} />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 1,
-                      }}
-                    >
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        startIcon={<X size={16} />}
-                        onClick={() => handleAction(appointment, "cancel")}
-                      >
-                        Cancelar
-                      </Button>
-                      <Button
-                        onClick={() => handleAction(appointment, "confirm")}
-                        startIcon={<CalendarCheck size={16} />}
-                        size="small"
-                      >
-                        Confirmar
-                      </Button>
-                    </Box>
-                  </>
-                )}
-
-                {appointment.status === "confirmed" && (
-                  <>
-                    <Divider sx={{ my: 1 }} />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 1,
-                      }}
-                    >
-                      <Button
-                        size="small"
-                        startIcon={<Play size={16} />}
-                        onClick={() => handleAction(appointment, "start")}
-                      >
-                        Iniciar
-                      </Button>
-                    </Box>
-                  </>
-                )}
-                {appointment.status === "in_progress" && (
-                  <>
-                    <Divider sx={{ my: 1 }} />
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 1,
-                      }}
-                    >
-                      <Button
-                        size="small"
-                        startIcon={<CircleCheck size={16} />}
-                        onClick={() => handleAction(appointment, "complete")}
-                      >
-                        Finalizar
-                      </Button>
-                    </Box>
-                  </>
-                )}
-              </CustomCard>
+              />
             );
           }
+          if (block.type === "free") {
+            return (
+              <AppointmentFreeTimeCard
+                key={`free-${index}`}
+                block={block}
+                openFlow={openFlow}
+              />
+            );
+          }
+
+          return null;
         })}
-        {
-          appointments.length === 0 && (
-            <Typography variant="body1" color="text.disabled">
-              Nenhum agendamento para hoje
-            </Typography>
-          )
-        }
+        {appointments.length === 0 && (
+          <Typography variant="body1" color="text.disabled">
+            Nenhum agendamento para hoje
+          </Typography>
+        )}
       </Box>
+      {detailsModal.open && selectedAppointment && (
+        <AppointmentDetailsModal
+          open={detailsModal.open}
+          onClose={() => setDetailsModal({ open: false })}
+          appointment={selectedAppointment}
+          handleAction={handleAction}
+        />
+      )}
     </>
   );
 };

@@ -60,6 +60,11 @@ const theme = createTheme({
 
     h1: { fontSize: "2rem", fontWeight: 700 },
     h2: { fontSize: "1.75rem", fontWeight: 600 },
+    h5: { fontSize: "20px", fontWeight: 600 },
+    h6: { fontSize: "18px", fontWeight: 600 },
+    subtitle1: { fontSize: "16px", fontWeight: 500 },
+    body2: { fontSize: "13px" },
+    caption: { fontSize: "12px" },
     body1: {
       fontSize: "0.95rem",
       lineHeight: 1.6,

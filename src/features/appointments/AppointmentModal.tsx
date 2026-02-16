@@ -1,125 +1,102 @@
-import { useEffect, useState } from "react";
 import { useClients } from "../../hooks/useClients";
-
-import type { Dayjs } from "dayjs";
-import { createAppointment, type Service } from "../../api/services/appointments";
 import {
+  createAppointment,
+  updateAppointment,
+} from "../../api/services/appointments";
+import {
+  Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
+  Typography,
 } from "@mui/material";
 import AppointmentForm from "./AppointmentForm";
-import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
 import type { Client } from "../clients/types";
 import type { Pet } from "../pets/types";
-import { fetchServices } from "../../api/services/tenant_services";
+
+import type { Appointment, AppointmentFormData } from "./types";
+import { useServices } from "../../hooks/useServices";
+import { appointmentToFormData } from "./mapper";
+import { DEFAULT_APPOINTMENT_FORM } from "./constants";
+import { X } from "lucide-react";
 
 type Props = {
   open: boolean;
+  mode: "create" | "edit";
+  appointment?: Appointment;
   selectedClient?: Client;
   selectedPet?: Pet;
-  currentDate?: Dayjs;
-  pets?: Pet[];
-  onClientSelect: (client?: Client) => void;
-  onPetSelect: (pet?: Pet) => void;
-  onCreateClient: () => void;
-  onCreatePet: () => void;
   onClose: () => void;
-  onSuccess: () => void;
+  onSuccess: (client: Client) => void;
 };
 
 export default function AppointmentModal({
   open,
-  selectedClient,
-  selectedPet,
-  currentDate,
-  pets,
-  onClientSelect,
-  onPetSelect,
-  onCreateClient,
-  onCreatePet,
+  mode,
+  appointment,
   onClose,
   onSuccess,
+  selectedClient,
+  selectedPet,
 }: Props) {
-  const { clients } = useClients();
-  const [services, setServices] = useState<Service[]>([]);
-  const [selectedServices, setSelectedServices] = useState<number[]>([]);
-  const [date, setDate] = useState<Dayjs | null>(null);
-  const [time, setTime] = useState<Dayjs | null>(null);
-  const [notes, setNotes] = useState("");
   const toast = useToast();
-  useEffect(() => {
-    fetchServices().then(setServices);
-  }, []);
+  const defaultValues = appointment
+    ? appointmentToFormData(appointment)
+    : DEFAULT_APPOINTMENT_FORM;
 
-  const handleSave = async () => {
-    const baseDate = date ?? currentDate;
-    if (!selectedClient || !selectedPet || !baseDate || !time) return;
+  const { clients } = useClients();
+  const { services } = useServices();
+  const handleSubmit = async (data: AppointmentFormData) => {
+    const saved =
+      mode === "create"
+        ? await createAppointment(data)
+        : await updateAppointment(appointment!.id, data);
 
-    const scheduled_at = baseDate
-      .hour(time.hour())
-      .minute(time.minute())
-      .second(0)
-      .toISOString();
-
-    await createAppointment({
-      client_id: selectedClient.id,
-      pet_id: selectedPet.id,
-      scheduled_at,
-      service_ids: selectedServices,
-      notes,
-    });
-    onSuccess();
-    onClose();
-    toast.success("Agendamento criado com sucesso");
-  };
-
-  const handleToggleService = (id: number) => {
-    setSelectedServices((prev) =>
-      prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id],
+    toast.success(
+      mode === "create"
+        ? "Agendamento criado com sucesso"
+        : "Agendamento atualizado com sucesso",
     );
-  };
-  const handleCreateClient = () => {
-    onCreateClient();
-  };
 
-  const handleCreatePet = () => {
-    onCreatePet();
+    onSuccess(saved);
+    onClose();
   };
+  console.log("selectedClient", selectedClient);
   return (
-    <Dialog open={open} fullWidth maxWidth="sm">
-      <DialogTitle>Novo Agendamento</DialogTitle>
+    <Dialog
+      open={open}
+      maxWidth={false} // permite ultrapassar os limites padrões
+      slotProps={{
+        paper: {
+          sx: {
+            width: "600px",
+            maxWidth: "1400px",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+      >
+        <Typography variant="h5">
+          {mode === "create" ? "Novo Agendamento" : "Editar Agendamento"}
+        </Typography>
+        <Box sx={{ cursor: "pointer" }}>
+          <X onClick={onClose} />
+        </Box>
+      </DialogTitle>
 
       <DialogContent>
         <AppointmentForm
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
           clients={clients}
-          pets={pets ?? []}
           services={services}
-          selectedClient={selectedClient ?? null}
-          selectedPet={selectedPet ?? null}
-          selectedServices={selectedServices}
-          date={date ?? currentDate}
-          time={time ?? undefined}
-          notes={notes}
-          onClientChange={onClientSelect}
-          onPetChange={onPetSelect}
-          onServiceToggle={handleToggleService}
-          onDateChange={setDate}
-          onTimeChange={setTime}
-          onNotesChange={setNotes}
-          onCreateClient={handleCreateClient}
-          onCreatePet={handleCreatePet}
+          selectedClient={selectedClient}
+          selectedPet={selectedPet}
         />
       </DialogContent>
-
-      <DialogActions>
-        <Button onClick={onClose} variant="text">
-          Cancelar
-        </Button>
-        <Button onClick={handleSave}>Salvar</Button>
-      </DialogActions>
     </Dialog>
   );
 }

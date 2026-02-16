@@ -16,7 +16,7 @@ export const DEFAULT_PET_FORM: PetFormData = {
   coat_color: "",
 
   // Idade
-  age: 0,
+  age: undefined,
   age_unit: undefined,
   birth_date: undefined,
 
