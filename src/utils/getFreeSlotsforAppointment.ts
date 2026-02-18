@@ -1,5 +1,5 @@
 import dayjs from "dayjs"
-import type { Appointment } from "../features/appointments/types"
+import type { Appointment, TimelineBlock } from "../features/appointments/types"
 
 function getAppointmentDuration(appointment: Appointment): number {
     const petDurations = appointment.items.map((item) => {
@@ -10,7 +10,6 @@ function getAppointmentDuration(appointment: Appointment): number {
     })
 
     if (petDurations.length === 0) return 0
-    console.log("petDurations", petDurations)
     return Math.max(...petDurations)
 }
 
@@ -28,7 +27,7 @@ export function buildDayTimeline(
 
     const blocks: TimelineBlock[] = []
     let cursor = workStart
-
+    console.log('minDuration', minDuration)
     for (const appt of sorted) {
         const start = dayjs(appt.scheduled_at)
         const duration = getAppointmentDuration(appt)
@@ -61,6 +60,6 @@ export function buildDayTimeline(
             end: workEnd,
         })
     }
-
+    console.log("blocks", blocks)
     return blocks
 }

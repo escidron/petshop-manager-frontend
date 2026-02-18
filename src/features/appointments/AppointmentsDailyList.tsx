@@ -1,31 +1,41 @@
 import { Box, Typography } from "@mui/material";
-import { applyAppointmentAction } from "../../api/services/appointments";
-import { Plus } from "lucide-react";
-import dayjs from "dayjs";
+import {
+  applyAppointmentAction,
+  getAppointmentsByDay,
+} from "../../api/services/appointments";
+import { CalendarDays, Plus } from "lucide-react";
+import dayjs, { Dayjs } from "dayjs";
 import { Button } from "../../components/Button/Button";
 import type { Appointment, AppointmentAction } from "./types";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AppointmentListItem from "./AppointmentListItem";
 import { buildDayTimeline } from "../../utils/getFreeSlotsforAppointment";
 import AppointmentFreeTimeCard from "./AppointmentFreeTimeCard";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import CustomCard from "../../components/Card/CustomCard";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 
 type Props = {
-  date: dayjs.Dayjs;
+  onEdit: (appointment: Appointment) => void;
   openFlow: () => void;
-  appointments: Appointment[];
-  fetchAppointments: () => Promise<void>;
 };
-const AppointmentsDailyList = ({
-  openFlow,
-  appointments,
-  fetchAppointments,
-  date,
-}: Props) => {
+const AppointmentsDailyList = ({ openFlow, onEdit }: Props) => {
   const [detailsModal, setDetailsModal] = useState<{
     open: boolean;
     appointmentId?: number;
   }>({ open: false });
+  const [date, setDate] = useState<Dayjs>(dayjs());
+  const [showCalendar, setShowCalendar] = useState(false);
+  const formattedDate = date.format("YYYY-MM-DD");
+  const queryClient = useQueryClient();
+
+  const { data: appointments = [] } = useQuery({
+    queryKey: ["appointments", formattedDate],
+    queryFn: () => getAppointmentsByDay(formattedDate),
+  });
   // Todo colocar em env config
   const workStart = date.hour(8).minute(0).second(0);
   const workEnd = date.hour(18).minute(0).second(0);
@@ -37,21 +47,20 @@ const AppointmentsDailyList = ({
     30, // duração mínima para mostrar bloco livre
   );
 
-  useEffect(() => {
-    fetchAppointments();
-  }, [fetchAppointments]);
-
   const handleAction = async (
     appointment: Appointment,
     action: AppointmentAction,
   ) => {
     await applyAppointmentAction(appointment.id, action);
-    await fetchAppointments();
+    queryClient.invalidateQueries({
+      queryKey: ["appointments"],
+    });
   };
 
   const selectedAppointment = appointments.find(
     (a) => a.id === detailsModal.appointmentId,
   );
+
   return (
     <>
       <Box
@@ -64,10 +73,57 @@ const AppointmentsDailyList = ({
         <Typography variant="h5" fontWeight={600}>
           Agendas do dia
         </Typography>
-        <Button startIcon={<Plus />} onClick={openFlow}>
-          Novo Agendamento
-        </Button>
+        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <Box
+            onClick={() => setShowCalendar(!showCalendar)}
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              borderRadius: "4px",
+              border: "1px solid",
+              borderColor: "primary.main",
+              height: "36px",
+              width: "36px",
+              cursor: "pointer",
+              backgroundColor: showCalendar ? "primary.main" : "transparent",
+              color: showCalendar ? "white" : "primary.main",
+            }}
+          >
+            <CalendarDays />
+          </Box>
+          <Button startIcon={<Plus />} onClick={openFlow}>
+            Novo Agendamento
+          </Button>
+        </Box>
       </Box>
+      {showCalendar && (
+        <Box>
+          <CustomCard sx={{ mt: 2, p: 1, width: "350px", height: "340px" }}>
+            <LocalizationProvider
+              dateAdapter={AdapterDayjs}
+              adapterLocale="pt-br"
+            >
+              <DateCalendar
+                value={date}
+                onChange={(newDate) => {
+                  if (newDate) {
+                    setDate(newDate);
+                  }
+                }}
+                sx={{
+                  width: "100%",
+                  color: "text.primary",
+                  "& .MuiDayCalendar-weekDayLabel": {
+                    color: "text.primary",
+                  },
+                }}
+              />
+            </LocalizationProvider>
+          </CustomCard>
+        </Box>
+      )}
+
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
         {timeline.map((block, index) => {
           if (block.type === "appointment") {
@@ -108,6 +164,7 @@ const AppointmentsDailyList = ({
           onClose={() => setDetailsModal({ open: false })}
           appointment={selectedAppointment}
           handleAction={handleAction}
+          onEdit={onEdit}
         />
       )}
     </>

@@ -23,8 +23,6 @@ const SignupPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
 
-  console.log(loading);
-
   const handleSubmitUser = async () => {
     try {
       setLoading(true);

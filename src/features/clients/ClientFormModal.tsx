@@ -19,6 +19,7 @@ type Props = {
   open: boolean;
   mode: "create" | "edit";
   client?: Client;
+  createPetMandatory?: boolean;
   onClose: () => void;
   onSuccess: (client: Client) => void;
   onSuccessAndAddPet?: (client: Client) => void;
@@ -28,6 +29,7 @@ export default function ClientFormModal({
   open,
   mode,
   client,
+  createPetMandatory,
   onClose,
   onSuccess,
   onSuccessAndAddPet,
@@ -42,7 +44,6 @@ export default function ClientFormModal({
       ...data,
       birth_date: brDateToISO(data.birth_date),
     };
-    console.log("payload", payload);
     const saved =
       mode === "create"
         ? await createClient(payload)
@@ -91,8 +92,9 @@ export default function ClientFormModal({
         <ClientForm
           mode={mode}
           defaultValues={defaultValues}
-          onSubmit={handleSubmit}
           showAdditionalInfo={showAdditionalInfo}
+          createPetMandatory={createPetMandatory}
+          onSubmit={handleSubmit}
           setShowAdditionalInfo={setShowAdditionalInfo}
         />
       </DialogContent>

@@ -9,7 +9,7 @@ import {
 } from "@mui/material";
 import {
   CalendarCheck,
-  CircleCheck,
+  Check,
   Dot,
   Info,
   Mars,
@@ -32,14 +32,16 @@ type Props = {
   appointment: Appointment;
   onClose: () => void;
   handleAction: (appointment: Appointment, action: AppointmentAction) => void;
+  onEdit: (appointment: Appointment) => void;
 };
 const AppointmentDetailsModal = ({
   open,
-  onClose,
   appointment,
+  onClose,
   handleAction,
+  onEdit,
 }: Props) => {
-  console.log("appointment", appointment);
+
   const totalCents = getAppointmentTotal(appointment);
 
   const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
@@ -56,7 +58,7 @@ const AppointmentDetailsModal = ({
           sx: {
             width: "60%",
             maxWidth: "1400px",
-            minWidth: "1100px",
+            minWidth: "1250px",
           },
         },
       }}
@@ -85,24 +87,27 @@ const AppointmentDetailsModal = ({
             <Typography variant="h5" fontWeight={600}>
               Agendamento
             </Typography>
-            <CustomCard sx={{ mt: 1, px: 2, py: 1 }}>
+            <CustomCard sx={{ mt: 1, px: 2, py: 1, minWidth: "580px" }}>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="h6" fontWeight={500}>
                   {formatAppointmentDate(appointment.scheduled_at)}
                 </Typography>
                 <AppointmentStatusChip status={appointment.status} />
               </Box>
-              <Box sx={{ mt: 1 }}>
-                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                  <Info size={14} color={theme.palette.error.main} />
-                  <Typography variant="body2" color="error.main">
-                    Observações do agendamento
+              {appointment.notes && (
+                <Box sx={{ mt: 1 }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                    <Info size={14} color={theme.palette.error.main} />
+                    <Typography variant="body2" color="error.main">
+                      Observações do agendamento
+                    </Typography>
+                  </Box>
+                  <Typography variant="body2" sx={{ ml: 3 }}>
+                    {appointment.notes}
                   </Typography>
                 </Box>
-                <Typography variant="body2" sx={{ ml: 3 }}>
-                  {appointment.notes}
-                </Typography>
-              </Box>
+              )}
+
               <Box sx={{ p: 2 }}>
                 {appointment.status === "pending" && (
                   <>
@@ -125,7 +130,7 @@ const AppointmentDetailsModal = ({
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Button
                           variant="outlined"
-                          onClick={() => handleAction(appointment, "confirm")}
+                          onClick={() => onEdit(appointment)}
                           startIcon={<Pencil size={16} />}
                           size="small"
                         >
@@ -164,7 +169,7 @@ const AppointmentDetailsModal = ({
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Button
                           variant="outlined"
-                          onClick={() => handleAction(appointment, "confirm")}
+                          onClick={() => onEdit(appointment)}
                           startIcon={<Pencil size={16} />}
                           size="small"
                         >
@@ -193,7 +198,7 @@ const AppointmentDetailsModal = ({
                     >
                       <Button
                         size="small"
-                        startIcon={<CircleCheck size={16} />}
+                        startIcon={<Check size={16} />}
                         onClick={() => handleAction(appointment, "complete")}
                       >
                         Finalizar
@@ -225,7 +230,7 @@ const AppointmentDetailsModal = ({
           </Box>
           <Box sx={{ mt: 1, display: "flex", gap: 2, flexDirection: "column" }}>
             {appointment.items.map((item) => (
-              <CustomCard sx={{ px: 2, py: 1 }}>
+              <CustomCard sx={{ px: 2, py: 1, minWidth: "600px" }}>
                 <Box
                   sx={{
                     display: "flex",
@@ -274,16 +279,30 @@ const AppointmentDetailsModal = ({
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="body2">{item.pet.species}</Typography>
-                  <Dot color={theme.palette.text.disabled} size={16} />
-                  <Typography variant="body2">Porte {item.pet.size}</Typography>
-                  <Dot color={theme.palette.text.disabled} size={16} />
-                  <Typography variant="body2">
-                    Pelagem {item.pet.coat_type}
-                  </Typography>
-                  <Dot size={16} />
-                  <Typography variant="body2">
-                    Cor {item.pet.coat_color}
-                  </Typography>
+                  {item.pet.size && (
+                    <>
+                      <Dot color={theme.palette.text.disabled} size={16} />
+                      <Typography variant="body2">
+                        Porte {item.pet.size}
+                      </Typography>
+                    </>
+                  )}
+                  {item.pet.coat_type && (
+                    <>
+                      <Dot color={theme.palette.text.disabled} size={16} />
+                      <Typography variant="body2">
+                        Pelagem {item.pet.coat_type}
+                      </Typography>
+                    </>
+                  )}
+                  {item.pet.coat_color && (
+                    <>
+                      <Dot size={16} />
+                      <Typography variant="body2">
+                        Cor {item.pet.coat_color}
+                      </Typography>
+                    </>
+                  )}
                 </Box>
                 <Box sx={{ mt: 1 }}>
                   <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>

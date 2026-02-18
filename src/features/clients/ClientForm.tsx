@@ -36,16 +36,18 @@ import { getAddressByCep } from "../../api/services/address";
 type Props = {
   mode: "create" | "edit";
   defaultValues?: Partial<ClientFormData>;
-  onSubmit: (data: ClientFormData, action?: "addPet") => void;
   showAdditionalInfo: boolean;
+  createPetMandatory?: boolean;
+  onSubmit: (data: ClientFormData, action?: "addPet") => void;
   setShowAdditionalInfo: (value: boolean) => void;
 };
 
 export default function ClientForm({
   mode,
   defaultValues,
-  onSubmit,
   showAdditionalInfo,
+  createPetMandatory,
+  onSubmit,
   setShowAdditionalInfo,
 }: Props) {
   const [addPhone, setAddPhone] = useState(false);
@@ -491,7 +493,13 @@ export default function ClientForm({
                           {...field}
                           placeholder="00000-000"
                           iconPosition="start"
-                          icon={loadingCep ? <CircularProgress size={18}/> : <Search size={18}/>}
+                          icon={
+                            loadingCep ? (
+                              <CircularProgress size={18} />
+                            ) : (
+                              <Search size={18} />
+                            )
+                          }
                           onBlur={() => handleCepLookup(field.value || "")}
                           onChange={(e) =>
                             field.onChange(maskCep(e.target.value))
@@ -636,13 +644,15 @@ export default function ClientForm({
         {/* ================= BOTÕES ================= */}
         <Divider />
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-          <Button
-            variant="outlined"
-            onClick={handleSubmit((data: ClientFormData) => onSubmit(data))}
-            data-action="save"
-          >
-            Salvar
-          </Button>
+          {!createPetMandatory && (
+            <Button
+              variant="outlined"
+              onClick={handleSubmit((data: ClientFormData) => onSubmit(data))}
+              data-action="save"
+            >
+              Salvar
+            </Button>
+          )}
 
           {mode === "create" && (
             <Button

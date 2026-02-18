@@ -55,3 +55,12 @@ export const maskPhone = (value = "") => {
 
 export const maskOnlyNumbers = (value = "") =>
   value.replace(/\D/g, "");
+
+export const formatBRLFromCents = (value?: number) => {
+  if (!value && value !== 0) return "";
+
+  return (value / 100).toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+};

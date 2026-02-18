@@ -29,16 +29,18 @@ type Props = {
   selectedPet?: Pet;
   onClose: () => void;
   onSuccess: (client: Client) => void;
+  onCreateClient?: () => void;
 };
 
 export default function AppointmentModal({
   open,
   mode,
   appointment,
-  onClose,
-  onSuccess,
   selectedClient,
   selectedPet,
+  onClose,
+  onSuccess,
+  onCreateClient,
 }: Props) {
   const toast = useToast();
   const defaultValues = appointment
@@ -62,7 +64,6 @@ export default function AppointmentModal({
     onSuccess(saved);
     onClose();
   };
-  console.log("selectedClient", selectedClient);
   return (
     <Dialog
       open={open}
@@ -90,11 +91,12 @@ export default function AppointmentModal({
       <DialogContent>
         <AppointmentForm
           defaultValues={defaultValues}
-          onSubmit={handleSubmit}
           clients={clients}
           services={services}
           selectedClient={selectedClient}
           selectedPet={selectedPet}
+          onSubmit={handleSubmit}
+          onCreateClient={onCreateClient}
         />
       </DialogContent>
     </Dialog>

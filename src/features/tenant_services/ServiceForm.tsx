@@ -17,6 +17,7 @@ import { Button } from "../../components/Button/Button";
 import { Minus, Plus } from "lucide-react";
 import { serviceSchema } from "./schemas";
 import { COAT_TYPES, PET_SIZES, PET_SPECIES } from "../pets/constants";
+import { formatBRLFromCents } from "../../utils/masks";
 
 type Props = {
   defaultValues?: Partial<ServiceFormData>;
@@ -31,7 +32,6 @@ const ServiceForm = ({
   showAdditionalInfo,
   setShowAdditionalInfo,
 }: Props) => {
-  console.log("defaultValues", defaultValues);
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
     defaultValues: {
@@ -105,53 +105,42 @@ const ServiceForm = ({
               <Controller
                 name="price_cents"
                 control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    sx={{
-                      "& input[type=number]": {
-                        MozAppearance: "textfield", // Firefox
-                      },
-                      "& input[type=number]::-webkit-outer-spin-button": {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
-                      "& input[type=number]::-webkit-inner-spin-button": {
-                        WebkitAppearance: "none",
-                        margin: 0,
-                      },
-                    }}
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    size="small"
-                    type="number"
-                    placeholder="0"
-                    slotProps={{
-                      htmlInput: {
-                        min: 0,
-                      },
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography
-                              sx={{
-                                color: "text.disabled",
-                                fontWeight: 500,
-                                mt: "2px",
-                              }}
-                            >
-                              R$
-                            </Typography>
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-                      const value = e.currentTarget.value;
-                      field.onChange(value === "" ? undefined : Number(value));
-                    }}
-                  />
-                )}
+                render={({ field, fieldState }) => {
+                  const formattedValue = formatBRLFromCents(field.value);
+
+                  return (
+                    <TextField
+                      value={formattedValue}
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      size="small"
+                      placeholder="0,00"
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography
+                                sx={{
+                                  color: "text.disabled",
+                                  fontWeight: 500,
+                                  mt: "2px",
+                                }}
+                              >
+                                R$
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        field.onChange(
+                          digits === "" ? undefined : Number(digits),
+                        );
+                      }}
+                    />
+                  );
+                }}
               />
             </FormControl>
             <Button

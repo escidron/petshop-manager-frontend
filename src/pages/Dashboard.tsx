@@ -1,45 +1,24 @@
-import { useCallback, useState } from "react";
+import { useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
-
-import type { Dayjs } from "dayjs";
-import dayjs from "dayjs";
-import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import ClientFormModal from "../features/clients/ClientFormModal";
 import PetFormModal from "../features/pets/PetFormModal";
-import CustomCard from "../components/Card/CustomCard";
-import { Box, Typography } from "@mui/material";
-// import {
-//   BanknoteArrowUp,
-//   CalendarCheck2,
-//   CalendarDays,
-//   HandCoins,
-// } from "lucide-react";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import { Box } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import type { Client } from "../features/clients/types";
 import type { Pet } from "../features/pets/types";
 import { useClients } from "../hooks/useClients";
 import { usePets } from "../hooks/usePets";
-import { getAppointmentsByDay } from "../api/services/appointments";
-import type { Appointment } from "../features/appointments/types";
-
-type AppointmentFlowState =
-  | { open: false }
-  | {
-      open: true;
-      mode: "create" | "edit";
-      step: "appointment" | "client" | "pet";
-      selectedClient?: Client;
-      selectedPet?: Pet;
-    };
+import type {
+  Appointment,
+  AppointmentFlowState,
+} from "../features/appointments/types";
+import { useQueryClient } from "@tanstack/react-query";
 
 const Dashboard = () => {
-  const [date, setDate] = useState<Dayjs>(dayjs());
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
   const { getClients } = useClients();
   const { getPets } = usePets();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const queryClient = useQueryClient();
 
   const [clientModal, setClientModal] = useState<{
     open: boolean;
@@ -58,11 +37,6 @@ const Dashboard = () => {
   ): flow is Extract<AppointmentFlowState, { open: true }> => {
     return flow.open;
   };
-
-  const fetchAppointments = useCallback(async () => {
-    const appointments = await getAppointmentsByDay(date.format("YYYY-MM-DD"));
-    setAppointments(appointments);
-  }, [date]);
 
   return (
     <Box>
@@ -168,9 +142,14 @@ const Dashboard = () => {
       >
         <Box sx={{ width: "60%" }}>
           <AppointmentsDailyList
-          appointments={appointments}
-          fetchAppointments={fetchAppointments}
-            date={date}
+            onEdit={(appointment: Appointment) =>
+              setFlow({
+                open: true,
+                step: "appointment",
+                mode: "edit",
+                appointment,
+              })
+            }
             openFlow={() =>
               setFlow({
                 open: true,
@@ -180,33 +159,6 @@ const Dashboard = () => {
             }
           />
         </Box>
-        <Box sx={{ width: "40%" }}>
-          <Typography variant="h5" fontWeight={600}>
-            Calendario
-          </Typography>
-          <CustomCard sx={{ mt: 2, p: 1 }}>
-            <LocalizationProvider
-              dateAdapter={AdapterDayjs}
-              adapterLocale="pt-br"
-            >
-              <DateCalendar
-                value={date}
-                onChange={(newDate) => {
-                  if (newDate) {
-                    setDate(newDate);
-                  }
-                }}
-                sx={{
-                  width: "100%",
-                  color: "text.primary",
-                  "& .MuiDayCalendar-weekDayLabel": {
-                    color: "text.primary",
-                  },
-                }}
-              />
-            </LocalizationProvider>
-          </CustomCard>
-        </Box>
       </Box>
 
       {isFlowOpen(flow) && (
@@ -215,11 +167,18 @@ const Dashboard = () => {
           mode={flow.mode}
           selectedClient={flow.selectedClient}
           selectedPet={flow.selectedPet}
+          appointment={flow.appointment}
           onSuccess={() => {
-            fetchAppointments();
+            queryClient.invalidateQueries({
+              queryKey: ["appointments"],
+            });
             setFlow({ open: false });
           }}
           onClose={() => setFlow({ open: false })}
+          onCreateClient={() => {
+            setFlow({ open: true, step: "client", mode: "create" });
+            setClientModal({ open: true, mode: "create" });
+          }}
         />
       )}
 
@@ -228,6 +187,7 @@ const Dashboard = () => {
           open={clientModal.open}
           mode={clientModal.mode}
           client={clientModal.client}
+          createPetMandatory={true}
           onClose={() => {
             setClientModal({ open: false, mode: "create" });
           }}

@@ -33,13 +33,13 @@ export const updateAppointment = async (
   return response.data;
 };
 
-export const getAppointmentsByDay = async (date: string) => {
+export const getAppointmentsByDay = async (
+  date: string
+): Promise<Appointment[]> => {
   const response = await apiClient.get<Appointment[]>(
     `/api/v1/appointments/day/${date}`,
     {
-      params: {
-        date, // format: YYYY-MM-DD
-      },
+      params: { date },
     }
   );
 

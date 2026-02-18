@@ -54,6 +54,17 @@ export type TimelineBlock =
     end: dayjs.Dayjs
   }
 
+export type AppointmentFlowState =
+  | { open: false }
+  | {
+    open: true;
+    mode: "create" | "edit";
+    step: "appointment" | "client" | "pet";
+    selectedClient?: Client;
+    selectedPet?: Pet;
+    appointment?: Appointment;
+  };
+
 export type AppointmentItem = {
   id: number;
   pet: Pet;

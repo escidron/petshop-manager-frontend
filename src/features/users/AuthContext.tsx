@@ -20,13 +20,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [checking, setChecking] = useState(true); // 🔹 novo estado
   const navigate = useNavigate();
-  console.log("User:", user);
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        console.log("Checking authentication...");
         const response = await apiClient.get("/api/v1/auth/me");
-        console.log("User authenticated:", response.data.user);
         setUser(response.data.user);
       } catch (err) {
         const axiosErr = err as AxiosError & { isAuthError?: boolean };

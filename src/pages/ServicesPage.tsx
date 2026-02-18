@@ -45,7 +45,7 @@ export default function ServicesPage() {
       setDeleting(false);
     }
   };
-  console.log('filteredRows', filteredRows);
+
   return (
     <Box sx={{ maxWidth: "60%", mx: "auto", p: 3 }}>
       <ServiceToolbar

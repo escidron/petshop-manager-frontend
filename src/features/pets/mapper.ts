@@ -5,7 +5,6 @@ export function petToFormData(
   pet?: Pet
 ): PetFormData | undefined {
   if (!pet) return undefined;
-  console.log("pet", pet);
   return {
     // Obrigatórios
     name: pet.name,

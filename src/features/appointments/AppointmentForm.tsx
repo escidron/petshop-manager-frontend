@@ -4,6 +4,7 @@ import {
   Checkbox,
   Divider,
   FormControl,
+  FormControlLabel,
   FormLabel,
   TextField,
 } from "@mui/material";
@@ -21,28 +22,43 @@ import type { AppointmentFormData } from "./types";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appointmentSchema } from "./schemas";
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import dayjs from "dayjs";
 import { useClient } from "../../hooks/useClient";
+import { getServicesForPet } from "../../utils/serviceMatcher";
+import {
+  formatPrice,
+  formatServiceLabel,
+} from "../../utils/formatServiceLabel";
+import "dayjs/locale/pt-br";
+dayjs.locale("pt-br");
 
 type Props = {
   defaultValues?: Partial<AppointmentFormData>;
-  onSubmit: (data: AppointmentFormData) => void;
   clients?: Client[];
   services?: Service[];
   selectedClient?: Client;
   selectedPet?: Pet;
+  onSubmit: (data: AppointmentFormData) => void;
+  onCreateClient?: () => void;
 };
 
 export default function AppointmentForm({
   defaultValues,
-  onSubmit,
   clients,
   services,
   selectedClient,
+  selectedPet,
+  onSubmit,
+  onCreateClient,
 }: Props) {
   const { pets, setClientId } = useClient();
-
+  const [showAllBySection, setShowAllBySection] = useState<
+    Record<number, boolean>
+  >({});
+  console.log("defaultValues", defaultValues);
+  console.log("selectedPet", selectedPet);
+  console.log("selectedClient", selectedClient);
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues,
@@ -52,6 +68,8 @@ export default function AppointmentForm({
     control,
     handleSubmit,
     resetField,
+    setValue,
+    getValues,
     formState: { errors },
   } = form;
   const items = useWatch({ control, name: "items" });
@@ -62,9 +80,23 @@ export default function AppointmentForm({
   });
 
   useEffect(() => {
+    setClientId(selectedClient?.id);
+  }, [selectedClient, setClientId]);
+
+  useEffect(() => {
     console.log("FORM ERRORS 👉", errors);
   }, [errors]);
 
+  useEffect(() => {
+    if (selectedPet && fields.length > 0) {
+      const firstPet = getValues("items.0.pet_id");
+
+      if (!firstPet) {
+        setValue("items.0.pet_id", selectedPet.id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPet]);
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <FormControl>
@@ -78,12 +110,16 @@ export default function AppointmentForm({
             const scheduledValue = field.value ? dayjs(field.value) : null;
 
             return (
-              <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <LocalizationProvider
+                dateAdapter={AdapterDayjs}
+                adapterLocale="pt-br"
+              >
                 <Box sx={{ display: "flex", gap: 2 }}>
                   <DatePicker
+                    format="DD/MM/YYYY"
                     value={scheduledValue}
-                    onChange={(newDate) => {
-                      if (!newDate) return;
+                    onAccept={(newDate) => {
+                      if (!newDate || !newDate.isValid()) return;
 
                       const current = scheduledValue ?? dayjs();
 
@@ -91,6 +127,7 @@ export default function AppointmentForm({
                         .hour(current.hour())
                         .minute(current.minute())
                         .second(0)
+                        .millisecond(0)
                         .toISOString();
 
                       field.onChange(updated);
@@ -101,6 +138,8 @@ export default function AppointmentForm({
                         fullWidth: true,
                         error: !!fieldState.error,
                         helperText: fieldState.error?.message,
+                        placeholder: "DD/MM/AAAA",
+                        inputMode: "numeric",
                       },
                     }}
                   />
@@ -109,8 +148,10 @@ export default function AppointmentForm({
                   <TimePicker
                     value={scheduledValue}
                     ampm={false}
+                    referenceDate={dayjs().hour(8).minute(0)}
+                    minutesStep={15}
                     onChange={(newTime) => {
-                      if (!newTime) return;
+                      if (!newTime || !newTime.isValid()) return;
 
                       const current = scheduledValue ?? dayjs();
 
@@ -118,6 +159,7 @@ export default function AppointmentForm({
                         .hour(newTime.hour())
                         .minute(newTime.minute())
                         .second(0)
+                        .millisecond(0)
                         .toISOString();
 
                       field.onChange(updated);
@@ -127,6 +169,16 @@ export default function AppointmentForm({
                         size: "small",
                         fullWidth: true,
                         error: !!fieldState.error,
+                      },
+                      popper: {
+                        sx: {
+                          "& .MuiMultiSectionDigitalClock-root": {
+                            minHeight: 700, // altura total do clock
+                          },
+                          "& .MuiMultiSectionDigitalClockSection-root": {
+                            minHeight: 700, // altura da coluna (horas/minutos)
+                          },
+                        },
                       },
                     }}
                   />
@@ -179,10 +231,10 @@ export default function AppointmentForm({
           />
 
           <Button
-            sx={{ width: "30%", minWidth: "160px" }}
+            sx={{ width: "30%", minWidth: "160px", maxHeight: "40px" }}
             startIcon={<Plus size={18} />}
             variant="outlined"
-            // onClick={onCreateClient}
+            onClick={onCreateClient}
           >
             Criar Cliente
           </Button>
@@ -231,7 +283,10 @@ export default function AppointmentForm({
                       value={pets?.find((p) => p.id === field.value) ?? null}
                       getOptionLabel={(option) => option.name}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
-                      onChange={(_, value) => field.onChange(value?.id ?? 0)}
+                      onChange={(_, value) => {
+                        field.onChange(value?.id ?? 0);
+                        setValue(`items.${index}.service_ids`, []);
+                      }}
                       renderInput={(params) => (
                         <TextField {...params} placeholder="Selecionar pet" />
                       )}
@@ -244,44 +299,134 @@ export default function AppointmentForm({
               <Controller
                 name={`items.${index}.service_ids`}
                 control={control}
-                render={({ field }) => (
-                  <Autocomplete
-                    multiple
-                    options={services ?? []}
-                    disableCloseOnSelect
-                    size="small"
-                    value={
-                      services?.filter((s) => field.value?.includes(s.id)) ?? []
-                    }
-                    getOptionLabel={(option) => option.name}
-                    isOptionEqualToValue={(o, v) => o.id === v.id}
-                    onChange={(_, value) =>
-                      field.onChange(value.map((v) => v.id))
-                    }
-                    renderOption={(props, option, { selected }) => (
-                      <li {...props}>
-                        <Checkbox
-                          checked={selected}
-                          disableRipple
-                          sx={{
-                            color: "primary.main",
-                          }}
-                        />
-                        {option.name}
-                      </li>
-                    )}
-                    renderInput={(params) => (
-                      <TextField
-                        {...params}
-                        placeholder="Selecionar serviços"
-                        error={!!itemError?.service_ids}
-                        helperText={itemError?.service_ids?.message}
-                      />
-                    )}
-                  />
-                )}
-              />
+                render={({ field }) => {
+                  // 🐶 pega o pet selecionado neste item
+                  const selectedPetId = items?.[index]?.pet_id;
+                  const selectedPet = pets?.find((p) => p.id === selectedPetId);
 
+                  // eslint-disable-next-line react-hooks/rules-of-hooks
+                  const filteredServices = useMemo(() => {
+                    if (showAllBySection[index]) {
+                      return services ?? [];
+                    }
+
+                    return getServicesForPet(services ?? [], selectedPet);
+                    // eslint-disable-next-line react-hooks/exhaustive-deps
+                  }, [services, selectedPet, showAllBySection[index]]);
+
+                  return (
+                    <Autocomplete
+                      disabled={!selectedPet}
+                      multiple
+                      options={filteredServices}
+                      filterOptions={(options, state) => {
+                        const input = state.inputValue.toLowerCase();
+                        const result = options.filter((option) =>
+                          `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                            .toLowerCase()
+                            .includes(input),
+                        );
+                        return result;
+                      }}
+                      disableCloseOnSelect
+                      size="small"
+                      value={
+                        filteredServices.filter((s) =>
+                          field.value?.includes(s.id),
+                        ) ?? []
+                      }
+                      getOptionLabel={(option) => formatServiceLabel(option)}
+                      isOptionEqualToValue={(option, value) =>
+                        option.id === value.id
+                      }
+                      onChange={(_, value) =>
+                        field.onChange(value.map((v) => v.id))
+                      }
+                      renderOption={(props, option, { selected }) => {
+                        const { ...rest } = props;
+
+                        return (
+                          <li
+                            {...rest}
+                            key={option.id} // 🔥 usa id único
+                            style={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "space-between",
+                              width: "100%",
+                            }}
+                          >
+                            <Box
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 8,
+                              }}
+                            >
+                              <Checkbox
+                                checked={selected}
+                                disableRipple
+                                sx={{ color: "primary.main" }}
+                              />
+
+                              <Box>
+                                <Box style={{ fontWeight: 500 }}>
+                                  {formatServiceLabel(option)}
+                                </Box>
+
+                                {option.description && (
+                                  <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                    {option.description}
+                                  </div>
+                                )}
+                              </Box>
+                            </Box>
+
+                            <Box style={{ fontWeight: 600 }}>
+                              {formatPrice(option.price_cents)}
+                            </Box>
+                          </li>
+                        );
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder={
+                            selectedPet
+                              ? "Selecionar serviços"
+                              : "Selecione um pet primeiro"
+                          }
+                          disabled={!selectedPet}
+                          error={!!itemError?.service_ids}
+                          helperText={itemError?.service_ids?.message}
+                        />
+                      )}
+                    />
+                  );
+                }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    disableRipple
+                    size="small"
+                    sx={{ color: "primary.main" }}
+                    checked={!!showAllBySection[index]}
+                    onChange={(e) =>
+                      setShowAllBySection((prev) => ({
+                        ...prev,
+                        [index]: e.target.checked,
+                      }))
+                    }
+                  />
+                }
+                label="Mostrar todos os serviços (ignora porte e pelagem do pet)"
+                slotProps={{
+                  typography: {
+                    sx: { fontSize: 12 },
+                  },
+                }}
+              />
               {/* BOTÃO REMOVER */}
               {fields.length > 1 && (
                 <Button
@@ -299,7 +444,7 @@ export default function AppointmentForm({
 
         {/* BOTÃO ADICIONAR */}
         <Button
-        sx={{width:'150px',display:'flex',mx:'auto'}}
+          sx={{ width: "150px", display: "flex", mx: "auto" }}
           startIcon={<Plus size={18} />}
           variant="text"
           onClick={() =>

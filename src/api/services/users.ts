@@ -38,6 +38,5 @@ export const login = async (
 };
 
 export const logout = async () => {
-  console.log("logoutxxxxx");
   await apiClient.post("/api/v1/auth/logout");
 };

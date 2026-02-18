@@ -32,8 +32,6 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
   const [open, setOpen] = React.useState(true);
   const navigate = useNavigate();
   const location = useLocation();
-  console.log("location", location.pathname);
-  console.log("item", item);
   const hasChildren = Boolean(item.children?.length);
 
   const handleClick = () => {
