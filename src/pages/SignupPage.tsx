@@ -1,76 +1,83 @@
 import { Box, Typography } from "@mui/material";
 import CustomCard from "../components/Card/CustomCard";
-import { DEFAULT_USER_FORM } from "../features/users/constants";
 import { useState } from "react";
-import UserSignupForm, {
-  type User,
-  type UserForm,
-} from "../features/users/UserSignupForm";
-import { createUser } from "../api/services/users";
 import axios from "axios";
 import { useToast } from "../hooks/useToast";
-import type { TenantForm } from "../features/tenants/TenantForm";
-import { DEFAULT_TENANT_FORM } from "../features/tenants/constants";
-import TenantCreateForm from "../features/tenants/TenantForm";
-import { createTenant } from "../api/services/tenants";
 import { useNavigate } from "react-router";
 
+import UserSignupForm from "../features/users/UserSignupForm";
+import TenantCreateForm from "../features/tenants/TenantForm";
+
+import type { UserFormData } from "../features/users/types";
+import type { TenantFormData } from "../features/tenants/types";
+import { signup } from "../api/services/auth";
+import PlanForm from "../features/plans/PlanForm";
+import type { PlanCode } from "../features/plans/types";
+import { useSearchParams } from "react-router";
+
 const SignupPage = () => {
-  const [userForm, setUserForm] = useState<UserForm>(DEFAULT_USER_FORM);
-  const [user, setUser] = useState<User | null>(null);
-  const [tenantForm, setTenantForm] = useState<TenantForm>(DEFAULT_TENANT_FORM);
-  const [loading, setLoading] = useState(false);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const stepParam = Number(searchParams.get("step")) as 1 | 2 | 3;
+  const step: 1 | 2 | 3 = stepParam || 1;
+  const [planCode, setPlanCode] = useState<PlanCode | null>(null);
+  const [userData, setUserData] = useState<UserFormData | null>(null);
+
   const toast = useToast();
   const navigate = useNavigate();
 
-  const handleSubmitUser = async () => {
-    try {
-      setLoading(true);
-      const newUser = await createUser(userForm);
-      setUser(newUser);
-      toast.success("Usuário criado com sucesso");
-    } catch (error: unknown) {
-      let message = "Erro inesperado ao criar usuário";
-      if (axios.isAxiosError(error)) {
-        message = error.response?.data?.detail ?? message;
-      }
-      console.error(message);
-      toast.error(message);
-    } finally {
-      setLoading(false);
-    }
+  const goToStep = (newStep: 1 | 2 | 3) => {
+    setSearchParams({ step: String(newStep) });
   };
 
-  const handleSubmitTenant = async () => {
+  // STEP 1 → Plano
+  const handleSelectPlan = (plan: PlanCode) => {
+    setPlanCode(plan);
+    goToStep(2);
+  };
+
+  // STEP 2 → Usuário
+  const handleSubmitUser = (data: UserFormData) => {
+    setUserData(data);
+    goToStep(3);
+  };
+
+  // STEP 3 → Tenant + Signup final
+  const handleSubmitTenant = async (data: TenantFormData) => {
+    console.log("data", data,planCode, userData);
+    if (!planCode || !userData) return;
+
     try {
-      setLoading(true);
-      if (user !== null) {
-        const newTenant = await createTenant(tenantForm, user?.id);
-        if (newTenant) {
-          toast.success("Estabelecimento criado com sucesso");
-          navigate("/");
-        }
-      }
+      await signup(
+        {
+          email: userData.email,
+          password: userData.password,
+          name: userData.name,
+        },
+        {
+          name: data.name,
+          phone: data.phone,
+        },
+        planCode,
+      );
+
+      toast.success("Conta criada com sucesso");
+
+      navigate("/");
     } catch (error: unknown) {
-      let message = "Erro inesperado ao criar Estabelecimento";
+      let message = "Erro ao criar conta";
+
       if (axios.isAxiosError(error)) {
         message = error.response?.data?.detail ?? message;
       }
-      console.error(message);
+
       toast.error(message);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 
   return (
-    <Box
-      sx={{
-        display: "flex",
-        height: "100%",
-        p: 4,
-      }}
-    >
+    <Box sx={{ display: "flex", height: "100%", p: 4 }}>
       <Box
         sx={{
           width: "40%",
@@ -82,28 +89,18 @@ const SignupPage = () => {
           p: 4,
         }}
       >
-        {!user && (
-          <>
-            <Typography variant="h1" color="text.secondary">
-              Bem-vindo!
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Centralize a gestão do seu estabelecimento e ganhe mais tempo para
-              cuidar do que realmente importa.
-            </Typography>
-          </>
-        )}
-        {user && (
-          <>
-            <Typography variant="h1" color="text.secondary">
-              Estamos quase lá
-            </Typography>
-            <Typography variant="body1" color="text.secondary">
-              Agora só falta criar seu estabelecimento para começar a usar a
-              plataforma.
-            </Typography>
-          </>
-        )}
+        <Typography variant="h1" color="text.secondary">
+          {step === 1 && "Escolha seu plano"}
+          {step === 2 && "Crie sua conta"}
+          {step === 3 && "Configure seu negócio"}
+        </Typography>
+
+        <Typography variant="body1" color="text.secondary">
+          {step === 1 && "Selecione o plano ideal para o seu negócio."}
+          {step === 2 && "Preencha seus dados para criar sua conta."}
+          {step === 3 && "Agora configure seu estabelecimento."}
+        </Typography>
+
         <img
           src="/signup.png"
           alt="signup"
@@ -112,8 +109,9 @@ const SignupPage = () => {
             height: "80%",
             objectFit: "contain",
           }}
-        />{" "}
+        />
       </Box>
+
       <Box
         sx={{
           width: "60%",
@@ -122,36 +120,21 @@ const SignupPage = () => {
           alignItems: "center",
         }}
       >
-        <CustomCard sx={{ maxWidth: "550px", maxHeight: "600px" }}>
-          {!user && (
-            <>
-              <Typography variant="h1">Criar conta</Typography>
-              <Typography variant="body1" color="text.disabled">
-                Crie sua conta e comece a gerenciar seu negocio em poucos
-                minutos.
-              </Typography>
-              <UserSignupForm
-                user={userForm}
-                onChange={setUserForm}
-                handleSubmit={handleSubmitUser}
-              />
-            </>
-          )}
+        {step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
 
-          {user && (
-            <>
-              <Typography variant="h1">Crie seu estabelecimento</Typography>
-              <Typography variant="body1" color="text.disabled">
-                Preencha as informações abaixo. Você poderá editar tudo depois.
-              </Typography>
-              <TenantCreateForm
-                tenant={tenantForm}
-                onChange={setTenantForm}
-                handleSubmit={handleSubmitTenant}
-              />
-            </>
-          )}
-        </CustomCard>
+        {step === 2 && (
+          <CustomCard sx={{ maxWidth: "550px", maxHeight: "600px" }}>
+            <Typography variant="h1">Criar conta</Typography>
+            <UserSignupForm onSubmit={handleSubmitUser} />
+          </CustomCard>
+        )}
+
+        {step === 3 && (
+          <CustomCard sx={{ maxWidth: "550px", maxHeight: "600px" }}>
+            <Typography variant="h1">Seu estabelecimento</Typography>
+            <TenantCreateForm onSubmit={handleSubmitTenant} />
+          </CustomCard>
+        )}
       </Box>
     </Box>
   );

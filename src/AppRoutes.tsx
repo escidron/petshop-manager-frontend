@@ -3,7 +3,6 @@ import MainLayout from "./layouts/MainLayout";
 import ClientsPage from "./pages/ClientsPage";
 import RegistrationLayout from "./layouts/RegistrationLayout";
 import ClientDetailsPage from "./pages/ClientDetailsPage";
-import Dashboard from "./pages/Dashboard";
 import PetsPage from "./pages/PetsPage";
 import ProductsPage from "./pages/ProductsPage";
 import SignupPage from "./pages/SignupPage";
@@ -11,6 +10,7 @@ import ServicesPage from "./pages/ServicesPage";
 import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./hooks/useAuth";
 import type { JSX } from "react";
+import Home from "./pages/Home";
 
 type Props = {
   children: JSX.Element;
@@ -45,7 +45,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Home />} />
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">
             <Route index element={<ClientsPage />} />

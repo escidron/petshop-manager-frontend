@@ -1,6 +1,16 @@
-import type { TenantForm } from "./TenantForm";
+import type { TenantFormData } from "./types";
 
-export const DEFAULT_TENANT_FORM: TenantForm = {
+export const DEFAULT_TENANT_FORM: TenantFormData = {
   name: "",
   phone: "",
 };
+
+export const days = [
+  "Domingo",
+  "Segunda-feira",
+  "Terça-feira",
+  "Quarta-feira",
+  "Quinta-feira",
+  "Sexta-feira",
+  "Sábado",
+];

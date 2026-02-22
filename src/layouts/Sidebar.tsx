@@ -1,6 +1,6 @@
 import { List } from "@mui/material";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
-import { Home, NotebookTabs, PawPrint, ScanBarcode, Users } from "lucide-react";
+import { Home, NotebookTabs, PawPrint, Users } from "lucide-react";
 
 const menu: SidebarItemConfig[] = [
   {
@@ -21,12 +21,12 @@ const menu: SidebarItemConfig[] = [
     icon: <PawPrint />,
     path: "/registration/pets",
   },
-  {
-    id: "products",
-    label: "Produtos",
-    icon: <ScanBarcode />,
-    path: "/registration/products",
-  },
+  // {
+  //   id: "products",
+  //   label: "Produtos",
+  //   icon: <ScanBarcode />,
+  //   path: "/registration/products",
+  // },
   {
     id: "services",
     label: "Serviços",

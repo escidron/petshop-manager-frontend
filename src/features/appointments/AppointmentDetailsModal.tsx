@@ -41,7 +41,6 @@ const AppointmentDetailsModal = ({
   handleAction,
   onEdit,
 }: Props) => {
-
   const totalCents = getAppointmentTotal(appointment);
 
   const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
@@ -304,17 +303,20 @@ const AppointmentDetailsModal = ({
                     </>
                   )}
                 </Box>
-                <Box sx={{ mt: 1 }}>
-                  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                    <Info size={14} color={theme.palette.error.main} />
-                    <Typography variant="body2" color="error.main">
-                      Observações do pet
+                {item.pet.notes && (
+                  <Box sx={{ mt: 1 }}>
+                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <Info size={14} color={theme.palette.error.main} />
+                      <Typography variant="body2" color="error.main">
+                        Observações do pet
+                      </Typography>
+                    </Box>
+                    <Typography variant="body2" sx={{ ml: 3 }}>
+                      {item.pet.notes}
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ ml: 3 }}>
-                    {item.pet.notes}
-                  </Typography>
-                </Box>
+                )}
+
                 <Divider sx={{ my: 1 }} />
                 <Typography variant="h6" fontWeight={500}>
                   Serviços do pet

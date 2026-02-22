@@ -111,7 +111,7 @@ const Drawer = styled(MuiDrawer, {
 export default function MainLayout() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
-  const { user } = useAuth();
+  const { user, tenant } = useAuth();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
 
@@ -133,96 +133,102 @@ export default function MainLayout() {
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-      <AppBar
-        position="fixed"
-        open={open}
-        elevation={0}
-        sx={{
-          backgroundColor: "white",
-          color: "text.primary",
-          borderBottom: "1px solid #e0e0e0",
-          display: { xs: "none", sm: "block" },
-        }}
-      >
-        <Toolbar>
-          <IconButton
-            color="inherit"
-            aria-label="open drawer"
-            onClick={handleDrawerOpen}
-            edge="start"
-            sx={[{ marginRight: 5 }, open && { display: "none" }]}
-          >
-            <MenuIcon />
-          </IconButton>
-          <Box
-            component="button"
-            onClick={handleClick}
+
+      {tenant?.onboarding_step === "completed" && (
+        <>
+          <AppBar
+            position="fixed"
+            open={open}
+            elevation={0}
             sx={{
-              backgroundColor: "transparent",
-              border: "none",
-              display: "flex",
-              alignItems: "center",
-              marginLeft: "auto",
-              gap: 2,
-              cursor: "pointer",
+              backgroundColor: "white",
+              color: "text.primary",
+              borderBottom: "1px solid #e0e0e0",
+              display: { xs: "none", sm: "block" },
             }}
           >
-            <Box
-              sx={{
-                backgroundColor: "secondary.main",
-                borderRadius: "100%",
-                p: 0.5,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-              }}
-            >
-              <User size={16} />
-            </Box>
-            <Typography
-              variant="body1"
-              noWrap
-              component="div"
-              sx={{ display: { xs: "none", sm: "block" } }}
-            >
-              {user?.name}
-            </Typography>
-            <ChevronDown size={18} />
-          </Box>
-          <Box sx={{ marginTop: 3 }}>
-            <UserMenu
-              open={openMenu}
-              anchorEl={anchorEl}
-              handleClose={handleClose}
-            />
-          </Box>
-        </Toolbar>
-      </AppBar>
-      <Drawer
-        variant="permanent"
-        open={open}
-        PaperProps={{
-          sx: {
-            backgroundColor: "primary.main",
-          },
-        }}
-      >
-        <DrawerHeader sx={{ backgroundColor: "primary.main" }}>
-          <IconButton
-            onClick={handleDrawerClose}
-            sx={{ color: "text.secondary" }}
+            <Toolbar>
+              <IconButton
+                color="inherit"
+                aria-label="open drawer"
+                onClick={handleDrawerOpen}
+                edge="start"
+                sx={[{ marginRight: 5 }, open && { display: "none" }]}
+              >
+                <MenuIcon />
+              </IconButton>
+              <Box
+                component="button"
+                onClick={handleClick}
+                sx={{
+                  backgroundColor: "transparent",
+                  border: "none",
+                  display: "flex",
+                  alignItems: "center",
+                  marginLeft: "auto",
+                  gap: 2,
+                  cursor: "pointer",
+                }}
+              >
+                <Box
+                  sx={{
+                    backgroundColor: "secondary.main",
+                    borderRadius: "100%",
+                    p: 0.5,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                  }}
+                >
+                  <User size={16} />
+                </Box>
+                <Typography
+                  variant="body1"
+                  noWrap
+                  component="div"
+                  sx={{ display: { xs: "none", sm: "block" } }}
+                >
+                  {user?.name}
+                </Typography>
+                <ChevronDown size={18} />
+              </Box>
+              <Box sx={{ marginTop: 3 }}>
+                <UserMenu
+                  open={openMenu}
+                  anchorEl={anchorEl}
+                  handleClose={handleClose}
+                />
+              </Box>
+            </Toolbar>
+          </AppBar>
+          <Drawer
+            variant="permanent"
+            open={open}
+            PaperProps={{
+              sx: {
+                backgroundColor: "primary.main",
+              },
+            }}
           >
-            {theme.direction === "rtl" ? (
-              <ChevronRightIcon />
-            ) : (
-              <ChevronLeftIcon />
-            )}
-          </IconButton>
-        </DrawerHeader>
+            <DrawerHeader sx={{ backgroundColor: "primary.main" }}>
+              <IconButton
+                onClick={handleDrawerClose}
+                sx={{ color: "text.secondary" }}
+              >
+                {theme.direction === "rtl" ? (
+                  <ChevronRightIcon />
+                ) : (
+                  <ChevronLeftIcon />
+                )}
+              </IconButton>
+            </DrawerHeader>
 
-        <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
-        <Sidebar collapsed={!open} />
-      </Drawer>
+            <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
+            <Sidebar collapsed={!open} />
+          </Drawer>
+        </>
+      )}
+
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
         <Outlet />
