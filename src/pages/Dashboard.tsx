@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
 import ClientFormModal from "../features/clients/ClientFormModal";
 import PetFormModal from "../features/pets/PetFormModal";
@@ -13,9 +13,13 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { useQueryClient } from "@tanstack/react-query";
+import { getAppointmentsByTenant } from "../api/services/appointments";
+import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
+import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 
 const Dashboard = () => {
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
   const { getClients } = useClients();
   const { getPets } = usePets();
   const queryClient = useQueryClient();
@@ -38,6 +42,14 @@ const Dashboard = () => {
     return flow.open;
   };
 
+  useEffect(() => {
+    const fetchAppointments = async () => {
+      const appointments = await getAppointmentsByTenant();
+      setAppointments(appointments);
+    };
+
+    fetchAppointments();
+  }, [flow]);
   return (
     <Box>
       <Box
@@ -137,28 +149,44 @@ const Dashboard = () => {
           mx: "auto",
           mt: 2,
           display: "flex",
+          flexDirection: "column",
           gap: 6,
         }}
       >
-        <Box sx={{ width: "60%" }}>
-          <AppointmentsDailyList
-            onEdit={(appointment: Appointment) =>
-              setFlow({
-                open: true,
-                step: "appointment",
-                mode: "edit",
-                appointment,
-              })
-            }
-            openFlow={() =>
-              setFlow({
-                open: true,
-                step: "appointment",
-                mode: "create",
-              })
-            }
-          />
-        </Box>
+        {appointments.length > 0 ? (
+          <Box sx={{ width: "60%" }}>
+            <AppointmentsDailyList
+              onEdit={(appointment: Appointment) =>
+                setFlow({
+                  open: true,
+                  step: "appointment",
+                  mode: "edit",
+                  appointment,
+                })
+              }
+              openFlow={() =>
+                setFlow({
+                  open: true,
+                  step: "appointment",
+                  mode: "create",
+                })
+              }
+            />
+          </Box>
+        ) : (
+          <>
+            <OnboardingFinishBanner
+              openFlow={() =>
+                setFlow({
+                  open: true,
+                  step: "appointment",
+                  mode: "create",
+                })
+              }
+            />
+            <NoAppointmentsBanner />
+          </>
+        )}
       </Box>
 
       {isFlowOpen(flow) && (

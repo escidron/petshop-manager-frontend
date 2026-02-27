@@ -54,7 +54,7 @@ const AppointmentServiceList = ({
         <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
           <List size={20} />
           <Typography variant="h6">Serviços à realizar</Typography>
-          <Typography variant="h6">- {formattedTotal}</Typography>
+          <Typography variant="h6"> {formattedTotal}</Typography>
         </Box>
         <Box sx={{ cursor: "pointer" }} onClick={handleClose}>
           <X size={20} />

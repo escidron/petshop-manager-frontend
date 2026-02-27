@@ -18,6 +18,7 @@ import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Pet } from "./types";
+import { formatePetGender } from "../../utils/formatPetGender";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -32,7 +33,6 @@ interface TablePaginationActionsProps {
 function TablePaginationActions(props: TablePaginationActionsProps) {
   const theme = useTheme();
   const { count, page, rowsPerPage, onPageChange } = props;
-
   return (
     <Box sx={{ flexShrink: 0, ml: 2.5 }}>
       <IconButton
@@ -77,7 +77,6 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   );
 }
 
-
 type Props = {
   rows: Pet[];
   loading: boolean;
@@ -85,7 +84,13 @@ type Props = {
   onEdit: (pet: Pet) => void;
   onDelete: (pet: Pet) => void;
 };
-export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete }: Props) {
+export default function PetsTable({
+  rows,
+  loading,
+  onRowClick,
+  onEdit,
+  onDelete,
+}: Props) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -107,7 +112,7 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
   React.useEffect(() => {
     setPage(0);
   }, [rows]);
-
+  console.log("rows", rows);
   return (
     <TableContainer
       component={Paper}
@@ -127,13 +132,13 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
                   backgroundColor: "secondary.main",
                   fontWeight: 600,
                   color: "text.primary",
-                  py: 1.25, 
+                  py: 1.25,
                   fontSize: "0.875rem",
                 }}
               >
                 Nome
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -146,7 +151,7 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
               >
                 Espécie
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -159,7 +164,7 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
               >
                 Raça
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -172,7 +177,7 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
               >
                 Genero
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -183,9 +188,9 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
                   fontSize: "0.875rem",
                 }}
               >
-                Dono
+                Tutor
               </TableCell>
-              
+
               <TableCell
                 align="right"
                 sx={{
@@ -220,8 +225,10 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
                   {row.name}
                 </TableCell>
                 <TableCell align="left">{row.species ?? "-"}</TableCell>
-                <TableCell align="left">{row.breed ?? "-"}</TableCell>
-                <TableCell align="left">{row.gender ?? "-"}</TableCell>
+                <TableCell align="left">
+                  {row.breed ? row.breed : "-"}
+                </TableCell>
+                <TableCell align="left">{row.gender ? formatePetGender(row.gender) : "-"}</TableCell>
                 <TableCell align="left">{row.owner_name ?? "-"}</TableCell>
                 <TableCell align="right">
                   <Box
@@ -238,7 +245,7 @@ export default function PetsTable({ rows, loading, onRowClick, onEdit, onDelete 
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit?.(row)
+                        onEdit?.(row);
                       }}
                     >
                       <Pencil size={16} />

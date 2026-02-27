@@ -42,7 +42,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
         if (axiosErr.isAuthError || axiosErr.response?.status === 401) {
           setUser(null);
-          // navigate("/login", { replace: true });
+          navigate("/login", { replace: true });
         }
       } finally {
         setChecking(false);

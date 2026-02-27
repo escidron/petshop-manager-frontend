@@ -4,8 +4,8 @@ import { Home, NotebookTabs, PawPrint, Users } from "lucide-react";
 
 const menu: SidebarItemConfig[] = [
   {
-    id: "dashboard",
-    label: "Dashboard",
+    id: "home",
+    label: "Inicio",
     icon: <Home />,
     path: "/",
   },

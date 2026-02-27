@@ -37,6 +37,7 @@ const theme = createTheme({
 
     background: {
       default: grey[100],
+      paper: "#FFF",
     },
 
     text: {
@@ -72,6 +73,22 @@ const theme = createTheme({
   },
 
   spacing: 8,
+  components: {
+    MuiOutlinedInput: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#ffffff",
+        },
+      },
+    },
+    MuiFilledInput: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#ffffff",
+        },
+      },
+    },
+  },
 });
 
 export default theme;

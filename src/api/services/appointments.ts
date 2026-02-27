@@ -45,6 +45,13 @@ export const getAppointmentsByDay = async (
 
   return response.data;
 };
+export const getAppointmentsByTenant = async (): Promise<Appointment[]> => {
+  const response = await apiClient.get<Appointment[]>(
+    "/api/v1/appointments/"
+  );
+
+  return response.data;
+};
 
 export const applyAppointmentAction = async (
   appointmentId: number,

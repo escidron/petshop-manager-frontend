@@ -1,6 +1,5 @@
 import CustomCard from "../../components/Card/CustomCard";
 import {
-  Avatar,
   Box,
   Chip,
   Divider,
@@ -9,7 +8,6 @@ import {
 } from "@mui/material";
 import { Mars, Pencil, Trash2, Venus } from "lucide-react";
 import theme from "../../theme";
-import { getAgeUnitLabel } from "../../utils/getAgeUnitLabel";
 import type { Pet } from "./types";
 
 type Props = {
@@ -19,7 +17,7 @@ type Props = {
 };
 
 const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
-
+  console.log("pet", pet);
   return (
     <CustomCard
       sx={{
@@ -38,19 +36,17 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
           aspectRatio: 1,
         }}
       >
-        <Avatar
-          sx={{ height: "100%", width: "100%" }}
-          alt="pet photo"
-          src={
-            pet.species === "dog" && pet.gender === "male"
-              ? "/dog_male.png"
-              : pet.species === "dog" && pet.gender === "female"
-                ? "/dog_female.png"
-                : pet.species === "cat" && pet.gender === "male"
-                  ? "/cat_male.png"
-                  : "/cat_female.png"
-          }
-        />
+        <Box sx={{ height: "100%",backgroundColor: "text.primary",borderRadius: 3 }}>
+          <img
+            style={{ height: "100%", width: "100%" }}
+            alt="pet photo"
+            src={
+              pet.species === "Canino"
+                ? "/dog_background.png"
+                : "/cat_background.png"
+            }
+          />
+        </Box>
       </Box>
       <Box sx={{ width: "100%" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -58,28 +54,28 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
             <Typography variant="h6" fontWeight={600} mb={0}>
               {pet.name}
             </Typography>
-            <Typography color="text.disabled">
-              {pet.age} {getAgeUnitLabel(pet.age!, pet.age_unit!)}
-            </Typography>
           </Box>
-          <Chip
-            label={pet.gender === "male" ? "Macho" : "Femea"}
-            icon={
-              pet.gender === "male" ? (
-                <Mars color={theme.palette.text.primary} size={16} />
-              ) : (
-                <Venus color={theme.palette.text.primary} size={16} />
-              )
-            }
-            sx={{
-              bgcolor:
-                pet.gender === "male"
-                  ? "rgba(33, 150, 243, 0.3)"
-                  : "rgba(233, 30, 99, 0.3)",
-              color: "text.primary",
-              px: 1,
-            }}
-          />
+          {pet.gender && ["male", "female"].includes(pet.gender) && (
+            <Chip
+              label={pet.gender === "male" ? "Macho" : "Femea"}
+              size="small"
+              icon={
+                pet.gender === "male" ? (
+                  <Mars color={theme.palette.text.primary} size={16} />
+                ) : (
+                  <Venus color={theme.palette.text.primary} size={16} />
+                )
+              }
+              sx={{
+                bgcolor:
+                  pet.gender === "male"
+                    ? "rgba(33, 150, 243, 0.3)"
+                    : "rgba(233, 30, 99, 0.3)",
+                color: "text.primary",
+                px: 1,
+              }}
+            />
+          )}
         </Box>
         <Divider sx={{ my: 1 }} />
         <Box
@@ -92,12 +88,16 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
           <Box sx={{ display: "flex", gap: 4 }}>
             <Box>
               <Typography color="text.primary">Espécie</Typography>
-              <Typography color="text.disabled">{pet.species === "dog" ? "Cachorro" : "Gato"}</Typography>
+              <Typography color="text.disabled">
+                {pet.species}
+              </Typography>
             </Box>
-            <Box>
-              <Typography color="text.primary">Raça</Typography>
-              <Typography color="text.disabled">{pet.breed}</Typography>
-            </Box>
+            {pet.breed && (
+              <Box>
+                <Typography color="text.primary">Raça</Typography>
+                <Typography color="text.disabled">{pet.breed}</Typography>
+              </Box>
+            )}
           </Box>
           <Box
             sx={{

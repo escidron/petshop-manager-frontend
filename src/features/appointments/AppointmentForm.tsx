@@ -31,6 +31,7 @@ import {
   formatServiceLabel,
 } from "../../utils/formatServiceLabel";
 import "dayjs/locale/pt-br";
+import theme from "../../theme";
 dayjs.locale("pt-br");
 
 type Props = {
@@ -78,10 +79,10 @@ export default function AppointmentForm({
     control,
     name: "items",
   });
-
+  console.log("selectedClient", selectedClient);
   useEffect(() => {
-    setClientId(selectedClient?.id);
-  }, [selectedClient, setClientId]);
+    setClientId(selectedClient?.id || defaultValues?.client_id);
+  }, [defaultValues?.client_id, selectedClient, setClientId]);
 
   useEffect(() => {
     console.log("FORM ERRORS 👉", errors);
@@ -140,6 +141,7 @@ export default function AppointmentForm({
                         helperText: fieldState.error?.message,
                         placeholder: "DD/MM/AAAA",
                         inputMode: "numeric",
+                        sx: { backgroundColor: theme.palette.common.white },
                       },
                     }}
                   />
@@ -169,6 +171,7 @@ export default function AppointmentForm({
                         size: "small",
                         fullWidth: true,
                         error: !!fieldState.error,
+                        sx: { backgroundColor: theme.palette.common.white },
                       },
                       popper: {
                         sx: {
@@ -271,11 +274,13 @@ export default function AppointmentForm({
                     items
                       ?.map((item) => item.pet_id)
                       .filter((id) => id && id !== field.value) ?? [];
-
+                  console.log("selectedPetIds", selectedPetIds);
+                  console.log("field.value", field.value);
                   const availablePets =
                     pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ??
                     [];
-
+                  console.log("availablePets", availablePets);
+                  console.log("pets", pets);
                   return (
                     <Autocomplete<Pet>
                       options={availablePets}

@@ -144,18 +144,6 @@ export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDele
                   fontSize: "0.875rem",
                 }}
               >
-                Email
-              </TableCell>
-              <TableCell
-                align="left"
-                sx={{
-                  backgroundColor: "secondary.main",
-                  fontWeight: 600,
-                  color: "text.primary",
-                  py: 1.25,
-                  fontSize: "0.875rem",
-                }}
-              >
                 Telefone
               </TableCell>
               <TableCell
@@ -203,7 +191,6 @@ export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDele
                 <TableCell component="th" scope="row">
                   {row.name}
                 </TableCell>
-                <TableCell align="left">{row.email ?? "-"}</TableCell>
                 <TableCell align="left">{row.phone ?? "-"}</TableCell>
                 <TableCell align="right">
                   <Chip

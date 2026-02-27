@@ -93,7 +93,7 @@ const AppointmentsDailyList = ({ openFlow, onEdit }: Props) => {
             <CalendarDays />
           </Box>
           <Button startIcon={<Plus />} onClick={openFlow}>
-            Novo Agendamento
+            Criar Agendamento
           </Button>
         </Box>
       </Box>

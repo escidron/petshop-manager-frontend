@@ -59,7 +59,7 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const { data } = await apiClient.post<Tokens>("/auth/refresh", {}); // usa mesma instância
+      const { data } = await apiClient.post<Tokens>("/api/v1/auth/refresh", {}); // usa mesma instância
 
       // Atualiza header do original
       if (originalRequest.headers) {
