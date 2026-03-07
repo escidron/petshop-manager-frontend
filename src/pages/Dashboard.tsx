@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
 import ClientFormModal from "../features/clients/ClientFormModal";
 import PetFormModal from "../features/pets/PetFormModal";
-import { Box } from "@mui/material";
+import { Box, CircularProgress } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import type { Client } from "../features/clients/types";
 import type { Pet } from "../features/pets/types";
@@ -20,6 +20,7 @@ import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanne
 const Dashboard = () => {
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { getClients } = useClients();
   const { getPets } = usePets();
   const queryClient = useQueryClient();
@@ -43,12 +44,29 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
+    let isMounted = true;
+
     const fetchAppointments = async () => {
-      const appointments = await getAppointmentsByTenant();
-      setAppointments(appointments);
+      setIsLoading(true);
+      try {
+        const fetchedAppointments = await getAppointmentsByTenant();
+        if (isMounted) {
+          setAppointments(fetchedAppointments);
+        }
+      } catch (error) {
+        console.error("Failed to fetch appointments:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
     };
 
     fetchAppointments();
+
+    return () => {
+      isMounted = false;
+    };
   }, [flow]);
 
   return (
@@ -71,7 +89,18 @@ const Dashboard = () => {
           gap: 6,
         }}
       >
-        {appointments.length > 0 ? (
+        {isLoading ? (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              minHeight: "200px",
+            }}
+          >
+            <CircularProgress />
+          </Box>
+        ) : appointments.length > 0 ? (
           <Box sx={{ width: "60%" }}>
             <AppointmentsDailyList
               onEdit={(appointment: Appointment) =>
