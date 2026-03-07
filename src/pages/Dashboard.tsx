@@ -23,7 +23,7 @@ const Dashboard = () => {
   const { getClients } = useClients();
   const { getPets } = usePets();
   const queryClient = useQueryClient();
-  console.log("Dashboard page");
+
   const [clientModal, setClientModal] = useState<{
     open: boolean;
     mode: "create" | "edit";
@@ -50,6 +50,7 @@ const Dashboard = () => {
 
     fetchAppointments();
   }, [flow]);
+
   return (
     <Box>
       <Box
@@ -59,90 +60,7 @@ const Dashboard = () => {
           mx: "auto",
           justifyContent: "center",
         }}
-      >
-        {/* <CustomCard sx={{ maxWidth: "280px", height: "120px" }}>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <CalendarDays size={24} />
-            <Typography fontWeight={400}>Agendamentos de dia</Typography>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              justifyContent: "center",
-              mt: 1,
-            }}
-          >
-            <Typography variant="h4" fontWeight={600}>
-              {
-                appointments.filter(
-                  (appointment) =>
-                    dayjs(appointment.scheduled_at).format("YYYY-MM-DD") ===
-                    date.format("YYYY-MM-DD"),
-                ).length
-              }
-            </Typography>
-          </Box>
-        </CustomCard>
-        <CustomCard sx={{ maxWidth: "280px", height: "120px" }}>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <CalendarCheck2 size={24} />
-            <Typography fontWeight={400}>Check-ins pendentes</Typography>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              justifyContent: "center",
-              mt: 1,
-            }}
-          >
-            <Typography variant="h4" fontWeight={600}>
-              0
-            </Typography>
-          </Box>
-        </CustomCard>
-        <CustomCard sx={{ maxWidth: "280px", height: "120px" }}>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <BanknoteArrowUp size={24} />
-            <Typography fontWeight={400}>Faturamento do dia</Typography>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              justifyContent: "center",
-              mt: 1,
-            }}
-          >
-            <Typography variant="h4" fontWeight={600}>
-              R$ 400
-            </Typography>
-          </Box>
-        </CustomCard>
-        <CustomCard sx={{ maxWidth: "280px", height: "120px" }}>
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-            <HandCoins size={24} />
-            <Typography fontWeight={400}>Faturamento do mês</Typography>
-          </Box>
-          <Box
-            sx={{
-              display: "flex",
-              gap: 2,
-              alignItems: "center",
-              justifyContent: "center",
-              mt: 1,
-            }}
-          >
-            <Typography variant="h4" fontWeight={600}>
-              R$ 8000
-            </Typography>
-          </Box>
-        </CustomCard> */}
-      </Box>
+      ></Box>
       <Box
         sx={{
           maxWidth: "1170px",
