@@ -41,7 +41,7 @@ type Props = {
   selectedClient?: Client;
   selectedPet?: Pet;
   onSubmit: (data: AppointmentFormData) => void;
-  onCreateClient?: () => void;
+  onCreateClient?: (currentData: Partial<AppointmentFormData>) => void;
 };
 
 export default function AppointmentForm({
@@ -57,6 +57,14 @@ export default function AppointmentForm({
   const [showAllBySection, setShowAllBySection] = useState<
     Record<number, boolean>
   >({});
+
+  const [scheduledDate, setScheduledDate] = useState<dayjs.Dayjs | null>(
+    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null
+  );
+  
+  const [scheduledTime, setScheduledTime] = useState<dayjs.Dayjs | null>(
+    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null
+  );
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues,
@@ -91,6 +99,17 @@ export default function AppointmentForm({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPet]);
+
+  useEffect(() => {
+    if (selectedClient && fields.length > 0) {
+      const client = getValues("client_id");
+
+      if (!client) {
+        setValue("client_id", selectedClient.id);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedClient]);
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
       <FormControl>
@@ -101,8 +120,6 @@ export default function AppointmentForm({
           name="scheduled_at"
           control={control}
           render={({ field, fieldState }) => {
-            const scheduledValue = field.value ? dayjs(field.value) : null;
-
             return (
               <LocalizationProvider
                 dateAdapter={AdapterDayjs}
@@ -111,20 +128,21 @@ export default function AppointmentForm({
                 <Box sx={{ display: "flex", gap: 2 }}>
                   <DatePicker
                     format="DD/MM/YYYY"
-                    value={scheduledValue}
-                    onAccept={(newDate) => {
-                      if (!newDate || !newDate.isValid()) return;
-
-                      const current = scheduledValue ?? dayjs();
-
-                      const updated = newDate
-                        .hour(current.hour())
-                        .minute(current.minute())
-                        .second(0)
-                        .millisecond(0)
-                        .toISOString();
-
-                      field.onChange(updated);
+                    value={scheduledDate}
+                    onChange={(newDate) => {
+                      setScheduledDate(newDate);
+                      if (newDate && newDate.isValid() && scheduledTime && scheduledTime.isValid()) {
+                        field.onChange(
+                          newDate
+                            .hour(scheduledTime.hour())
+                            .minute(scheduledTime.minute())
+                            .second(0)
+                            .millisecond(0)
+                            .toISOString()
+                        );
+                      } else {
+                        field.onChange("");
+                      }
                     }}
                     slotProps={{
                       textField: {
@@ -141,23 +159,24 @@ export default function AppointmentForm({
 
                   {/* TIME */}
                   <TimePicker
-                    value={scheduledValue}
+                    value={scheduledTime}
                     ampm={false}
                     referenceDate={dayjs().hour(8).minute(0)}
-                    minutesStep={15}
+                    minutesStep={5}
                     onChange={(newTime) => {
-                      if (!newTime || !newTime.isValid()) return;
-
-                      const current = scheduledValue ?? dayjs();
-
-                      const updated = current
-                        .hour(newTime.hour())
-                        .minute(newTime.minute())
-                        .second(0)
-                        .millisecond(0)
-                        .toISOString();
-
-                      field.onChange(updated);
+                      setScheduledTime(newTime);
+                      if (scheduledDate && scheduledDate.isValid() && newTime && newTime.isValid()) {
+                        field.onChange(
+                          scheduledDate
+                            .hour(newTime.hour())
+                            .minute(newTime.minute())
+                            .second(0)
+                            .millisecond(0)
+                            .toISOString()
+                        );
+                      } else {
+                        field.onChange("");
+                      }
                     }}
                     slotProps={{
                       textField: {
@@ -169,10 +188,10 @@ export default function AppointmentForm({
                       popper: {
                         sx: {
                           "& .MuiMultiSectionDigitalClock-root": {
-                            minHeight: 700, // altura total do clock
+                            minHeight: 500, // altura total do clock
                           },
                           "& .MuiMultiSectionDigitalClockSection-root": {
-                            minHeight: 700, // altura da coluna (horas/minutos)
+                            minHeight: 500, // altura da coluna (horas/minutos)
                           },
                         },
                       },
@@ -230,7 +249,7 @@ export default function AppointmentForm({
             sx={{ width: "30%", minWidth: "160px", maxHeight: "40px" }}
             startIcon={<Plus size={18} />}
             variant="outlined"
-            onClick={onCreateClient}
+            onClick={() => onCreateClient?.(getValues())}
           >
             Criar Cliente
           </Button>

@@ -1,10 +1,9 @@
 import { Box, CircularProgress } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
 import Dashboard from "./Dashboard";
-import OnboardingFlow from "./OnboardingPage";
 
 const Home = () => {
-  const { tenant, checking } = useAuth();
+  const { checking } = useAuth();
 
   if (checking) {
     return (
@@ -20,15 +19,6 @@ const Home = () => {
       </Box>
     );
   }
-
-  if (!tenant) {
-    return null; 
-  }
-
-  if (tenant.onboarding_step !== "completed") {
-    return <OnboardingFlow />;
-  }
-
   return <Dashboard />;
 };
 
