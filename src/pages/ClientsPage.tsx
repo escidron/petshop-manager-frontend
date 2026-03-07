@@ -56,7 +56,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <Box sx={{ width: "60%", mx: "auto", p: 3,maxWidth: '1200px' }}>
+    <Box sx={{ width: "60%", mx: "auto", p: 3, maxWidth: "1200px" }}>
       <ClientsToolbar
         search={search}
         onSearchChange={setSearch}
@@ -78,14 +78,20 @@ export default function ClientsPage() {
         open={clientModal.open}
         mode={clientModal.mode}
         client={clientModal.client}
-        onClose={() => setClientModal({ open: false, mode: "create" })}
+        onClose={() =>
+          setClientModal((prev) => ({
+            ...prev,
+            open: false,
+            mode: "create",
+          }))
+        }
         onSuccess={async () => {
           await getClients();
           setClientModal({ open: false, mode: "create" });
         }}
         onSuccessAndAddPet={(client) => {
-          setPetModal({ open: true, mode: "create" });
           setClientModal({ open: false, mode: "create", client });
+          setPetModal({ open: true, mode: "create" });
         }}
       />
 

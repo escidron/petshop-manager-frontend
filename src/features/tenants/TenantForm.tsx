@@ -8,7 +8,6 @@ import type { TenantFormData } from "./types";
 import { tenantSchema } from "./schemas";
 import { DEFAULT_TENANT_FORM } from "./constants";
 import { maskPhone } from "../../utils/masks";
-import { useEffect } from "react";
 
 type Props = {
   onSubmit: (data: TenantFormData) => void;
@@ -23,9 +22,7 @@ const TenantCreateForm = ({ onSubmit }: Props) => {
     resolver: zodResolver(tenantSchema),
     defaultValues: { ...DEFAULT_TENANT_FORM },
   });
-  useEffect(() => {
-    console.log("FORM ERRORS 👉", errors);
-  }, [errors]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 4 }}>
       {/* Nome */}

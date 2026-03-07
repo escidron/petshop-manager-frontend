@@ -17,7 +17,6 @@ type Props = {
 };
 
 const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
-  console.log("pet", pet);
   return (
     <CustomCard
       sx={{

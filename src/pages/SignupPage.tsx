@@ -43,7 +43,6 @@ const SignupPage = () => {
 
   // STEP 3 → Tenant + Signup final
   const handleSubmitTenant = async (data: TenantFormData) => {
-    console.log("data", data,planCode, userData);
     if (!planCode || !userData) return;
 
     try {

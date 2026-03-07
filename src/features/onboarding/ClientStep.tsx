@@ -42,7 +42,7 @@ export default function ClientStep({ onNext }: Props) {
         sx={{ display: "flex", alignItems: "center", marginBottom: 2, gap: 1 }}
       >
         <User />
-        <Typography variant="h5" mt={0.5}>Cadastre seu primeiro cliente</Typography>
+        <Typography variant="h5" mt={0.5}>Cadastre seu primeiro tutor</Typography>
       </Box>
 
       <ClientForm

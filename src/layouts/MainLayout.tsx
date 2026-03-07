@@ -133,7 +133,6 @@ export default function MainLayout() {
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
-
       {tenant?.onboarding_step === "completed" && (
         <>
           <AppBar
@@ -210,7 +209,14 @@ export default function MainLayout() {
               },
             }}
           >
-            <DrawerHeader sx={{ backgroundColor: "primary.main" }}>
+            <DrawerHeader
+              sx={{
+                backgroundColor: "primary.main",
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <img src="/logo.png" alt="logo" width={150} style={{marginLeft:'8px'}} />
               <IconButton
                 onClick={handleDrawerClose}
                 sx={{ color: "text.secondary" }}

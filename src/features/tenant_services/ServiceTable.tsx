@@ -19,6 +19,8 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Service } from "./types";
 import { formatBRLFromCents } from "../../utils/masks";
+import { getCoatTypeLabel } from "../../utils/formatCoatType";
+import type { CoatType } from "../pets/types";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -228,7 +230,7 @@ export default function ServiceTable({
                 <TableCell align="left">R$ {formatBRLFromCents(row.price_cents) ?? "-"}</TableCell>
                 <TableCell align="left">{row.species ?? "-"}</TableCell>{" "}
                 <TableCell align="left">{row.size ?? "-"}</TableCell>{" "}
-                <TableCell align="left">{row.coat_type ? row.coat_type : "-"}</TableCell>
+                <TableCell align="left">{row.coat_type ? getCoatTypeLabel(row.coat_type as CoatType) : "-"}</TableCell>
                 <TableCell align="right">
                   <Box
                     sx={{

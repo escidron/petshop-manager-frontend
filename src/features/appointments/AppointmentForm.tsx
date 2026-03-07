@@ -57,9 +57,6 @@ export default function AppointmentForm({
   const [showAllBySection, setShowAllBySection] = useState<
     Record<number, boolean>
   >({});
-  console.log("defaultValues", defaultValues);
-  console.log("selectedPet", selectedPet);
-  console.log("selectedClient", selectedClient);
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues,
@@ -79,14 +76,10 @@ export default function AppointmentForm({
     control,
     name: "items",
   });
-  console.log("selectedClient", selectedClient);
+
   useEffect(() => {
     setClientId(selectedClient?.id || defaultValues?.client_id);
   }, [defaultValues?.client_id, selectedClient, setClientId]);
-
-  useEffect(() => {
-    console.log("FORM ERRORS 👉", errors);
-  }, [errors]);
 
   useEffect(() => {
     if (selectedPet && fields.length > 0) {
@@ -274,13 +267,9 @@ export default function AppointmentForm({
                     items
                       ?.map((item) => item.pet_id)
                       .filter((id) => id && id !== field.value) ?? [];
-                  console.log("selectedPetIds", selectedPetIds);
-                  console.log("field.value", field.value);
                   const availablePets =
                     pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ??
                     [];
-                  console.log("availablePets", availablePets);
-                  console.log("pets", pets);
                   return (
                     <Autocomplete<Pet>
                       options={availablePets}

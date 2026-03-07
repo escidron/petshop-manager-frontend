@@ -15,14 +15,13 @@ export default function OnboardingPage() {
   const { tenant, setTenant } = useAuth();
   const [step, setStep] = useState<OnboardingStep>("client");
   const navigate = useNavigate();
-
+  console.log("Onboarding page")
   async function loadStep() {
     if (!tenant) return;
     setStep(tenant.onboarding_step);
   }
 
   async function updateStep(newStep: OnboardingStep) {
-    console.log("updateStep", newStep);
     if (!tenant) return;
     await updateTenantOnboardingStep(newStep);
     setStep(newStep);

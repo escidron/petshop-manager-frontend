@@ -12,7 +12,6 @@ import CustomTextField from "../../components/Textfield/CustomTextfield";
 import type { ServiceFormData } from "./types";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect } from "react";
 import { Button } from "../../components/Button/Button";
 import { Minus, Plus } from "lucide-react";
 import { serviceSchema } from "./schemas";
@@ -42,12 +41,7 @@ const ServiceForm = ({
   const {
     control,
     handleSubmit,
-    formState: { errors },
   } = form;
-
-  useEffect(() => {
-    console.log("FORM ERRORS 👉", errors);
-  }, [errors]);
 
   return (
     <form>

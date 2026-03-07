@@ -7,7 +7,7 @@ type Props = {
 const steps = [
   { key: "services", label: "Serviços" },
   { key: "business_hours", label: "Horários" },
-  { key: "client", label: "Primeiro Cliente" },
+  { key: "client", label: "Tutor" },
   { key: "pet", label: "Primeiro Pet" },
 ];
 

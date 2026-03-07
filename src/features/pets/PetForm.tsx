@@ -4,6 +4,7 @@ import {
   Checkbox,
   Divider,
   FormControl,
+  FormControlLabel,
   FormLabel,
   TextField,
   Typography,
@@ -58,6 +59,7 @@ const PetForm = ({
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = form;
   const species = useWatch({ control, name: "species" });
@@ -73,7 +75,10 @@ const PetForm = ({
 
   useEffect(() => {
     if (!defaultValues) return;
-
+    if(defaultValues.age && defaultValues.age_unit) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setShowAgeField(true)
+    }
     reset({
       is_active: true,
       ...applyMasksOnEdit(defaultValues),
@@ -81,14 +86,10 @@ const PetForm = ({
   }, [defaultValues, reset, selectedClient]);
 
   useEffect(() => {
-  if (selectedClient) {
-    form.setValue("client_id", selectedClient.id);
-  }
-}, [form, selectedClient]);
-
-  useEffect(() => {
-    console.log("FORM ERRORS 👉", errors);
-  }, [errors]);
+    if (selectedClient) {
+      form.setValue("client_id", selectedClient.id);
+    }
+  }, [form, selectedClient]);
 
   return (
     <form>
@@ -339,7 +340,7 @@ const PetForm = ({
                   <Controller
                     name="coat_type"
                     control={control}
-                    render={({ field, fieldState }) => (
+                    render={({ field }) => (
                       <Autocomplete
                         options={COAT_TYPES ?? []}
                         size="small"
@@ -352,14 +353,11 @@ const PetForm = ({
                           option.value === value.value
                         }
                         getOptionLabel={(option) => option.label}
-                        onChange={(_, value) => field.onChange(value ?? "")}
+                        onChange={(_, value) =>
+                          field.onChange(value?.value ?? "")
+                        }
                         renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Pesquisar Tipo"
-                            error={!!fieldState.error}
-                            helperText={fieldState.error?.message}
-                          />
+                          <TextField {...params} placeholder="Pesquisar Tipo" />
                         )}
                       />
                     )}
@@ -368,24 +366,54 @@ const PetForm = ({
               </Box>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Data de nascimento
-                  </FormLabel>
-                  <Controller
-                    name="birth_date"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        placeholder="DD/MM/AAAA"
-                        onChange={(e) =>
-                          field.onChange(maskBirthDate(e.target.value))
-                        }
-                      />
-                    )}
-                  />
-                </FormControl>
+                <Box sx={{ width: "100%" }}>
+                  <FormControl fullWidth>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Data de nascimento
+                    </FormLabel>
+                    <Controller
+                      disabled={showAgeField}
+                      name="birth_date"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          placeholder="DD/MM/AAAA"
+                          onChange={(e) =>
+                            field.onChange(maskBirthDate(e.target.value))
+                          }
+                        />
+                      )}
+                    />
+                  </FormControl>
+
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <FormControlLabel
+                      sx={{
+                        "& .MuiFormControlLabel-label": {
+                          fontSize: "12px",
+                          color: "text.disabled",
+                        },
+                      }}
+                      control={
+                        <Checkbox
+                          disableRipple
+                          sx={{ color: "primary.main" }}
+                          checked={showAgeField}
+                          onChange={(e) => {
+                            const checked = e.target.checked;
+                            setShowAgeField(checked);
+
+                            if (checked) {
+                              setValue("birth_date", "");
+                            }
+                          }}
+                        />
+                      }
+                      label="Não sabe a data de nascimento?"
+                    />
+                  </Box>
+                </Box>
 
                 <FormControl fullWidth>
                   <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
@@ -422,20 +450,6 @@ const PetForm = ({
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: "flex", alignItems: "center" }}>
-                <Checkbox
-                  disableRipple
-                  sx={{
-                    color: "primary.main",
-                  }}
-                  checked={showAgeField}
-                  onChange={() => setShowAgeField(!showAgeField)}
-                />
-                <Typography fontSize="12px" color="text.disabled">
-                  Não sabe a data de nascimento?
-                </Typography>
-              </Box>
-
               {showAgeField && (
                 <Box sx={{ display: "flex", gap: 2 }}>
                   {/* Idade */}
@@ -443,30 +457,61 @@ const PetForm = ({
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                       Idade aproximada
                     </FormLabel>
-
-                    <Controller
-                      name="age"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          size="small"
-                          type="number"
-                          placeholder="Ex: 3"
-                          slotProps={{
-                            htmlInput: {
-                              min: 0,
-                            },
-                          }}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            field.onChange(e.currentTarget.valueAsNumber)
-                          }
-                        />
-                      )}
-                    />
+                    <Box sx={{ display: "flex", gap: 1, width: "50%" }}>
+                      <Controller
+                        name="age"
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            size="small"
+                            type="number"
+                            sx={{ width: "35%" }}
+                            placeholder="Ex: 3"
+                            slotProps={{
+                              htmlInput: {
+                                min: 0,
+                              },
+                            }}
+                            onChange={(
+                              e: React.ChangeEvent<HTMLInputElement>,
+                            ) => field.onChange(e.currentTarget.valueAsNumber)}
+                          />
+                        )}
+                      />
+                      <Controller
+                        name="age_unit"
+                        control={control}
+                        render={({ field }) => (
+                          <Autocomplete
+                            size="small"
+                            options={AGE_UNIT_OPTIONS}
+                            value={
+                              AGE_UNIT_OPTIONS.find(
+                                (option) => option.value === field.value,
+                              ) ?? null
+                            }
+                            isOptionEqualToValue={(option, value) =>
+                              option.value === value.value
+                            }
+                            getOptionLabel={(option) => option.label}
+                            onChange={(_, option) =>
+                              field.onChange(option?.value ?? null)
+                            }
+                            sx={{ width: "65%" }}
+                            renderInput={(params) => (
+                              <TextField
+                                {...params}
+                                placeholder="Ex: dias, anos"
+                              />
+                            )}
+                          />
+                        )}
+                      />
+                    </Box>
                   </FormControl>
 
-                  {/* Unidade */}
+                  {/* Unidade
                   <FormControl fullWidth>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                       Unidade
@@ -475,7 +520,7 @@ const PetForm = ({
                     <Controller
                       name="age_unit"
                       control={control}
-                      render={({ field, fieldState }) => (
+                      render={({ field }) => (
                         <Autocomplete
                           size="small"
                           options={AGE_UNIT_OPTIONS}
@@ -494,15 +539,13 @@ const PetForm = ({
                           renderInput={(params) => (
                             <TextField
                               {...params}
-                              placeholder="Selecionar"
-                              error={!!fieldState.error}
-                              helperText={fieldState.error?.message}
+                              placeholder="Ex: meses, dias, anos"
                             />
                           )}
                         />
                       )}
                     />
-                  </FormControl>
+                  </FormControl> */}
                 </Box>
               )}
               <FormControl fullWidth>

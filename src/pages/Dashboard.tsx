@@ -23,7 +23,7 @@ const Dashboard = () => {
   const { getClients } = useClients();
   const { getPets } = usePets();
   const queryClient = useQueryClient();
-
+  console.log("Dashboard page");
   const [clientModal, setClientModal] = useState<{
     open: boolean;
     mode: "create" | "edit";

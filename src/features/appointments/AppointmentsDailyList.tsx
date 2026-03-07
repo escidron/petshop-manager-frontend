@@ -154,7 +154,7 @@ const AppointmentsDailyList = ({ openFlow, onEdit }: Props) => {
         })}
         {appointments.length === 0 && (
           <Typography variant="body1" color="text.disabled">
-            Nenhum agendamento para hoje
+            Nenhum agendamento para este dia
           </Typography>
         )}
       </Box>

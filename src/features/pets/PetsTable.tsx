@@ -112,7 +112,7 @@ export default function PetsTable({
   React.useEffect(() => {
     setPage(0);
   }, [rows]);
-  console.log("rows", rows);
+
   return (
     <TableContainer
       component={Paper}

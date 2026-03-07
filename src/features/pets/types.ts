@@ -1,11 +1,12 @@
 import type z from "zod";
 import type { petSchema } from "./schemas";
-import type { PET_SIZES, PET_SPECIES } from "./constants";
+import type { COAT_TYPES, PET_SIZES, PET_SPECIES } from "./constants";
 
 export type PetGender = "male" | "female" | "other";
 export type PetSize = typeof PET_SIZES[number]["value"];
 export type PetAgeUnit = "days" | "weeks" | "months" | "years";
 export type PetSpecies = (typeof PET_SPECIES)[number]["value"];
+export type CoatType = (typeof COAT_TYPES)[number]["value"];
 
 export type Pet = {
   id: number;

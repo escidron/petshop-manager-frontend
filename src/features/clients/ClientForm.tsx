@@ -66,7 +66,6 @@ export default function ClientForm({
     setValue,
     resetField,
     reset,
-    formState: { errors },
   } = form;
   const cepValue = useWatch({ control, name: "cep" });
   const documentType = useWatch({ control, name: "document_type" });
@@ -127,10 +126,6 @@ export default function ClientForm({
     handleCepLookup(cleanCep);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cepValue]);
-
-  useEffect(() => {
-    console.log("FORM ERRORS 👉", errors);
-  }, [errors]);
 
   return (
     <form>

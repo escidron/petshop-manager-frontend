@@ -19,6 +19,7 @@ import CircularProgress from "@mui/material/CircularProgress";
 import { Chip } from "@mui/material";
 import { Pencil, Trash2 } from "lucide-react";
 import type { Client } from "./types";
+import { maskPhone } from "../../utils/masks";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -191,7 +192,7 @@ export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDele
                 <TableCell component="th" scope="row">
                   {row.name}
                 </TableCell>
-                <TableCell align="left">{row.phone ?? "-"}</TableCell>
+                <TableCell align="left">{row.phone ? maskPhone(row.phone) : "-"}</TableCell>
                 <TableCell align="right">
                   <Chip
                     label={row.is_active ? "Ativo" : "Inativo"}
