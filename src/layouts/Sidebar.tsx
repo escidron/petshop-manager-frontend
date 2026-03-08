@@ -28,17 +28,18 @@ const menu: SidebarItemConfig[] = [
     icon: <PawPrint />,
     path: "/registration/pets",
   },
-  {
-    id: "products",
-    label: "Produtos",
-    icon: <ScanBarcode />,
-    path: "/registration/products",
-  },
+
   {
     id: "services",
     label: "Serviços",
     icon: <NotebookTabs />,
     path: "/registration/services",
+  },
+  {
+    id: "products",
+    label: "Produtos",
+    icon: <ScanBarcode />,
+    path: "/registration/products",
   },
   {
     id: "financial",

@@ -17,7 +17,8 @@ import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
 import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Pencil, Trash2 } from "lucide-react";
-import type { Product } from "../../pages/ProductsPage";
+import { formatBRLFromCents } from "../../utils/masks";
+import type { Product } from "./types";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -222,7 +223,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
                 <TableCell align="left">{row.name ?? "-"}</TableCell>
                 <TableCell align="left">{row.category ?? "-"}</TableCell>
                 <TableCell align="left">{row.quantity ?? "-"}</TableCell>
-                <TableCell align="left">{row.price ?? "-"}</TableCell>
+                <TableCell align="left">R$ {formatBRLFromCents(row.price) ?? "-"}</TableCell>
                 <TableCell align="right">
                   <Box
                     sx={{
