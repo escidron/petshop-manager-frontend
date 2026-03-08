@@ -11,6 +11,7 @@ import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./hooks/useAuth";
 import type { JSX } from "react";
 import Home from "./pages/Home";
+import FinancialPage from "./pages/FinancialPage";
 
 type Props = {
   children: JSX.Element;
@@ -22,7 +23,7 @@ export const ProtectedRoute = ({ children }: Props) => {
 
   if (checking) {
     // 🔹 ainda checando login → renderiza o layout normalmente, sem redirecionamento
-    return children; 
+    return children;
   }
 
   if (!user) {
@@ -46,6 +47,7 @@ export default function AppRoutes() {
         }
       >
         <Route path="/" element={<Home />} />
+        <Route path="/financial" element={<FinancialPage />} />
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">
             <Route index element={<ClientsPage />} />

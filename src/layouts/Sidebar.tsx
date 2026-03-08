@@ -1,6 +1,6 @@
 import { List } from "@mui/material";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
-import { Home, NotebookTabs, PawPrint, Users } from "lucide-react";
+import { Home, NotebookTabs, PawPrint, Users, Wallet } from "lucide-react";
 
 const menu: SidebarItemConfig[] = [
   {
@@ -32,6 +32,12 @@ const menu: SidebarItemConfig[] = [
     label: "Serviços",
     icon: <NotebookTabs />,
     path: "/registration/services",
+  },
+  {
+    id: "financial",
+    label: "Financeiro",
+    icon: <Wallet />,
+    path: "/financial",
   },
 ];
 

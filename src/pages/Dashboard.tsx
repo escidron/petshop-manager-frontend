@@ -4,6 +4,8 @@ import ClientFormModal from "../features/clients/ClientFormModal";
 import PetFormModal from "../features/pets/PetFormModal";
 import { Box, CircularProgress } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
+import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
+import dayjs from "dayjs";
 import type { Client } from "../features/clients/types";
 import type { Pet } from "../features/pets/types";
 import { useClients } from "../hooks/useClients";
@@ -12,8 +14,11 @@ import type {
   Appointment,
   AppointmentFlowState,
 } from "../features/appointments/types";
-import { useQueryClient } from "@tanstack/react-query";
-import { getAppointmentsByTenant } from "../api/services/appointments";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  getAppointmentsByDay,
+  getAppointmentsByTenant,
+} from "../api/services/appointments";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 
@@ -24,6 +29,16 @@ const Dashboard = () => {
   const { getClients } = useClients();
   const { getPets } = usePets();
   const queryClient = useQueryClient();
+
+  // Date state for the daily view
+  const [date, setDate] = useState<dayjs.Dayjs>(dayjs());
+  const formattedDate = date.format("YYYY-MM-DD");
+
+  // Daily appointments query
+  const { data: dailyAppointments = [], isLoading: isLoadingDaily } = useQuery({
+    queryKey: ["appointments", formattedDate],
+    queryFn: () => getAppointmentsByDay(formattedDate),
+  });
 
   const [clientModal, setClientModal] = useState<{
     open: boolean;
@@ -86,7 +101,7 @@ const Dashboard = () => {
           mt: 2,
           display: "flex",
           flexDirection: "column",
-          gap: 6,
+          gap: 2, // Adjusted gap
         }}
       >
         {isLoading ? (
@@ -101,25 +116,37 @@ const Dashboard = () => {
             <CircularProgress />
           </Box>
         ) : appointments.length > 0 ? (
-          <Box sx={{ width: "60%" }}>
-            <AppointmentsDailyList
-              onEdit={(appointment: Appointment) =>
-                setFlow({
-                  open: true,
-                  step: "appointment",
-                  mode: "edit",
-                  appointment,
-                })
-              }
-              openFlow={() =>
-                setFlow({
-                  open: true,
-                  step: "appointment",
-                  mode: "create",
-                })
-              }
-            />
-          </Box>
+          <>
+            <DashboardSummaryCards appointments={dailyAppointments} />
+            <Box sx={{ width: "100%", display: "flex", gap: 4 }}>
+              <Box sx={{ width: "70%" }}>
+                <AppointmentsDailyList
+                  date={date}
+                  setDate={setDate}
+                  appointments={dailyAppointments}
+                  isLoading={isLoadingDaily}
+                  onEdit={(appointment: Appointment) =>
+                    setFlow({
+                      open: true,
+                      step: "appointment",
+                      mode: "edit",
+                      appointment,
+                    })
+                  }
+                  openFlow={() =>
+                    setFlow({
+                      open: true,
+                      step: "appointment",
+                      mode: "create",
+                    })
+                  }
+                />
+              </Box>
+              <Box sx={{ width: "30%" }}>
+                {/* Space for future sidebar widgets in dashboard if needed */}
+              </Box>
+            </Box>
+          </>
         ) : (
           <>
             <OnboardingFinishBanner

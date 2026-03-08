@@ -1,10 +1,7 @@
-import { Box, Typography } from "@mui/material";
-import {
-  applyAppointmentAction,
-  getAppointmentsByDay,
-} from "../../api/services/appointments";
+import { Box, CircularProgress, Typography } from "@mui/material";
+import { applyAppointmentAction } from "../../api/services/appointments";
 import { CalendarDays, Plus } from "lucide-react";
-import dayjs, { Dayjs } from "dayjs";
+import type { Dayjs } from "dayjs";
 import { Button } from "../../components/Button/Button";
 import type { Appointment, AppointmentAction } from "./types";
 import { useState } from "react";
@@ -16,26 +13,32 @@ import CustomCard from "../../components/Card/CustomCard";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 
 type Props = {
   onEdit: (appointment: Appointment) => void;
   openFlow: () => void;
+  date: Dayjs;
+  setDate: (date: Dayjs) => void;
+  appointments: Appointment[];
+  isLoading: boolean;
 };
-const AppointmentsDailyList = ({ openFlow, onEdit }: Props) => {
+
+const AppointmentsDailyList = ({
+  openFlow,
+  onEdit,
+  date,
+  setDate,
+  appointments,
+  isLoading,
+}: Props) => {
   const [detailsModal, setDetailsModal] = useState<{
     open: boolean;
     appointmentId?: number;
   }>({ open: false });
-  const [date, setDate] = useState<Dayjs>(dayjs());
   const [showCalendar, setShowCalendar] = useState(false);
-  const formattedDate = date.format("YYYY-MM-DD");
   const queryClient = useQueryClient();
 
-  const { data: appointments = [] } = useQuery({
-    queryKey: ["appointments", formattedDate],
-    queryFn: () => getAppointmentsByDay(formattedDate),
-  });
   // Todo colocar em env config
   const workStart = date.hour(8).minute(0).second(0);
   const workEnd = date.hour(18).minute(0).second(0);
@@ -60,6 +63,14 @@ const AppointmentsDailyList = ({ openFlow, onEdit }: Props) => {
   const selectedAppointment = appointments.find(
     (a) => a.id === detailsModal.appointmentId,
   );
+
+  if (isLoading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <>
