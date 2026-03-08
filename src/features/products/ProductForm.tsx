@@ -92,6 +92,7 @@ const ProductForm = ({ product, onChange }: Props) => {
           <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Preço</FormLabel>
 
           <CustomTextField
+            type="number"
             value={product.price}
             onChange={handleChange("price")}
             required
@@ -118,6 +119,7 @@ const ProductForm = ({ product, onChange }: Props) => {
           </FormLabel>
 
           <CustomTextField
+            type="number"
             value={product.min_stock}
             onChange={handleChange("min_stock")}
             required

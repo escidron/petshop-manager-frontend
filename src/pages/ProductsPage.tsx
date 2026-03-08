@@ -73,7 +73,7 @@ export default function ProductsPage() {
       <ProductsTable
         rows={filteredRows}
         loading={loading}
-        onRowClick={(id) => navigate(`/registration/pets/${id}`)}
+        onRowClick={(id) => navigate(`/registration/products/${id}`)}
         onEdit={(product) =>
           setProductModal({ open: true, mode: "edit", product })
         }
