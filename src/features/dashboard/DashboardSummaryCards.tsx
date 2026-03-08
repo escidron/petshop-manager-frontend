@@ -73,7 +73,10 @@ export default function DashboardSummaryCards({ appointments }: Props) {
   );
 
   const confirmedCount = appointments.filter(
-    (a) => a.status === "confirmed",
+    (a) =>
+      a.status === "confirmed" ||
+      a.status === "completed" ||
+      a.status === "in_progress",
   ).length;
 
   const formattedRevenue = (totalRevenueCents / 100).toLocaleString("pt-BR", {
