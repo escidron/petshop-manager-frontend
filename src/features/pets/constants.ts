@@ -189,7 +189,7 @@ export const DOG_BREEDS = [
   "West Highland White Terrier",
   "Whippet",
   "Yorkshire Terrier",
-  "Sem Raça (Vira-lata)",
+  "Sem Raça Definida (SRD)",
   "Outro"
 ];
 

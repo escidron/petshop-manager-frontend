@@ -90,7 +90,6 @@ type Props = {
 export default function ServiceTable({
   rows,
   loading,
-  onRowClick,
   onEdit,
   onDelete,
 }: Props) {
@@ -215,9 +214,7 @@ export default function ServiceTable({
             ).map((row) => (
               <TableRow
                 key={row.id}
-                onClick={() => onRowClick?.(row.id)}
                 sx={{
-                  cursor: "pointer",
                   transition: "background-color 0.2s ease",
                   "&:hover": {
                     backgroundColor: "secondary.main",
