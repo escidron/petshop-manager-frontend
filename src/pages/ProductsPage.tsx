@@ -1,8 +1,6 @@
 import { Box } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
-import type { ProductFormData } from "../features/products/ProductForm";
-import { DEFAULT_PRODUCT_FORM } from "../features/products/constants";
 import { useProducts } from "../hooks/useProducts";
 import ProductFormModal from "../features/products/ProductFormModal";
 import ProductDeleteModal from "../features/products/ProductToDeleteModal";
@@ -11,25 +9,12 @@ import ProductsTable from "../features/products/ProductsTable";
 import { deleteProduct } from "../api/services/products";
 import { useToast } from "../hooks/useToast";
 
-export type Product = {
-  id: number;
-  name: string;
-  sku?: string;
-  description?: string;
-  category?: string;
-  price: number;
-  cost?: number;
-  quantity: number;
-  min_stock: number;
-  is_active: boolean;
-};
+import type { Product } from "../features/products/types";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [productToDelete, setProductToDelete] = useState<Product | null>(null);
-  const [productForm, setProductForm] =
-    useState<ProductFormData>(DEFAULT_PRODUCT_FORM);
   const toast = useToast();
   const [productModal, setProductModal] = useState<{
     open: boolean;
@@ -93,8 +78,6 @@ export default function ProductsPage() {
             setProductModal({ open: false });
             getProducts();
           }}
-          productForm={productForm}
-          setProductForm={setProductForm}
         />
       )}
 

@@ -1,26 +1,24 @@
 import {
+  Box,
   Dialog,
-  DialogActions,
   DialogContent,
   DialogTitle,
+  Typography,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
-import { Button } from "../../components/Button/Button";
-
-import type { ProductFormData } from "./ProductForm";
-import type { Product } from "../../pages/ProductsPage";
-import { DEFAULT_PRODUCT_FORM } from "./constants";
 import { createProduct, updateProduct } from "../../api/services/products";
 import ProductForm from "./ProductForm";
 import { useToast } from "../../hooks/useToast";
+import type { Product, ProductFormData } from "./types";
+import { productToFormData } from "./mapper";
+import { DEFAULT_PRODUCT_FORM } from "./constants";
+import { X } from "lucide-react";
 
 type Props = {
   open: boolean;
   mode: "create" | "edit";
   product?: Product;
-  productForm: ProductFormData;
-  setProductForm: (data: ProductFormData) => void;
   onClose: () => void;
   onSuccess: (product: Product) => void;
 };
@@ -29,78 +27,65 @@ export default function ProductFormModal({
   open,
   mode,
   product,
-  productForm,
-  setProductForm,
   onClose,
   onSuccess,
 }: Props) {
-  const [saving, setSaving] = useState(false);
   const toast = useToast();
+  const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
-  useEffect(() => {
-    if (mode === "edit" && product) {
-      setProductForm({
-        name: product.name,
-        sku: product.sku,
-        description: product.description,
-        category: product.category,
-        price: product.price,
-        cost: product.cost,
-        quantity: product.quantity,
-        min_stock: product.min_stock,
-      });
-    }
+  const defaultValues = product
+    ? productToFormData(product)
+    : DEFAULT_PRODUCT_FORM;
 
-    if (mode === "create") {
-      setProductForm(DEFAULT_PRODUCT_FORM);
-    }
-  }, [mode, product, setProductForm]);
+  const handleSubmit = async (data: ProductFormData) => {
+    const saved =
+      mode === "create"
+        ? await createProduct(data)
+        : await updateProduct(product!.id, data);
 
-  const handleSave = async () => {
-    if (!productForm.name.trim()) return;
+    toast.success(
+      mode === "create"
+        ? "Produto cadastrado com sucesso"
+        : "Produto atualizado com sucesso",
+    );
 
-    try {
-      setSaving(true);
-
-      if (mode === "create") {
-        const createdProduct = await createProduct({
-          ...productForm,
-        });
-
-        onSuccess(createdProduct);
-        toast.success("Produto cadastrado com sucesso");
-      }
-
-      if (mode === "edit" && product) {
-        const updated = await updateProduct(product.id, productForm);
-        onSuccess(updated);
-        toast.success("Produto atualizado com sucesso");
-      }
-      onClose();
-    } finally {
-      setSaving(false);
-    }
+    onSuccess(saved);
+    onClose();
   };
 
   return (
-    <Dialog open={open} fullWidth maxWidth="sm">
-      <DialogTitle>
-        {mode === "create" ? "Cadastrar produto" : "Editar produto"}
+    <Dialog
+      open={open}
+      maxWidth={false}
+      slotProps={{
+        paper: {
+          sx: {
+            width: showAdditionalInfo ? "80%" : "500px",
+            maxWidth: "1000px",
+            minWidth: showAdditionalInfo ? "1000px" : "500px",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+      >
+        <Typography variant="h5">
+          {mode === "create" ? "Novo Produto" : "Editar Produto"}
+        </Typography>
+        <Box sx={{ cursor: "pointer" }} onClick={onClose}>
+          <X size={24} />
+        </Box>
       </DialogTitle>
 
       <DialogContent>
-        <ProductForm product={productForm} onChange={setProductForm} />
+        <ProductForm
+          defaultValues={defaultValues}
+          onSubmit={handleSubmit}
+          showAdditionalInfo={showAdditionalInfo}
+          setShowAdditionalInfo={setShowAdditionalInfo}
+        />
       </DialogContent>
-
-      <DialogActions sx={{ justifyContent: "space-between", p: 3 }}>
-        <Button variant="text" onClick={onClose} disabled={saving}>
-          Cancelar
-        </Button>
-
-        <Button onClick={handleSave} loading={saving}>
-          {mode === "create" ? "Salvar" : "Atualizar"}
-        </Button>
-      </DialogActions>
     </Dialog>
   );
 }

@@ -60,7 +60,6 @@ const PetForm = ({
     handleSubmit,
     reset,
     setValue,
-    formState: { errors },
   } = form;
   const species = useWatch({ control, name: "species" });
   const [showAgeField, setShowAgeField] = useState(false);

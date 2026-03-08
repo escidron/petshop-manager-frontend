@@ -1,132 +1,321 @@
-import { Box, FormControl, FormLabel } from "@mui/material";
+import {
+  Autocomplete,
+  Box,
+  Divider,
+  FormControl,
+  FormLabel,
+  InputAdornment,
+  TextField,
+  Typography,
+} from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
-
-export type ProductFormData = {
-  name: string;
-  sku?: string;
-  description?: string;
-  category?: string;
-  price: number;
-  cost?: number;
-  quantity: number;
-  min_stock: number;
-};
+import type { ProductFormData } from "./types";
+import { Controller, useForm } from "react-hook-form";
+import type { Resolver, SubmitHandler } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Button } from "../../components/Button/Button";
+import { Minus, Plus } from "lucide-react";
+import { productSchema } from "./schemas";
+import { useEffect } from "react";
+import { PRODUCT_CATEGORIES } from "./constants";
+import { formatBRLFromCents } from "../../utils/masks";
 
 type Props = {
-  product: ProductFormData;
-  onChange: (data: ProductFormData) => void;
+  defaultValues?: Partial<ProductFormData>;
+  onSubmit: (data: ProductFormData) => void;
+  showAdditionalInfo: boolean;
+  setShowAdditionalInfo: (value: boolean) => void;
 };
 
-const ProductForm = ({ product, onChange }: Props) => {
-  const setFieldValue = <K extends keyof ProductFormData>(
-    field: K,
-    value: ProductFormData[K],
-  ) => {
-    onChange({
-      ...product,
-      [field]: value,
-    });
+const ProductForm = ({
+  defaultValues,
+  onSubmit,
+  showAdditionalInfo,
+  setShowAdditionalInfo,
+}: Props) => {
+  const form = useForm<ProductFormData>({
+    resolver: zodResolver(productSchema) as Resolver<ProductFormData>,
+    defaultValues: {
+      ...defaultValues,
+    },
+  });
+
+  const { control, handleSubmit, reset } = form;
+
+  const onSubmitHandler: SubmitHandler<ProductFormData> = (data) => {
+    onSubmit(data);
   };
 
-  const handleChange =
-    (field: keyof ProductFormData) =>
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFieldValue(field, e.target.value);
-    };
+  useEffect(() => {
+    if (defaultValues) {
+      reset(defaultValues);
+    }
+  }, [defaultValues, reset]);
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Codigo</FormLabel>
+    <form>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+        }}
+      >
+        <Divider />
+        <Box
+          className="wrapper"
+          sx={{ display: "flex", justifyContent: "space-between" }}
+        >
+          {/* ================= BÁSICO ================= */}
+          <Box
+            className="block-1"
+            sx={{
+              display: "flex",
+              gap: 2,
+              flexDirection: "column",
+              width: showAdditionalInfo ? "45%" : "100%",
+            }}
+          >
+            <Box>
+              <Typography variant="h6">Cadastro Básico</Typography>
+              <Typography fontSize="12px" color="text.disabled">
+                Campos obrigatórios
+              </Typography>
+            </Box>
 
-        <CustomTextField
-          value={product.sku}
-          onChange={handleChange("sku")}
-          required
-        />
-      </FormControl>
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                Nome
+              </FormLabel>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <CustomTextField
+                    {...field}
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="ex: Ração Premium 10kg"
+                  />
+                )}
+              />
+            </FormControl>
 
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Categoria</FormLabel>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Preço
+                </FormLabel>
+                <Controller
+                  name="price"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder="0,00"
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography
+                                sx={{
+                                  color: "text.disabled",
+                                  fontWeight: 500,
+                                  mt: "2px",
+                                }}
+                              >
+                                R$
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        field.onChange(digits === "" ? 0 : Number(digits));
+                      }}
+                      value={field.value ? formatBRLFromCents(field.value) : ""}
+                    />
+                  )}
+                />
+              </FormControl>
 
-        <CustomTextField
-          value={product.category}
-          onChange={handleChange("category")}
-          required
-        />
-      </FormControl>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Estoque Mínimo.
+                </FormLabel>
+                <Controller
+                  name="min_stock"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      size="small"
+                      placeholder="0"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  )}
+                />
+              </FormControl>
+            </Box>
 
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Nome</FormLabel>
+            <Button
+              variant="text"
+              startIcon={showAdditionalInfo ? <Minus /> : <Plus />}
+              onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
+            >
+              {showAdditionalInfo ? "Ocultar" : "Mostrar"} Cadastro Completo
+            </Button>
+          </Box>
 
-        <CustomTextField
-          value={product.name}
-          onChange={handleChange("name")}
-          required
-        />
-      </FormControl>
+          {/* ================= ADICIONAL ================= */}
+          {showAdditionalInfo && (
+            <Box
+              className="block-2"
+              sx={{
+                display: "flex",
+                gap: 2,
+                flexDirection: "column",
+                width: "45%",
+              }}
+            >
+              <Box>
+                <Typography variant="h6">Informações Adicionais</Typography>
+                <Typography fontSize="12px" color="text.disabled">
+                  Campos não obrigatórios
+                </Typography>
+              </Box>
 
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Descrição</FormLabel>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Categoria
+                </FormLabel>
+                <Controller
+                  name="category"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={PRODUCT_CATEGORIES}
+                      size="small"
+                      value={field.value || null}
+                      onChange={(_, value) => field.onChange(value || "")}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Selecionar categoria"
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </FormControl>
 
-        <CustomTextField
-          multiline
-          rows={4}
-          value={product.description}
-          onChange={handleChange("description")}
-          required
-        />
-      </FormControl>
-      <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-        <FormControl sx={{ width: "50%" }}>
-          <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Custo</FormLabel>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Custo
+                  </FormLabel>
+                  <Controller
+                    name="cost"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        size="small"
+                        placeholder="0,00"
+                        slotProps={{
+                          input: {
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography
+                                  sx={{
+                                    color: "text.disabled",
+                                    fontWeight: 500,
+                                    mt: "2px",
+                                  }}
+                                >
+                                  R$
+                                </Typography>
+                              </InputAdornment>
+                            ),
+                          },
+                        }}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "");
+                          field.onChange(digits === "" ? 0 : Number(digits));
+                        }}
+                        value={
+                          field.value ? formatBRLFromCents(field.value) : ""
+                        }
+                      />
+                    )}
+                  />
+                </FormControl>
 
-          <CustomTextField
-            type="number"
-            value={product.cost}
-            onChange={handleChange("cost")}
-            required
-          />
-        </FormControl>
-        <FormControl sx={{ width: "50%" }}>
-          <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Preço</FormLabel>
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    SKU / Código
+                  </FormLabel>
+                  <Controller
+                    name="sku"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField {...field} placeholder="ex: RAC-001" />
+                    )}
+                  />
+                </FormControl>
+              </Box>
 
-          <CustomTextField
-            type="number"
-            value={product.price}
-            onChange={handleChange("price")}
-            required
-          />
-        </FormControl>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Quantidade em Estoque
+                </FormLabel>
+                <Controller
+                  name="quantity"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      size="small"
+                      placeholder="0"
+                      onChange={(e) => field.onChange(Number(e.target.value))}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Descrição
+                </FormLabel>
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      multiline
+                      rows={4}
+                      placeholder="Detalhes do produto..."
+                    />
+                  )}
+                />
+              </FormControl>
+            </Box>
+          )}
+        </Box>
+
+        <Divider />
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+          <Button onClick={handleSubmit(onSubmitHandler)}>Salvar</Button>
+        </Box>
       </Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", gap: 2 }}>
-        <FormControl sx={{ width: "50%" }}>
-          <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-            Quantidade
-          </FormLabel>
-
-          <CustomTextField
-            type="number"
-            value={product.quantity}
-            onChange={handleChange("quantity")}
-            required
-            sx={{ width: "100%" }}
-          />
-        </FormControl>
-        <FormControl sx={{ width: "50%" }}>
-          <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-            Estoque Minimo
-          </FormLabel>
-
-          <CustomTextField
-            type="number"
-            value={product.min_stock}
-            onChange={handleChange("min_stock")}
-            required
-          />
-        </FormControl>
-      </Box>
-    </Box>
+    </form>
   );
 };
 
