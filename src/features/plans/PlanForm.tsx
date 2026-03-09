@@ -14,17 +14,29 @@ const PlanForm = ({ onSubmit }: Props) => {
       sx={{
         width: "100%",
         display: "flex",
-        justifyContent: "center",
+        flexDirection: "column",
         alignItems: "center",
         gap: 2,
       }}
     >
-      <Box sx={{ display: "flex", gap: 2, width: "50%" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", lg: "row" },
+          justifyContent: "center",
+          gap: 4,
+          width: "100%",
+          alignItems: "stretch",
+        }}
+      >
         <CustomCard
           sx={{
             p: 0,
-            height: "500px",
-            minWidth: "370px",
+            height: "520px",
+            width: { xs: "100%", lg: "360px" },
+            maxWidth: { xs: "100%", lg: "360px" },
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <Box
@@ -89,10 +101,13 @@ const PlanForm = ({ onSubmit }: Props) => {
         <CustomCard
           sx={{
             p: 0,
-            height: "500px",
+            height: "520px",
+            width: { xs: "100%", lg: "360px" },
+            maxWidth: { xs: "100%", lg: "360px" },
             border: "2px solid",
             borderColor: "primary.main",
-            minWidth: "370px",
+            display: "flex",
+            flexDirection: "column",
           }}
         >
           <Box

@@ -1,7 +1,15 @@
-import { Box, Typography } from "@mui/material";
-import CustomCard from "../components/Card/CustomCard";
 import { useState } from "react";
-import axios from "axios";
+import { Box, Typography, Button, Stack } from "@mui/material";
+import CustomCard from "../components/Card/CustomCard";
+import {
+  Settings,
+  User,
+  Store,
+  CheckCircle2,
+  ArrowLeft,
+  ShieldCheck,
+  Zap,
+} from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useNavigate } from "react-router";
 
@@ -15,6 +23,7 @@ import PlanForm from "../features/plans/PlanForm";
 import type { PlanCode } from "../features/plans/types";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../hooks/useAuth";
+import axios from "axios";
 
 const SignupPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -32,19 +41,16 @@ const SignupPage = () => {
     setSearchParams({ step: String(newStep) });
   };
 
-  // STEP 1 → Plano
   const handleSelectPlan = (plan: PlanCode) => {
     setPlanCode(plan);
     goToStep(2);
   };
 
-  // STEP 2 → Usuário
   const handleSubmitUser = (data: UserFormData) => {
     setUserData(data);
     goToStep(3);
   };
 
-  // STEP 3 → Tenant + Signup final
   const handleSubmitTenant = async (data: TenantFormData) => {
     if (!planCode || !userData) return;
 
@@ -63,82 +69,274 @@ const SignupPage = () => {
       );
 
       toast.success("Conta criada com sucesso");
-
-      await checkAuth(); // 🔹 Garante que o estado global (user/tenant) está populado antes do redirect
-
+      await checkAuth();
       navigate("/dashboard");
     } catch (error: unknown) {
       let message = "Erro ao criar conta";
-
       if (axios.isAxiosError(error)) {
         message = error.response?.data?.detail ?? message;
       }
-
       toast.error(message);
-    } finally {
-      // setLoading(false);
     }
   };
 
   return (
-    <Box sx={{ display: "flex", height: "100%", p: 4 }}>
+    <Box
+      sx={{
+        display: "flex",
+        height: "100vh",
+        width: "100vw",
+        overflow: "hidden",
+        bgcolor: "#F8FAFC",
+      }}
+    >
+      {/* Left Pane - Branding & Benefits */}
       <Box
         sx={{
-          width: "40%",
-          display: "flex",
+          width: { xs: "0%", md: "35%" },
+          display: { xs: "none", md: "flex" },
           flexDirection: "column",
-          justifyContent: "center",
-          backgroundColor: "primary.main",
-          borderRadius: 10,
-          p: 4,
+          justifyContent: "space-between",
+          background: "linear-gradient(135deg, #313485 0%, #4B4EAD 100%)",
+          position: "relative",
+          p: 6,
+          color: "white",
         }}
       >
-        <Typography variant="h1" color="text.secondary">
-          {step === 1 && "Escolha seu plano"}
-          {step === 2 && "Crie sua conta"}
-          {step === 3 && "Configure seu negócio"}
-        </Typography>
-
-        <Typography variant="body1" color="text.secondary">
-          {step === 1 && "Selecione o plano ideal para o seu negócio."}
-          {step === 2 && "Preencha seus dados para criar sua conta."}
-          {step === 3 && "Agora configure seu estabelecimento."}
-        </Typography>
-
-        <img
-          src="/signup.png"
-          alt="signup"
-          style={{
-            width: "80%",
-            height: "80%",
-            objectFit: "contain",
+        <Box
+          sx={{
+            position: "absolute",
+            top: -100,
+            left: -100,
+            width: 300,
+            height: 300,
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.03)",
+            filter: "blur(60px)",
           }}
         />
+        <Box
+          sx={{
+            position: "absolute",
+            bottom: -50,
+            right: -50,
+            width: 250,
+            height: 250,
+            borderRadius: "50%",
+            background: "rgba(255, 255, 255, 0.05)",
+            filter: "blur(40px)",
+          }}
+        />
+
+        <Box sx={{ display: "flex", alignItems: "center", gap: 2, zIndex: 1 }}>
+          <Box
+            sx={{
+              bgcolor: "rgba(255, 255, 255, 0.1)",
+              p: 1.5,
+              borderRadius: 3,
+              backdropFilter: "blur(10px)",
+              border: "1px solid rgba(255, 255, 255, 0.2)",
+            }}
+          >
+            <ShieldCheck size={28} />
+          </Box>
+          <Typography variant="h5" fontWeight={800} letterSpacing={-0.5}>
+            Petshop Manager
+          </Typography>
+        </Box>
+
+        <Box sx={{ zIndex: 1 }}>
+          <Box
+            sx={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 1,
+              bgcolor: "rgba(255, 255, 255, 0.1)",
+              px: 2,
+              py: 0.5,
+              borderRadius: 5,
+              mb: 3,
+            }}
+          >
+            <Zap size={14} color="#FBBF24" />
+            <Typography
+              variant="caption"
+              fontWeight={700}
+              sx={{ opacity: 0.9 }}
+            >
+              PLATAFORMA #1 PARA PETSHOPS
+            </Typography>
+          </Box>
+
+          <Typography
+            variant="h2"
+            sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2, color: "white" }}
+          >
+            {step === 1 && "Simplicidade para gerenciar seu tempo."}
+            {step === 2 && "Sua conta é a porta para o sucesso."}
+            {step === 3 && "Personalize a vitrine do seu negócio."}
+          </Typography>
+
+          <Typography
+            variant="body1"
+            sx={{ opacity: 0.8, mb: 5, fontSize: "1.1rem", maxWidth: 450 }}
+          >
+            {step === 1 &&
+              "Escolha o plano que melhor se adapta à sua rotina e comece a escalar hoje mesmo."}
+            {step === 2 &&
+              "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
+            {step === 3 &&
+              "Seus clientes vão notar a diferença desde o primeiro agendamento."}
+          </Typography>
+
+          <Stack spacing={2} sx={{ mt: 4 }}>
+            {[
+              { idx: 1, label: "Plano Ideal", icon: <Settings size={18} /> },
+              { idx: 2, label: "Dados da Conta", icon: <User size={18} /> },
+              { idx: 3, label: "Seu Negócio", icon: <Store size={18} /> },
+            ].map((item) => (
+              <Box
+                key={item.idx}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 2,
+                  opacity: step === item.idx ? 1 : 0.5,
+                  transition: "opacity 0.3s ease",
+                }}
+              >
+                <Box
+                  sx={{
+                    width: 32,
+                    height: 32,
+                    borderRadius: "50%",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    bgcolor:
+                      step === item.idx ? "white" : "rgba(255,255,255,0.1)",
+                    color: step === item.idx ? "primary.main" : "white",
+                    fontWeight: 800,
+                  }}
+                >
+                  {step > item.idx ? <CheckCircle2 size={16} /> : item.idx}
+                </Box>
+                <Typography variant="subtitle2" fontWeight={700}>
+                  {item.label}
+                </Typography>
+              </Box>
+            ))}
+          </Stack>
+        </Box>
+
+        <Typography variant="caption" sx={{ opacity: 0.5, zIndex: 1 }}>
+          © 2026 Petshop Manager. Todos os direitos reservados.
+        </Typography>
       </Box>
 
+      {/* Right Pane - Forms */}
       <Box
         sx={{
-          width: "60%",
+          flex: 1,
           display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
+          flexDirection: "column",
+          position: "relative",
+          overflowY: "auto",
         }}
       >
-        {step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
+        <Box
+          sx={{
+            p: 4,
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          {step > 1 ? (
+            <Button
+              startIcon={<ArrowLeft size={18} />}
+              onClick={() => goToStep((step - 1) as 1 | 2)}
+              sx={{ color: "text.primary", fontWeight: 700 }}
+            >
+              Voltar
+            </Button>
+          ) : (
+            <Box />
+          )}
+          <Typography variant="body2" color="text.disabled" fontWeight={600}>
+            Já tem conta?{" "}
+            <Button
+              onClick={() => navigate("/login")}
+              sx={{ fontWeight: 800, textTransform: "none" }}
+            >
+              Fazer Login
+            </Button>
+          </Typography>
+        </Box>
 
-        {step === 2 && (
-          <CustomCard sx={{ maxWidth: "550px", maxHeight: "600px" }}>
-            <Typography variant="h1">Criar conta</Typography>
-            <UserSignupForm onSubmit={handleSubmitUser} />
-          </CustomCard>
-        )}
+        <Box
+          sx={{
+            flex: 1,
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            px: { xs: 2, sm: 4, lg: step === 1 ? 4 : 8 },
+            pb: 8,
+          }}
+        >
+          <Box sx={{ width: "100%", maxWidth: step === 1 ? 800 : 650 }}>
+            <Box sx={{ mb: 4, textAlign: { xs: "center", md: "left" } }}>
+              <Typography variant="h4" fontWeight={900} color="primary.main">
+                {step === 1 && "Bem-vindo!"}
+                {step === 2 && "Sua conta pessoal"}
+                {step === 3 && "Detalhes da empresa"}
+              </Typography>
+              <Typography variant="body1" color="text.secondary">
+                {step === 1 &&
+                  "Comece selecionando o plano que faz sentido para você."}
+                {step === 2 && "Preencha seus dados de acesso."}
+                {step === 3 &&
+                  "Configure como seus clientes verão seu petshop."}
+              </Typography>
+            </Box>
 
-        {step === 3 && (
-          <CustomCard sx={{ maxWidth: "550px", maxHeight: "600px" }}>
-            <Typography variant="h1">Seu estabelecimento</Typography>
-            <TenantCreateForm onSubmit={handleSubmitTenant} />
-          </CustomCard>
-        )}
+            <Box
+              sx={{
+                animation: "fadeIn 0.5s ease-out",
+                "@keyframes fadeIn": {
+                  from: { opacity: 0, transform: "translateY(10px)" },
+                  to: { opacity: 1, transform: "translateY(0)" },
+                },
+              }}
+            >
+              {step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
+
+              {step === 2 && (
+                <CustomCard
+                  sx={{
+                    p: 4,
+                    borderRadius: 5,
+                    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <UserSignupForm onSubmit={handleSubmitUser} />
+                </CustomCard>
+              )}
+
+              {step === 3 && (
+                <CustomCard
+                  sx={{
+                    p: 4,
+                    borderRadius: 5,
+                    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
+                  }}
+                >
+                  <TenantCreateForm onSubmit={handleSubmitTenant} />
+                </CustomCard>
+              )}
+            </Box>
+          </Box>
+        </Box>
       </Box>
     </Box>
   );
