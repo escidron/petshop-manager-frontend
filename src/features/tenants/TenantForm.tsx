@@ -11,16 +11,17 @@ import { maskPhone } from "../../utils/masks";
 
 type Props = {
   onSubmit: (data: TenantFormData) => void;
+  defaultValues?: Partial<TenantFormData>;
 };
 
-const TenantCreateForm = ({ onSubmit }: Props) => {
+const TenantCreateForm = ({ onSubmit, defaultValues }: Props) => {
   const {
     control,
     handleSubmit,
     formState: { errors },
   } = useForm<TenantFormData>({
     resolver: zodResolver(tenantSchema),
-    defaultValues: { ...DEFAULT_TENANT_FORM },
+    defaultValues: { ...DEFAULT_TENANT_FORM, ...defaultValues },
   });
 
   return (

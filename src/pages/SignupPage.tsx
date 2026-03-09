@@ -32,6 +32,7 @@ const SignupPage = () => {
   const planFromUrl = searchParams.get("plan") as PlanCode | null;
   const [planCode, setPlanCode] = useState<PlanCode | null>(planFromUrl);
   const [userData, setUserData] = useState<UserFormData | null>(null);
+  const [tenantData, setTenantData] = useState<TenantFormData | null>(null);
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -52,6 +53,7 @@ const SignupPage = () => {
   };
 
   const handleSubmitTenant = async (data: TenantFormData) => {
+    setTenantData(data);
     if (!planCode || !userData) return;
 
     try {
@@ -319,7 +321,10 @@ const SignupPage = () => {
                     boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
                   }}
                 >
-                  <UserSignupForm onSubmit={handleSubmitUser} />
+                  <UserSignupForm
+                    onSubmit={handleSubmitUser}
+                    defaultValues={userData || {}}
+                  />
                 </CustomCard>
               )}
 
@@ -331,7 +336,10 @@ const SignupPage = () => {
                     boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
                   }}
                 >
-                  <TenantCreateForm onSubmit={handleSubmitTenant} />
+                  <TenantCreateForm
+                    onSubmit={handleSubmitTenant}
+                    defaultValues={tenantData || {}}
+                  />
                 </CustomCard>
               )}
             </Box>

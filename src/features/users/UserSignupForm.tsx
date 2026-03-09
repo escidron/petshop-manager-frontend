@@ -12,8 +12,9 @@ import { useState } from "react";
 
 type Props = {
   onSubmit: (data: UserFormData) => void;
+  defaultValues?: Partial<UserFormData>;
 };
-const UserSignupForm = ({ onSubmit }: Props) => {
+const UserSignupForm = ({ onSubmit, defaultValues }: Props) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
@@ -25,7 +26,7 @@ const UserSignupForm = ({ onSubmit }: Props) => {
     formState: { errors },
   } = useForm<UserFormData>({
     resolver: zodResolver(userSchema),
-    defaultValues: { ...DEFAULT_USER_FORM },
+    defaultValues: { ...DEFAULT_USER_FORM, ...defaultValues },
   });
 
   return (
