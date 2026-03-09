@@ -72,9 +72,9 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     ) {
       return null;
     }
-
+    console.log(subscription)
     const expiryDate = dayjs(subscription.trial_ends_at);
-    const daysLeft = expiryDate.diff(dayjs(), "days");
+    const daysLeft = expiryDate.diff(dayjs(), "day") + 1;
     const totalDays = subscription.plan?.trial_days || 14;
     const progress = Math.max(0, Math.min(100, (daysLeft / totalDays) * 100));
 

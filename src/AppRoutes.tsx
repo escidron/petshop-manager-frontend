@@ -13,6 +13,7 @@ import type { JSX } from "react";
 import Home from "./pages/Home";
 import FinancialPage from "./pages/FinancialPage";
 import LandingPage from "./pages/LandingPage";
+import SettingsPage from "./pages/SettingsPage";
 
 type Props = {
   children: JSX.Element;
@@ -66,7 +67,7 @@ export default function AppRoutes() {
             <Route index element={<ServicesPage />} />
           </Route>
         </Route>
-        <Route path="/settings" element={<div>Configurações (Em breve)</div>} />
+        <Route path="/settings" element={<SettingsPage />} />
       </Route>
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
       <Route path="*" element={<Navigate to="/" replace />} />
