@@ -28,7 +28,7 @@ import CustomCard from "../components/Card/CustomCard";
 
 const LandingPage = () => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, checking } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
@@ -166,7 +166,7 @@ const LandingPage = () => {
                 >
                   Planos
                 </Link>
-                {user ? (
+                {!checking && user ? (
                   <Button
                     variant="contained"
                     onClick={() => navigate("/dashboard")}
@@ -250,7 +250,7 @@ const LandingPage = () => {
                 }}
               >
                 <Typography variant="caption" fontWeight="bold">
-                  NOVO: DASHBOARD V2.0 DISPONÍVEL
+                  A GESTÃO QUE SEU NEGÓCIO MERECE
                 </Typography>
               </Box>
               <Typography
@@ -288,7 +288,7 @@ const LandingPage = () => {
                 <Button
                   variant="contained"
                   size="large"
-                  onClick={() => navigate("/signup")}
+                  onClick={() => navigate("/signup?plan=FREE_TRIAL&step=2")}
                   endIcon={<ArrowRight />}
                   sx={{
                     px: 5,
@@ -298,6 +298,7 @@ const LandingPage = () => {
                     textTransform: "none",
                     fontWeight: 800,
                     boxShadow: "0 10px 20px -5px rgba(49, 52, 133, 0.4)",
+                    whiteSpace: "nowrap",
                   }}
                 >
                   Começar agora — É grátis
@@ -319,6 +320,7 @@ const LandingPage = () => {
                     fontWeight: 800,
                     borderWidth: 2,
                     "&:hover": { borderWidth: 2 },
+                    whiteSpace: "nowrap",
                   }}
                 >
                   Ver funcionalidades
@@ -600,7 +602,7 @@ const LandingPage = () => {
           <Button
             variant="contained"
             size="large"
-            onClick={() => navigate("/signup")}
+            onClick={() => navigate("/signup?plan=FREE_TRIAL&step=2")}
             sx={{
               bgcolor: "white",
               color: "primary.main",
