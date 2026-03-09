@@ -14,6 +14,7 @@ import { signup } from "../api/services/auth";
 import PlanForm from "../features/plans/PlanForm";
 import type { PlanCode } from "../features/plans/types";
 import { useSearchParams } from "react-router";
+import { useAuth } from "../hooks/useAuth";
 
 const SignupPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -25,6 +26,7 @@ const SignupPage = () => {
 
   const toast = useToast();
   const navigate = useNavigate();
+  const { checkAuth } = useAuth();
 
   const goToStep = (newStep: 1 | 2 | 3) => {
     setSearchParams({ step: String(newStep) });
@@ -61,6 +63,8 @@ const SignupPage = () => {
       );
 
       toast.success("Conta criada com sucesso");
+
+      await checkAuth(); // 🔹 Garante que o estado global (user/tenant) está populado antes do redirect
 
       navigate("/dashboard");
     } catch (error: unknown) {

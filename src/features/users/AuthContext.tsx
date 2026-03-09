@@ -12,6 +12,7 @@ type AuthContextType = {
   setTenant: (tenant: Tenant | null) => void;
   logout: () => void;
   checking: boolean;
+  checkAuth: () => Promise<void>;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -25,29 +26,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [checking, setChecking] = useState(true); // 🔹 novo estado
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const response = await apiClient.get("/api/v1/auth/me");
-        setUser(response.data.user);
-        setTenant(response.data.tenant);
-      } catch (err) {
-        const axiosErr = err as AxiosError & { isAuthError?: boolean };
-        console.log(
-          "Authentication failed:",
-          axiosErr.response?.status,
-          "isAuthError:",
-          axiosErr.isAuthError,
-        );
+  const checkAuth = async () => {
+    setChecking(true);
+    try {
+      const response = await apiClient.get("/api/v1/auth/me");
+      setUser(response.data.user);
+      setTenant(response.data.tenant);
+    } catch (err) {
+      const axiosErr = err as AxiosError & { isAuthError?: boolean };
+      console.log(
+        "Authentication failed:",
+        axiosErr.response?.status,
+        "isAuthError:",
+        axiosErr.isAuthError,
+      );
 
-        if (axiosErr.isAuthError || axiosErr.response?.status === 401) {
-          setUser(null);
-        }
-      } finally {
-        setChecking(false);
+      if (axiosErr.isAuthError || axiosErr.response?.status === 401) {
+        setUser(null);
+        setTenant(null);
       }
-    };
+    } finally {
+      setChecking(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuth();
   }, [navigate]);
 
@@ -59,7 +62,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, setUser, logout, checking, tenant, setTenant }}
+      value={{ user, setUser, logout, checking, tenant, setTenant, checkAuth }}
     >
       {children}
     </AuthContext.Provider>
