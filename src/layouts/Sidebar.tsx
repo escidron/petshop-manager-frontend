@@ -72,7 +72,6 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     ) {
       return null;
     }
-    console.log(subscription)
     const expiryDate = dayjs(subscription.trial_ends_at);
     const daysLeft = expiryDate.diff(dayjs(), "day") + 1;
     const totalDays = subscription.plan?.trial_days || 14;
@@ -159,7 +158,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             </Box>
             <Typography
               variant="caption"
-              onClick={() => navigate("/settings")}
+              onClick={() => navigate("/settings?tab=billing")}
               sx={{
                 color: "secondary.main",
                 fontWeight: 800,

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -11,6 +11,12 @@ import {
   Grid,
   Chip,
   LinearProgress,
+  Modal,
+  Backdrop,
+  Fade,
+  TextField,
+  CircularProgress,
+  IconButton,
 } from "@mui/material";
 import {
   Settings,
@@ -19,9 +25,12 @@ import {
   Shield,
   CheckCircle2,
   TrendingUp,
+  X,
+  Lock,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import dayjs from "dayjs";
+import { useSearchParams } from "react-router-dom";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -46,8 +55,19 @@ function CustomTabPanel(props: TabPanelProps) {
 }
 
 const SettingsPage = () => {
+  const [searchParams] = useSearchParams();
   const [value, setValue] = useState(0);
+  const [openCheckout, setOpenCheckout] = useState(false);
+  const [upgrading, setUpgrading] = useState(false);
   const { tenant, user } = useAuth();
+
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "billing") {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setValue(1);
+    }
+  }, [searchParams]);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -56,12 +76,22 @@ const SettingsPage = () => {
   const getTrialDays = () => {
     if (!tenant?.subscription?.trial_ends_at) return 0;
     const expiryDate = dayjs(tenant.subscription.trial_ends_at);
-    // Round up to include the current day
     const daysLeft = expiryDate.diff(dayjs(), "day") + 1;
     return daysLeft > 0 ? daysLeft : 0;
   };
 
   const trialDays = getTrialDays();
+
+  const handleUpgrade = () => {
+    setUpgrading(true);
+    setTimeout(() => {
+      setUpgrading(false);
+      setOpenCheckout(false);
+      alert(
+        "Upgrade simulado com sucesso! Em uma integração real, aqui processaríamos o pagamento via Stripe.",
+      );
+    }, 2000);
+  };
 
   return (
     <Box sx={{ maxWidth: 1000, margin: "0 auto" }}>
@@ -70,7 +100,7 @@ const SettingsPage = () => {
           <Typography variant="h4" fontWeight={800} color="primary.main">
             Configurações
           </Typography>
-          <Typography variant="body1" color="text.secondary">
+          <Typography variant="body1" color="text.primary">
             Gerencie as preferências da sua conta, empresa e assinaturas.
           </Typography>
         </Box>
@@ -79,7 +109,10 @@ const SettingsPage = () => {
           <Tabs
             value={value}
             onChange={handleChange}
-            textColor="primary"
+            sx={{
+              "& .MuiTab-root": { color: "text.primary", fontWeight: 600 },
+              "& .Mui-selected": { color: "primary.main !important" },
+            }}
             indicatorColor="primary"
           >
             <Tab
@@ -108,14 +141,14 @@ const SettingsPage = () => {
         {/* --- ABA GERAL --- */}
         <CustomTabPanel value={value} index={0}>
           <Grid container spacing={3}>
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
               <Paper sx={{ p: 3, borderRadius: 3 }}>
                 <Stack spacing={3}>
                   <Box>
                     <Typography variant="h6" fontWeight={700} gutterBottom>
                       Informações da Empresa
                     </Typography>
-                    <Typography variant="body2" color="text.secondary">
+                    <Typography variant="body2" color="text.primary">
                       Essas informações aparecerão nos seus recibos e
                       agendamentos.
                     </Typography>
@@ -151,7 +184,7 @@ const SettingsPage = () => {
         {/* --- ABA PLANOS E COBRANÇA --- */}
         <CustomTabPanel value={value} index={1}>
           <Grid container spacing={4}>
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
               <Stack spacing={3}>
                 <Paper
                   sx={{
@@ -173,7 +206,6 @@ const SettingsPage = () => {
                       borderRadius: "50%",
                     }}
                   />
-
                   <Stack spacing={3}>
                     <Box
                       sx={{
@@ -187,7 +219,7 @@ const SettingsPage = () => {
                           variant="caption"
                           sx={{
                             fontWeight: 800,
-                            color: "secondary.main",
+                            color: "primary.main",
                             textTransform: "uppercase",
                             letterSpacing: 1,
                           }}
@@ -272,7 +304,7 @@ const SettingsPage = () => {
                       </Typography>
                       <Typography
                         variant="body2"
-                        color="text.secondary"
+                        color="text.primary"
                         sx={{ mb: 3 }}
                       >
                         Desbloqueie todos os recursos, clientes ilimitados e
@@ -282,10 +314,11 @@ const SettingsPage = () => {
                         variant="contained"
                         size="large"
                         fullWidth
+                        onClick={() => setOpenCheckout(true)}
                         startIcon={<TrendingUp size={18} />}
                         sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
                       >
-                        Mudar para Plano Mensal (R$ 99,90)
+                        Assinar Plano Mensal (R$ 99,90)
                       </Button>
                     </Box>
                   </Stack>
@@ -297,7 +330,7 @@ const SettingsPage = () => {
                   </Typography>
                   <Typography
                     variant="body2"
-                    color="text.secondary"
+                    color="text.primary"
                     sx={{ mb: 2 }}
                   >
                     Nenhum cartão cadastrado.
@@ -305,6 +338,7 @@ const SettingsPage = () => {
                   <Button
                     variant="outlined"
                     startIcon={<CreditCard size={18} />}
+                    onClick={() => setOpenCheckout(true)}
                   >
                     Adicionar Cartão
                   </Button>
@@ -312,7 +346,7 @@ const SettingsPage = () => {
               </Stack>
             </Grid>
 
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
               <Paper
                 sx={{
                   p: 4,
@@ -351,14 +385,16 @@ const SettingsPage = () => {
                       bgcolor: "rgba(255,255,255,0.05)",
                     }}
                   >
-                    <Typography variant="caption" sx={{ opacity: 0.8 }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ opacity: 0.8, display: "block" }}
+                    >
                       "O Petshop Manager mudou a forma como gerencio meu banho e
                       tosa. Economizo pelo menos 5h por semana."
                     </Typography>
                     <Typography
                       variant="caption"
-                      display="block"
-                      sx={{ mt: 1, fontWeight: 700 }}
+                      sx={{ mt: 1, fontWeight: 700, display: "block" }}
                     >
                       — Maria S., Pet d'Aline
                     </Typography>
@@ -391,7 +427,7 @@ const SettingsPage = () => {
                   <Typography variant="h6" fontWeight={800}>
                     {user?.name}
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.primary">
                     {user?.email}
                   </Typography>
                   <Typography
@@ -418,6 +454,146 @@ const SettingsPage = () => {
           </Paper>
         </CustomTabPanel>
       </Stack>
+
+      {/* --- MODAL DE CHECKOUT SIMULADO --- */}
+      <Modal
+        open={openCheckout}
+        onClose={() => !upgrading && setOpenCheckout(false)}
+        closeAfterTransition
+        BackdropComponent={Backdrop}
+        BackdropProps={{ timeout: 500 }}
+      >
+        <Fade in={openCheckout}>
+          <Box
+            sx={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: { xs: "90%", sm: 450 },
+              bgcolor: "background.paper",
+              borderRadius: 4,
+              boxShadow: 24,
+              overflow: "hidden",
+            }}
+          >
+            <Box
+              sx={{
+                bgcolor: "primary.main",
+                p: 3,
+                color: "white",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Stack direction="row" spacing={1} alignItems="center">
+                <Lock size={20} />
+                <Typography variant="h6" fontWeight={700}>
+                  Checkout Seguro
+                </Typography>
+              </Stack>
+              <IconButton
+                onClick={() => setOpenCheckout(false)}
+                sx={{ color: "white" }}
+                disabled={upgrading}
+              >
+                <X size={20} />
+              </IconButton>
+            </Box>
+
+            <Box sx={{ p: 4 }}>
+              <Stack spacing={3}>
+                <Box>
+                  <Typography
+                    variant="subtitle2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
+                    PLANO ESCOLHIDO
+                  </Typography>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Typography variant="h6" fontWeight={800}>
+                      Plano Mensal Profissional
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      fontWeight={800}
+                      color="primary.main"
+                    >
+                      R$ 99,90
+                    </Typography>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
+                    Cobrado mensalmente. Cancele quando quiser.
+                  </Typography>
+                </Box>
+
+                <Divider />
+
+                <Stack spacing={2}>
+                  <TextField
+                    fullWidth
+                    label="Número do Cartão"
+                    placeholder="0000 0000 0000 0000"
+                    disabled={upgrading}
+                  />
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      fullWidth
+                      label="Validade"
+                      placeholder="MM/AA"
+                      disabled={upgrading}
+                    />
+                    <TextField
+                      fullWidth
+                      label="CVC"
+                      placeholder="123"
+                      disabled={upgrading}
+                    />
+                  </Stack>
+                  <TextField
+                    fullWidth
+                    label="Nome no Cartão"
+                    placeholder="NOME COMPLETO"
+                    disabled={upgrading}
+                  />
+                </Stack>
+
+                <Button
+                  variant="contained"
+                  fullWidth
+                  size="large"
+                  disabled={upgrading}
+                  onClick={handleUpgrade}
+                  sx={{ py: 2, borderRadius: 2, fontWeight: 700, mt: 1 }}
+                >
+                  {upgrading ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Confirmar Assinatura"
+                  )}
+                </Button>
+
+                <Typography
+                  variant="caption"
+                  color="text.primary"
+                  textAlign="center"
+                  display="block"
+                >
+                  Seus dados estão protegidos por criptografia de ponta a ponta.
+                </Typography>
+              </Stack>
+            </Box>
+          </Box>
+        </Fade>
+      </Modal>
     </Box>
   );
 };
