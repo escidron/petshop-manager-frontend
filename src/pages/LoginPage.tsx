@@ -18,7 +18,7 @@ const LoginPage = () => {
     try {
       const response = await login(userForm);
       setUser(response);                      // atualiza estado global
-      navigate("/");
+      navigate("/dashboard");
     } catch (error) {
       console.error(error);
     }

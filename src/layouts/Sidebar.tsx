@@ -14,7 +14,7 @@ const menu: SidebarItemConfig[] = [
     id: "home",
     label: "Inicio",
     icon: <Home />,
-    path: "/",
+    path: "/dashboard",
   },
   {
     id: "clients",
