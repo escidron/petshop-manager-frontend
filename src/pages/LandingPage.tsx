@@ -17,10 +17,12 @@ import {
   Menu as MenuIcon,
   ArrowRight,
   CheckCircle2,
-  Calendar,
-  Users,
-  Wallet,
-  ShieldCheck,
+  MessageCircle,
+  TrendingUp,
+  Package,
+  History,
+  Bell,
+  Layers,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
@@ -70,28 +72,40 @@ const LandingPage = () => {
 
   const features = [
     {
-      icon: <Users size={32} />,
-      title: "Clientes & Pets",
+      icon: <MessageCircle size={32} />,
+      title: "Automação via WhatsApp",
       description:
-        "Gestão completa e intuitiva de todos os seus contatos e seus companheiros.",
+        "Seus clientes agendam e recebem confirmações automáticas pelo Zap. Reduza faltas em até 40%.",
     },
     {
-      icon: <Calendar size={32} />,
-      title: "Agenda Inteligente",
+      icon: <Package size={32} />,
+      title: "Estoque Inteligente",
       description:
-        "Controle seus horários de forma simples e evite conflitos de agendamento.",
+        "Cálculo automático de insumos: o sistema dá baixa no shampoo e condicionador conforme o serviço realizado.",
     },
     {
-      icon: <Wallet size={32} />,
-      title: "Gestão Financeira",
+      icon: <TrendingUp size={32} />,
+      title: "Financeiro Estratégico",
       description:
-        "Mantenha o fluxo de caixa sob controle com relatórios detalhados.",
+        "DRE e fluxo de caixa automáticos. Saiba exatamente qual serviço dá mais lucro para sua petshop.",
     },
     {
-      icon: <ShieldCheck size={32} />,
-      title: "Segurança Total",
+      icon: <History size={32} />,
+      title: "Histórico & Prontuário",
       description:
-        "Seus dados e de seus clientes protegidos com tecnologia de ponta.",
+        "Fotos, alergias e tratamentos anteriores sempre à mão. Um atendimento personalizado que encanta os tutores.",
+    },
+    {
+      icon: <Bell size={32} />,
+      title: "Lembretes de Vacina",
+      description:
+        "O sistema avisa você e seu cliente quando vacinas e desparasitantes estão próximos de vencer.",
+    },
+    {
+      icon: <Layers size={32} />,
+      title: "Gestão de Pacotes",
+      description:
+        "Crie pacotes de banho e tosa recorrentes com controle automático de sessões restantes.",
     },
   ];
 
@@ -397,7 +411,7 @@ const LandingPage = () => {
               <Box
                 key={index}
                 sx={{
-                  flex: { xs: "1 1 100%", sm: "1 1 45%", md: "1 1 20%" },
+                  flex: { xs: "1 1 100%", sm: "1 1 45%", md: "1 1 30%" },
                   p: 4,
                   borderRadius: 4,
                   transition: "all 0.3s",
