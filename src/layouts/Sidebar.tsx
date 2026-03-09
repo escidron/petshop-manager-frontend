@@ -1,6 +1,7 @@
 import { List, Box, Typography, LinearProgress, Stack } from "@mui/material";
 import dayjs from "dayjs";
 import { useAuth } from "../hooks/useAuth";
+import { useNavigate } from "react-router-dom";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
 import {
   Home,
@@ -59,21 +60,28 @@ const menu: SidebarItemConfig[] = [
 ];
 
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
+  const navigate = useNavigate();
   const { tenant } = useAuth();
 
   const getTrialInfo = () => {
-    console.log(tenant);
-    if (!tenant?.created_at || tenant.type?.code !== "FREE_TRIAL") return null;
-    const createdDate = dayjs(tenant.created_at);
-    const expiryDate = createdDate.add(14, "days");
+    const subscription = tenant?.subscription;
+    if (
+      !subscription ||
+      subscription.status !== "trialing" ||
+      !subscription.trial_ends_at
+    ) {
+      return null;
+    }
+
+    const expiryDate = dayjs(subscription.trial_ends_at);
     const daysLeft = expiryDate.diff(dayjs(), "days");
-    const progress = Math.max(0, Math.min(100, (daysLeft / 14) * 100));
+    const totalDays = subscription.plan?.trial_days || 14;
+    const progress = Math.max(0, Math.min(100, (daysLeft / totalDays) * 100));
 
     return { daysLeft: daysLeft > 0 ? daysLeft : 0, progress };
   };
 
   const trialInfo = getTrialInfo();
-  console.log(trialInfo);
   return (
     <Box
       sx={{
