@@ -82,9 +82,6 @@ export default function FinancialPage() {
           mb: 4,
         }}
       >
-        <Typography variant="h4" fontWeight={700} color="primary.main">
-          Financeiro
-        </Typography>
 
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
           <Box sx={{ display: "flex", gap: 2 }}>

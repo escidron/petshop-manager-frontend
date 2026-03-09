@@ -23,6 +23,7 @@ import { Typography } from "@mui/material";
 import { ChevronDown, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import UserMenu from "../features/users/UserMenu";
+import { useLocation } from "react-router-dom";
 
 const drawerWidth = 240;
 
@@ -111,7 +112,8 @@ const Drawer = styled(MuiDrawer, {
 export default function MainLayout() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
-  const { user  } = useAuth();
+  const { user } = useAuth();
+  const location = useLocation();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
 
@@ -128,6 +130,18 @@ export default function MainLayout() {
 
   const handleDrawerClose = () => {
     setOpen(false);
+  };
+
+  const getPageTitle = () => {
+    const path = location.pathname;
+    if (path === "/dashboard") return "Início";
+    if (path.startsWith("/registration/clients")) return "Clientes";
+    if (path.startsWith("/registration/pets")) return "Pets";
+    if (path.startsWith("/registration/services")) return "Serviços";
+    if (path.startsWith("/registration/products")) return "Produtos";
+    if (path === "/financial") return "Financeiro";
+    if (path === "/settings") return "Configurações";
+    return "";
   };
 
   return (
@@ -155,6 +169,20 @@ export default function MainLayout() {
           >
             <MenuIcon />
           </IconButton>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              color: "primary.main",
+              ml: open ? 0 : 0,
+              transition: theme.transitions.create("margin", {
+                easing: theme.transitions.easing.sharp,
+                duration: theme.transitions.duration.enteringScreen,
+              }),
+            }}
+          >
+            {getPageTitle()}
+          </Typography>
           <Box
             component="button"
             onClick={handleClick}
@@ -215,7 +243,12 @@ export default function MainLayout() {
             justifyContent: "space-between",
           }}
         >
-          <img src="/logo.png" alt="logo" width={150} style={{marginLeft:'8px'}} />
+          <img
+            src="/logo.png"
+            alt="logo"
+            width={150}
+            style={{ marginLeft: "8px" }}
+          />
           <IconButton
             onClick={handleDrawerClose}
             sx={{ color: "text.secondary" }}

@@ -9,6 +9,11 @@ export type Tenant = {
   is_active: boolean;
   created_at: string;
   onboarding_step: OnboardingStep;
+  type: {
+    id: number;
+    code: string;
+    name: string;
+  };
 };
 
 export type TenantFormData = z.infer<typeof tenantSchema>;

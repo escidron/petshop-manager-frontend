@@ -62,7 +62,7 @@ const SignupPage = () => {
 
       toast.success("Conta criada com sucesso");
 
-      navigate("/");
+      navigate("/dashboard");
     } catch (error: unknown) {
       let message = "Erro ao criar conta";
 

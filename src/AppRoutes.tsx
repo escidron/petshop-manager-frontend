@@ -66,6 +66,7 @@ export default function AppRoutes() {
             <Route index element={<ServicesPage />} />
           </Route>
         </Route>
+        <Route path="/settings" element={<div>Configurações (Em breve)</div>} />
       </Route>
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
       <Route path="*" element={<Navigate to="/" replace />} />

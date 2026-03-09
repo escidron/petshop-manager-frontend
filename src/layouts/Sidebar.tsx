@@ -1,10 +1,13 @@
-import { List } from "@mui/material";
+import { List, Box, Typography, LinearProgress, Stack } from "@mui/material";
+import dayjs from "dayjs";
+import { useAuth } from "../hooks/useAuth";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
 import {
   Home,
   NotebookTabs,
   PawPrint,
   ScanBarcode,
+  Settings,
   Users,
   Wallet,
 } from "lucide-react";
@@ -47,15 +50,125 @@ const menu: SidebarItemConfig[] = [
     icon: <Wallet />,
     path: "/financial",
   },
+  {
+    id: "settings",
+    label: "Configurações",
+    icon: <Settings />,
+    path: "/settings",
+  },
 ];
 
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
+  const { tenant } = useAuth();
+
+  const getTrialInfo = () => {
+    console.log(tenant);
+    if (!tenant?.created_at || tenant.type?.code !== "FREE_TRIAL") return null;
+    const createdDate = dayjs(tenant.created_at);
+    const expiryDate = createdDate.add(14, "days");
+    const daysLeft = expiryDate.diff(dayjs(), "days");
+    const progress = Math.max(0, Math.min(100, (daysLeft / 14) * 100));
+
+    return { daysLeft: daysLeft > 0 ? daysLeft : 0, progress };
+  };
+
+  const trialInfo = getTrialInfo();
+  console.log(trialInfo);
   return (
-    <List sx={{ bgcolor: "primary.main" }}>
-      {menu.map((item) => (
-        <SidebarItem key={item.id} item={item} collapsed={collapsed} />
-      ))}
-    </List>
+    <Box
+      sx={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        bgcolor: "primary.main",
+        pb: 2,
+      }}
+    >
+      <List>
+        {menu.map((item) => (
+          <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+        ))}
+      </List>
+
+      {!collapsed && trialInfo && (
+        <Box
+          sx={{
+            mx: 2,
+            p: 2,
+            bgcolor: "rgba(255, 255, 255, 0.08)",
+            borderRadius: 2,
+            border: "1px solid rgba(255, 255, 255, 0.1)",
+          }}
+        >
+          <Stack spacing={1}>
+            <Typography
+              variant="caption"
+              sx={{ color: "white", opacity: 0.7, fontWeight: 700 }}
+            >
+              PLANO ATUAL
+            </Typography>
+            <Typography
+              variant="body2"
+              sx={{ color: "white", fontWeight: 800 }}
+            >
+              Teste Gratuito
+            </Typography>
+            <Box sx={{ mt: 1 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  mb: 0.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  sx={{ color: "white", opacity: 0.8 }}
+                >
+                  {trialInfo.daysLeft === 0 ? "Último dia!" : "Dias restantes"}
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{ color: "white", fontWeight: 700 }}
+                >
+                  {trialInfo.daysLeft} de 14
+                </Typography>
+              </Box>
+              <LinearProgress
+                variant="determinate"
+                value={trialInfo.progress}
+                sx={{
+                  height: 6,
+                  borderRadius: 3,
+                  bgcolor: "rgba(255, 255, 255, 0.1)",
+                  "& .MuiLinearProgress-bar": {
+                    bgcolor: "secondary.main",
+                    borderRadius: 3,
+                  },
+                }}
+              />
+            </Box>
+            <Typography
+              variant="caption"
+              onClick={() => navigate("/settings")}
+              sx={{
+                color: "secondary.main",
+                fontWeight: 800,
+                textAlign: "center",
+                mt: 1,
+                cursor: "pointer",
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                "&:hover": { textDecoration: "underline" },
+              }}
+            >
+              🚀 Assinar Agora
+            </Typography>
+          </Stack>
+        </Box>
+      )}
+    </Box>
   );
 };
 

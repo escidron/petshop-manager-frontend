@@ -1,5 +1,5 @@
 import { Menu, MenuItem } from "@mui/material";
-import { LogOut } from "lucide-react";
+import { LogOut, User, Settings } from "lucide-react";
 import { logout } from "../../api/services/users";
 import { useNavigate } from "react-router";
 
@@ -26,7 +26,30 @@ const UserMenu = ({ open, anchorEl, handleClose }: Props) => {
         },
       }}
     >
-      <MenuItem onClick={handleLogout} sx={{ display: "flex", gap: 1 }}>
+      <MenuItem
+        onClick={() => {
+          handleClose();
+          navigate("/profile");
+        }}
+        sx={{ display: "flex", gap: 1 }}
+      >
+        <User size={18} />
+        Meu Perfil
+      </MenuItem>
+      <MenuItem
+        onClick={() => {
+          handleClose();
+          navigate("/settings");
+        }}
+        sx={{ display: "flex", gap: 1 }}
+      >
+        <Settings size={18} />
+        Configurações
+      </MenuItem>
+      <MenuItem
+        onClick={handleLogout}
+        sx={{ display: "flex", gap: 1, color: "error.main" }}
+      >
         <LogOut size={18} />
         Sair
       </MenuItem>
