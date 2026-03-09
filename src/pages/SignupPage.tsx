@@ -19,7 +19,8 @@ const SignupPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const stepParam = Number(searchParams.get("step")) as 1 | 2 | 3;
   const step: 1 | 2 | 3 = stepParam || 1;
-  const [planCode, setPlanCode] = useState<PlanCode | null>(null);
+  const planFromUrl = searchParams.get("plan") as PlanCode | null;
+  const [planCode, setPlanCode] = useState<PlanCode | null>(planFromUrl);
   const [userData, setUserData] = useState<UserFormData | null>(null);
 
   const toast = useToast();

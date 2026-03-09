@@ -12,6 +12,7 @@ import { useAuth } from "./hooks/useAuth";
 import type { JSX } from "react";
 import Home from "./pages/Home";
 import FinancialPage from "./pages/FinancialPage";
+import LandingPage from "./pages/LandingPage";
 
 type Props = {
   children: JSX.Element;
@@ -37,6 +38,7 @@ export const ProtectedRoute = ({ children }: Props) => {
 export default function AppRoutes() {
   return (
     <Routes>
+      <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route
@@ -46,7 +48,7 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/" element={<Home />} />
+        <Route path="/dashboard" element={<Home />} />
         <Route path="/financial" element={<FinancialPage />} />
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">
@@ -65,6 +67,8 @@ export default function AppRoutes() {
           </Route>
         </Route>
       </Route>
+      {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
