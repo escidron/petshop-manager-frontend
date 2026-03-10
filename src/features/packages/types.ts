@@ -19,10 +19,5 @@ export interface Package {
   items: PackageItem[];
 }
 
-export interface PackageFormData {
-  name: string;
-  description?: string;
-  price_cents: number;
-  is_active: boolean;
-  items: PackageItemBase[];
-}
+export type { PackageFormData } from "./schemas";
+

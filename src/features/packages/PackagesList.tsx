@@ -1,17 +1,10 @@
-import {
-  Box,
-  Button,
-  Card,
-  CardContent,
-  Typography,
-  Grid,
-  IconButton,
-} from "@mui/material";
+import { Box, Button, Typography } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listPackages, deletePackage } from "../../api/services/packages";
-import { Edit, Delete, Inventory as PackageIcon } from "@mui/icons-material";
+import { Add } from "@mui/icons-material";
 import { useState } from "react";
 import PackageForm from "./PackageForm";
+import PackageTable from "./PackageTable";
 import type { Package } from "./types";
 
 export default function PackagesList() {
@@ -36,9 +29,11 @@ export default function PackagesList() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (id: number) => {
-    if (window.confirm("Tem certeza que deseja excluir este pacote?")) {
-      deleteMutation.mutate(id);
+  const handleDelete = (pkg: Package) => {
+    if (
+      window.confirm(`Tem certeza que deseja excluir o pacote "${pkg.name}"?`)
+    ) {
+      deleteMutation.mutate(pkg.id);
     }
   };
 
@@ -47,65 +42,39 @@ export default function PackagesList() {
     setEditingPackage(null);
   };
 
-  if (isLoading) return <Typography>Carregando...</Typography>;
-
   return (
     <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
-        <Typography variant="h5">Pacotes e Combos</Typography>
+      <Box
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          mb: 3,
+          alignItems: "center",
+        }}
+      >
+        <Box>
+          <Typography variant="h5" fontWeight="bold">
+            Pacotes e Combos
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            Gerencie seus pacotes promocionais de produtos e serviços.
+          </Typography>
+        </Box>
         <Button
           variant="contained"
-          startIcon={<PackageIcon />}
+          startIcon={<Add />}
           onClick={() => setIsFormOpen(true)}
         >
           Novo Pacote
         </Button>
       </Box>
 
-      <Grid container spacing={3}>
-        {packages.map((pkg) => (
-          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={pkg.id}>
-            <Card>
-              <CardContent>
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "flex-start",
-                  }}
-                >
-                  <Typography variant="h6">{pkg.name}</Typography>
-                  <Box>
-                    <IconButton size="small" onClick={() => handleEdit(pkg)}>
-                      <Edit fontSize="small" />
-                    </IconButton>
-                    <IconButton
-                      size="small"
-                      color="error"
-                      onClick={() => handleDelete(pkg.id)}
-                    >
-                      <Delete fontSize="small" />
-                    </IconButton>
-                  </Box>
-                </Box>
-                <Typography
-                  variant="body2"
-                  color="text.secondary"
-                  sx={{ mb: 2 }}
-                >
-                  {pkg.description || "Sem descrição"}
-                </Typography>
-                <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
-                  R$ {(pkg.price_cents / 100).toFixed(2)}
-                </Typography>
-                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                  {pkg.items.length} itens inclusos
-                </Box>
-              </CardContent>
-            </Card>
-          </Grid>
-        ))}
-      </Grid>
+      <PackageTable
+        rows={packages}
+        loading={isLoading}
+        onEdit={handleEdit}
+        onDelete={handleDelete}
+      />
 
       {isFormOpen && (
         <PackageForm
