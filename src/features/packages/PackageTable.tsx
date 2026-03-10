@@ -248,7 +248,7 @@ export default function PackageTable({
                         onDelete?.(row);
                       }}
                     >
-                      <Trash2 size={18} />
+                      <Trash2 size={16} />
                     </IconButton>
                   </Box>
                 </TableCell>

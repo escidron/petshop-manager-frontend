@@ -139,6 +139,9 @@ export default function MainLayout() {
     if (path.startsWith("/registration/pets")) return "Pets";
     if (path.startsWith("/registration/services")) return "Serviços";
     if (path.startsWith("/registration/products")) return "Produtos";
+    if (path.startsWith("/registration/packages"))
+      return "Pacotes de Serviços e Produtos";
+
     if (path === "/financial") return "Financeiro";
     if (path === "/settings") return "Configurações";
     return "";

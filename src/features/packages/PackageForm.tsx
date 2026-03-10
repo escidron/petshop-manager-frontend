@@ -14,8 +14,10 @@ import {
   FormLabel,
   InputAdornment,
   Divider,
+  Autocomplete,
 } from "@mui/material";
-import { Add, Delete, Close } from "@mui/icons-material";
+import { Add, Close } from "@mui/icons-material";
+import { Trash2 } from "lucide-react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -44,11 +46,9 @@ export default function PackageForm({
   const queryClient = useQueryClient();
 
   const {
-    register,
     control,
     handleSubmit,
     reset,
-    watch,
     setValue,
     formState: { errors },
   } = useForm<PackageFormData>({
@@ -58,7 +58,9 @@ export default function PackageForm({
       description: "",
       price_cents: 0,
       is_active: true,
-      items: [{ service_id: null, product_id: null, quantity: 1 }],
+      items: [
+        { type: "service", service_id: null, product_id: null, quantity: 1 },
+      ],
     },
   });
 
@@ -84,15 +86,26 @@ export default function PackageForm({
         price_cents: editingPackage.price_cents,
         is_active: editingPackage.is_active,
         items: editingPackage.items.map((item) => ({
+          type: (item.service_id ? "service" : "product") as
+            | "service"
+            | "product",
           service_id: item.service_id,
           product_id: item.product_id,
           quantity: item.quantity,
         })),
       });
-    } else {
-      reset();
+    } else if (open) {
+      reset({
+        name: "",
+        description: "",
+        price_cents: 0,
+        is_active: true,
+        items: [
+          { type: "service", service_id: null, product_id: null, quantity: 1 },
+        ],
+      });
     }
-  }, [editingPackage, reset]);
+  }, [editingPackage, reset, open]);
 
   const mutation = useMutation({
     mutationFn: (data: PackageFormData) =>
@@ -106,9 +119,10 @@ export default function PackageForm({
   });
 
   const onSubmit = (data: PackageFormData) => {
-    // Filter out items that have neither service nor product
     const validItems = data.items.filter(
-      (item) => item.service_id || item.product_id,
+      (item) =>
+        (item.type === "service" && item.service_id) ||
+        (item.type === "product" && item.product_id),
     );
     if (validItems.length === 0) {
       alert(
@@ -128,7 +142,7 @@ export default function PackageForm({
           alignItems: "center",
         }}
       >
-        <Typography variant="h6" fontWeight="bold">
+        <Typography variant="h6" fontWeight="bold" color="text.primary">
           {editingPackage ? "Editar Pacote / Combo" : "Novo Pacote / Combo"}
         </Typography>
         <IconButton onClick={onClose} size="small">
@@ -138,7 +152,7 @@ export default function PackageForm({
       <Divider />
       <form onSubmit={handleSubmit(onSubmit)}>
         <DialogContent sx={{ py: 3 }}>
-          <Grid container spacing={3}>
+          <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 8 }}>
               <FormControl fullWidth>
                 <FormLabel
@@ -146,12 +160,18 @@ export default function PackageForm({
                 >
                   Nome do Pacote
                 </FormLabel>
-                <CustomTextField
-                  {...register("name")}
-                  error={!!errors.name}
-                  helperText={errors.name?.message}
-                  placeholder="ex: Combo Banho + Tosa Pet"
-                  fullWidth
+                <Controller
+                  name="name"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      error={!!errors.name}
+                      helperText={errors.name?.message}
+                      placeholder="ex: Combo Banho + Tosa Pet"
+                      fullWidth
+                    />
+                  )}
                 />
               </FormControl>
             </Grid>
@@ -166,7 +186,10 @@ export default function PackageForm({
                   name="price_cents"
                   control={control}
                   render={({ field, fieldState }) => {
-                    const formattedValue = formatBRLFromCents(field.value);
+                    const formattedValue = field.value
+                      ? formatBRLFromCents(field.value)
+                      : "";
+
                     return (
                       <TextField
                         value={formattedValue}
@@ -193,7 +216,9 @@ export default function PackageForm({
                         }}
                         onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, "");
-                          field.onChange(digits === "" ? 0 : Number(digits));
+                          field.onChange(
+                            digits === "" ? undefined : Number(digits),
+                          );
                         }}
                       />
                     );
@@ -208,158 +233,239 @@ export default function PackageForm({
                 >
                   Descrição
                 </FormLabel>
-                <CustomTextField
-                  {...register("description")}
-                  multiline
-                  rows={2}
-                  placeholder="Descreva o que está incluso neste pacote..."
-                  fullWidth
+                <Controller
+                  name="description"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      multiline
+                      rows={2}
+                      placeholder="Descreva o que está incluso neste pacote..."
+                      fullWidth
+                    />
+                  )}
                 />
               </FormControl>
             </Grid>
           </Grid>
 
-          <Box sx={{ mt: 4 }}>
+          <Box sx={{ mt: 3 }}>
             <Box
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
-                mb: 2,
+                mb: 1.5,
               }}
             >
               <Typography
-                variant="subtitle1"
-                sx={{ fontWeight: "bold", color: "primary.main" }}
+                variant="subtitle2"
+                sx={{
+                  fontWeight: "bold",
+                  color: "text.primary",
+                  textTransform: "uppercase",
+                  letterSpacing: "0.5px",
+                }}
               >
-                Itens Inclusos no Pacote
+                Itens Inclusos
               </Typography>
               <Button
                 startIcon={<Add />}
                 onClick={() =>
-                  append({ service_id: null, product_id: null, quantity: 1 })
+                  append({
+                    type: "service",
+                    service_id: null,
+                    product_id: null,
+                    quantity: 1,
+                  })
                 }
-                variant="outlined"
+                variant="text"
                 size="small"
+                sx={{ fontWeight: "bold" }}
               >
                 Adicionar Item
               </Button>
             </Box>
 
-            <Divider sx={{ mb: 2 }} />
+            <Divider sx={{ mb: 1.5 }} />
 
-            {fields.map((field, index) => {
-              const itemType =
-                watch(`items.${index}.service_id`) !== null
-                  ? "service"
-                  : watch(`items.${index}.product_id`) !== null
-                    ? "product"
-                    : "service";
-
-              return (
-                <Box
-                  key={field.id}
-                  sx={{
-                    display: "flex",
-                    gap: 2,
-                    alignItems: "flex-start",
-                    mb: 2,
-                    p: 2,
-                    borderRadius: 1,
-                    backgroundColor: "rgba(0,0,0,0.02)",
-                    border: "1px solid rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <FormControl sx={{ minWidth: 140 }}>
-                    <FormLabel sx={{ fontSize: "12px", mb: 0.5 }}>
-                      Tipo
-                    </FormLabel>
-                    <TextField
-                      select
-                      value={itemType}
-                      size="small"
-                      onChange={(e) => {
-                        const type = e.target.value;
-                        if (type === "service") {
-                          setValue(`items.${index}.product_id`, null);
-                          setValue(`items.${index}.service_id`, null);
-                        } else {
-                          setValue(`items.${index}.service_id`, null);
-                          setValue(`items.${index}.product_id`, null);
-                        }
-                      }}
-                    >
-                      <MenuItem value="service">Serviço</MenuItem>
-                      <MenuItem value="product">Produto</MenuItem>
-                    </TextField>
-                  </FormControl>
-
-                  <FormControl fullWidth>
-                    <FormLabel sx={{ fontSize: "12px", mb: 0.5 }}>
-                      Selecionar{" "}
-                      {itemType === "service" ? "Serviço" : "Produto"}
-                    </FormLabel>
-                    {itemType === "service" ? (
+            {fields.map((field, index) => (
+              <Box
+                key={field.id}
+                sx={{
+                  display: "flex",
+                  gap: 1.5,
+                  alignItems: "flex-end",
+                  mb: 1.5,
+                  p: 1.5,
+                  borderRadius: 1.5,
+                  backgroundColor: "grey.50", // Standard light background
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <FormControl sx={{ minWidth: 120 }}>
+                  <FormLabel
+                    sx={{
+                      fontSize: "12px",
+                      mb: 0.5,
+                      fontWeight: 600,
+                      color: "text.primary",
+                    }}
+                  >
+                    Tipo
+                  </FormLabel>
+                  <Controller
+                    name={`items.${index}.type`}
+                    control={control}
+                    render={({ field: typeField }) => (
                       <TextField
                         select
-                        {...register(`items.${index}.service_id`)}
-                        fullWidth
+                        {...typeField}
                         size="small"
-                        defaultValue=""
-                        error={!!errors.items?.[index]?.service_id}
+                        onChange={(e) => {
+                          const newType = e.target.value as
+                            | "service"
+                            | "product";
+                          typeField.onChange(newType);
+                          setValue(`items.${index}.service_id`, null);
+                          setValue(`items.${index}.product_id`, null);
+                        }}
                       >
-                        <MenuItem value="">Selecione um serviço...</MenuItem>
-                        {services.map((s) => (
-                          <MenuItem key={s.id} value={s.id}>
-                            {s.name}
-                          </MenuItem>
-                        ))}
-                      </TextField>
-                    ) : (
-                      <TextField
-                        select
-                        {...register(`items.${index}.product_id`)}
-                        fullWidth
-                        size="small"
-                        defaultValue=""
-                        error={!!errors.items?.[index]?.product_id}
-                      >
-                        <MenuItem value="">Selecione um produto...</MenuItem>
-                        {products.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>
-                            {p.name}
-                          </MenuItem>
-                        ))}
+                        <MenuItem value="service">Serviço</MenuItem>
+                        <MenuItem value="product">Produto</MenuItem>
                       </TextField>
                     )}
-                  </FormControl>
+                  />
+                </FormControl>
 
-                  <FormControl sx={{ width: 100 }}>
-                    <FormLabel sx={{ fontSize: "12px", mb: 0.5 }}>
-                      Qtd
-                    </FormLabel>
-                    <TextField
-                      {...register(`items.${index}.quantity`)}
-                      type="number"
-                      size="small"
-                    />
-                  </FormControl>
+                <Controller
+                  name={`items.${index}.type`}
+                  control={control}
+                  render={({ field: typeField }) => (
+                    <FormControl fullWidth>
+                      <FormLabel
+                        sx={{
+                          fontSize: "12px",
+                          mb: 0.5,
+                          fontWeight: 600,
+                          color: "text.primary",
+                        }}
+                      >
+                        {typeField.value === "service" ? "Serviço" : "Produto"}
+                      </FormLabel>
+                      {typeField.value === "service" ? (
+                        <Controller
+                          name={`items.${index}.service_id`}
+                          control={control}
+                          render={({ field: serviceField }) => (
+                            <Autocomplete
+                              options={services}
+                              size="small"
+                              value={
+                                services.find(
+                                  (s) => s.id === serviceField.value,
+                                ) || null
+                              }
+                              onChange={(_, val) =>
+                                serviceField.onChange(val?.id || null)
+                              }
+                              getOptionLabel={(option) => option.name}
+                              isOptionEqualToValue={(option, value) =>
+                                option.id === value.id
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  placeholder="Pesquisar serviço..."
+                                  error={!!errors.items?.[index]?.service_id}
+                                  sx={{ backgroundColor: "#fff" }}
+                                />
+                              )}
+                            />
+                          )}
+                        />
+                      ) : (
+                        <Controller
+                          name={`items.${index}.product_id`}
+                          control={control}
+                          render={({ field: productField }) => (
+                            <Autocomplete
+                              options={products}
+                              size="small"
+                              value={
+                                products.find(
+                                  (p) => p.id === productField.value,
+                                ) || null
+                              }
+                              onChange={(_, val) =>
+                                productField.onChange(val?.id || null)
+                              }
+                              getOptionLabel={(option) => option.name}
+                              isOptionEqualToValue={(option, value) =>
+                                option.id === value.id
+                              }
+                              renderInput={(params) => (
+                                <TextField
+                                  {...params}
+                                  placeholder="Pesquisar produto..."
+                                  error={!!errors.items?.[index]?.product_id}
+                                  sx={{ backgroundColor: "#fff" }}
+                                />
+                              )}
+                            />
+                          )}
+                        />
+                      )}
+                    </FormControl>
+                  )}
+                />
 
-                  <Box sx={{ pt: 3 }}>
-                    <IconButton
-                      onClick={() => remove(index)}
-                      color="error"
-                      size="small"
-                    >
-                      <Delete />
-                    </IconButton>
-                  </Box>
+                <FormControl sx={{ width: 80 }}>
+                  <FormLabel
+                    sx={{
+                      fontSize: "12px",
+                      mb: 0.5,
+                      fontWeight: 600,
+                      color: "text.primary",
+                    }}
+                  >
+                    Qtd
+                  </FormLabel>
+                  <Controller
+                    name={`items.${index}.quantity`}
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        type="number"
+                        size="small"
+                        sx={{ backgroundColor: "#fff" }}
+                      />
+                    )}
+                  />
+                </FormControl>
+
+                <Box>
+                  <IconButton
+                    onClick={() => remove(index)}
+                    color="error"
+                    size="small"
+                    sx={{ mb: 0.5 }}
+                  >
+                    <Trash2 size={16} />
+                  </IconButton>
                 </Box>
-              );
-            })}
+              </Box>
+            ))}
 
             {errors.items?.root && (
-              <Typography color="error" variant="caption">
+              <Typography
+                color="error"
+                variant="caption"
+                sx={{ display: "block", mt: 1 }}
+              >
                 {errors.items.root.message}
               </Typography>
             )}

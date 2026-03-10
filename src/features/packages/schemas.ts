@@ -1,12 +1,24 @@
 import { z } from "zod";
 
 export const packageItemSchema = z.object({
+  type: z.enum(["service", "product"]).default("service"),
   service_id: z.number().nullable().optional(),
   product_id: z.number().nullable().optional(),
   quantity: z.coerce.number().int().min(1, "A quantidade deve ser pelo menos 1"),
-}).refine(data => data.service_id || data.product_id, {
-  message: "Selecione um serviço ou produto",
-  path: ["service_id"],
+}).superRefine((data, ctx) => {
+  if (data.type === "service" && !data.service_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Selecione um serviço",
+      path: ["service_id"],
+    });
+  } else if (data.type === "product" && !data.product_id) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Selecione um produto",
+      path: ["product_id"],
+    });
+  }
 });
 
 export const packageSchema = z.object({

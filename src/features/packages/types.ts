@@ -1,8 +1,10 @@
 export interface PackageItemBase {
+  type: "service" | "product";
   service_id?: number | null;
   product_id?: number | null;
   quantity: number;
 }
+
 
 export interface PackageItem extends PackageItemBase {
   id: number;

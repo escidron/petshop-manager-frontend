@@ -1,4 +1,4 @@
-import { Box, Button, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listPackages, deletePackage } from "../../api/services/packages";
 import { Add } from "@mui/icons-material";
@@ -6,6 +6,7 @@ import { useState } from "react";
 import PackageForm from "./PackageForm";
 import PackageTable from "./PackageTable";
 import type { Package } from "./types";
+import { Button } from "../../components/Button/Button";
 
 export default function PackagesList() {
   const queryClient = useQueryClient();
