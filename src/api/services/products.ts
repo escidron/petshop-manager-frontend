@@ -1,5 +1,4 @@
-import type { ProductFormData } from "../../features/products/ProductForm";
-import type { Product } from "../../pages/ProductsPage";
+import type { Product, ProductFormData } from "../../features/products/types";
 import apiClient from "../apiClient";
 
 
@@ -33,4 +32,21 @@ export const updateProduct= async (
 
 export const deleteProduct = async (productId: number) => {
   await apiClient.delete(`/api/v1/products/${productId}`);
+};
+
+export const getLowStockProducts = async (): Promise<Product[]> => {
+  const response = await apiClient.get<Product[]>("/api/v1/products/inventory/low-stock");
+  return response.data;
+};
+
+export const adjustStock = async (
+  productId: number,
+  quantityChange: number,
+  notes?: string
+): Promise<Product> => {
+  const response = await apiClient.post<Product>(`/api/v1/products/${productId}/adjust-stock`, {
+    quantity_change: quantityChange,
+    notes,
+  });
+  return response.data;
 };

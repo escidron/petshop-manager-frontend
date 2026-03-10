@@ -5,13 +5,14 @@ import { useNavigate } from "react-router-dom";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
 import {
   Home,
-  NotebookTabs,
-  PawPrint,
-  ScanBarcode,
+  People,
+  Pets,
+  Assignment,
+  QrCodeScanner,
+  AccountBalanceWallet,
   Settings,
-  Users,
-  Wallet,
-} from "lucide-react";
+  Inventory,
+} from "@mui/icons-material";
 
 const menu: SidebarItemConfig[] = [
   {
@@ -23,33 +24,39 @@ const menu: SidebarItemConfig[] = [
   {
     id: "clients",
     label: "Clientes",
-    icon: <Users />,
+    icon: <People />,
     path: "/registration/clients",
   },
   {
     id: "pets",
     label: "Pets",
-    icon: <PawPrint />,
+    icon: <Pets />,
     path: "/registration/pets",
   },
 
   {
     id: "services",
     label: "Serviços",
-    icon: <NotebookTabs />,
+    icon: <Assignment />,
     path: "/registration/services",
   },
   {
     id: "products",
     label: "Produtos",
-    icon: <ScanBarcode />,
+    icon: <QrCodeScanner />,
     path: "/registration/products",
   },
   {
     id: "financial",
     label: "Financeiro",
-    icon: <Wallet />,
+    icon: <AccountBalanceWallet />,
     path: "/financial",
+  },
+  {
+    id: "packages",
+    label: "Pacotes",
+    icon: <Inventory />,
+    path: "/registration/packages",
   },
   {
     id: "settings",

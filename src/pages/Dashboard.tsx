@@ -5,6 +5,7 @@ import PetFormModal from "../features/pets/PetFormModal";
 import { Box, CircularProgress } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
+import InventoryAlerts from "../features/dashboard/InventoryAlerts";
 import dayjs from "dayjs";
 import type { Client } from "../features/clients/types";
 import type { Pet } from "../features/pets/types";
@@ -88,20 +89,12 @@ const Dashboard = () => {
     <Box>
       <Box
         sx={{
-          display: "flex",
-          gap: 2,
-          mx: "auto",
-          justifyContent: "center",
-        }}
-      ></Box>
-      <Box
-        sx={{
           maxWidth: "1170px",
           mx: "auto",
           mt: 2,
           display: "flex",
           flexDirection: "column",
-          gap: 2, // Adjusted gap
+          gap: 2,
         }}
       >
         {isLoading ? (
@@ -119,7 +112,7 @@ const Dashboard = () => {
           <>
             <DashboardSummaryCards appointments={dailyAppointments} />
             <Box sx={{ width: "100%", display: "flex", gap: 4 }}>
-              <Box sx={{ width: "70%" }}>
+              <Box sx={{ width: "100%", maxWidth: "70%" }}>
                 <AppointmentsDailyList
                   date={date}
                   setDate={setDate}
@@ -142,8 +135,8 @@ const Dashboard = () => {
                   }
                 />
               </Box>
-              <Box sx={{ width: "30%" }}>
-                {/* Space for future sidebar widgets in dashboard if needed */}
+              <Box sx={{ width: "100%", maxWidth: "30%" }}>
+                <InventoryAlerts />
               </Box>
             </Box>
           </>
