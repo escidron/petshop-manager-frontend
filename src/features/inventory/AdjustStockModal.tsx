@@ -8,6 +8,7 @@ import {
   TextField,
   MenuItem,
   CircularProgress,
+  Autocomplete,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -88,48 +89,58 @@ export default function AdjustStockModal({
         <DialogContent dividers>
           <Grid container spacing={2}>
             {!product && (
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name="product_id"
                   control={control}
-                  render={({ field }) => (
-                    <TextField
+                  render={({ field: { onChange, value, ...field } }) => (
+                    <Autocomplete
                       {...field}
-                      select
-                      fullWidth
-                      label="Produto"
-                      error={!!errors.product_id}
-                      helperText={errors.product_id?.message}
+                      size="small"
+                      options={products}
+                      getOptionLabel={(option) =>
+                        `${option.name} (Estoque: ${option.quantity})`
+                      }
+                      value={products.find((p) => p.id === value) || null}
+                      onChange={(_, newValue) => {
+                        onChange(newValue ? newValue.id : 0);
+                      }}
                       disabled={isLoadingProducts}
-                    >
-                      {isLoadingProducts && (
-                        <MenuItem value={0} disabled>
-                          <CircularProgress size={20} sx={{ mr: 2 }} />{" "}
-                          Carregando...
-                        </MenuItem>
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Selecione um produto"
+                          error={!!errors.product_id}
+                          helperText={errors.product_id?.message}
+                          InputProps={{
+                            ...params.InputProps,
+                            endAdornment: (
+                              <>
+                                {isLoadingProducts ? (
+                                  <CircularProgress color="inherit" size={20} />
+                                ) : null}
+                                {params.InputProps.endAdornment}
+                              </>
+                            ),
+                          }}
+                        />
                       )}
-                      {!isLoadingProducts &&
-                        products.map((p) => (
-                          <MenuItem key={p.id} value={p.id}>
-                            {p.name} (Estoque: {p.quantity})
-                          </MenuItem>
-                        ))}
-                    </TextField>
+                    />
                   )}
                 />
               </Grid>
             )}
 
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="log_type"
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    size="small"
                     {...field}
                     select
                     fullWidth
-                    label="Tipo de Movimentação"
                     error={!!errors.log_type}
                     helperText={errors.log_type?.message}
                   >
@@ -141,16 +152,17 @@ export default function AdjustStockModal({
               />
             </Grid>
 
-            <Grid xs={12} sm={6}>
+            <Grid size={{ xs: 12, sm: 6 }}>
               <Controller
                 name="quantity_changed"
                 control={control}
                 render={({ field }) => (
                   <TextField
+                    size="small"
                     {...field}
                     type="number"
                     fullWidth
-                    label="Quantidade"
+                    placeholder="Quantidade"
                     error={!!errors.quantity_changed}
                     helperText={errors.quantity_changed?.message}
                     onChange={(e) => field.onChange(Number(e.target.value))}
@@ -159,7 +171,7 @@ export default function AdjustStockModal({
               />
             </Grid>
 
-            <Grid xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Controller
                 name="description"
                 control={control}
@@ -167,7 +179,7 @@ export default function AdjustStockModal({
                   <TextField
                     {...field}
                     fullWidth
-                    label="Motivo / Observação"
+                    placeholder="Motivo / Observação"
                     multiline
                     rows={2}
                     error={!!errors.description}

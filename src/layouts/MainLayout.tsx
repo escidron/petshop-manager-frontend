@@ -143,6 +143,7 @@ export default function MainLayout() {
       return "Pacotes de Serviços e Produtos";
 
     if (path === "/financial") return "Financeiro";
+    if (path === "/inventory") return "Controle de Estoque";
     if (path === "/settings") return "Configurações";
     return "";
   };

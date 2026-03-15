@@ -99,7 +99,17 @@ export default function InventoryPage() {
   };
 
   return (
-    <Box sx={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <Box
+      sx={{
+        width: "60%",
+        mx: "auto",
+        p: 3,
+        maxWidth: "1200px",
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
       <Box
         sx={{
           display: "flex",
@@ -108,9 +118,7 @@ export default function InventoryPage() {
           mb: 3,
         }}
       >
-        <Typography variant="h4" fontWeight="bold">
-          Controle de Estoque
-        </Typography>
+        <Box sx={{ flexGrow: 1 }} />
         <Button
           variant="contained"
           startIcon={<Add />}
@@ -132,6 +140,11 @@ export default function InventoryPage() {
           <Tabs
             value={tabValue}
             onChange={(_, newValue) => setTabValue(newValue)}
+            sx={{
+              "& .MuiTab-root": { color: "text.primary", fontWeight: 600 },
+              "& .Mui-selected": { color: "primary.main" },
+            }}
+            indicatorColor="primary"
           >
             <Tab label="Posição de Estoque" />
             <Tab label="Histórico de Movimentações" />
