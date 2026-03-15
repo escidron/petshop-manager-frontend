@@ -298,29 +298,56 @@ const SettingsPage = () => {
 
                     <Divider />
 
-                    <Box>
-                      <Typography variant="h6" fontWeight={800} gutterBottom>
-                        Faça o Upgrade agora
-                      </Typography>
-                      <Typography
-                        variant="body2"
-                        color="text.primary"
-                        sx={{ mb: 3 }}
+                    {tenant?.subscription?.plan?.code === "FREE_TRIAL" && (
+                      <Box>
+                        <Typography variant="h6" fontWeight={800} gutterBottom>
+                          Faça o Upgrade agora
+                        </Typography>
+                        <Typography
+                          variant="body2"
+                          color="text.primary"
+                          sx={{ mb: 3 }}
+                        >
+                          Desbloqueie todos os recursos, clientes ilimitados e
+                          suporte prioritário.
+                        </Typography>
+                        <Button
+                          variant="contained"
+                          size="large"
+                          fullWidth
+                          onClick={() => setOpenCheckout(true)}
+                          startIcon={<TrendingUp size={18} />}
+                          sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
+                        >
+                          Assinar Plano Mensal (R$ 99,90)
+                        </Button>
+                      </Box>
+                    )}
+
+                    {tenant?.subscription?.plan?.code === "MONTHLY" && (
+                      <Box
+                        sx={{
+                          p: 3,
+                          borderRadius: 3,
+                          bgcolor: "rgba(76, 175, 80, 0.05)",
+                          border: "1px solid rgba(76, 175, 80, 0.2)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
                       >
-                        Desbloqueie todos os recursos, clientes ilimitados e
-                        suporte prioritário.
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        size="large"
-                        fullWidth
-                        onClick={() => setOpenCheckout(true)}
-                        startIcon={<TrendingUp size={18} />}
-                        sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
-                      >
-                        Assinar Plano Mensal (R$ 99,90)
-                      </Button>
-                    </Box>
+                        <CheckCircle2 color="#4caf50" size={24} />
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={800}>
+                            Você está no Plano Profissional
+                          </Typography>
+                          <Typography variant="caption" color="text.primary">
+                            Sua assinatura está ativa e você tem acesso total a
+                            todos os recursos.
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
                   </Stack>
                 </Paper>
 
