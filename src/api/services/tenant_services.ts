@@ -10,6 +10,9 @@ export const fetchServices = async () => {
   return response.data;
 };
 
+// Created as requested to support the missing getTenantServices import
+export const getTenantServices = fetchServices;
+
 export const fetchServiceById = async (serviceId: number) => {
   const response = await apiClient.get<ServiceFormData>(
     `/api/v1/services/${serviceId}`,

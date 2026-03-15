@@ -50,3 +50,9 @@ export const adjustStock = async (
   });
   return response.data;
 };
+export const fetchGlobalInventoryLogs = async () => {
+  const response = await apiClient.get(
+    "/api/v1/products/inventory/logs",
+  );
+  return response.data;
+};

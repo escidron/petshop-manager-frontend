@@ -12,6 +12,7 @@ import {
   AccountBalanceWallet,
   Settings,
   Inventory,
+  PointOfSale,
 } from "@mui/icons-material";
 
 const menu: SidebarItemConfig[] = [
@@ -47,6 +48,12 @@ const menu: SidebarItemConfig[] = [
     path: "/registration/products",
   },
   {
+    id: "pos",
+    label: "Frente de Caixa",
+    icon: <PointOfSale />,
+    path: "/pos",
+  },
+  {
     id: "financial",
     label: "Financeiro",
     icon: <AccountBalanceWallet />,
@@ -57,6 +64,12 @@ const menu: SidebarItemConfig[] = [
     label: "Pacotes",
     icon: <Inventory />,
     path: "/registration/packages",
+  },
+  {
+    id: "inventory",
+    label: "Estoque",
+    icon: <Inventory />,
+    path: "/inventory",
   },
   {
     id: "settings",
