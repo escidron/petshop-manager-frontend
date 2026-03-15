@@ -20,6 +20,7 @@ type Transaction = {
   client: string;
   type: "Agendamento" | "Venda PDV";
   amount_cents: number;
+  payment_method: string;
   original: Appointment | SaleResponse;
 };
 
@@ -40,6 +41,7 @@ export default function FinancialTable({ transactions }: Props) {
               <TableCell sx={{ fontWeight: 600 }}>Data/Hora</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Forma de Pagto</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Detalhes</TableCell>
               <TableCell sx={{ fontWeight: 600 }} align="right">
                 Valor
@@ -49,7 +51,7 @@ export default function FinancialTable({ transactions }: Props) {
           <TableBody>
             {transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography color="text.disabled">
                     Nenhum registro encontrado para o período.
                   </Typography>
@@ -82,6 +84,25 @@ export default function FinancialTable({ transactions }: Props) {
                       />
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{t.client}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={t.payment_method.toUpperCase()}
+                        size="small"
+                        variant="filled"
+                        sx={{
+                          fontSize: "0.65rem",
+                          fontWeight: 700,
+                          bgcolor:
+                            t.payment_method === "Pendente"
+                              ? "error.light"
+                              : "action.selected",
+                          color:
+                            t.payment_method === "Pendente"
+                              ? "error.contrastText"
+                              : "text.primary",
+                        }}
+                      />
+                    </TableCell>
                     <TableCell>
                       <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
                         {details}

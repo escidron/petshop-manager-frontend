@@ -53,6 +53,7 @@ export default function FinancialPage() {
         client: a.client.name,
         type: "Agendamento" as const,
         amount_cents: getAppointmentTotal(a),
+        payment_method: a.is_paid ? "Caixa" : "Pendente",
         original: a,
       }));
 
@@ -75,6 +76,7 @@ export default function FinancialPage() {
         date: s.created_at,
         client: s.client?.name || "Consumidor",
         type: "Venda PDV" as const,
+        payment_method: s.payment_method,
         // Convert float to cents for consistency
         amount_cents: Math.round(s.total_amount * 100),
         original: s,

@@ -3,7 +3,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Typography,
   Box,
   Radio,
@@ -27,6 +26,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSale } from "../../api/services/sales";
 import type { SaleItem, SaleCreate } from "./schemas";
 import { toast } from "react-toastify";
+import { Button } from "../../components/Button/Button";
 
 interface CheckoutModalProps {
   open: boolean;
@@ -190,7 +190,6 @@ export default function CheckoutModal({
           onClick={onClose}
           disabled={saleMutation.isPending}
           variant="outlined"
-          color="inherit"
           sx={{ borderRadius: 2, px: 3 }}
         >
           Cancelar
@@ -204,12 +203,11 @@ export default function CheckoutModal({
           disabled={saleMutation.isPending}
           sx={{
             borderRadius: 2,
-            height: 52,
-            fontWeight: 800,
+            fontWeight: 600,
             boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
           }}
         >
-          {saleMutation.isPending ? "Processando..." : "CONFIRMAR E FINALIZAR"}
+          {saleMutation.isPending ? "Processando..." : "Confirmar e Finalizar"}
         </Button>
       </DialogActions>
     </Dialog>
@@ -262,7 +260,7 @@ const PaymentMethodCard = ({
         sx={{ position: "absolute", top: 8, right: 8, p: 0 }}
         checked={isSelected}
       />
-      <Icon size={32} color={isSelected ? color : "text.secondary"} />
+      <Icon size={32} color={color} />
       <Typography variant="body2" sx={{ fontWeight: 700, textAlign: "center" }}>
         {label}
       </Typography>
