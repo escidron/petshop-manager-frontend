@@ -16,8 +16,7 @@ import {
   Divider,
   Autocomplete,
 } from "@mui/material";
-import { Add, Close } from "@mui/icons-material";
-import { Trash2 } from "lucide-react";
+import { Plus, X, Trash2 } from "lucide-react";
 import { useForm, useFieldArray, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -146,7 +145,7 @@ export default function PackageForm({
           {editingPackage ? "Editar Pacote / Combo" : "Novo Pacote / Combo"}
         </Typography>
         <IconButton onClick={onClose} size="small">
-          <Close />
+          <X />
         </IconButton>
       </DialogTitle>
       <Divider />
@@ -271,7 +270,7 @@ export default function PackageForm({
                 Itens Inclusos
               </Typography>
               <Button
-                startIcon={<Add />}
+                startIcon={<Plus size={18} />}
                 onClick={() =>
                   append({
                     type: "service",

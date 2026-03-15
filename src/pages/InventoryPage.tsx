@@ -14,7 +14,7 @@ import {
   Chip,
   CircularProgress,
 } from "@mui/material";
-import { Add, WarningAmber } from "@mui/icons-material";
+import { Plus, AlertTriangle } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -121,7 +121,7 @@ export default function InventoryPage() {
         <Box sx={{ flexGrow: 1 }} />
         <Button
           variant="contained"
-          startIcon={<Add />}
+          startIcon={<Plus size={18} />}
           onClick={() => handleOpenAdjust()}
         >
           Ajuste Avulso
@@ -191,7 +191,7 @@ export default function InventoryPage() {
                         <TableCell align="center">
                           {isLow ? (
                             <Chip
-                              icon={<WarningAmber />}
+                              icon={<AlertTriangle size={14} />}
                               label="Baixo Estoque"
                               color="error"
                               size="small"

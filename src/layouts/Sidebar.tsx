@@ -5,16 +5,16 @@ import { useNavigate } from "react-router-dom";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
 import {
   Home,
-  People,
-  Pets,
-  Assignment,
-  QrCodeScanner,
-  AccountBalanceWallet,
+  Users,
+  PawPrint,
+  ClipboardList,
+  Barcode,
+  Wallet,
   Settings,
-  Inventory,
-  PointOfSale,
-  HelpOutline,
-} from "@mui/icons-material";
+  Package,
+  ShoppingCart,
+  HelpCircle,
+} from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
   {
@@ -23,7 +23,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
       {
         id: "home",
         label: "Inicio",
-        icon: <Home />,
+        icon: <Home size={20} />,
         path: "/dashboard",
       },
     ],
@@ -34,31 +34,31 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
       {
         id: "clients",
         label: "Clientes",
-        icon: <People />,
+        icon: <Users size={20} />,
         path: "/registration/clients",
       },
       {
         id: "pets",
         label: "Pets",
-        icon: <Pets />,
+        icon: <PawPrint size={20} />,
         path: "/registration/pets",
       },
       {
         id: "services",
         label: "Serviços",
-        icon: <Assignment />,
+        icon: <ClipboardList size={20} />,
         path: "/registration/services",
       },
       {
         id: "products",
         label: "Produtos",
-        icon: <QrCodeScanner />,
+        icon: <Barcode size={20} />,
         path: "/registration/products",
       },
       {
         id: "packages",
         label: "Pacotes",
-        icon: <Inventory />,
+        icon: <Package size={20} />,
         path: "/registration/packages",
       },
     ],
@@ -69,19 +69,19 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
       {
         id: "pos",
         label: "Frente de Caixa",
-        icon: <PointOfSale />,
+        icon: <ShoppingCart size={20} />,
         path: "/pos",
       },
       {
         id: "inventory",
         label: "Estoque",
-        icon: <Inventory />,
+        icon: <Package size={20} />,
         path: "/inventory",
       },
       {
         id: "financial",
         label: "Financeiro",
-        icon: <AccountBalanceWallet />,
+        icon: <Wallet size={20} />,
         path: "/financial",
       },
     ],
@@ -92,13 +92,13 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
       {
         id: "settings",
         label: "Configurações",
-        icon: <Settings />,
+        icon: <Settings size={20} />,
         path: "/settings",
       },
       {
         id: "support",
         label: "Suporte",
-        icon: <HelpOutline />,
+        icon: <HelpCircle size={20} />,
         path: "#",
       },
     ],

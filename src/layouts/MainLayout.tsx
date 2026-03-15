@@ -14,16 +14,18 @@ import Toolbar from "@mui/material/Toolbar";
 import CssBaseline from "@mui/material/CssBaseline";
 import Divider from "@mui/material/Divider";
 import IconButton from "@mui/material/IconButton";
-import MenuIcon from "@mui/icons-material/Menu";
-import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
-import { Outlet } from "react-router-dom";
+import {
+  Menu,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  User,
+} from "lucide-react";
+import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { Typography } from "@mui/material";
-import { ChevronDown, User } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import UserMenu from "../features/users/UserMenu";
-import { useLocation } from "react-router-dom";
 
 const drawerWidth = 240;
 
@@ -171,7 +173,7 @@ export default function MainLayout() {
             edge="start"
             sx={[{ marginRight: 5 }, open && { display: "none" }]}
           >
-            <MenuIcon />
+            <Menu />
           </IconButton>
           <Typography
             variant="h6"
@@ -257,11 +259,7 @@ export default function MainLayout() {
             onClick={handleDrawerClose}
             sx={{ color: "text.secondary" }}
           >
-            {theme.direction === "rtl" ? (
-              <ChevronRightIcon />
-            ) : (
-              <ChevronLeftIcon />
-            )}
+            {theme.direction === "rtl" ? <ChevronRight /> : <ChevronLeft />}
           </IconButton>
         </DrawerHeader>
 

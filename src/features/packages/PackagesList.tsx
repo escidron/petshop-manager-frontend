@@ -1,7 +1,7 @@
 import { Box, Typography } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listPackages, deletePackage } from "../../api/services/packages";
-import { Add } from "@mui/icons-material";
+import { Plus } from "lucide-react";
 import { useState } from "react";
 import PackageForm from "./PackageForm";
 import PackageTable from "./PackageTable";
@@ -63,7 +63,7 @@ export default function PackagesList() {
         </Box>
         <Button
           variant="contained"
-          startIcon={<Add />}
+          startIcon={<Plus size={18} />}
           onClick={() => setIsFormOpen(true)}
         >
           Novo Pacote

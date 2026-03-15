@@ -11,7 +11,7 @@ import {
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { getLowStockProducts } from "../../api/services/products";
-import { Warning } from "@mui/icons-material";
+import { AlertTriangle } from "lucide-react";
 
 export default function InventoryAlerts() {
   const { data: lowStockProducts = [], isLoading } = useQuery({
@@ -33,7 +33,7 @@ export default function InventoryAlerts() {
     >
       <CardContent>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
-          <Warning color="warning" />
+          <AlertTriangle color="#ed6c02" />
           <Typography variant="h6">Alertas de Estoque Baixo</Typography>
         </Box>
         <Divider sx={{ mb: 1 }} />

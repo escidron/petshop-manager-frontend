@@ -8,8 +8,7 @@ import {
   alpha,
   lighten,
 } from "@mui/material";
-import ExpandLess from "@mui/icons-material/ExpandLess";
-import ExpandMore from "@mui/icons-material/ExpandMore";
+import { ChevronUp, ChevronDown } from "lucide-react";
 import { useNavigate } from "react-router";
 import theme from "../theme";
 import { useLocation } from "react-router-dom";
@@ -73,7 +72,9 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
           </ListItemIcon>
         )}
         {!collapsed && <ListItemText primary={item.label} />}
-        {hasChildren && !collapsed && (open ? <ExpandLess /> : <ExpandMore />)}
+        {hasChildren &&
+          !collapsed &&
+          (open ? <ChevronUp size={20} /> : <ChevronDown size={20} />)}
       </ListItemButton>
 
       {hasChildren && !collapsed && (

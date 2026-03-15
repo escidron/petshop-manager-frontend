@@ -11,13 +11,16 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import FirstPageIcon from "@mui/icons-material/FirstPage";
-import KeyboardArrowLeft from "@mui/icons-material/KeyboardArrowLeft";
-import KeyboardArrowRight from "@mui/icons-material/KeyboardArrowRight";
-import LastPageIcon from "@mui/icons-material/LastPage";
 import CircularProgress from "@mui/material/CircularProgress";
 import { Chip } from "@mui/material";
-import { Pencil, Trash2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import type { Client } from "./types";
 import { maskPhone } from "../../utils/masks";
 
@@ -42,7 +45,11 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
         disabled={page === 0}
         aria-label="first page"
       >
-        {theme.direction === "rtl" ? <LastPageIcon /> : <FirstPageIcon />}
+        {theme.direction === "rtl" ? (
+          <ChevronsRight size={20} />
+        ) : (
+          <ChevronsLeft size={20} />
+        )}
       </IconButton>
       <IconButton
         onClick={(e) => onPageChange(e, page - 1)}
@@ -50,9 +57,9 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
         aria-label="previous page"
       >
         {theme.direction === "rtl" ? (
-          <KeyboardArrowRight />
+          <ChevronRight size={20} />
         ) : (
-          <KeyboardArrowLeft />
+          <ChevronLeft size={20} />
         )}
       </IconButton>
       <IconButton
@@ -61,9 +68,9 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
         aria-label="next page"
       >
         {theme.direction === "rtl" ? (
-          <KeyboardArrowLeft />
+          <ChevronLeft size={20} />
         ) : (
-          <KeyboardArrowRight />
+          <ChevronRight size={20} />
         )}
       </IconButton>
       <IconButton
@@ -73,12 +80,15 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
         disabled={page >= Math.ceil(count / rowsPerPage) - 1}
         aria-label="last page"
       >
-        {theme.direction === "rtl" ? <FirstPageIcon /> : <LastPageIcon />}
+        {theme.direction === "rtl" ? (
+          <ChevronsLeft size={20} />
+        ) : (
+          <ChevronsRight size={20} />
+        )}
       </IconButton>
     </Box>
   );
 }
-
 
 type Props = {
   rows: Client[];
@@ -87,7 +97,13 @@ type Props = {
   onEdit: (client: Client) => void;
   onDelete: (client: Client) => void;
 };
-export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDelete }: Props) {
+export default function ClientsTable({
+  rows,
+  loading,
+  onRowClick,
+  onEdit,
+  onDelete,
+}: Props) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -129,7 +145,7 @@ export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDele
                   backgroundColor: "secondary.main",
                   fontWeight: 600,
                   color: "text.primary",
-                  py: 1.25, 
+                  py: 1.25,
                   fontSize: "0.875rem",
                 }}
               >
@@ -192,7 +208,9 @@ export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDele
                 <TableCell component="th" scope="row">
                   {row.name}
                 </TableCell>
-                <TableCell align="left">{row.phone ? maskPhone(row.phone) : "-"}</TableCell>
+                <TableCell align="left">
+                  {row.phone ? maskPhone(row.phone) : "-"}
+                </TableCell>
                 <TableCell align="right">
                   <Chip
                     label={row.is_active ? "Ativo" : "Inativo"}
@@ -218,7 +236,7 @@ export default function ClientsTable({ rows, loading, onRowClick, onEdit, onDele
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit?.(row)
+                        onEdit?.(row);
                       }}
                     >
                       <Pencil size={16} />
