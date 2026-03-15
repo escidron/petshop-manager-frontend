@@ -27,7 +27,6 @@ import {
   Settings,
   CreditCard,
   User,
-  Shield,
   CheckCircle2,
   TrendingUp,
   X,
@@ -120,6 +119,8 @@ const SettingsPage = () => {
     const tab = searchParams.get("tab");
     if (tab === "billing") {
       setValue(1);
+    } else if (tab !== null && !isNaN(Number(tab))) {
+      setValue(Number(tab));
     }
   }, [searchParams]);
 
@@ -198,11 +199,6 @@ const SettingsPage = () => {
               icon={<User size={18} />}
               iconPosition="start"
               label="Perfil"
-            />
-            <Tab
-              icon={<Shield size={18} />}
-              iconPosition="start"
-              label="Segurança"
             />
           </Tabs>
         </Box>

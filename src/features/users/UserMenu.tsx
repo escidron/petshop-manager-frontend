@@ -29,7 +29,7 @@ const UserMenu = ({ open, anchorEl, handleClose }: Props) => {
       <MenuItem
         onClick={() => {
           handleClose();
-          navigate("/profile");
+          navigate("/settings?tab=2");
         }}
         sx={{ display: "flex", gap: 1 }}
       >
