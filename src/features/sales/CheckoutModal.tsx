@@ -15,13 +15,13 @@ import {
   alpha,
 } from "@mui/material";
 import {
-  PointOfSale,
-  AttachMoney,
+  ShoppingCart,
+  Banknote,
   CreditCard,
-  Pix,
-  Close as CloseIcon,
+  QrCode,
+  X,
   CheckCircle,
-} from "@mui/icons-material";
+} from "lucide-react";
 import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSale } from "../../api/services/sales";
@@ -96,13 +96,13 @@ export default function CheckoutModal({
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <PointOfSale />
+          <ShoppingCart size={24} />
           <Typography variant="h6" sx={{ fontWeight: 700 }}>
             Finalizar Venda
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: "white" }}>
-          <CloseIcon />
+          <X size={20} />
         </IconButton>
       </DialogTitle>
 
@@ -163,14 +163,14 @@ export default function CheckoutModal({
               <PaymentMethodCard
                 value="pix"
                 label="PIX"
-                icon={Pix}
+                icon={QrCode}
                 color="#2e7d32"
                 selectedPaymentMethod={paymentMethod}
               />
               <PaymentMethodCard
                 value="money"
                 label="Dinheiro"
-                icon={AttachMoney}
+                icon={Banknote}
                 color="#ed6c02"
                 selectedPaymentMethod={paymentMethod}
               />
@@ -258,23 +258,25 @@ const PaymentMethodCard = ({
         sx={{ position: "absolute", top: 8, right: 8, p: 0 }}
         checked={isSelected}
       />
-      <Icon
-        sx={{ fontSize: 32, color: isSelected ? color : "text.secondary" }}
-      />
+      <Icon size={32} color={isSelected ? color : "text.secondary"} />
       <Typography variant="body2" sx={{ fontWeight: 700, textAlign: "center" }}>
         {label}
       </Typography>
       {isSelected && (
-        <CheckCircle
+        <Box
           sx={{
             position: "absolute",
             bottom: -10,
             bgcolor: "white",
             borderRadius: "50%",
             color: color,
-            fontSize: 20,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
-        />
+        >
+          <CheckCircle size={20} strokeWidth={3} />
+        </Box>
       )}
     </Paper>
   );
