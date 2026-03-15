@@ -272,8 +272,10 @@ export default function PackageTable({
             )}
             {rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                  Nenhum pacote cadastrado.
+                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                  <Typography color="text.disabled" variant="body1">
+                    Nenhum pacote cadastrado ainda.
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}

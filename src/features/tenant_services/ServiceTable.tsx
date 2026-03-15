@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import CircularProgress from "@mui/material/CircularProgress";
+import { CircularProgress, Typography } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -284,7 +284,16 @@ export default function ServiceTable({
             ))}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
-                <TableCell colSpan={4} />
+                <TableCell colSpan={6} />
+              </TableRow>
+            )}
+            {rows.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <Typography color="text.disabled" variant="body1">
+                    Nenhum serviço cadastrado ainda.
+                  </Typography>
+                </TableCell>
               </TableRow>
             )}
           </TableBody>
