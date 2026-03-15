@@ -8,16 +8,28 @@ import {
   Button,
   List,
   ListItem,
-  ListItemText,
   IconButton,
   Divider,
   Chip,
+  Tabs,
+  Tab,
+  Autocomplete,
+  Tooltip,
+  alpha,
 } from "@mui/material";
 import {
   Search as SearchIcon,
   Delete as DeleteIcon,
   ShoppingCart,
-  PointOfSale,
+  ReceiptLong,
+  LocalOffer,
+  Assignment,
+  Person,
+  Add as AddIcon,
+  Remove as RemoveIcon,
+  FilterList,
+  ViewModule,
+  ViewList,
 } from "@mui/icons-material";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -33,6 +45,8 @@ export default function POSInterface() {
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [categoryTab, setCategoryTab] = useState(0);
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
   // Fetch Catalogs
   const { data: products = [] } = useQuery({
@@ -71,19 +85,27 @@ export default function POSInterface() {
   }, [services, searchTerm]);
 
   // Handlers
-  const handleAddItem = (item: any, type: "product" | "service") => {
-    const price = type === "product" ? item.price : item.price_cents / 100;
+  const handleAddItem = (
+    item: {
+      id: number;
+      name: string;
+      price_cents?: number;
+      quantity?: number;
+    },
+    type: "product" | "service",
+  ) => {
+    const price = (item.price_cents || 0) / 100;
 
-    // Check if already in cart
     const existingIndex = cart.findIndex(
       (c) => c.item_id === item.id && c.item_type === type,
     );
 
     if (existingIndex >= 0) {
-      if (type === "product" && cart[existingIndex].quantity >= item.quantity) {
-        toast.warning(
-          "Quantidade máxima em estoque atingida para este produto.",
-        );
+      if (
+        type === "product" &&
+        cart[existingIndex].quantity >= (item.quantity || 0)
+      ) {
+        toast.warning("Quantidade máxima em estoque atingida.");
         return;
       }
 
@@ -107,6 +129,30 @@ export default function POSInterface() {
     }
   };
 
+  const handleUpdateQuantity = (index: number, delta: number) => {
+    const newCart = [...cart];
+    const item = newCart[index];
+    const newQuantity = item.quantity + delta;
+
+    if (newQuantity <= 0) {
+      handleRemoveItem(index);
+      return;
+    }
+
+    // If product, check stock
+    if (item.item_type === "product") {
+      const product = products.find((p) => p.id === item.item_id);
+      if (product && newQuantity > product.quantity) {
+        toast.warning("Limite de estoque atingido.");
+        return;
+      }
+    }
+
+    item.quantity = newQuantity;
+    item.subtotal = item.quantity * item.unit_price;
+    setCart(newCart);
+  };
+
   const handleRemoveItem = (index: number) => {
     setCart(cart.filter((_, i) => i !== index));
   };
@@ -116,293 +162,758 @@ export default function POSInterface() {
     setSelectedClientId(null);
   };
 
+  const selectedClient = clients.find((c) => c.id === selectedClientId);
+
   return (
-    <Grid container spacing={2} sx={{ height: "100%" }}>
-      {/* Carrinho (Esquerda) */}
-      <Grid xs={12} md={4} sx={{ height: "100%" }}>
+    <Grid container spacing={3} sx={{ height: "100%", p: 1 }}>
+      {/* Sidebar: Digital Receipt */}
+      <Grid size={{ xs: 12, md: 4, lg: 3.5 }} sx={{ height: "100%" }}>
         <Paper
-          elevation={3}
+          elevation={4}
           sx={{
             height: "100%",
             display: "flex",
             flexDirection: "column",
+            borderRadius: 3,
             overflow: "hidden",
+            border: "1px solid",
+            borderColor: "divider",
           }}
         >
-          <Box sx={{ p: 2, bgcolor: "primary.main", color: "white" }}>
-            <Typography variant="h6" display="flex" alignItems="center" gap={1}>
-              <ShoppingCart /> Frente de Caixa
+          {/* Receipt Header */}
+          <Box
+            sx={{
+              p: 2.5,
+              bgcolor: "primary.main",
+              color: "white",
+              textAlign: "center",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 2,
+            }}
+          >
+            <ReceiptLong sx={{ fontSize: 32 }} />
+            <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 1 }}>
+              TICKET DE VENDA
             </Typography>
           </Box>
 
-          <Box sx={{ p: 2, borderBottom: 1, borderColor: "divider" }}>
-            <TextField
-              select
-              fullWidth
-              size="small"
-              label="Vincular Cliente (Opcional)"
-              value={selectedClientId || ""}
-              onChange={(e) =>
-                setSelectedClientId(
-                  e.target.value ? Number(e.target.value) : null,
-                )
+          {/* Client Selection */}
+          <Box
+            sx={{ p: 2, borderBottom: "1px dashed", borderColor: "divider" }}
+          >
+            <Autocomplete
+              options={clients}
+              getOptionLabel={(option) => option.name}
+              value={selectedClient || null}
+              onChange={(_, newValue) =>
+                setSelectedClientId(newValue?.id || null)
               }
-              SelectProps={{ native: true }}
-            >
-              <option value="">Nenhum (Venda Avulsa)</option>
-              {clients.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </TextField>
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Vincular Cliente"
+                  variant="outlined"
+                  size="small"
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Person color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      bgcolor: "background.paper",
+                    },
+                  }}
+                />
+              )}
+            />
           </Box>
 
-          <List sx={{ flexGrow: 1, overflowY: "auto", p: 0 }}>
+          {/* Cart Items List */}
+          <Box sx={{ flexGrow: 1, overflowY: "auto", p: 1 }}>
             {cart.length === 0 ? (
-              <Box sx={{ p: 4, textAlign: "center", color: "text.secondary" }}>
-                <Typography>Sem itens no carrinho</Typography>
-                <Typography variant="body2">
-                  Selecione produtos ao lado
-                </Typography>
+              <Box
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: 0.3,
+                  py: 8,
+                }}
+              >
+                <ShoppingCart sx={{ fontSize: 64, mb: 1 }} />
+                <Typography variant="body1">Carrinho Vazio</Typography>
               </Box>
             ) : (
-              cart.map((item, index) => (
-                <Box key={`${item.item_type}-${item.item_id}-${index}`}>
-                  <ListItem
-                    secondaryAction={
-                      <IconButton
-                        edge="end"
-                        color="error"
-                        onClick={() => handleRemoveItem(index)}
+              <List sx={{ pt: 0 }}>
+                {cart.map((item, index) => (
+                  <Box key={`${item.item_type}-${item.item_id}-${index}`}>
+                    <ListItem
+                      sx={{
+                        flexDirection: "column",
+                        alignItems: "stretch",
+                        py: 1.5,
+                        px: 1,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mb: 1,
+                        }}
                       >
-                        <DeleteIcon />
-                      </IconButton>
-                    }
-                  >
-                    <ListItemText
-                      primary={
-                        <Typography variant="body2" sx={{ fontWeight: "bold" }}>
-                          {item.quantity}x {item.name}
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 700, flex: 1 }}
+                        >
+                          {item.name}
                         </Typography>
-                      }
-                      secondary={
-                        <Typography variant="body2" color="primary">
+                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
                           R$ {item.subtotal.toFixed(2)}
                         </Typography>
-                      }
-                    />
-                  </ListItem>
-                  <Divider />
-                </Box>
-              ))
-            )}
-          </List>
+                      </Box>
 
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            bgcolor: "action.hover",
+                            borderRadius: 1.5,
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => handleUpdateQuantity(index, -1)}
+                          >
+                            <RemoveIcon fontSize="small" />
+                          </IconButton>
+                          <Typography
+                            variant="body2"
+                            sx={{ px: 1.5, fontWeight: 700 }}
+                          >
+                            {item.quantity}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleUpdateQuantity(index, 1)}
+                          >
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Box>
+
+                        <Tooltip title="Remover item">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveItem(index)}
+                          >
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </ListItem>
+                    <Divider sx={{ borderStyle: "dashed", mx: 1 }} />
+                  </Box>
+                ))}
+              </List>
+            )}
+          </Box>
+
+          {/* Receipt Footer */}
           <Box
             sx={{
-              p: 2,
-              bgcolor: "background.default",
-              borderTop: 1,
+              p: 2.5,
+              bgcolor: "primary.50",
+              borderTop: "3px double",
               borderColor: "divider",
             }}
           >
             <Box
               sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
             >
-              <Typography variant="h6">Total:</Typography>
-              <Typography
-                variant="h5"
-                color="primary"
-                sx={{ fontWeight: "bold" }}
-              >
+              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
+                Total:
+              </Typography>
+              <Typography variant="h4" color="primary" sx={{ fontWeight: 900 }}>
                 R$ {cartTotal.toFixed(2)}
               </Typography>
             </Box>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              {cart.length > 0 && (
-                <Button variant="outlined" color="error" onClick={clearCart}>
-                  Cancelar
-                </Button>
-              )}
+
+            <Box sx={{ display: "flex", gap: 1.5 }}>
+              <Button
+                variant="outlined"
+                color="inherit"
+                onClick={clearCart}
+                disabled={cart.length === 0}
+                sx={{
+                  flex: 1,
+                  borderRadius: 2,
+                  height: 48,
+                  borderColor: "divider",
+                }}
+              >
+                Limpar
+              </Button>
               <Button
                 variant="contained"
                 color="success"
                 fullWidth
                 size="large"
                 disabled={cart.length === 0}
-                startIcon={<PointOfSale />}
                 onClick={() => setIsCheckoutOpen(true)}
+                sx={{
+                  flex: 2,
+                  borderRadius: 2,
+                  height: 48,
+                  fontWeight: 700,
+                  boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
+                }}
               >
-                Cobrar
+                COBRAR
               </Button>
             </Box>
           </Box>
         </Paper>
       </Grid>
 
-      {/* Catálogo (Direita) */}
-      <Grid xs={12} md={8} sx={{ height: "100%" }}>
-        <Paper
-          elevation={0}
-          sx={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            bgcolor: "transparent",
-          }}
-        >
-          <Box sx={{ mb: 2 }}>
-            <TextField
-              fullWidth
-              placeholder="Buscar produtos ou serviços..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                ),
-                sx: { bgcolor: "background.paper" },
+      {/* Main Content: Catalog */}
+      <Grid
+        size={{ xs: 12, md: 8, lg: 8.5 }}
+        sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+      >
+        {/* Search & Tabs Header */}
+        <Box sx={{ mb: 3 }}>
+          <Grid container spacing={2} alignItems="center">
+            <Grid size={{ xs: 12, sm: 6 }}>
+              <TextField
+                fullWidth
+                placeholder="Buscar (Nome, Código...)"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon color="action" />
+                    </InputAdornment>
+                  ),
+                  sx: { borderRadius: 3, bgcolor: "background.paper" },
+                }}
+              />
+            </Grid>
+            <Grid
+              size={{ xs: 12, sm: 6 }}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: 2,
               }}
-            />
-          </Box>
+            >
+              <Tabs
+                value={categoryTab}
+                onChange={(_, newValue) => setCategoryTab(newValue)}
+                sx={{
+                  "& .MuiTab-root": { color: "text.primary", fontWeight: 600 },
+                  "& .Mui-selected": { color: "primary.main" },
+                  "& .MuiTabs-indicator": {
+                    height: 3,
+                    borderRadius: "3px 3px 0 0",
+                  },
+                }}
+                indicatorColor="primary"
+              >
+                <Tab label="Todos" />
+                <Tab label="Produtos" />
+                <Tab label="Serviços" />
+              </Tabs>
 
-          <Box sx={{ flexGrow: 1, overflowY: "auto" }}>
-            {searchTerm &&
-              filteredProducts.length === 0 &&
-              filteredServices.length === 0 && (
-                <Typography textAlign="center" mt={4} color="text.secondary">
-                  Nenhum resultado encontrado.
-                </Typography>
-              )}
+              <Divider
+                orientation="vertical"
+                flexItem
+                sx={{ mx: 0.5, height: 24, alignSelf: "center" }}
+              />
 
-            {filteredProducts.length > 0 && (
-              <>
+              <Box
+                sx={{
+                  bgcolor: "background.paper",
+                  borderRadius: 2,
+                  p: 0.5,
+                  display: "flex",
+                  border: "1px solid",
+                  borderColor: "divider",
+                }}
+              >
+                <Tooltip title="Vista em Grade">
+                  <IconButton
+                    size="small"
+                    onClick={() => setViewMode("grid")}
+                    color={viewMode === "grid" ? "primary" : "inherit"}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor:
+                        viewMode === "grid"
+                          ? alpha("#1976d2", 0.08)
+                          : "transparent",
+                    }}
+                  >
+                    <ViewModule fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+                <Tooltip title="Vista em Lista">
+                  <IconButton
+                    size="small"
+                    onClick={() => setViewMode("list")}
+                    color={viewMode === "list" ? "primary" : "inherit"}
+                    sx={{
+                      borderRadius: 1.5,
+                      bgcolor:
+                        viewMode === "list"
+                          ? alpha("#1976d2", 0.08)
+                          : "transparent",
+                    }}
+                  >
+                    <ViewList fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              </Box>
+            </Grid>
+          </Grid>
+        </Box>
+
+        {/* Catalog Grid */}
+        <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5 }}>
+          {(categoryTab === 0 || categoryTab === 1) &&
+            filteredProducts.length > 0 && (
+              <Box sx={{ mb: 4 }}>
                 <Typography
-                  variant="subtitle1"
-                  sx={{ mb: 1, fontWeight: "bold" }}
+                  variant="overline"
+                  sx={{
+                    fontWeight: 800,
+                    color: "primary.main",
+                    mb: 2,
+                    display: "block",
+                  }}
                 >
                   Produtos em Estoque
                 </Typography>
-                <Grid container spacing={2} sx={{ mb: 4 }}>
-                  {filteredProducts.map((product: any) => (
-                    <Grid xs={6} sm={4} md={3} key={product.id}>
-                      <Paper
-                        elevation={1}
-                        sx={{
-                          p: 2,
-                          cursor: "pointer",
-                          "&:hover": {
-                            borderColor: "primary.main",
-                            borderWidth: 2,
-                            borderStyle: "solid",
-                            m: "-2px",
-                          },
-                          height: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
-                        }}
-                        onClick={() => handleAddItem(product, "product")}
-                      >
-                        <Box>
+                <Grid container spacing={viewMode === "grid" ? 2 : 1}>
+                  {filteredProducts.map((product) => (
+                    <Grid
+                      size={
+                        viewMode === "grid"
+                          ? { xs: 12, sm: 6, md: 4, lg: 3 }
+                          : { xs: 12 }
+                      }
+                      key={`prod-${product.id}`}
+                    >
+                      {viewMode === "grid" ? (
+                        <Paper
+                          elevation={0}
+                          onClick={() => handleAddItem(product, "product")}
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            cursor: "pointer",
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                            transition: "all 0.2s ease-in-out",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              transform: "translateY(-4px)",
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                              "& .add-btn": {
+                                bgcolor: "primary.main",
+                                color: "white",
+                              },
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              mb: 1.5,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 1.5,
+                                bgcolor: alpha("#1976d2", 0.08),
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "primary.main",
+                              }}
+                            >
+                              <LocalOffer fontSize="small" />
+                            </Box>
+                            <Chip
+                              label={`${product.quantity} un`}
+                              size="small"
+                              sx={{
+                                fontSize: "0.65rem",
+                                height: 20,
+                                bgcolor: "action.hover",
+                                fontWeight: 700,
+                              }}
+                            />
+                          </Box>
                           <Typography
                             variant="body2"
                             sx={{
-                              fontWeight: "bold",
-                              mb: 0.5,
-                              lineHeight: 1.2,
+                              fontWeight: 700,
+                              mb: 1,
+                              color: "text.primary",
+                              lineClamp: 2,
                             }}
                           >
                             {product.name}
                           </Typography>
-                          <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            display="block"
+                          <Box
+                            sx={{
+                              mt: "auto",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
                           >
-                            Estoque: {product.quantity}
-                          </Typography>
-                        </Box>
-                        <Typography
-                          variant="subtitle2"
-                          color="primary"
-                          sx={{ mt: 1 }}
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 800, color: "primary.main" }}
+                            >
+                              R${" "}
+                              {(
+                                (product.price_cents ||
+                                  (product as any).price ||
+                                  0) / 100
+                              ).toFixed(2)}
+                            </Typography>
+                            <Box
+                              className="add-btn"
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                border: "1.5px solid",
+                                borderColor: "primary.main",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s",
+                              }}
+                            >
+                              <AddIcon fontSize="small" />
+                            </Box>
+                          </Box>
+                        </Paper>
+                      ) : (
+                        <Paper
+                          elevation={0}
+                          onClick={() => handleAddItem(product, "product")}
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            transition: "all 0.2s",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              bgcolor: "background.paper",
+                            },
+                          }}
                         >
-                          R$ {product.price.toFixed(2)}
-                        </Typography>
-                      </Paper>
-                    </Grid>
-                  ))}
-                </Grid>
-              </>
-            )}
-
-            {filteredServices.length > 0 && (
-              <>
-                <Typography
-                  variant="subtitle1"
-                  sx={{ mb: 1, fontWeight: "bold" }}
-                >
-                  Apenas Serviços
-                </Typography>
-                <Grid container spacing={2}>
-                  {filteredServices.map((service: any) => (
-                    <Grid xs={6} sm={4} md={3} key={service.id}>
-                      <Paper
-                        elevation={1}
-                        sx={{
-                          p: 2,
-                          cursor: "pointer",
-                          "&:hover": {
-                            borderColor: "secondary.main",
-                            borderWidth: 2,
-                            borderStyle: "solid",
-                            m: "-2px",
-                          },
-                          bgcolor: "secondary.50",
-                          height: "100%",
-                          display: "flex",
-                          flexDirection: "column",
-                          justifyContent: "space-between",
-                        }}
-                        onClick={() => handleAddItem(service, "service")}
-                      >
-                        <Box>
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              bgcolor: alpha("#1976d2", 0.08),
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "primary.main",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <LocalOffer fontSize="small" />
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, flexGrow: 1 }}
+                          >
+                            {product.name}
+                          </Typography>
                           <Chip
-                            label="Serviço"
+                            label={`${product.quantity} un`}
                             size="small"
-                            color="secondary"
-                            sx={{ mb: 1, fontSize: "0.65rem", height: 20 }}
+                            sx={{
+                              fontSize: "0.65rem",
+                              height: 18,
+                              fontWeight: 700,
+                            }}
                           />
                           <Typography
                             variant="body2"
                             sx={{
-                              fontWeight: "bold",
-                              mb: 0.5,
-                              lineHeight: 1.2,
+                              fontWeight: 800,
+                              color: "primary.main",
+                              minWidth: 80,
+                              textAlign: "right",
+                            }}
+                          >
+                            R${" "}
+                            {(
+                              (product.price_cents ||
+                                (product as any).price ||
+                                0) / 100
+                            ).toFixed(2)}
+                          </Typography>
+                          <IconButton size="small" color="primary">
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Paper>
+                      )}
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
+          {(categoryTab === 0 || categoryTab === 2) &&
+            filteredServices.length > 0 && (
+              <Box>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 800,
+                    color: "primary.main",
+                    mb: 2,
+                    display: "block",
+                  }}
+                >
+                  Serviços de Pet Shop
+                </Typography>
+                <Grid container spacing={viewMode === "grid" ? 2 : 1}>
+                  {filteredServices.map((service) => (
+                    <Grid
+                      size={
+                        viewMode === "grid"
+                          ? { xs: 12, sm: 6, md: 4, lg: 3 }
+                          : { xs: 12 }
+                      }
+                      key={`serv-${service.id}`}
+                    >
+                      {viewMode === "grid" ? (
+                        <Paper
+                          elevation={0}
+                          onClick={() => handleAddItem(service, "service")}
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            cursor: "pointer",
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                            transition: "all 0.2s ease-in-out",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              transform: "translateY(-4px)",
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                              "& .add-btn-s": {
+                                bgcolor: "primary.main",
+                                color: "white",
+                              },
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              mb: 1.5,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 1.5,
+                                bgcolor: alpha("#9c27b0", 0.08),
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "primary.main",
+                              }}
+                            >
+                              <Assignment fontSize="small" />
+                            </Box>
+                            <Chip
+                              label="SERVIÇO"
+                              size="small"
+                              color="secondary"
+                              sx={{
+                                fontSize: "0.6rem",
+                                height: 18,
+                                fontWeight: 800,
+                              }}
+                            />
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              mb: 1,
+                              color: "text.primary",
                             }}
                           >
                             {service.name}
                           </Typography>
-                        </Box>
-                        <Typography
-                          variant="subtitle2"
-                          color="secondary.dark"
-                          sx={{ mt: 1 }}
+                          <Box
+                            sx={{
+                              mt: "auto",
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle1"
+                              sx={{ fontWeight: 800, color: "primary.main" }}
+                            >
+                              R$ {((service.price_cents || 0) / 100).toFixed(2)}
+                            </Typography>
+                            <Box
+                              className="add-btn-s"
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                borderRadius: "50%",
+                                border: "1.5px solid",
+                                borderColor: "secondary.main",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                transition: "all 0.2s",
+                              }}
+                            >
+                              <AddIcon fontSize="small"/>
+                            </Box>
+                          </Box>
+                        </Paper>
+                      ) : (
+                        <Paper
+                          elevation={0}
+                          onClick={() => handleAddItem(service, "service")}
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            transition: "all 0.2s",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              bgcolor: alpha("#1976d2", 0.02),
+                            },
+                          }}
                         >
-                          R$ {(service.price_cents / 100).toFixed(2)}
-                        </Typography>
-                      </Paper>
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              bgcolor: alpha("#9c27b0", 0.08),
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "secondary.main",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Assignment fontSize="small" />
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, flexGrow: 1 }}
+                          >
+                            {service.name}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 800,
+                              color: "primary.main",
+                              minWidth: 80,
+                              textAlign: "right",
+                            }}
+                          >
+                            R$ {((service.price_cents || 0) / 100).toFixed(2)}
+                          </Typography>
+                          <IconButton size="small" color="secondary">
+                            <AddIcon fontSize="small" />
+                          </IconButton>
+                        </Paper>
+                      )}
                     </Grid>
                   ))}
                 </Grid>
-              </>
+              </Box>
             )}
-          </Box>
-        </Paper>
+
+          {searchTerm &&
+            filteredProducts.length === 0 &&
+            filteredServices.length === 0 && (
+              <Box sx={{ textAlign: "center", mt: 10 }}>
+                <FilterList
+                  sx={{ fontSize: 64, color: "action.disabled", mb: 2 }}
+                />
+                <Typography variant="h6" color="text.secondary">
+                  Nenhum item encontrado
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Tente mudar sua busca ou categoria
+                </Typography>
+              </Box>
+            )}
+        </Box>
       </Grid>
 
       {isCheckoutOpen && (

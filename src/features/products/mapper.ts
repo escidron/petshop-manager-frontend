@@ -6,8 +6,8 @@ export const productToFormData = (product: Product): ProductFormData => {
     sku: product.sku || "",
     description: product.description || "",
     category: product.category || "",
-    price: product.price,
-    cost: product.cost || 0,
+    price_cents: product.price_cents,
+    cost_cents: product.cost_cents || 0,
     quantity: product.quantity,
     min_stock: product.min_stock,
   };

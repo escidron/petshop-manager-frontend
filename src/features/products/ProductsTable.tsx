@@ -78,7 +78,6 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
   );
 }
 
-
 type Props = {
   rows: Product[];
   loading: boolean;
@@ -86,7 +85,13 @@ type Props = {
   onEdit: (product: Product) => void;
   onDelete: (product: Product) => void;
 };
-export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDelete }: Props) {
+export default function ProductsTable({
+  rows,
+  loading,
+  onRowClick,
+  onEdit,
+  onDelete,
+}: Props) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
 
@@ -128,13 +133,13 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
                   backgroundColor: "secondary.main",
                   fontWeight: 600,
                   color: "text.primary",
-                  py: 1.25, 
+                  py: 1.25,
                   fontSize: "0.875rem",
                 }}
               >
                 Codigo
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -147,7 +152,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
               >
                 Nome
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -160,7 +165,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
               >
                 Categoria
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -173,7 +178,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
               >
                 Quantidade
               </TableCell>
-              
+
               <TableCell
                 align="left"
                 sx={{
@@ -186,7 +191,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
               >
                 Preço
               </TableCell>
-              
+
               <TableCell
                 align="right"
                 sx={{
@@ -223,7 +228,9 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
                 <TableCell align="left">{row.name ?? "-"}</TableCell>
                 <TableCell align="left">{row.category ?? "-"}</TableCell>
                 <TableCell align="left">{row.quantity ?? "-"}</TableCell>
-                <TableCell align="left">R$ {formatBRLFromCents(row.price) ?? "-"}</TableCell>
+                <TableCell align="left">
+                  R$ {formatBRLFromCents(row.price_cents) ?? "-"}
+                </TableCell>
                 <TableCell align="right">
                   <Box
                     sx={{
@@ -239,7 +246,7 @@ export default function ProductsTable({ rows, loading, onRowClick, onEdit, onDel
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
-                        onEdit?.(row)
+                        onEdit?.(row);
                       }}
                     >
                       <Pencil size={16} />

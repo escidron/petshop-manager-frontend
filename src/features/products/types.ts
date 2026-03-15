@@ -4,8 +4,8 @@ export type Product = {
   sku?: string;
   description?: string;
   category?: string;
-  price: number;
-  cost?: number;
+  price_cents: number;
+  cost_cents?: number;
   quantity: number;
   min_stock: number;
   is_active: boolean;

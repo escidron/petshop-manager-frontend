@@ -107,7 +107,7 @@ const ProductForm = ({
                   Preço
                 </FormLabel>
                 <Controller
-                  name="price"
+                  name="price_cents"
                   control={control}
                   render={({ field, fieldState }) => (
                     <TextField
@@ -220,7 +220,7 @@ const ProductForm = ({
                     Custo
                   </FormLabel>
                   <Controller
-                    name="cost"
+                    name="cost_cents"
                     control={control}
                     render={({ field }) => (
                       <TextField
