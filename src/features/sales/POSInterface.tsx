@@ -18,19 +18,19 @@ import {
   alpha,
 } from "@mui/material";
 import {
-  Search as SearchIcon,
-  Delete as DeleteIcon,
+  Search,
+  Trash2,
   ShoppingCart,
-  ReceiptLong,
-  LocalOffer,
-  Assignment,
-  Person,
-  Add as AddIcon,
-  Remove as RemoveIcon,
-  FilterList,
-  ViewModule,
-  ViewList,
-} from "@mui/icons-material";
+  ReceiptText,
+  Tag,
+  ClipboardList,
+  User,
+  Plus,
+  Minus,
+  Filter,
+  LayoutGrid,
+  List as ListIcon,
+} from "lucide-react";
 import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "../../api/services/products";
@@ -193,7 +193,7 @@ export default function POSInterface() {
               gap: 2,
             }}
           >
-            <ReceiptLong sx={{ fontSize: 32 }} />
+            <ReceiptText size={32} />
             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 1 }}>
               TICKET DE VENDA
             </Typography>
@@ -220,7 +220,7 @@ export default function POSInterface() {
                     ...params.InputProps,
                     startAdornment: (
                       <InputAdornment position="start">
-                        <Person color="action" />
+                        <User size={20} color="gray" />
                       </InputAdornment>
                     ),
                   }}
@@ -249,7 +249,7 @@ export default function POSInterface() {
                   py: 8,
                 }}
               >
-                <ShoppingCart sx={{ fontSize: 64, mb: 1 }} />
+                <ShoppingCart size={64} style={{ opacity: 0.2 }} />
                 <Typography variant="body1">Carrinho Vazio</Typography>
               </Box>
             ) : (
@@ -301,7 +301,7 @@ export default function POSInterface() {
                             size="small"
                             onClick={() => handleUpdateQuantity(index, -1)}
                           >
-                            <RemoveIcon fontSize="small" />
+                            <Minus size={18} />
                           </IconButton>
                           <Typography
                             variant="body2"
@@ -313,7 +313,7 @@ export default function POSInterface() {
                             size="small"
                             onClick={() => handleUpdateQuantity(index, 1)}
                           >
-                            <AddIcon fontSize="small" />
+                            <Plus size={18} />
                           </IconButton>
                         </Box>
 
@@ -323,7 +323,7 @@ export default function POSInterface() {
                             color="error"
                             onClick={() => handleRemoveItem(index)}
                           >
-                            <DeleteIcon fontSize="small" />
+                            <Trash2 size={18} />
                           </IconButton>
                         </Tooltip>
                       </Box>
@@ -409,7 +409,7 @@ export default function POSInterface() {
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <SearchIcon color="action" />
+                      <Search size={20} color="gray" />
                     </InputAdornment>
                   ),
                   sx: { borderRadius: 3, bgcolor: "background.paper" },
@@ -472,7 +472,7 @@ export default function POSInterface() {
                           : "transparent",
                     }}
                   >
-                    <ViewModule fontSize="small" />
+                    <LayoutGrid size={18} />
                   </IconButton>
                 </Tooltip>
                 <Tooltip title="Vista em Lista">
@@ -488,7 +488,7 @@ export default function POSInterface() {
                           : "transparent",
                     }}
                   >
-                    <ViewList fontSize="small" />
+                    <ListIcon size={18} />
                   </IconButton>
                 </Tooltip>
               </Box>
@@ -569,7 +569,7 @@ export default function POSInterface() {
                                 color: "primary.main",
                               }}
                             >
-                              <LocalOffer fontSize="small" />
+                              <Tag size={18} />
                             </Box>
                             <Chip
                               label={`${product.quantity} un`}
@@ -626,7 +626,7 @@ export default function POSInterface() {
                                 transition: "all 0.2s",
                               }}
                             >
-                              <AddIcon fontSize="small" />
+                              <Plus size={18} />
                             </Box>
                           </Box>
                         </Paper>
@@ -664,7 +664,7 @@ export default function POSInterface() {
                               flexShrink: 0,
                             }}
                           >
-                            <LocalOffer fontSize="small" />
+                            <Tag size={18} />
                           </Box>
                           <Typography
                             variant="body2"
@@ -698,7 +698,7 @@ export default function POSInterface() {
                             ).toFixed(2)}
                           </Typography>
                           <IconButton size="small" color="primary">
-                            <AddIcon fontSize="small" />
+                            <Plus size={18} />
                           </IconButton>
                         </Paper>
                       )}
@@ -779,7 +779,7 @@ export default function POSInterface() {
                                 color: "primary.main",
                               }}
                             >
-                              <Assignment fontSize="small" />
+                              <ClipboardList size={18} />
                             </Box>
                             <Chip
                               label="SERVIÇO"
@@ -830,7 +830,7 @@ export default function POSInterface() {
                                 transition: "all 0.2s",
                               }}
                             >
-                              <AddIcon fontSize="small"/>
+                              <Plus size={18} />
                             </Box>
                           </Box>
                         </Paper>
@@ -868,7 +868,7 @@ export default function POSInterface() {
                               flexShrink: 0,
                             }}
                           >
-                            <Assignment fontSize="small" />
+                            <ClipboardList size={18} />
                           </Box>
                           <Typography
                             variant="body2"
@@ -888,7 +888,7 @@ export default function POSInterface() {
                             R$ {((service.price_cents || 0) / 100).toFixed(2)}
                           </Typography>
                           <IconButton size="small" color="secondary">
-                            <AddIcon fontSize="small" />
+                            <Plus size={18} />
                           </IconButton>
                         </Paper>
                       )}
@@ -902,9 +902,7 @@ export default function POSInterface() {
             filteredProducts.length === 0 &&
             filteredServices.length === 0 && (
               <Box sx={{ textAlign: "center", mt: 10 }}>
-                <FilterList
-                  sx={{ fontSize: 64, color: "action.disabled", mb: 2 }}
-                />
+                <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
                 <Typography variant="h6" color="text.secondary">
                   Nenhum item encontrado
                 </Typography>
