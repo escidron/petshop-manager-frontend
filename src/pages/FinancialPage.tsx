@@ -37,6 +37,7 @@ export default function FinancialPage() {
       .filter((a) => {
         const date = dayjs(a.scheduled_at);
         const isCompleted = a.status === "completed";
+        const isUnpaid = !a.is_paid; // Se já foi pago, aparecerá como Venda PDV
         const isInRange =
           (!startDate ||
             date.isAfter(startDate, "day") ||
@@ -45,7 +46,7 @@ export default function FinancialPage() {
             date.isBefore(endDate, "day") ||
             date.isSame(endDate, "day"));
 
-        return isCompleted && isInRange;
+        return isCompleted && isUnpaid && isInRange;
       })
       .map((a) => ({
         id: `apt-${a.id}`,

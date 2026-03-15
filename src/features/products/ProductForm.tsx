@@ -135,9 +135,13 @@ const ProductForm = ({
                       }}
                       onChange={(e) => {
                         const digits = e.target.value.replace(/\D/g, "");
-                        field.onChange(digits === "" ? 0 : Number(digits));
+                        field.onChange(digits === "" ? "" : Number(digits));
                       }}
-                      value={field.value ? formatBRLFromCents(field.value) : ""}
+                      value={
+                        (field.value as any) !== "" && field.value !== undefined
+                          ? formatBRLFromCents(Number(field.value))
+                          : ""
+                      }
                     />
                   )}
                 />
@@ -156,7 +160,11 @@ const ProductForm = ({
                       type="number"
                       size="small"
                       placeholder="0"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : Number(val));
+                      }}
+                      value={field.value ?? ""}
                     />
                   )}
                 />
@@ -246,10 +254,13 @@ const ProductForm = ({
                         }}
                         onChange={(e) => {
                           const digits = e.target.value.replace(/\D/g, "");
-                          field.onChange(digits === "" ? 0 : Number(digits));
+                          field.onChange(digits === "" ? "" : Number(digits));
                         }}
                         value={
-                          field.value ? formatBRLFromCents(field.value) : ""
+                          (field.value as any) !== "" &&
+                          field.value !== undefined
+                            ? formatBRLFromCents(Number(field.value))
+                            : ""
                         }
                       />
                     )}
@@ -283,7 +294,11 @@ const ProductForm = ({
                       type="number"
                       size="small"
                       placeholder="0"
-                      onChange={(e) => field.onChange(Number(e.target.value))}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : Number(val));
+                      }}
+                      value={field.value ?? ""}
                     />
                   )}
                 />
