@@ -13,69 +13,95 @@ import {
   Settings,
   Inventory,
   PointOfSale,
+  HelpOutline,
 } from "@mui/icons-material";
 
-const menu: SidebarItemConfig[] = [
+const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
   {
-    id: "home",
-    label: "Inicio",
-    icon: <Home />,
-    path: "/dashboard",
+    title: "INÍCIO",
+    items: [
+      {
+        id: "home",
+        label: "Inicio",
+        icon: <Home />,
+        path: "/dashboard",
+      },
+    ],
   },
   {
-    id: "clients",
-    label: "Clientes",
-    icon: <People />,
-    path: "/registration/clients",
+    title: "CADASTROS",
+    items: [
+      {
+        id: "clients",
+        label: "Clientes",
+        icon: <People />,
+        path: "/registration/clients",
+      },
+      {
+        id: "pets",
+        label: "Pets",
+        icon: <Pets />,
+        path: "/registration/pets",
+      },
+      {
+        id: "services",
+        label: "Serviços",
+        icon: <Assignment />,
+        path: "/registration/services",
+      },
+      {
+        id: "products",
+        label: "Produtos",
+        icon: <QrCodeScanner />,
+        path: "/registration/products",
+      },
+      {
+        id: "packages",
+        label: "Pacotes",
+        icon: <Inventory />,
+        path: "/registration/packages",
+      },
+    ],
   },
   {
-    id: "pets",
-    label: "Pets",
-    icon: <Pets />,
-    path: "/registration/pets",
-  },
-
-  {
-    id: "services",
-    label: "Serviços",
-    icon: <Assignment />,
-    path: "/registration/services",
-  },
-  {
-    id: "products",
-    label: "Produtos",
-    icon: <QrCodeScanner />,
-    path: "/registration/products",
-  },
-  {
-    id: "pos",
-    label: "Frente de Caixa",
-    icon: <PointOfSale />,
-    path: "/pos",
+    title: "OPERACIONAL",
+    items: [
+      {
+        id: "pos",
+        label: "Frente de Caixa",
+        icon: <PointOfSale />,
+        path: "/pos",
+      },
+      {
+        id: "inventory",
+        label: "Estoque",
+        icon: <Inventory />,
+        path: "/inventory",
+      },
+      {
+        id: "financial",
+        label: "Financeiro",
+        icon: <AccountBalanceWallet />,
+        path: "/financial",
+      },
+    ],
   },
   {
-    id: "financial",
-    label: "Financeiro",
-    icon: <AccountBalanceWallet />,
-    path: "/financial",
-  },
-  {
-    id: "packages",
-    label: "Pacotes",
-    icon: <Inventory />,
-    path: "/registration/packages",
-  },
-  {
-    id: "inventory",
-    label: "Estoque",
-    icon: <Inventory />,
-    path: "/inventory",
-  },
-  {
-    id: "settings",
-    label: "Configurações",
-    icon: <Settings />,
-    path: "/settings",
+    title: "SISTEMA",
+    items: [
+      {
+        id: "settings",
+        label: "Configurações",
+        icon: <Settings />,
+        path: "/settings",
+      },
+      {
+        id: "support",
+        label: "Suporte",
+        icon: <HelpOutline />,
+        path: "#",
+      },
+    ],
   },
 ];
 
@@ -112,11 +138,33 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         pb: 2,
       }}
     >
-      <List>
-        {menu.map((item) => (
-          <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+      <Box sx={{ overflowY: "auto", flexGrow: 1 }}>
+        {menuSections.map((section, index) => (
+          <Box key={section.title} sx={{ mt: index === 0 ? 1 : 2, mb: 1 }}>
+            {!collapsed && (
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "white",
+                  opacity: 0.5,
+                  fontWeight: 700,
+                  px: 2.5,
+                  mb: 0.5,
+                  display: "block",
+                  letterSpacing: 1.2,
+                }}
+              >
+                {section.title}
+              </Typography>
+            )}
+            <List sx={{ px: 1 }}>
+              {section.items.map((item) => (
+                <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+              ))}
+            </List>
+          </Box>
         ))}
-      </List>
+      </Box>
 
       {!collapsed && trialInfo && (
         <Box
