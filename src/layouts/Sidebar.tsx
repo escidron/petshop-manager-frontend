@@ -68,7 +68,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
     items: [
       {
         id: "pos",
-        label: "Frente de Caixa",
+        label: "Caixa",
         icon: <ShoppingCart size={20} />,
         path: "/pos",
       },

@@ -144,6 +144,7 @@ export default function MainLayout() {
     if (path.startsWith("/registration/packages"))
       return "Pacotes de Serviços e Produtos";
 
+    if (path === "/pos") return "Caixa";
     if (path === "/financial") return "Financeiro";
     if (path === "/inventory") return "Controle de Estoque";
     if (path === "/settings") return "Configurações";
