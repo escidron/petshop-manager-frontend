@@ -31,3 +31,11 @@ export const updateTenantOnboardingStep = async ( step: OnboardingStep) => {
     );
     return response.data;
 };
+
+export const updateSubscription = async (tenantId: number, paymentMethod: "card" | "pix") => {
+    const response = await apiClient.patch(
+        `/api/v1/tenants/${tenantId}/subscription`,
+        { payment_method: paymentMethod },
+    );
+    return response.data;
+};

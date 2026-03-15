@@ -42,7 +42,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { tenantSchema } from "../features/tenants/schemas";
 import type { TenantFormData } from "../features/tenants/types";
-import { updateTenant } from "../api/services/tenants";
+import { updateTenant, updateSubscription } from "../api/services/tenants";
 import CustomTextField from "../components/Textfield/CustomTextfield";
 
 interface TabPanelProps {
@@ -74,8 +74,25 @@ const SettingsPage = () => {
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
   const [savingTenant, setSavingTenant] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">("card");
   const { tenant, user, setTenant } = useAuth();
+
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">(
+    (tenant?.subscription?.payment_method as "card" | "pix") ?? "card",
+  );
+  const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
+
+  const handlePaymentMethodChange = async (method: "card" | "pix") => {
+    if (!tenant?.id || method === paymentMethod) return;
+    setPaymentMethod(method);
+    setSavingPaymentMethod(true);
+    try {
+      await updateSubscription(tenant.id, method);
+    } catch {
+      setPaymentMethod(paymentMethod); // revert on error
+    } finally {
+      setSavingPaymentMethod(false);
+    }
+  };
 
   const {
     control,
@@ -425,8 +442,9 @@ const SettingsPage = () => {
                           variant={
                             paymentMethod === "card" ? "contained" : "text"
                           }
-                          onClick={() => setPaymentMethod("card")}
+                          onClick={() => handlePaymentMethodChange("card")}
                           startIcon={<CreditCard size={16} />}
+                          disabled={savingPaymentMethod}
                           sx={{ borderRadius: 2 }}
                         >
                           Cartão
@@ -436,8 +454,9 @@ const SettingsPage = () => {
                           variant={
                             paymentMethod === "pix" ? "contained" : "text"
                           }
-                          onClick={() => setPaymentMethod("pix")}
+                          onClick={() => handlePaymentMethodChange("pix")}
                           startIcon={<QrCode size={16} />}
+                          disabled={savingPaymentMethod}
                           sx={{ borderRadius: 2 }}
                         >
                           PIX

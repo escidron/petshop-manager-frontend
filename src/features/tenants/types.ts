@@ -7,6 +7,7 @@ export type Subscription = {
   status: string;
   trial_ends_at: string | null;
   current_period_end: string;
+  payment_method?: string | null;
   plan: {
     id: number;
     code: string;
