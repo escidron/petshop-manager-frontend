@@ -4,12 +4,15 @@ import dayjs, { Dayjs } from "dayjs";
 import isBetween from "dayjs/plugin/isBetween";
 import { useQuery } from "@tanstack/react-query";
 import { getAppointmentsByTenant } from "../api/services/appointments";
+import { listSales } from "../api/services/sales";
 import FinancialSummaryCards from "../features/financial/FinancialSummaryCards";
 import FinancialTable from "../features/financial/FinancialTable";
 import { getAppointmentTotal } from "../utils/getAppointmentTotalPrice";
 import type { FinancialSummary } from "../features/financial/types";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import type { SaleResponse } from "../features/sales/schemas";
+import type { Appointment } from "../features/appointments/types";
 
 dayjs.extend(isBetween);
 
@@ -19,13 +22,18 @@ export default function FinancialPage() {
   );
   const [endDate, setEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
 
-  const { data: allAppointments = [] } = useQuery({
+  const { data: allAppointments = [] } = useQuery<Appointment[]>({
     queryKey: ["appointments", "all"],
     queryFn: getAppointmentsByTenant,
   });
 
-  const filteredAppointments = useMemo(() => {
-    return allAppointments
+  const { data: allSales = [] } = useQuery<SaleResponse[]>({
+    queryKey: ["sales", "all"],
+    queryFn: listSales,
+  });
+
+  const filteredTransactions = useMemo(() => {
+    const appointmentsInRange = allAppointments
       .filter((a) => {
         const date = dayjs(a.scheduled_at);
         const isCompleted = a.status === "completed";
@@ -39,38 +47,60 @@ export default function FinancialPage() {
 
         return isCompleted && isInRange;
       })
-      .sort((a, b) => dayjs(b.scheduled_at).diff(dayjs(a.scheduled_at)));
-  }, [allAppointments, startDate, endDate]);
+      .map((a) => ({
+        id: `apt-${a.id}`,
+        date: a.scheduled_at,
+        client: a.client.name,
+        type: "Agendamento" as const,
+        amount_cents: getAppointmentTotal(a),
+        original: a,
+      }));
+
+    const salesInRange = allSales
+      .filter((s) => {
+        const date = dayjs(s.created_at);
+        const isCompleted = s.status === "completed";
+        const isInRange =
+          (!startDate ||
+            date.isAfter(startDate, "day") ||
+            date.isSame(startDate, "day")) &&
+          (!endDate ||
+            date.isBefore(endDate, "day") ||
+            date.isSame(endDate, "day"));
+
+        return isCompleted && isInRange;
+      })
+      .map((s) => ({
+        id: `sale-${s.id}`,
+        date: s.created_at,
+        client: s.client?.name || "Consumidor",
+        type: "Venda PDV" as const,
+        // Convert float to cents for consistency
+        amount_cents: Math.round(s.total_amount * 100),
+        original: s,
+      }));
+
+    return [...appointmentsInRange, ...salesInRange].sort((a, b) =>
+      dayjs(b.date).diff(dayjs(a.date)),
+    );
+  }, [allAppointments, allSales, startDate, endDate]);
 
   const summary = useMemo<FinancialSummary>(() => {
-    const totalRevenueCents = filteredAppointments.reduce(
-      (acc, a) => acc + getAppointmentTotal(a),
+    const totalRevenueCents = filteredTransactions.reduce(
+      (acc, t) => acc + t.amount_cents,
       0,
     );
 
-    // For canceled count, we might want to see how many were canceled in THIS range
-    const canceledInRange = allAppointments.filter((a) => {
-      const date = dayjs(a.scheduled_at);
-      const isInRange =
-        (!startDate ||
-          date.isAfter(startDate, "day") ||
-          date.isSame(startDate, "day")) &&
-        (!endDate ||
-          date.isBefore(endDate, "day") ||
-          date.isSame(endDate, "day"));
-      return a.status === "canceled" && isInRange;
-    }).length;
-
     return {
       totalRevenueCents,
-      completedCount: filteredAppointments.length,
-      canceledCount: canceledInRange,
+      completedCount: filteredTransactions.length,
+      canceledCount: 0,
       averageTicketCents:
-        filteredAppointments.length > 0
-          ? totalRevenueCents / filteredAppointments.length
+        filteredTransactions.length > 0
+          ? totalRevenueCents / filteredTransactions.length
           : 0,
     };
-  }, [filteredAppointments, allAppointments, startDate, endDate]);
+  }, [filteredTransactions]);
 
   return (
     <Box sx={{ maxWidth: "1200px", mx: "auto", py: 4 }}>
@@ -82,13 +112,10 @@ export default function FinancialPage() {
           mb: 4,
         }}
       >
-
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
           <Box sx={{ display: "flex", gap: 2 }}>
             <Box>
-              <Typography variant="body1">
-                Data Inicial
-              </Typography>
+              <Typography variant="body1">Data Inicial</Typography>
               <DatePicker
                 value={startDate}
                 onChange={(newValue) => setStartDate(newValue)}
@@ -96,9 +123,7 @@ export default function FinancialPage() {
               />
             </Box>
             <Box>
-              <Typography variant="body1">
-                Data Final
-              </Typography>
+              <Typography variant="body1">Data Final</Typography>
               <DatePicker
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
@@ -111,7 +136,7 @@ export default function FinancialPage() {
 
       <FinancialSummaryCards summary={summary} />
 
-      <FinancialTable appointments={filteredAppointments} />
+      <FinancialTable transactions={filteredTransactions} />
     </Box>
   );
 }

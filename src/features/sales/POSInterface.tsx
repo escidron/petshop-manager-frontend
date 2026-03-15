@@ -37,14 +37,20 @@ import { fetchProducts } from "../../api/services/products";
 import { fetchClients } from "../../api/services/clients";
 import { getTenantServices } from "../../api/services/tenant_services";
 import CheckoutModal from "./CheckoutModal";
+import PullAppointmentDialog from "./PullAppointmentDialog";
 import type { SaleItem } from "./schemas";
 import { toast } from "react-toastify";
+import type { Appointment } from "../appointments/types";
 
 export default function POSInterface() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [selectedAppointmentId, setSelectedAppointmentId] = useState<
+    number | null
+  >(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [categoryTab, setCategoryTab] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
@@ -160,6 +166,29 @@ export default function POSInterface() {
   const clearCart = () => {
     setCart([]);
     setSelectedClientId(null);
+    setSelectedAppointmentId(null);
+  };
+
+  const handlePullAppointment = (appointment: Appointment) => {
+    // 1. Set client
+    setSelectedClientId(appointment.client.id);
+    setSelectedAppointmentId(appointment.id);
+
+    // 2. Map services to cart items
+    const newItems: SaleItem[] = appointment.items.flatMap((item) =>
+      item.services.map((s) => ({
+        item_id: s.id,
+        item_type: "service" as const,
+        name: `${s.name} (${item.pet.name})`,
+        quantity: 1,
+        unit_price: s.price_cents / 100,
+        subtotal: s.price_cents / 100,
+      })),
+    );
+
+    setCart(newItems);
+    setIsPullDialogOpen(false);
+    toast.success(`Agendamento de ${appointment.client.name} carregado.`);
   };
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
@@ -197,6 +226,28 @@ export default function POSInterface() {
             <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 1 }}>
               TICKET DE VENDA
             </Typography>
+          </Box>
+
+          <Box
+            sx={{ p: 2, borderBottom: "1px dashed", borderColor: "divider" }}
+          >
+            <Button
+              fullWidth
+              variant="outlined"
+              color="primary"
+              startIcon={<ClipboardList size={20} />}
+              onClick={() => setIsPullDialogOpen(true)}
+              sx={{
+                borderRadius: 2,
+                height: 48,
+                fontWeight: 700,
+                borderStyle: "dashed",
+                borderWidth: 2,
+                "&:hover": { borderWidth: 2 },
+              }}
+            >
+              PUXAR AGENDAMENTO DE HOJE
+            </Button>
           </Box>
 
           {/* Client Selection */}
@@ -921,9 +972,16 @@ export default function POSInterface() {
           cart={cart}
           totalAmount={cartTotal}
           clientId={selectedClientId}
+          appointmentId={selectedAppointmentId}
           onSuccess={clearCart}
         />
       )}
+
+      <PullAppointmentDialog
+        open={isPullDialogOpen}
+        onClose={() => setIsPullDialogOpen(false)}
+        onSelect={handlePullAppointment}
+      />
     </Grid>
   );
 }

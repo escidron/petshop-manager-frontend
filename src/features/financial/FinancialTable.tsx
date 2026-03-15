@@ -7,18 +7,27 @@ import {
   TableRow,
   Typography,
   Box,
+  Chip,
 } from "@mui/material";
 import CustomCard from "../../components/Card/CustomCard";
-import type { Appointment } from "../appointments/types";
-import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import dayjs from "dayjs";
-import { AppointmentStatusChip } from "../appointments/AppointmentStatusChip";
+import type { Appointment } from "../appointments/types";
+import type { SaleResponse } from "../../features/sales/schemas";
 
-type Props = {
-  appointments: Appointment[];
+type Transaction = {
+  id: string;
+  date: string;
+  client: string;
+  type: "Agendamento" | "Venda PDV";
+  amount_cents: number;
+  original: Appointment | SaleResponse;
 };
 
-export default function FinancialTable({ appointments }: Props) {
+type Props = {
+  transactions: Transaction[];
+};
+
+export default function FinancialTable({ transactions }: Props) {
   return (
     <CustomCard sx={{ p: 0, overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -29,60 +38,60 @@ export default function FinancialTable({ appointments }: Props) {
           <TableHead sx={{ backgroundColor: "secondary.main" }}>
             <TableRow>
               <TableCell sx={{ fontWeight: 600 }}>Data/Hora</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Tipo</TableCell>
               <TableCell sx={{ fontWeight: 600 }}>Cliente</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Pet(s)</TableCell>
-              <TableCell sx={{ fontWeight: 600 }}>Serviços</TableCell>
+              <TableCell sx={{ fontWeight: 600 }}>Detalhes</TableCell>
               <TableCell sx={{ fontWeight: 600 }} align="right">
                 Valor
-              </TableCell>
-              <TableCell sx={{ fontWeight: 600 }} align="center">
-                Status
               </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
-            {appointments.length === 0 ? (
+            {transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 4 }}>
                   <Typography color="text.disabled">
                     Nenhum registro encontrado para o período.
                   </Typography>
                 </TableCell>
               </TableRow>
             ) : (
-              appointments.map((appointment) => {
-                const total = getAppointmentTotal(appointment);
-                const allPets = appointment.items
-                  .map((i) => i.pet.name)
-                  .join(", ");
-                const allServices = appointment.items
-                  .flatMap((i) => i.services.map((s) => s.name))
-                  .join(", ");
+              transactions.map((t) => {
+                let details = "";
+                if (t.type === "Agendamento") {
+                  const apt = t.original as Appointment;
+                  details = apt.items
+                    .flatMap((i) => i.services.map((s) => s.name))
+                    .join(", ");
+                } else {
+                  const sale = t.original as SaleResponse;
+                  details = sale.items.map((i) => i.name).join(", ");
+                }
 
                 return (
-                  <TableRow key={appointment.id} hover>
+                  <TableRow key={t.id} hover>
                     <TableCell>
-                      {dayjs(appointment.scheduled_at).format(
-                        "DD/MM/YYYY HH:mm",
-                      )}
+                      {dayjs(t.date).format("DD/MM/YYYY HH:mm")}
                     </TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>
-                      {appointment.client.name}
-                    </TableCell>
-                    <TableCell>{allPets}</TableCell>
                     <TableCell>
-                      <Typography variant="body2" noWrap sx={{ maxWidth: 250 }}>
-                        {allServices}
+                      <Chip
+                        label={t.type}
+                        size="small"
+                        color={t.type === "Agendamento" ? "primary" : "info"}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>{t.client}</TableCell>
+                    <TableCell>
+                      <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>
+                        {details}
                       </Typography>
                     </TableCell>
                     <TableCell align="right" sx={{ fontWeight: 600 }}>
-                      {(total / 100).toLocaleString("pt-BR", {
+                      {(t.amount_cents / 100).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",
                       })}
-                    </TableCell>
-                    <TableCell align="center">
-                      <AppointmentStatusChip status={appointment.status} />
                     </TableCell>
                   </TableRow>
                 );

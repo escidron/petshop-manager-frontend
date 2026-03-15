@@ -34,6 +34,7 @@ interface CheckoutModalProps {
   cart: SaleItem[];
   totalAmount: number;
   clientId: number | null;
+  appointmentId?: number | null;
   onSuccess: () => void;
 }
 
@@ -43,6 +44,7 @@ export default function CheckoutModal({
   cart,
   totalAmount,
   clientId,
+  appointmentId,
   onSuccess,
 }: CheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] =
@@ -55,6 +57,7 @@ export default function CheckoutModal({
       toast.success("Venda finalizada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["appointments"] }); // Added to refresh agenda
       onSuccess();
       onClose();
     },
@@ -66,6 +69,7 @@ export default function CheckoutModal({
   const handleCheckout = () => {
     const payload: SaleCreate = {
       client_id: clientId,
+      appointment_id: appointmentId,
       total_amount: totalAmount,
       payment_method: paymentMethod,
       status: "completed",

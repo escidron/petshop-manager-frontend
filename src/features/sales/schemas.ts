@@ -12,6 +12,7 @@ export const SaleItemSchema = z.object({
 export const SaleCreateSchema = z.object({
   client_id: z.number().nullable().optional(),
   pet_id: z.number().nullable().optional(),
+  appointment_id: z.number().nullable().optional(),
   total_amount: z.number().min(0),
   payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other"]),
   status: z.enum(["completed", "canceled"]).default("completed"),
@@ -26,4 +27,7 @@ export interface SaleResponse extends SaleCreate {
   tenant_id: number;
   created_at: string;
   items: (SaleItem & { id: number; sale_id: number })[];
+  client?: { id: number; name: string };
+  pet?: { id: number; name: string };
+  appointment_id?: number | null;
 }
