@@ -83,19 +83,25 @@ export default function InventoryPage() {
     setIsModalOpen(true);
   };
 
-  const getLogTypeLabel = (type: string) => {
-    switch (type) {
-      case "in":
-        return <Chip label="Entrada" size="small" color="success" />;
-      case "out":
-        return <Chip label="Saída" size="small" color="error" />;
-      case "sale":
-        return <Chip label="Venda" size="small" color="info" />;
-      case "adjustment":
-        return <Chip label="Ajuste" size="small" color="warning" />;
-      default:
-        return <Chip label={type} size="small" />;
+  const getLogTypeLabel = (quantity: number) => {
+    if (quantity > 0) {
+      return (
+        <Chip
+          label="Entrada"
+          size="small"
+          color="success"
+          variant="outlined"
+        />
+      );
     }
+    return (
+      <Chip
+        label="Saída"
+        size="small"
+        color="error"
+        variant="outlined"
+      />
+    );
   };
 
   return (
@@ -260,7 +266,9 @@ export default function InventoryPage() {
                       <TableCell>
                         {log.product_name || `Produto #${log.product_id}`}
                       </TableCell>
-                      <TableCell>{getLogTypeLabel(log.log_type)}</TableCell>
+                      <TableCell>
+                        {getLogTypeLabel(log.quantity_changed)}
+                      </TableCell>
                       <TableCell align="center">
                         <Typography
                           fontWeight="bold"

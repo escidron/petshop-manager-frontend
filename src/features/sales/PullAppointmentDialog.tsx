@@ -32,17 +32,23 @@ export default function PullAppointmentDialog({
     queryFn: getAppointmentsByTenant,
   });
 
-  // Filter for today's confirmed, in-progress or completed appointments
-  const pullableAppointments = allAppointments.filter((apt) => {
-    // Check if scheduled for today or created today (to be safe)
-    const scheduledDate = dayjs(apt.scheduled_at);
-    const isToday = scheduledDate.isSame(dayjs(), "day");
+  // Filter for confirmed, in-progress or completed appointments that are recent (today or yesterday)
+  const pullableAppointments = allAppointments
+    .filter((apt) => {
+      const scheduledDate = dayjs(apt.scheduled_at);
+      // Include appointments from today or yesterday to be more flexible with timezones/late work
+      const isRecent = scheduledDate.isAfter(
+        dayjs().subtract(1, "day").startOf("day"),
+      );
 
-    const isPullableStatus = ["confirmed", "in_progress", "completed"].includes(
-      apt.status,
-    );
-    return isToday && isPullableStatus;
-  });
+      const isPullableStatus = [
+        "confirmed",
+        "in_progress",
+        "completed",
+      ].includes(apt.status);
+      return isRecent && isPullableStatus;
+    })
+    .sort((a, b) => dayjs(b.scheduled_at).diff(dayjs(a.scheduled_at)));
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
