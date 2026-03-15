@@ -864,7 +864,7 @@ export default function POSInterface() {
                               display: "flex",
                               alignItems: "center",
                               justifyContent: "center",
-                              color: "secondary.main",
+                              color: "primary.main",
                               flexShrink: 0,
                             }}
                           >
@@ -887,7 +887,7 @@ export default function POSInterface() {
                           >
                             R$ {((service.price_cents || 0) / 100).toFixed(2)}
                           </Typography>
-                          <IconButton size="small" color="secondary">
+                          <IconButton size="small" color="primary">
                             <Plus size={18} />
                           </IconButton>
                         </Paper>
