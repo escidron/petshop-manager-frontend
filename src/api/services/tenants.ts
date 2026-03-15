@@ -16,6 +16,14 @@ export const createTenant = async (
     return response.data;
 };
 
+export const updateTenant = async (tenantId: number, payload: Partial<TenantFormData>) => {
+    const response = await apiClient.patch(
+        `/api/v1/tenants/${tenantId}`,
+        payload,
+    );
+    return response.data;
+};
+
 export const updateTenantOnboardingStep = async ( step: OnboardingStep) => {
     const response = await apiClient.patch<string>(
         `/api/v1/onboarding/step`,

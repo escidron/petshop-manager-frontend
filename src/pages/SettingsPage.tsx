@@ -17,6 +17,11 @@ import {
   TextField,
   CircularProgress,
   IconButton,
+  FormControl,
+  FormLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 import {
   Settings,
@@ -27,10 +32,18 @@ import {
   TrendingUp,
   X,
   Lock,
+  QrCode,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
+import { maskPhone } from "../utils/masks";
+import { useForm, Controller } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { tenantSchema } from "../features/tenants/schemas";
+import type { TenantFormData } from "../features/tenants/types";
+import { updateTenant } from "../api/services/tenants";
+import CustomTextField from "../components/Textfield/CustomTextfield";
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -58,13 +71,37 @@ const SettingsPage = () => {
   const [searchParams] = useSearchParams();
   const [value, setValue] = useState(0);
   const [openCheckout, setOpenCheckout] = useState(false);
+  const [openTenantEdit, setOpenTenantEdit] = useState(false);
   const [upgrading, setUpgrading] = useState(false);
-  const { tenant, user } = useAuth();
+  const [savingTenant, setSavingTenant] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">("card");
+  const { tenant, user, setTenant } = useAuth();
+
+  const {
+    control,
+    handleSubmit,
+    reset,
+    formState: { errors },
+  } = useForm<TenantFormData>({
+    resolver: zodResolver(tenantSchema),
+    defaultValues: {
+      name: tenant?.name || "",
+      phone: tenant?.phone || "",
+    },
+  });
+
+  useEffect(() => {
+    if (tenant) {
+      reset({
+        name: tenant.name,
+        phone: tenant.phone,
+      });
+    }
+  }, [tenant, reset]);
 
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "billing") {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setValue(1);
     }
   }, [searchParams]);
@@ -91,6 +128,21 @@ const SettingsPage = () => {
         "Upgrade simulado com sucesso! Em uma integração real, aqui processaríamos o pagamento via Stripe.",
       );
     }, 2000);
+  };
+
+  const onSaveTenant = async (data: TenantFormData) => {
+    if (!tenant) return;
+    setSavingTenant(true);
+    try {
+      const updatedTenant = await updateTenant(tenant.id, data);
+      setTenant({ ...tenant, ...updatedTenant });
+      setOpenTenantEdit(false);
+    } catch (error) {
+      console.error("Failed to update tenant:", error);
+      alert("Erro ao atualizar informações da empresa.");
+    } finally {
+      setSavingTenant(false);
+    }
   };
 
   return (
@@ -166,11 +218,15 @@ const SettingsPage = () => {
                         Telefone de Contato
                       </Typography>
                       <Typography variant="body1">
-                        {tenant?.phone || "Não informado"}
+                        {maskPhone(tenant?.phone) || "Não informado"}
                       </Typography>
                     </Box>
                     <Box>
-                      <Button variant="outlined" size="small">
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setOpenTenantEdit(true)}
+                      >
                         Editar Informações
                       </Button>
                     </Box>
@@ -352,23 +408,117 @@ const SettingsPage = () => {
                 </Paper>
 
                 <Paper sx={{ p: 3, borderRadius: 3 }}>
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    Método de Pagamento
-                  </Typography>
-                  <Typography
-                    variant="body2"
-                    color="text.primary"
-                    sx={{ mb: 2 }}
-                  >
-                    Nenhum cartão cadastrado.
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    startIcon={<CreditCard size={18} />}
-                    onClick={() => setOpenCheckout(true)}
-                  >
-                    Adicionar Cartão
-                  </Button>
+                  <Stack spacing={3}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Typography variant="h6" fontWeight={700}>
+                        Método de Pagamento
+                      </Typography>
+                      <Stack direction="row" spacing={1}>
+                        <Button
+                          size="small"
+                          variant={
+                            paymentMethod === "card" ? "contained" : "text"
+                          }
+                          onClick={() => setPaymentMethod("card")}
+                          startIcon={<CreditCard size={16} />}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Cartão
+                        </Button>
+                        <Button
+                          size="small"
+                          variant={
+                            paymentMethod === "pix" ? "contained" : "text"
+                          }
+                          onClick={() => setPaymentMethod("pix")}
+                          startIcon={<QrCode size={16} />}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          PIX
+                        </Button>
+                      </Stack>
+                    </Box>
+
+                    {paymentMethod === "card" ? (
+                      <Box>
+                        <Stack
+                          direction="row"
+                          spacing={2}
+                          alignItems="center"
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: "rgba(0,0,0,0.02)",
+                            border: "1px dashed rgba(0,0,0,0.1)",
+                            mb: 2,
+                          }}
+                        >
+                          <CreditCard size={24} color="gray" />
+                          <Typography variant="body2" color="text.primary">
+                            Nenhum cartão cadastrado.
+                          </Typography>
+                        </Stack>
+                        <Button
+                          variant="outlined"
+                          fullWidth
+                          startIcon={<CreditCard size={18} />}
+                          onClick={() => setOpenCheckout(true)}
+                        >
+                          Adicionar Cartão
+                        </Button>
+                      </Box>
+                    ) : (
+                      <Box>
+                        <Stack
+                          spacing={2}
+                          sx={{
+                            p: 2,
+                            borderRadius: 2,
+                            bgcolor: "rgba(111,66,193,0.03)",
+                            border: "1px solid rgba(111,66,193,0.1)",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              gap: 2,
+                              alignItems: "center",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                p: 1,
+                                bgcolor: "primary.main",
+                                borderRadius: 1.5,
+                                color: "white",
+                                display: "flex",
+                              }}
+                            >
+                              <QrCode size={24} />
+                            </Box>
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight={800}>
+                                Pagamento via PIX selecionado
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.primary"
+                              >
+                                As faturas serão geradas mensalmente com QR Code
+                                para pagamento.
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Stack>
+                      </Box>
+                    )}
+                  </Stack>
                 </Paper>
               </Stack>
             </Grid>
@@ -621,6 +771,99 @@ const SettingsPage = () => {
           </Box>
         </Fade>
       </Modal>
+      {/* --- MODAL DE EDIÇÃO DO TENANT --- */}
+      <Dialog
+        open={openTenantEdit}
+        onClose={() => !savingTenant && setOpenTenantEdit(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+        >
+          <Typography variant="h5">Editar Empresa</Typography>
+          <Box sx={{ cursor: "pointer" }}>
+            <X
+              onClick={() => !savingTenant && setOpenTenantEdit(false)}
+              size={24}
+            />
+          </Box>
+        </DialogTitle>
+
+        <DialogContent dividers>
+          <form onSubmit={handleSubmit(onSaveTenant)}>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Nome do Petshop
+                </FormLabel>
+                <Controller
+                  name="name"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      error={!!errors.name}
+                      helperText={errors.name?.message}
+                      placeholder="Nome da sua empresa"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Telefone de Contato
+                </FormLabel>
+                <Controller
+                  name="phone"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      value={maskPhone(field.value)}
+                      error={!!errors.phone}
+                      helperText={errors.phone?.message}
+                      placeholder="(00) 00000-0000"
+                      onChange={(e) =>
+                        field.onChange(maskPhone(e.target.value))
+                      }
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                  gap: 2,
+                  mt: 1,
+                }}
+              >
+                <Button
+                  variant="text"
+                  onClick={() => setOpenTenantEdit(false)}
+                  disabled={savingTenant}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="contained"
+                  type="submit"
+                  disabled={savingTenant}
+                >
+                  {savingTenant ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Salvar Alterações"
+                  )}
+                </Button>
+              </Box>
+            </Stack>
+          </form>
+        </DialogContent>
+      </Dialog>
     </Box>
   );
 };
