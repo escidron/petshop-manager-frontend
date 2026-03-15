@@ -140,6 +140,20 @@ export default function PullAppointmentDialog({
                         variant="outlined"
                         sx={{ height: 20, fontSize: "0.65rem" }}
                       />
+                      {apt.status === "completed" && !apt.is_paid && (
+                        <Chip
+                          label="PAGAMENTO PENDENTE"
+                          size="small"
+                          color="error"
+                          variant="filled"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.65rem",
+                            fontWeight: 900,
+                            animation: "pulse 2s infinite",
+                          }}
+                        />
+                      )}
                     </Box>
                     <Typography
                       variant="subtitle2"

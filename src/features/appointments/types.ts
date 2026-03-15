@@ -79,6 +79,7 @@ export type Appointment = {
 
   client: Client;
   items: AppointmentItem[];
+  is_paid: boolean;
 
   created_at: string;
 };

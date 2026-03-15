@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const SaleItemSchema = z.object({
-  item_type: z.enum(["product", "service"]),
+  item_type: z.enum(["product", "service", "package"]),
   item_id: z.number(),
   name: z.string(),
   quantity: z.number().min(1),

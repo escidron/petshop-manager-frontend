@@ -31,11 +31,13 @@ import {
   LayoutGrid,
   List as ListIcon,
 } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { fetchProducts } from "../../api/services/products";
 import { fetchClients } from "../../api/services/clients";
 import { getTenantServices } from "../../api/services/tenant_services";
+import { listPackages } from "../../api/services/packages";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
 import type { SaleItem } from "./schemas";
@@ -43,6 +45,9 @@ import { toast } from "react-toastify";
 import type { Appointment } from "../appointments/types";
 
 export default function POSInterface() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const hasPulled = useRef(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
@@ -70,6 +75,11 @@ export default function POSInterface() {
     queryFn: fetchClients,
   });
 
+  const { data: packages = [] } = useQuery({
+    queryKey: ["packages"],
+    queryFn: listPackages,
+  });
+
   // Calculate cart total
   const cartTotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
 
@@ -90,6 +100,14 @@ export default function POSInterface() {
     );
   }, [services, searchTerm]);
 
+  const filteredPackages = useMemo(() => {
+    return packages.filter(
+      (pkg) =>
+        pkg.is_active &&
+        pkg.name.toLowerCase().includes(searchTerm.toLowerCase()),
+    );
+  }, [packages, searchTerm]);
+
   // Handlers
   const handleAddItem = (
     item: {
@@ -98,7 +116,7 @@ export default function POSInterface() {
       price_cents?: number;
       quantity?: number;
     },
-    type: "product" | "service",
+    type: "product" | "service" | "package",
   ) => {
     const price = (item.price_cents || 0) / 100;
 
@@ -190,6 +208,17 @@ export default function POSInterface() {
     setIsPullDialogOpen(false);
     toast.success(`Agendamento de ${appointment.client.name} carregado.`);
   };
+
+  // Auto-pull appointment if coming from Agenda
+  useEffect(() => {
+    const state = location.state as { pullAppointment?: Appointment } | null;
+    if (state?.pullAppointment && !hasPulled.current) {
+      handlePullAppointment(state.pullAppointment);
+      hasPulled.current = true;
+      // Clear state to avoid re-pulling on refresh
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location, navigate]);
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
@@ -492,6 +521,7 @@ export default function POSInterface() {
                 <Tab label="Todos" />
                 <Tab label="Produtos" />
                 <Tab label="Serviços" />
+                <Tab label="Pacotes" />
               </Tabs>
 
               <Divider
@@ -949,9 +979,210 @@ export default function POSInterface() {
               </Box>
             )}
 
+          {(categoryTab === 0 || categoryTab === 3) &&
+            filteredPackages.length > 0 && (
+              <Box sx={{ mt: 4 }}>
+                <Typography
+                  variant="overline"
+                  sx={{
+                    fontWeight: 800,
+                    color: "primary.main",
+                    mb: 2,
+                    display: "block",
+                  }}
+                >
+                  Pacotes de Serviços / Produtos
+                </Typography>
+                <Grid container spacing={viewMode === "grid" ? 2 : 1}>
+                  {filteredPackages.map((pkg) => (
+                    <Grid
+                      size={
+                        viewMode === "grid"
+                          ? { xs: 12, sm: 6, md: 4, lg: 3 }
+                          : { xs: 12 }
+                      }
+                      key={`pkg-${pkg.id}`}
+                    >
+                      {viewMode === "grid" ? (
+                        <Paper
+                          elevation={0}
+                          onClick={() => handleAddItem(pkg, "package")}
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            cursor: "pointer",
+                            height: "100%",
+                            display: "flex",
+                            flexDirection: "column",
+                            position: "relative",
+                            transition: "all 0.2s ease-in-out",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              transform: "translateY(-4px)",
+                              boxShadow: "0 8px 24px rgba(0,0,0,0.06)",
+                              "& .add-btn-p": {
+                                bgcolor: "primary.main",
+                                color: "white",
+                              },
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              mb: 1.5,
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "flex-start",
+                            }}
+                          >
+                            <Box
+                              sx={{
+                                width: 36,
+                                height: 36,
+                                borderRadius: 1.5,
+                                bgcolor: alpha("#ff9800", 0.08),
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                color: "#ff9800",
+                              }}
+                            >
+                              <Tag size={18} />
+                            </Box>
+                            <Chip
+                              label="PACOTE"
+                              size="small"
+                              sx={{
+                                fontSize: "0.65rem",
+                                fontWeight: 900,
+                                bgcolor: alpha("#ff9800", 0.1),
+                                color: "#ff9800",
+                                border: "none",
+                              }}
+                            />
+                          </Box>
+
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 700,
+                              mb: 0.5,
+                              color: "text.primary",
+                            }}
+                          >
+                            {pkg.name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.primary"
+                            sx={{
+                              mb: 2,
+                              flexGrow: 1,
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              overflow: "hidden",
+                            }}
+                          >
+                            {pkg.description || "Combo promocional"}
+                          </Typography>
+
+                          <Box
+                            sx={{
+                              display: "flex",
+                              justifyContent: "space-between",
+                              alignItems: "center",
+                              mt: "auto",
+                            }}
+                          >
+                            <Typography
+                              variant="subtitle2"
+                              sx={{ fontWeight: 800, color: "primary.main" }}
+                            >
+                              R$ {((pkg.price_cents || 0) / 100).toFixed(2)}
+                            </Typography>
+                            <IconButton
+                              size="small"
+                              className="add-btn-p"
+                              sx={{
+                                transition: "all 0.2s",
+                                bgcolor: alpha("#1976d2", 0.04),
+                              }}
+                            >
+                              <Plus size={18} />
+                            </IconButton>
+                          </Box>
+                        </Paper>
+                      ) : (
+                        <Paper
+                          elevation={0}
+                          onClick={() => handleAddItem(pkg, "package")}
+                          sx={{
+                            p: 1.5,
+                            borderRadius: 2,
+                            cursor: "pointer",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            border: "1px solid",
+                            borderColor: "divider",
+                            bgcolor: "background.paper",
+                            "&:hover": {
+                              borderColor: "primary.main",
+                              boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                            },
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              width: 32,
+                              height: 32,
+                              borderRadius: 1,
+                              bgcolor: alpha("#ff9800", 0.08),
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: "#ff9800",
+                              flexShrink: 0,
+                            }}
+                          >
+                            <Tag size={18} />
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{ fontWeight: 700, flexGrow: 1 }}
+                          >
+                            {pkg.name}
+                          </Typography>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: 800,
+                              color: "primary.main",
+                              minWidth: 80,
+                              textAlign: "right",
+                            }}
+                          >
+                            R$ {((pkg.price_cents || 0) / 100).toFixed(2)}
+                          </Typography>
+                          <IconButton size="small" color="primary">
+                            <Plus size={18} />
+                          </IconButton>
+                        </Paper>
+                      )}
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
+            )}
+
           {searchTerm &&
             filteredProducts.length === 0 &&
-            filteredServices.length === 0 && (
+            filteredServices.length === 0 &&
+            filteredPackages.length === 0 && (
               <Box sx={{ textAlign: "center", mt: 10 }}>
                 <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
                 <Typography variant="h6" color="text.secondary">

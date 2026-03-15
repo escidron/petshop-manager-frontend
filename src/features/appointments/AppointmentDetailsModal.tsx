@@ -7,6 +7,7 @@ import {
   Divider,
   Typography,
 } from "@mui/material";
+import { useNavigate } from "react-router-dom";
 import {
   CalendarCheck,
   Check,
@@ -15,6 +16,7 @@ import {
   Mars,
   Pencil,
   Play,
+  ShoppingCart,
   Venus,
   X,
 } from "lucide-react";
@@ -41,6 +43,7 @@ const AppointmentDetailsModal = ({
   handleAction,
   onEdit,
 }: Props) => {
+  const navigate = useNavigate();
   const totalCents = getAppointmentTotal(appointment);
 
   const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
@@ -202,6 +205,42 @@ const AppointmentDetailsModal = ({
                       >
                         Finalizar
                       </Button>
+                    </Box>
+                  </>
+                )}
+                {appointment.status === "completed" && (
+                  <>
+                    <Divider sx={{ my: 1 }} />
+                    <Box
+                      sx={{
+                        display: "flex",
+                        justifyContent: "flex-end",
+                        gap: 1,
+                      }}
+                    >
+                      {!appointment.is_paid ? (
+                        <Button
+                          size="small"
+                          color="primary"
+                          variant="contained"
+                          startIcon={<ShoppingCart size={16} />}
+                          onClick={() => {
+                            navigate("/pos", {
+                              state: { pullAppointment: appointment },
+                            });
+                          }}
+                        >
+                          Cobrar no Caixa
+                        </Button>
+                      ) : (
+                        <Chip
+                          label="PAGO"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                          sx={{ fontWeight: 900, px: 1 }}
+                        />
+                      )}
                     </Box>
                   </>
                 )}
