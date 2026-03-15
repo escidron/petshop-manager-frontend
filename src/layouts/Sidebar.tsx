@@ -140,7 +140,10 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     >
       <Box sx={{ overflowY: "auto", flexGrow: 1 }}>
         {menuSections.map((section, index) => (
-          <Box key={section.title} sx={{ mt: index === 0 ? 1 : 2, mb: 1 }}>
+          <Box
+            key={section.title}
+            sx={{ mt: index === 0 ? 0.5 : 1.5, mb: 0.5 }}
+          >
             {!collapsed && (
               <Typography
                 variant="caption"
@@ -149,7 +152,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                   opacity: 0.5,
                   fontWeight: 700,
                   px: 2.5,
-                  mb: 0.5,
+                  mb: 0.25,
                   display: "block",
                   letterSpacing: 1.2,
                 }}

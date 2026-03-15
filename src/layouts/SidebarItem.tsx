@@ -50,6 +50,7 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
       <ListItemButton
         onClick={handleClick}
         sx={{
+          py: 0.75,
           pl: 2 + depth * 2,
           gap: 1,
           color: "text.secondary",
