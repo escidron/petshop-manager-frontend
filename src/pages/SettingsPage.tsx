@@ -36,6 +36,7 @@ import {
   QrCode,
   Users,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
@@ -51,6 +52,7 @@ import { updateTenant, updateSubscription } from "../api/services/tenants";
 import {
   listTenantUsers,
   createTenantUser,
+  removeTenantUser,
   type TenantUserResponse,
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
@@ -100,6 +102,8 @@ const SettingsPage = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [openCreateUser, setOpenCreateUser] = useState(false);
   const [creatingUser, setCreatingUser] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<TenantUserResponse | null>(null);
+  const [deletingUser, setDeletingUser] = useState(false);
 
   const {
     control: controlCreateUser,
@@ -220,6 +224,21 @@ const SettingsPage = () => {
       alert("Erro ao atualizar informações da empresa.");
     } finally {
       setSavingTenant(false);
+    }
+  };
+
+  const onDeleteUser = async () => {
+    if (!userToDelete) return;
+    setDeletingUser(true);
+    try {
+      await removeTenantUser(userToDelete.id);
+      setTenantUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
+      setUserToDelete(null);
+      toast.success("Usuário removido com sucesso!");
+    } catch {
+      toast.error("Erro ao remover usuário.");
+    } finally {
+      setDeletingUser(false);
     }
   };
 
@@ -794,14 +813,25 @@ const SettingsPage = () => {
                               </Typography>
                             </Box>
                           </Box>
-                          <Chip
-                            label={
-                              u.role === "owner" ? "Proprietário" : "Funcionário"
-                            }
-                            color={u.role === "owner" ? "primary" : "default"}
-                            size="small"
-                            sx={{ fontWeight: 700 }}
-                          />
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Chip
+                              label={
+                                u.role === "owner" ? "Proprietário" : "Funcionário"
+                              }
+                              color={u.role === "owner" ? "primary" : "default"}
+                              size="small"
+                              sx={{ fontWeight: 700 }}
+                            />
+                            {u.id !== Number(user?.id) && (
+                              <IconButton
+                                size="small"
+                                onClick={() => setUserToDelete(u)}
+                                sx={{ color: "error.main" }}
+                              >
+                                <Trash2 size={16} />
+                              </IconButton>
+                            )}
+                          </Box>
                         </Box>
                         {i < tenantUsers.length - 1 && <Divider />}
                       </React.Fragment>
@@ -930,6 +960,44 @@ const SettingsPage = () => {
               </Box>
             </Stack>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- DIALOG CONFIRMAR EXCLUSÃO --- */}
+      <Dialog
+        open={!!userToDelete}
+        onClose={() => !deletingUser && setUserToDelete(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Remover Usuário</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja remover{" "}
+            <strong>{userToDelete?.name}</strong> do sistema? O acesso será
+            revogado imediatamente.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+            <Button
+              variant="text"
+              onClick={() => setUserToDelete(null)}
+              disabled={deletingUser}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={onDeleteUser}
+              disabled={deletingUser}
+            >
+              {deletingUser ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "Remover"
+              )}
+            </Button>
+          </Box>
         </DialogContent>
       </Dialog>
 

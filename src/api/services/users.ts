@@ -70,3 +70,7 @@ export const createTenantUser = async (
   );
   return response.data;
 };
+
+export const removeTenantUser = async (userId: number): Promise<void> => {
+  await apiClient.delete(`/api/v1/tenants/users/${userId}`);
+};
