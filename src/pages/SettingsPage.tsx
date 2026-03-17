@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Typography,
@@ -22,6 +22,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Select,
+  MenuItem,
 } from "@mui/material";
 import {
   Settings,
@@ -32,17 +34,35 @@ import {
   X,
   Lock,
   QrCode,
+  Users,
+  Plus,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { usePermission } from "../hooks/usePermission";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
 import { maskPhone } from "../utils/masks";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import { tenantSchema } from "../features/tenants/schemas";
 import type { TenantFormData } from "../features/tenants/types";
 import { updateTenant, updateSubscription } from "../api/services/tenants";
+import {
+  listTenantUsers,
+  createTenantUser,
+  type TenantUserResponse,
+} from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
+import { toast } from "react-toastify";
+
+const createUserSchema = z.object({
+  name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
+  email: z.string().email("E-mail inválido"),
+  password: z.string().min(6, "Senha deve ter no mínimo 6 caracteres").max(40),
+  role: z.enum(["owner", "employee"]),
+});
+type CreateUserFormData = z.infer<typeof createUserSchema>;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -74,6 +94,38 @@ const SettingsPage = () => {
   const [upgrading, setUpgrading] = useState(false);
   const [savingTenant, setSavingTenant] = useState(false);
   const { tenant, user, setTenant } = useAuth();
+  const { isOwner } = usePermission();
+
+  const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [openCreateUser, setOpenCreateUser] = useState(false);
+  const [creatingUser, setCreatingUser] = useState(false);
+
+  const {
+    control: controlCreateUser,
+    handleSubmit: handleSubmitCreateUser,
+    formState: { errors: createUserErrors },
+    reset: resetCreateUser,
+  } = useForm<CreateUserFormData>({
+    resolver: zodResolver(createUserSchema),
+    defaultValues: { name: "", email: "", password: "", role: "employee" },
+  });
+
+  const tabConfig = useMemo(
+    () => [
+      { id: "general", label: "Geral", icon: <Settings size={18} /> },
+      ...(isOwner
+        ? [{ id: "billing", label: "Planos e Cobrança", icon: <CreditCard size={18} /> }]
+        : []),
+      { id: "profile", label: "Perfil", icon: <User size={18} /> },
+      ...(isOwner
+        ? [{ id: "users", label: "Usuários", icon: <Users size={18} /> }]
+        : []),
+    ],
+    [isOwner],
+  );
+
+  const getTabIndex = (id: string) => tabConfig.findIndex((t) => t.id === id);
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">(
     (tenant?.subscription?.payment_method as "card" | "pix") ?? "card",
@@ -118,11 +170,19 @@ const SettingsPage = () => {
   useEffect(() => {
     const tab = searchParams.get("tab");
     if (tab === "billing") {
-      setValue(1);
+      setValue(isOwner ? getTabIndex("billing") : 0);
     } else if (tab !== null && !isNaN(Number(tab))) {
       setValue(Number(tab));
     }
-  }, [searchParams]);
+  }, [searchParams, isOwner]);
+
+  useEffect(() => {
+    if (!isOwner) return;
+    setLoadingUsers(true);
+    listTenantUsers()
+      .then(setTenantUsers)
+      .finally(() => setLoadingUsers(false));
+  }, [isOwner]);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -163,6 +223,21 @@ const SettingsPage = () => {
     }
   };
 
+  const onCreateUser = async (data: CreateUserFormData) => {
+    setCreatingUser(true);
+    try {
+      const newUser = await createTenantUser(data);
+      setTenantUsers((prev) => [...prev, newUser]);
+      setOpenCreateUser(false);
+      resetCreateUser();
+      toast.success("Usuário criado com sucesso!");
+    } catch {
+      toast.error("Erro ao criar usuário. Verifique os dados e tente novamente.");
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: 1000, margin: "0 auto" }}>
       <Stack spacing={4}>
@@ -185,26 +260,19 @@ const SettingsPage = () => {
             }}
             indicatorColor="primary"
           >
-            <Tab
-              icon={<Settings size={18} />}
-              iconPosition="start"
-              label="Geral"
-            />
-            <Tab
-              icon={<CreditCard size={18} />}
-              iconPosition="start"
-              label="Planos e Cobrança"
-            />
-            <Tab
-              icon={<User size={18} />}
-              iconPosition="start"
-              label="Perfil"
-            />
+            {tabConfig.map((tab) => (
+              <Tab
+                key={tab.id}
+                icon={tab.icon}
+                iconPosition="start"
+                label={tab.label}
+              />
+            ))}
           </Tabs>
         </Box>
 
         {/* --- ABA GERAL --- */}
-        <CustomTabPanel value={value} index={0}>
+        <CustomTabPanel value={value} index={getTabIndex("general")}>
           <Grid container spacing={3}>
             <Grid size={{ xs: 12, md: 8 }}>
               <Paper sx={{ p: 3, borderRadius: 3 }}>
@@ -250,8 +318,8 @@ const SettingsPage = () => {
           </Grid>
         </CustomTabPanel>
 
-        {/* --- ABA PLANOS E COBRANÇA --- */}
-        <CustomTabPanel value={value} index={1}>
+        {/* --- ABA PLANOS E COBRANÇA (owner only) --- */}
+        {isOwner && <CustomTabPanel value={value} index={getTabIndex("billing")}>
           <Grid container spacing={4}>
             <Grid size={{ xs: 12, md: 7 }}>
               <Stack spacing={3}>
@@ -595,10 +663,10 @@ const SettingsPage = () => {
               </Paper>
             </Grid>
           </Grid>
-        </CustomTabPanel>
+        </CustomTabPanel>}
 
         {/* --- ABA PERFIL --- */}
-        <CustomTabPanel value={value} index={2}>
+        <CustomTabPanel value={value} index={getTabIndex("profile")}>
           <Paper sx={{ p: 3, borderRadius: 3, maxWidth: 600 }}>
             <Stack spacing={3}>
               <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
@@ -634,7 +702,7 @@ const SettingsPage = () => {
                       fontWeight: 700,
                     }}
                   >
-                    {user?.role?.toUpperCase()}
+                    {user?.role === "owner" ? "PROPRIETÁRIO" : "FUNCIONÁRIO"}
                   </Typography>
                 </Box>
               </Box>
@@ -645,7 +713,225 @@ const SettingsPage = () => {
             </Stack>
           </Paper>
         </CustomTabPanel>
+
+        {/* --- ABA USUÁRIOS (owner only) --- */}
+        {isOwner && (
+          <CustomTabPanel value={value} index={getTabIndex("users")}>
+            <Stack spacing={3}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <Box>
+                  <Typography variant="h6" fontWeight={700}>
+                    Usuários do Sistema
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Gerencie quem tem acesso ao Petshop Manager.
+                  </Typography>
+                </Box>
+                <Button
+                  variant="contained"
+                  startIcon={<Plus size={18} />}
+                  onClick={() => setOpenCreateUser(true)}
+                  sx={{ borderRadius: 2 }}
+                >
+                  Novo Usuário
+                </Button>
+              </Box>
+
+              {loadingUsers ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : (
+                <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
+                  {tenantUsers.length === 0 ? (
+                    <Box sx={{ p: 4, textAlign: "center" }}>
+                      <Typography color="text.secondary">
+                        Nenhum usuário cadastrado ainda.
+                      </Typography>
+                    </Box>
+                  ) : (
+                    tenantUsers.map((u, i) => (
+                      <React.Fragment key={u.id}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                          }}
+                        >
+                          <Box
+                            sx={{ display: "flex", alignItems: "center", gap: 2 }}
+                          >
+                            <Box
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: "50%",
+                                bgcolor:
+                                  u.role === "owner"
+                                    ? "primary.main"
+                                    : "secondary.main",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                              }}
+                            >
+                              <User size={20} color="white" />
+                            </Box>
+                            <Box>
+                              <Typography variant="subtitle2" fontWeight={700}>
+                                {u.name}
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                {u.email}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Chip
+                            label={
+                              u.role === "owner" ? "Proprietário" : "Funcionário"
+                            }
+                            color={u.role === "owner" ? "primary" : "default"}
+                            size="small"
+                            sx={{ fontWeight: 700 }}
+                          />
+                        </Box>
+                        {i < tenantUsers.length - 1 && <Divider />}
+                      </React.Fragment>
+                    ))
+                  )}
+                </Paper>
+              )}
+            </Stack>
+          </CustomTabPanel>
+        )}
       </Stack>
+
+      {/* --- DIALOG CRIAR USUÁRIO --- */}
+      <Dialog
+        open={openCreateUser}
+        onClose={() => !creatingUser && setOpenCreateUser(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+        >
+          <Typography variant="h5">Novo Usuário</Typography>
+          <Box sx={{ cursor: "pointer" }}>
+            <X
+              onClick={() => !creatingUser && setOpenCreateUser(false)}
+              size={24}
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <form onSubmit={handleSubmitCreateUser(onCreateUser)}>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Nome
+                </FormLabel>
+                <Controller
+                  name="name"
+                  control={controlCreateUser}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      error={!!createUserErrors.name}
+                      helperText={createUserErrors.name?.message}
+                      placeholder="Nome completo"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  E-mail
+                </FormLabel>
+                <Controller
+                  name="email"
+                  control={controlCreateUser}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      error={!!createUserErrors.email}
+                      helperText={createUserErrors.email?.message}
+                      placeholder="email@exemplo.com"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Senha
+                </FormLabel>
+                <Controller
+                  name="password"
+                  control={controlCreateUser}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      type="password"
+                      error={!!createUserErrors.password}
+                      helperText={createUserErrors.password?.message}
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Função
+                </FormLabel>
+                <Controller
+                  name="role"
+                  control={controlCreateUser}
+                  render={({ field }) => (
+                    <Select {...field} size="small">
+                      <MenuItem value="employee">Funcionário</MenuItem>
+                      <MenuItem value="owner">Proprietário</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+
+              <Box
+                sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 1 }}
+              >
+                <Button
+                  variant="text"
+                  onClick={() => setOpenCreateUser(false)}
+                  disabled={creatingUser}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  variant="contained"
+                  type="submit"
+                  disabled={creatingUser}
+                >
+                  {creatingUser ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Criar Usuário"
+                  )}
+                </Button>
+              </Box>
+            </Stack>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* --- MODAL DE CHECKOUT SIMULADO --- */}
       <Modal

@@ -1,6 +1,7 @@
 import { List, Box, Typography, LinearProgress, Stack } from "@mui/material";
 import dayjs from "dayjs";
 import { useAuth } from "../hooks/useAuth";
+import { usePermission } from "../hooks/usePermission";
 import { useNavigate } from "react-router-dom";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
 import {
@@ -108,6 +109,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const navigate = useNavigate();
   const { tenant } = useAuth();
+  const { isOwner } = usePermission();
 
   const getTrialInfo = () => {
     const subscription = tenant?.subscription;
@@ -169,7 +171,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         ))}
       </Box>
 
-      {!collapsed && trialInfo && (
+      {!collapsed && trialInfo && isOwner && (
         <Box
           sx={{
             mx: 2,
