@@ -729,7 +729,7 @@ const SettingsPage = () => {
                   <Typography variant="h6" fontWeight={700}>
                     Usuários do Sistema
                   </Typography>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="body2" color="text.primary">
                     Gerencie quem tem acesso ao Petshop Manager.
                   </Typography>
                 </Box>
@@ -751,7 +751,7 @@ const SettingsPage = () => {
                 <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
                   {tenantUsers.length === 0 ? (
                     <Box sx={{ p: 4, textAlign: "center" }}>
-                      <Typography color="text.secondary">
+                      <Typography color="text.primary">
                         Nenhum usuário cadastrado ainda.
                       </Typography>
                     </Box>
@@ -789,7 +789,7 @@ const SettingsPage = () => {
                               <Typography variant="subtitle2" fontWeight={700}>
                                 {u.name}
                               </Typography>
-                              <Typography variant="caption" color="text.secondary">
+                              <Typography variant="caption" color="text.primary">
                                 {u.email}
                               </Typography>
                             </Box>
