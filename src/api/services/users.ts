@@ -74,3 +74,10 @@ export const createTenantUser = async (
 export const removeTenantUser = async (userId: number): Promise<void> => {
   await apiClient.delete(`/api/v1/tenants/users/${userId}`);
 };
+
+export const changePassword = async (payload: {
+  current_password: string;
+  new_password: string;
+}): Promise<void> => {
+  await apiClient.patch("/api/v1/users/me/password", payload);
+};

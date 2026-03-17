@@ -53,6 +53,7 @@ import {
   listTenantUsers,
   createTenantUser,
   removeTenantUser,
+  changePassword,
   type TenantUserResponse,
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
@@ -65,6 +66,18 @@ const createUserSchema = z.object({
   role: z.enum(["owner", "employee"]),
 });
 type CreateUserFormData = z.infer<typeof createUserSchema>;
+
+const changePasswordSchema = z
+  .object({
+    current_password: z.string().min(1, "Senha atual é obrigatória"),
+    new_password: z.string().min(6, "Nova senha deve ter no mínimo 6 caracteres").max(40),
+    confirm_password: z.string().min(1, "Confirmação é obrigatória"),
+  })
+  .refine((d) => d.new_password === d.confirm_password, {
+    message: "As senhas não coincidem",
+    path: ["confirm_password"],
+  });
+type ChangePasswordFormData = z.infer<typeof changePasswordSchema>;
 
 interface TabPanelProps {
   children?: React.ReactNode;
@@ -104,6 +117,18 @@ const SettingsPage = () => {
   const [creatingUser, setCreatingUser] = useState(false);
   const [userToDelete, setUserToDelete] = useState<TenantUserResponse | null>(null);
   const [deletingUser, setDeletingUser] = useState(false);
+  const [openChangePassword, setOpenChangePassword] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+
+  const {
+    control: controlPassword,
+    handleSubmit: handleSubmitPassword,
+    formState: { errors: passwordErrors },
+    reset: resetPasswordForm,
+  } = useForm<ChangePasswordFormData>({
+    resolver: zodResolver(changePasswordSchema),
+    defaultValues: { current_password: "", new_password: "", confirm_password: "" },
+  });
 
   const {
     control: controlCreateUser,
@@ -224,6 +249,23 @@ const SettingsPage = () => {
       alert("Erro ao atualizar informações da empresa.");
     } finally {
       setSavingTenant(false);
+    }
+  };
+
+  const onChangePassword = async (data: ChangePasswordFormData) => {
+    setChangingPassword(true);
+    try {
+      await changePassword({
+        current_password: data.current_password,
+        new_password: data.new_password,
+      });
+      setOpenChangePassword(false);
+      resetPasswordForm();
+      toast.success("Senha alterada com sucesso!");
+    } catch {
+      toast.error("Senha atual incorreta.");
+    } finally {
+      setChangingPassword(false);
     }
   };
 
@@ -726,7 +768,11 @@ const SettingsPage = () => {
                 </Box>
               </Box>
               <Divider />
-              <Button variant="outlined" sx={{ alignSelf: "flex-start" }}>
+              <Button
+                variant="outlined"
+                sx={{ alignSelf: "flex-start" }}
+                onClick={() => setOpenChangePassword(true)}
+              >
                 Alterar Senha
               </Button>
             </Stack>
@@ -998,6 +1044,108 @@ const SettingsPage = () => {
               )}
             </Button>
           </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- DIALOG ALTERAR SENHA --- */}
+      <Dialog
+        open={openChangePassword}
+        onClose={() => !changingPassword && setOpenChangePassword(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+        >
+          <Typography variant="h5">Alterar Senha</Typography>
+          <Box sx={{ cursor: "pointer" }}>
+            <X
+              onClick={() => !changingPassword && setOpenChangePassword(false)}
+              size={24}
+            />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <form onSubmit={handleSubmitPassword(onChangePassword)}>
+            <Stack spacing={3} sx={{ mt: 1 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Senha Atual
+                </FormLabel>
+                <Controller
+                  name="current_password"
+                  control={controlPassword}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      type="password"
+                      error={!!passwordErrors.current_password}
+                      helperText={passwordErrors.current_password?.message}
+                      placeholder="Sua senha atual"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Nova Senha
+                </FormLabel>
+                <Controller
+                  name="new_password"
+                  control={controlPassword}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      type="password"
+                      error={!!passwordErrors.new_password}
+                      helperText={passwordErrors.new_password?.message}
+                      placeholder="Mínimo 6 caracteres"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Confirmar Nova Senha
+                </FormLabel>
+                <Controller
+                  name="confirm_password"
+                  control={controlPassword}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      type="password"
+                      error={!!passwordErrors.confirm_password}
+                      helperText={passwordErrors.confirm_password?.message}
+                      placeholder="Repita a nova senha"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+                <Button
+                  variant="text"
+                  onClick={() => {
+                    setOpenChangePassword(false);
+                    resetPasswordForm();
+                  }}
+                  disabled={changingPassword}
+                >
+                  Cancelar
+                </Button>
+                <Button variant="contained" type="submit" disabled={changingPassword}>
+                  {changingPassword ? (
+                    <CircularProgress size={24} color="inherit" />
+                  ) : (
+                    "Salvar"
+                  )}
+                </Button>
+              </Box>
+            </Stack>
+          </form>
         </DialogContent>
       </Dialog>
 
