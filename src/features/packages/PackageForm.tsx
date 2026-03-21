@@ -17,7 +17,7 @@ import {
   Autocomplete,
 } from "@mui/material";
 import { Plus, X, Trash2 } from "lucide-react";
-import { useForm, useFieldArray, Controller } from "react-hook-form";
+import { useForm, useFieldArray, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createPackage, updatePackage } from "../../api/services/packages";
@@ -51,7 +51,7 @@ export default function PackageForm({
     setValue,
     formState: { errors },
   } = useForm<PackageFormData>({
-    resolver: zodResolver(packageSchema),
+    resolver: zodResolver(packageSchema) as Resolver<PackageFormData>,
     defaultValues: {
       name: "",
       description: "",

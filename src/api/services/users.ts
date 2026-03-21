@@ -1,4 +1,4 @@
-import type { User, UserForm } from "../../features/users/UserSignupForm";
+import type { User, UserFormData as UserForm } from "../../features/users/types";
 import apiClient from "../apiClient";
 
 export type LoginPayload = {

@@ -1,7 +1,7 @@
-import React, { useState } from "react";
-import { Box, Typography, Button, IconButton, Stack } from "@mui/material";
+import { useState } from "react";
+import { Box, Typography, Button, Stack } from "@mui/material";
 import CustomCard from "../components/Card/CustomCard";
-import { ShieldCheck, Zap, ArrowRight, PawPrint, Lock } from "lucide-react";
+import { ShieldCheck, Zap, PawPrint, Lock } from "lucide-react";
 import { useNavigate } from "react-router";
 import { login, type LoginPayload } from "../api/services/users";
 import UserLoginForm from "../features/users/UserLoginForm";

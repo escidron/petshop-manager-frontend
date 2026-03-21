@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react"
-import type { Product } from "../pages/ProductsPage"
+import type { Product } from "../features/products/types"
 import { fetchProducts } from "../api/services/products"
 
 export function useProducts() {

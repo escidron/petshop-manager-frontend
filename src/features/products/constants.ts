@@ -19,8 +19,8 @@ export const DEFAULT_PRODUCT_FORM: ProductFormData = {
   sku: "",
   description: "",
   category: "",
-  price: 0,
-  cost: 0,
+  price_cents: 0,
+  cost_cents: 0,
   quantity: 0,
   min_stock: 0,
 };
