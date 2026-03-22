@@ -15,7 +15,7 @@ export const createAppointment = async (
   payload: AppointmentFormData
 ) => {
   const response = await apiClient.post(
-    "/api/v1/appointments",
+    "/api/v1/appointments/",
     payload,
   );
 
