@@ -227,7 +227,7 @@ export default function InventoryPage() {
                   {products.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                        <Typography color="text.secondary">
+                        <Typography color="text.primary">
                           Nenhum produto cadastrado que controle estoque.
                         </Typography>
                       </TableCell>
@@ -289,7 +289,7 @@ export default function InventoryPage() {
                   {logs.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
-                        <Typography color="text.secondary">
+                        <Typography color="text.primary">
                           Nenhuma movimentação registrada.
                         </Typography>
                       </TableCell>
