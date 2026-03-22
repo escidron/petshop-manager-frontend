@@ -21,7 +21,7 @@ import {
   ChevronDown,
   User,
 } from "lucide-react";
-import { Outlet, useLocation } from "react-router-dom";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
 import { Typography } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
@@ -116,6 +116,7 @@ export default function MainLayout() {
   const [open, setOpen] = React.useState(true);
   const { user } = useAuth();
   const location = useLocation();
+  const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
 
@@ -254,7 +255,8 @@ export default function MainLayout() {
             src="/logo.png"
             alt="logo"
             width={150}
-            style={{ marginLeft: "8px" }}
+            style={{ marginLeft: "8px", cursor: "pointer" }}
+            onClick={() => navigate("/dashboard")}
           />
           <IconButton
             onClick={handleDrawerClose}
