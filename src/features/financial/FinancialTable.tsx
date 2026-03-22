@@ -13,6 +13,7 @@ import CustomCard from "../../components/Card/CustomCard";
 import dayjs from "dayjs";
 import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../../features/sales/schemas";
+import { formatPaymentMethod } from "../../utils/formatPaymentMethod";
 
 type Transaction = {
   id: string;
@@ -86,7 +87,7 @@ export default function FinancialTable({ transactions }: Props) {
                     <TableCell sx={{ fontWeight: 500 }}>{t.client}</TableCell>
                     <TableCell>
                       <Chip
-                        label={t.payment_method.toUpperCase()}
+                        label={formatPaymentMethod(t.payment_method)}
                         size="small"
                         variant="filled"
                         sx={{
