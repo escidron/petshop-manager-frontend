@@ -27,12 +27,10 @@ export const ProtectedRoute = ({ children }: Props) => {
   const location = useLocation();
 
   if (checking) {
-    // 🔹 ainda checando login → renderiza o layout normalmente, sem redirecionamento
     return children;
   }
 
   if (!user) {
-    // não está logado → redireciona
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
