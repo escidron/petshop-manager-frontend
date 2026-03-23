@@ -160,7 +160,7 @@ export default function ClientForm({
             </Box>
             <FormControl fullWidth sx={{ color: "text.primary" }}>
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Nome completo
+                Nome completo do Tutor
               </FormLabel>
               <Controller
                 name="name"

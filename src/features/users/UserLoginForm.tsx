@@ -38,7 +38,11 @@ const UserLoginForm = ({ user, onChange, handleSubmit }: Props) => {
       });
     };
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 4 }}>
+    <Box
+      component="form"
+      onSubmit={(e) => { e.preventDefault(); handleSubmit(); }}
+      sx={{ display: "flex", flexDirection: "column", gap: 2, mt: 4 }}
+    >
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           <Stack direction="row" spacing={0.5} alignItems="center">
@@ -69,8 +73,8 @@ const UserLoginForm = ({ user, onChange, handleSubmit }: Props) => {
         />
       </FormControl>
       <Button
+        type="submit"
         sx={{ marginTop: 2, fontWeight: 600, fontSize: "18px" }}
-        onClick={handleSubmit}
       >
         Entrar
       </Button>

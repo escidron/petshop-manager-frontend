@@ -22,9 +22,8 @@ import type { AppointmentFormData } from "./types";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appointmentSchema } from "./schemas";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import dayjs from "dayjs";
-import { useClient } from "../../hooks/useClient";
 import { getServicesForPet } from "../../utils/serviceMatcher";
 import {
   formatPrice,
@@ -38,33 +37,47 @@ type Props = {
   defaultValues?: Partial<AppointmentFormData>;
   clients?: Client[];
   services?: Service[];
+  pets?: Pet[];
+  setClientId: (id: number) => void;
   selectedClient?: Client;
   selectedPet?: Pet;
   onSubmit: (data: AppointmentFormData) => void;
-  onCreateClient?: (currentData: Partial<AppointmentFormData>) => void;
+  onCreateClient?: () => void;
+  onCreatePet?: (index: number, clientId: number) => void;
+  onCreateService?: (index: number) => void;
+  autoSelectClientId?: number;
+  autoSelectPet?: { index: number; id: number };
+  autoSelectService?: { index: number; id: number };
 };
 
 export default function AppointmentForm({
   defaultValues,
   clients,
   services,
+  pets,
+  setClientId,
   selectedClient,
   selectedPet,
   onSubmit,
   onCreateClient,
+  onCreatePet,
+  onCreateService,
+  autoSelectClientId,
+  autoSelectPet,
+  autoSelectService,
 }: Props) {
-  const { pets, setClientId } = useClient();
   const [showAllBySection, setShowAllBySection] = useState<
     Record<number, boolean>
   >({});
-
   const [scheduledDate, setScheduledDate] = useState<dayjs.Dayjs | null>(
-    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null
+    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null,
   );
-  
   const [scheduledTime, setScheduledTime] = useState<dayjs.Dayjs | null>(
-    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null
+    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null,
   );
+  const [timePickerOpen, setTimePickerOpen] = useState(false);
+  const pendingTimeCloseRef = useRef(false);
+
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
     defaultValues,
@@ -78,40 +91,62 @@ export default function AppointmentForm({
     getValues,
     formState: { errors },
   } = form;
+
   const items = useWatch({ control, name: "items" });
-
-  const { fields, append, remove } = useFieldArray({
-    control,
-    name: "items",
-  });
+  const watchedClientId = useWatch({ control, name: "client_id" });
+  const { fields, append, remove } = useFieldArray({ control, name: "items" });
 
   useEffect(() => {
-    setClientId(selectedClient?.id || defaultValues?.client_id);
-  }, [defaultValues?.client_id, selectedClient, setClientId]);
+    setClientId(selectedClient?.id || defaultValues?.client_id || 0);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [defaultValues?.client_id, selectedClient]);
 
   useEffect(() => {
-    if (selectedPet && fields.length > 0) {
-      const firstPet = getValues("items.0.pet_id");
-
-      if (!firstPet) {
-        setValue("items.0.pet_id", selectedPet.id);
-      }
+    if (selectedPet && fields.length > 0 && !getValues("items.0.pet_id")) {
+      setValue("items.0.pet_id", selectedPet.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedPet]);
 
   useEffect(() => {
-    if (selectedClient && fields.length > 0) {
-      const client = getValues("client_id");
-
-      if (!client) {
-        setValue("client_id", selectedClient.id);
-      }
+    if (selectedClient && fields.length > 0 && !getValues("client_id")) {
+      setValue("client_id", selectedClient.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClient]);
+
+  // Auto-select after quick-create
+  useEffect(() => {
+    if (!autoSelectClientId) return;
+    setValue("client_id", autoSelectClientId);
+    setClientId(autoSelectClientId);
+    resetField("items");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelectClientId]);
+
+  useEffect(() => {
+    if (!autoSelectPet) return;
+    setValue(`items.${autoSelectPet.index}.pet_id`, autoSelectPet.id);
+    setValue(`items.${autoSelectPet.index}.service_ids`, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelectPet]);
+
+  useEffect(() => {
+    if (!autoSelectService) return;
+    const current =
+      getValues(`items.${autoSelectService.index}.service_ids`) || [];
+    if (!current.includes(autoSelectService.id)) {
+      setValue(`items.${autoSelectService.index}.service_ids`, [
+        ...current,
+        autoSelectService.id,
+      ]);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSelectService]);
+
   return (
     <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+      {/* DATA E HORA */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Data e hora
@@ -119,91 +154,122 @@ export default function AppointmentForm({
         <Controller
           name="scheduled_at"
           control={control}
-          render={({ field, fieldState }) => {
-            return (
-              <LocalizationProvider
-                dateAdapter={AdapterDayjs}
-                adapterLocale="pt-br"
-              >
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <DatePicker
-                    format="DD/MM/YYYY"
-                    value={scheduledDate}
-                    onChange={(newDate) => {
-                      setScheduledDate(newDate);
-                      if (newDate && newDate.isValid() && scheduledTime && scheduledTime.isValid()) {
-                        field.onChange(
-                          newDate
-                            .hour(scheduledTime.hour())
-                            .minute(scheduledTime.minute())
-                            .second(0)
-                            .millisecond(0)
-                            .toISOString()
-                        );
-                      } else {
-                        field.onChange("");
-                      }
-                    }}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        fullWidth: true,
-                        error: !!fieldState.error,
-                        helperText: fieldState.error?.message,
-                        placeholder: "DD/MM/AAAA",
-                        inputMode: "numeric",
-                        sx: { backgroundColor: theme.palette.common.white },
+          render={({ field, fieldState }) => (
+            <LocalizationProvider
+              dateAdapter={AdapterDayjs}
+              adapterLocale="pt-br"
+            >
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={scheduledDate}
+                  onChange={(newDate) => {
+                    setScheduledDate(newDate);
+                    if (newDate?.isValid() && scheduledTime?.isValid()) {
+                      field.onChange(
+                        newDate
+                          .hour(scheduledTime.hour())
+                          .minute(scheduledTime.minute())
+                          .second(0)
+                          .millisecond(0)
+                          .toISOString(),
+                      );
+                    } else {
+                      field.onChange("");
+                    }
+                  }}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      error: !!fieldState.error,
+                      helperText: fieldState.error?.message,
+                      placeholder: "DD/MM/AAAA",
+                      inputMode: "numeric",
+                      sx: { backgroundColor: theme.palette.common.white },
+                    },
+                    actionBar: { actions: [] },
+                  }}
+                />
+                <TimePicker
+                  value={scheduledTime}
+                  ampm={false}
+                  referenceDate={dayjs().hour(8).minute(0)}
+                  minutesStep={5}
+                  open={timePickerOpen}
+                  onOpen={() => {
+                    pendingTimeCloseRef.current = false;
+                    setTimePickerOpen(true);
+                  }}
+                  onClose={() => setTimePickerOpen(false)}
+                  onViewChange={(view) => {
+                    // MUI auto-avança para 'minutes' após clicar na hora.
+                    // Marcamos pendingClose=true aqui para que o PRÓXIMO
+                    // onChange (clique explícito do usuário nos minutos) feche.
+                    if (view === "minutes") {
+                      pendingTimeCloseRef.current = true;
+                    }
+                  }}
+                  onChange={(newTime) => {
+                    setScheduledTime(newTime);
+                    if (scheduledDate?.isValid() && newTime?.isValid()) {
+                      field.onChange(
+                        scheduledDate
+                          .hour(newTime.hour())
+                          .minute(newTime.minute())
+                          .second(0)
+                          .millisecond(0)
+                          .toISOString(),
+                      );
+                    } else {
+                      field.onChange("");
+                    }
+                    if (pendingTimeCloseRef.current) {
+                      setTimePickerOpen(false);
+                    }
+                  }}
+                  slotProps={{
+                    textField: {
+                      size: "small",
+                      fullWidth: false,
+                      error: !!fieldState.error,
+                      sx: {
+                        backgroundColor: theme.palette.common.white,
+                        width: "160px",
                       },
-                    }}
-                  />
-
-                  {/* TIME */}
-                  <TimePicker
-                    value={scheduledTime}
-                    ampm={false}
-                    referenceDate={dayjs().hour(8).minute(0)}
-                    minutesStep={5}
-                    onChange={(newTime) => {
-                      setScheduledTime(newTime);
-                      if (scheduledDate && scheduledDate.isValid() && newTime && newTime.isValid()) {
-                        field.onChange(
-                          scheduledDate
-                            .hour(newTime.hour())
-                            .minute(newTime.minute())
-                            .second(0)
-                            .millisecond(0)
-                            .toISOString()
-                        );
-                      } else {
-                        field.onChange("");
-                      }
-                    }}
-                    slotProps={{
-                      textField: {
-                        size: "small",
-                        fullWidth: true,
-                        error: !!fieldState.error,
-                        sx: { backgroundColor: theme.palette.common.white },
-                      },
-                      popper: {
-                        sx: {
-                          "& .MuiMultiSectionDigitalClock-root": {
-                            minHeight: 500, // altura total do clock
-                          },
-                          "& .MuiMultiSectionDigitalClockSection-root": {
-                            minHeight: 500, // altura da coluna (horas/minutos)
-                          },
+                    },
+                    actionBar: { actions: [] },
+                    popper: {
+                      sx: {
+                        "& .MuiMultiSectionDigitalClock-root": {
+                          maxHeight: 260,
                         },
+                        "& .MuiMultiSectionDigitalClockSection-root": {
+                          maxHeight: 260,
+                          scrollbarWidth: "none",
+                          msOverflowStyle: "none",
+                          "&::-webkit-scrollbar": { display: "none" },
+                        },
+                        "& .MuiMultiSectionDigitalClockSection-item": {
+                          minHeight: "unset",
+                          py: "4px",
+                          fontSize: "0.85rem",
+                        },
+                        "& .MuiPaper-root": { maxHeight: 300 },
                       },
-                    }}
-                  />
-                </Box>
-              </LocalizationProvider>
-            );
-          }}
+                    },
+                    mobilePaper: {
+                      sx: { maxHeight: "90vh" },
+                    },
+                  }}
+                />
+              </Box>
+            </LocalizationProvider>
+          )}
         />
       </FormControl>
 
+      {/* CLIENTE */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
         <Box sx={{ display: "flex", gap: 1 }}>
@@ -212,7 +278,7 @@ export default function AppointmentForm({
             control={control}
             render={({ field, fieldState }) => (
               <Autocomplete<Client>
-                sx={{ width: "70%" }}
+                sx={{ flex: 1 }}
                 options={clients ?? []}
                 size="small"
                 value={
@@ -224,13 +290,8 @@ export default function AppointmentForm({
                 isOptionEqualToValue={(option, value) => option.id === value.id}
                 onChange={(_, value) => {
                   const clientId = value?.id ?? 0;
-
                   field.onChange(clientId);
-
-                  // 🔥 AQUI está o segredo
                   setClientId(clientId);
-
-                  // 🔥 IMPORTANTE: limpar pets já selecionados
                   resetField("items");
                 }}
                 renderInput={(params) => (
@@ -244,18 +305,18 @@ export default function AppointmentForm({
               />
             )}
           />
-
           <Button
-            sx={{ width: "30%", minWidth: "160px", maxHeight: "40px" }}
-            startIcon={<Plus size={18} />}
+            sx={{ minWidth: "140px", maxHeight: "40px" }}
+            startIcon={<Plus size={16} />}
             variant="outlined"
-            onClick={() => onCreateClient?.(getValues())}
+            onClick={() => onCreateClient?.()}
           >
             Criar Cliente
           </Button>
         </Box>
       </FormControl>
 
+      {/* PETS E SERVIÇOS */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 1 }}>
           Pets e Serviços
@@ -278,146 +339,169 @@ export default function AppointmentForm({
               }}
             >
               {/* PET */}
-              <Controller
-                name={`items.${index}.pet_id`}
-                control={control}
-                render={({ field }) => {
-                  const selectedPetIds =
-                    items
-                      ?.map((item) => item.pet_id)
-                      .filter((id) => id && id !== field.value) ?? [];
-                  const availablePets =
-                    pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ??
-                    [];
-                  return (
-                    <Autocomplete<Pet>
-                      options={availablePets}
-                      size="small"
-                      value={pets?.find((p) => p.id === field.value) ?? null}
-                      getOptionLabel={(option) => option.name}
-                      isOptionEqualToValue={(o, v) => o.id === v.id}
-                      onChange={(_, value) => {
-                        field.onChange(value?.id ?? 0);
-                        setValue(`items.${index}.service_ids`, []);
-                      }}
-                      renderInput={(params) => (
-                        <TextField {...params} placeholder="Selecionar pet" />
-                      )}
-                    />
-                  );
-                }}
-              />
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Controller
+                  name={`items.${index}.pet_id`}
+                  control={control}
+                  render={({ field }) => {
+                    const selectedPetIds =
+                      items
+                        ?.map((i) => i.pet_id)
+                        .filter((id) => id && id !== field.value) ?? [];
+                    const availablePets =
+                      pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ??
+                      [];
+                    return (
+                      <Autocomplete<Pet>
+                        sx={{ flex: 1 }}
+                        options={availablePets}
+                        size="small"
+                        value={pets?.find((p) => p.id === field.value) ?? null}
+                        getOptionLabel={(option) => option.name}
+                        isOptionEqualToValue={(o, v) => o.id === v.id}
+                        onChange={(_, value) => {
+                          field.onChange(value?.id ?? 0);
+                          setValue(`items.${index}.service_ids`, []);
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder={
+                              watchedClientId
+                                ? "Selecionar pet"
+                                : "Selecione um cliente primeiro"
+                            }
+                          />
+                        )}
+                      />
+                    );
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  sx={{ width: "150px", height: "40px", flexShrink: 0 }}
+                  startIcon={<Plus size={14} />}
+                  onClick={() => onCreatePet?.(index, watchedClientId ?? 0)}
+                >
+                  Criar Pet
+                </Button>
+              </Box>
 
               {/* SERVIÇOS */}
-              <Controller
-                name={`items.${index}.service_ids`}
-                control={control}
-                render={({ field }) => {
-                  // 🐶 pega o pet selecionado neste item
-                  const selectedPetId = items?.[index]?.pet_id;
-                  const selectedPet = pets?.find((p) => p.id === selectedPetId);
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Controller
+                  name={`items.${index}.service_ids`}
+                  control={control}
+                  render={({ field }) => {
+                    const selectedPetId = items?.[index]?.pet_id;
+                    const currentPet = pets?.find(
+                      (p) => p.id === selectedPetId,
+                    );
 
-                  // eslint-disable-next-line react-hooks/rules-of-hooks
-                  const filteredServices = useMemo(() => {
-                    if (showAllBySection[index]) {
-                      return services ?? [];
-                    }
+                    // eslint-disable-next-line react-hooks/rules-of-hooks
+                    const filteredServices = useMemo(() => {
+                      if (showAllBySection[index]) return services ?? [];
+                      return getServicesForPet(services ?? [], currentPet);
+                      // eslint-disable-next-line react-hooks/exhaustive-deps
+                    }, [services, currentPet, showAllBySection[index]]);
 
-                    return getServicesForPet(services ?? [], selectedPet);
-                    // eslint-disable-next-line react-hooks/exhaustive-deps
-                  }, [services, selectedPet, showAllBySection[index]]);
-
-                  return (
-                    <Autocomplete
-                      disabled={!selectedPet}
-                      multiple
-                      options={filteredServices}
-                      filterOptions={(options, state) => {
-                        const input = state.inputValue.toLowerCase();
-                        const result = options.filter((option) =>
-                          `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
-                            .toLowerCase()
-                            .includes(input),
-                        );
-                        return result;
-                      }}
-                      disableCloseOnSelect
-                      size="small"
-                      value={
-                        filteredServices.filter((s) =>
-                          field.value?.includes(s.id),
-                        ) ?? []
-                      }
-                      getOptionLabel={(option) => formatServiceLabel(option)}
-                      isOptionEqualToValue={(option, value) =>
-                        option.id === value.id
-                      }
-                      onChange={(_, value) =>
-                        field.onChange(value.map((v) => v.id))
-                      }
-                      renderOption={(props, option, { selected }) => {
-                        const { ...rest } = props;
-
-                        return (
-                          <li
-                            {...rest}
-                            key={option.id} // 🔥 usa id único
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                              width: "100%",
-                            }}
-                          >
-                            <Box
+                    return (
+                      <Autocomplete
+                        sx={{ flex: 1 }}
+                        disabled={!currentPet}
+                        multiple
+                        options={filteredServices}
+                        filterOptions={(options, state) => {
+                          const input = state.inputValue.toLowerCase();
+                          return options.filter((option) =>
+                            `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                              .toLowerCase()
+                              .includes(input),
+                          );
+                        }}
+                        disableCloseOnSelect
+                        size="small"
+                        value={
+                          filteredServices.filter((s) =>
+                            field.value?.includes(s.id),
+                          ) ?? []
+                        }
+                        getOptionLabel={(option) => formatServiceLabel(option)}
+                        isOptionEqualToValue={(option, value) =>
+                          option.id === value.id
+                        }
+                        onChange={(_, value) =>
+                          field.onChange(value.map((v) => v.id))
+                        }
+                        renderOption={(props, option, { selected }) => {
+                          const { ...rest } = props;
+                          return (
+                            <li
+                              {...rest}
+                              key={option.id}
                               style={{
                                 display: "flex",
                                 alignItems: "center",
-                                gap: 8,
+                                justifyContent: "space-between",
+                                width: "100%",
                               }}
                             >
-                              <Checkbox
-                                checked={selected}
-                                disableRipple
-                                sx={{ color: "primary.main" }}
-                              />
-
-                              <Box>
-                                <Box style={{ fontWeight: 500 }}>
-                                  {formatServiceLabel(option)}
+                              <Box
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                }}
+                              >
+                                <Checkbox
+                                  checked={selected}
+                                  disableRipple
+                                  sx={{ color: "primary.main" }}
+                                />
+                                <Box>
+                                  <Box style={{ fontWeight: 500 }}>
+                                    {formatServiceLabel(option)}
+                                  </Box>
+                                  {option.description && (
+                                    <div style={{ fontSize: 12, opacity: 0.6 }}>
+                                      {option.description}
+                                    </div>
+                                  )}
                                 </Box>
-
-                                {option.description && (
-                                  <div style={{ fontSize: 12, opacity: 0.6 }}>
-                                    {option.description}
-                                  </div>
-                                )}
                               </Box>
-                            </Box>
+                              <Box style={{ fontWeight: 600 }}>
+                                {formatPrice(option.price_cents)}
+                              </Box>
+                            </li>
+                          );
+                        }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder={
+                              currentPet
+                                ? "Selecionar serviços"
+                                : "Selecione um pet primeiro"
+                            }
+                            disabled={!currentPet}
+                            error={!!itemError?.service_ids}
+                            helperText={itemError?.service_ids?.message}
+                          />
+                        )}
+                      />
+                    );
+                  }}
+                />
+                <Button
+                  variant="outlined"
+                  sx={{ width: "150px", height: "40px", flexShrink: 0 }}
+                  startIcon={<Plus size={14} />}
+                  onClick={() => onCreateService?.(index)}
+                >
+                  Criar Serviço
+                </Button>
+              </Box>
 
-                            <Box style={{ fontWeight: 600 }}>
-                              {formatPrice(option.price_cents)}
-                            </Box>
-                          </li>
-                        );
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder={
-                            selectedPet
-                              ? "Selecionar serviços"
-                              : "Selecione um pet primeiro"
-                          }
-                          disabled={!selectedPet}
-                          error={!!itemError?.service_ids}
-                          helperText={itemError?.service_ids?.message}
-                        />
-                      )}
-                    />
-                  );
-                }}
-              />
               <FormControlLabel
                 control={
                   <Checkbox
@@ -433,14 +517,10 @@ export default function AppointmentForm({
                     }
                   />
                 }
-                label="Mostrar todos os serviços (ignora porte e pelagem do pet)"
-                slotProps={{
-                  typography: {
-                    sx: { fontSize: 12 },
-                  },
-                }}
+                label="Mostrar todos os serviços"
+                slotProps={{ typography: { sx: { fontSize: 12 } } }}
               />
-              {/* BOTÃO REMOVER */}
+
               {fields.length > 1 && (
                 <Button
                   startIcon={<Trash size={15} />}
@@ -455,19 +535,13 @@ export default function AppointmentForm({
           );
         })}
 
-        {/* BOTÃO ADICIONAR */}
         <Button
-          sx={{ width: "150px", display: "flex", mx: "auto" }}
+          sx={{ display: "flex", mx: "auto" }}
           startIcon={<Plus size={18} />}
           variant="text"
-          onClick={() =>
-            append({
-              pet_id: 0,
-              service_ids: [],
-            })
-          }
+          onClick={() => append({ pet_id: 0, service_ids: [] })}
         >
-          Adicionar Pet
+          Adicionar outro Pet ao agendamento
         </Button>
 
         {errors.items && typeof errors.items?.message === "string" && (
@@ -477,11 +551,11 @@ export default function AppointmentForm({
         )}
       </FormControl>
 
+      {/* OBSERVAÇÕES */}
       <FormControl fullWidth>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Observações
         </FormLabel>
-
         <Controller
           name="notes"
           control={control}
@@ -495,12 +569,11 @@ export default function AppointmentForm({
           )}
         />
       </FormControl>
-      {/* ================= BOTÕES ================= */}
+
       <Divider />
-      <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           onClick={handleSubmit((data: AppointmentFormData) => onSubmit(data))}
-          data-action="save"
         >
           Salvar
         </Button>

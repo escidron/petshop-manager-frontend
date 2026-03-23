@@ -1,16 +1,10 @@
 import { useEffect, useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
-import ClientFormModal from "../features/clients/ClientFormModal";
-import PetFormModal from "../features/pets/PetFormModal";
 import { Box, CircularProgress } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
 import InventoryAlerts from "../features/dashboard/InventoryAlerts";
 import dayjs from "dayjs";
-import type { Client } from "../features/clients/types";
-import type { Pet } from "../features/pets/types";
-import { useClients } from "../hooks/useClients";
-import { usePets } from "../hooks/usePets";
 import type {
   Appointment,
   AppointmentFlowState,
@@ -27,8 +21,6 @@ const Dashboard = () => {
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const { getClients } = useClients();
-  const { getPets } = usePets();
   const queryClient = useQueryClient();
 
   // Date state for the daily view
@@ -40,18 +32,6 @@ const Dashboard = () => {
     queryKey: ["appointments", formattedDate],
     queryFn: () => getAppointmentsByDay(formattedDate),
   });
-
-  const [clientModal, setClientModal] = useState<{
-    open: boolean;
-    mode: "create" | "edit";
-    client?: Client;
-  }>({ open: false, mode: "create" });
-
-  const [petModal, setPetModal] = useState<{
-    open: boolean;
-    mode: "create" | "edit";
-    pet?: Pet;
-  }>({ open: false, mode: "create" });
 
   const isFlowOpen = (
     flow: AppointmentFlowState,
@@ -170,66 +150,9 @@ const Dashboard = () => {
             setFlow({ open: false });
           }}
           onClose={() => setFlow({ open: false })}
-          onCreateClient={() => {
-            setFlow({ open: true, step: "client", mode: "create" });
-            setClientModal({ open: true, mode: "create" });
-          }}
         />
       )}
 
-      {isFlowOpen(flow) && flow.step === "client" && (
-        <ClientFormModal
-          open={clientModal.open}
-          mode={clientModal.mode}
-          client={clientModal.client}
-          createPetMandatory={true}
-          onClose={() => {
-            setClientModal({ open: false, mode: "create" });
-          }}
-          onSuccess={async (client) => {
-            await getClients();
-            setClientModal({ open: false, mode: "create" });
-            setFlow({
-              open: true,
-              mode: "create",
-              step: "appointment",
-              selectedClient: client,
-            });
-          }}
-          onSuccessAndAddPet={(client) => {
-            setPetModal({ open: true, mode: "create" });
-            setFlow({
-              open: true,
-              step: "pet",
-              selectedClient: client,
-              mode: "create",
-            });
-          }}
-        />
-      )}
-
-      {isFlowOpen(flow) && flow.step === "pet" && (
-        <PetFormModal
-          client={flow.selectedClient}
-          open={petModal.open}
-          mode={petModal.mode}
-          pet={petModal.pet}
-          onClose={() => {
-            setPetModal({ open: false, mode: "create" });
-            setFlow({ open: true, step: "appointment", mode: "create" });
-          }}
-          onSuccess={async (pet) => {
-            await getPets();
-            setPetModal({ open: false, mode: "create" });
-            setFlow({
-              ...flow,
-              open: true,
-              step: "appointment",
-              selectedPet: pet,
-            });
-          }}
-        />
-      )}
     </Box>
   );
 };
