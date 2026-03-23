@@ -41,7 +41,9 @@ export default function AppointmentModal({
   onSuccess,
 }: Props) {
   const toast = useToast();
-  const defaultValues = appointment ? appointmentToFormData(appointment) : DEFAULT_APPOINTMENT_FORM;
+  const defaultValues: AppointmentFormData = appointment
+    ? appointmentToFormData(appointment)
+    : DEFAULT_APPOINTMENT_FORM;
   const initialClientId =
     selectedClient?.id ||
     (typeof defaultValues.client_id === "number" && defaultValues.client_id > 0
@@ -72,10 +74,9 @@ export default function AppointmentModal({
   >();
 
   const handleSubmit = async (data: AppointmentFormData) => {
-    const saved =
-      mode === "create"
-        ? await createAppointment(data)
-        : await updateAppointment(appointment!.id, data);
+    await (mode === "create"
+      ? createAppointment(data)
+      : updateAppointment(appointment!.id, data));
 
     toast.success(
       mode === "create" ? "Agendamento criado com sucesso" : "Agendamento atualizado com sucesso",
