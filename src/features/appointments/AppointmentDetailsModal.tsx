@@ -14,6 +14,7 @@ import {
   Dot,
   Info,
   Mars,
+  Package,
   Pencil,
   Play,
   ShoppingCart,
@@ -218,7 +219,24 @@ const AppointmentDetailsModal = ({
                         gap: 1,
                       }}
                     >
-                      {!appointment.is_paid ? (
+                      {appointment.is_paid ? (
+                        <Chip
+                          label="PAGO"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                          sx={{ fontWeight: 900, px: 1 }}
+                        />
+                      ) : appointment.is_fully_package_covered ? (
+                        <Chip
+                          label="PAGO VIA PACOTE"
+                          color="success"
+                          size="small"
+                          variant="filled"
+                          icon={<Package size={13} />}
+                          sx={{ fontWeight: 900, px: 1 }}
+                        />
+                      ) : (
                         <Button
                           size="small"
                           color="primary"
@@ -232,14 +250,6 @@ const AppointmentDetailsModal = ({
                         >
                           Cobrar no Caixa
                         </Button>
-                      ) : (
-                        <Chip
-                          label="PAGO"
-                          color="success"
-                          size="small"
-                          variant="filled"
-                          sx={{ fontWeight: 900, px: 1 }}
-                        />
                       )}
                     </Box>
                   </>
@@ -371,16 +381,33 @@ const AppointmentDetailsModal = ({
                         py: 0.5,
                       }}
                     >
-                      {/* Nome do serviço */}
                       <Box
                         sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
                       >
                         <Dot color={theme.palette.text.disabled} size={16} />
                         <Typography variant="body2">{s.name}</Typography>
+                        {s.is_package_covered && (
+                          <Chip
+                            label="pacote"
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                            icon={<Package size={10} />}
+                            sx={{ height: 18, fontSize: 10, px: 0.5 }}
+                          />
+                        )}
                       </Box>
-
-                      {/* Preço */}
-                      <Typography variant="body2">
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          textDecoration: s.is_package_covered
+                            ? "line-through"
+                            : "none",
+                          color: s.is_package_covered
+                            ? "text.disabled"
+                            : "text.primary",
+                        }}
+                      >
                         {(s.price_cents / 100).toLocaleString("pt-BR", {
                           style: "currency",
                           currency: "BRL",

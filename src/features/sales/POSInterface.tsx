@@ -188,23 +188,29 @@ export default function POSInterface() {
   };
 
   const handlePullAppointment = (appointment: Appointment) => {
-    // 1. Set client
-    setSelectedClientId(appointment.client.id);
-    setSelectedAppointmentId(appointment.id);
-
-    // 2. Map services to cart items
-    const newItems: SaleItem[] = appointment.items.flatMap((item) =>
-      item.services.map((s) => ({
-        item_id: s.id,
-        item_type: "service" as const,
-        name: `${s.name} (${item.pet.name})`,
-        quantity: 1,
-        unit_price: s.price_cents / 100,
-        subtotal: s.price_cents / 100,
-      })),
+    // Serviços cobertos por pacote não entram no caixa
+    const chargeableItems: SaleItem[] = appointment.items.flatMap((item) =>
+      item.services
+        .filter((s) => !s.is_package_covered)
+        .map((s) => ({
+          item_id: s.id,
+          item_type: "service" as const,
+          name: `${s.name} (${item.pet.name})`,
+          quantity: 1,
+          unit_price: s.price_cents / 100,
+          subtotal: s.price_cents / 100,
+        })),
     );
 
-    setCart(newItems);
+    if (chargeableItems.length === 0) {
+      toast.info("Todos os serviços deste agendamento foram cobertos por pacote.");
+      setIsPullDialogOpen(false);
+      return;
+    }
+
+    setSelectedClientId(appointment.client.id);
+    setSelectedAppointmentId(appointment.id);
+    setCart(chargeableItems);
     setIsPullDialogOpen(false);
     toast.success(`Agendamento de ${appointment.client.name} carregado.`);
   };
@@ -225,7 +231,7 @@ export default function POSInterface() {
   return (
     <Grid container spacing={3} sx={{ height: "100%", p: 1 }}>
       {/* Sidebar: Digital Receipt */}
-      <Grid size={{ xs: 12, md: 4, lg: 3.5 }} sx={{ height: "100%" }}>
+      <Grid size={{ xs: 12, md: 4, lg: 3.5 }} sx={{ height: "80%",minHeight:"600px" }}>
         <Paper
           elevation={4}
           sx={{

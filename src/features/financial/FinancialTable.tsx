@@ -19,7 +19,7 @@ type Transaction = {
   id: string;
   date: string;
   client: string;
-  type: "Agendamento" | "Venda PDV";
+  type: "Agendamento" | "Venda PDV" | "Pago via Pacote";
   amount_cents: number;
   payment_method: string;
   original: Appointment | SaleResponse;
@@ -60,19 +60,28 @@ export default function FinancialTable({ transactions }: Props) {
               </TableRow>
             ) : (
               transactions.map((t) => {
+                const isPackage = t.type === "Pago via Pacote";
                 let details = "";
-                if (t.type === "Agendamento") {
-                  const apt = t.original as Appointment;
-                  details = apt.items
-                    .flatMap((i) => i.services.map((s) => s.name))
-                    .join(", ");
-                } else {
+                if (t.type === "Venda PDV") {
                   const sale = t.original as SaleResponse;
                   details = sale.items.map((i) => i.name).join(", ");
+                } else {
+                  const apt = t.original as Appointment;
+                  details = apt.items
+                    .flatMap((i) =>
+                      i.services.map((s) =>
+                        s.is_package_covered ? `${s.name} (pacote)` : s.name,
+                      ),
+                    )
+                    .join(", ");
                 }
 
                 return (
-                  <TableRow key={t.id} hover>
+                  <TableRow
+                    key={t.id}
+                    hover
+                    sx={{ opacity: isPackage ? 0.75 : 1 }}
+                  >
                     <TableCell>
                       {dayjs(t.date).format("DD/MM/YYYY HH:mm")}
                     </TableCell>
@@ -80,25 +89,37 @@ export default function FinancialTable({ transactions }: Props) {
                       <Chip
                         label={t.type}
                         size="small"
-                        color={t.type === "Agendamento" ? "primary" : "info"}
+                        color={
+                          isPackage
+                            ? "success"
+                            : t.type === "Agendamento"
+                              ? "primary"
+                              : "info"
+                        }
                         variant="outlined"
                       />
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{t.client}</TableCell>
                     <TableCell>
                       <Chip
-                        label={formatPaymentMethod(t.payment_method)}
+                        label={
+                          isPackage
+                            ? "Pacote"
+                            : formatPaymentMethod(t.payment_method)
+                        }
                         size="small"
                         variant="filled"
                         sx={{
                           fontSize: "0.65rem",
                           fontWeight: 700,
-                          bgcolor:
-                            t.payment_method === "Pendente"
+                          bgcolor: isPackage
+                            ? "success.light"
+                            : t.payment_method === "Pendente"
                               ? "error.light"
                               : "action.selected",
-                          color:
-                            t.payment_method === "Pendente"
+                          color: isPackage
+                            ? "success.contrastText"
+                            : t.payment_method === "Pendente"
                               ? "error.contrastText"
                               : "text.primary",
                         }}
@@ -109,7 +130,14 @@ export default function FinancialTable({ transactions }: Props) {
                         {details}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right" sx={{ fontWeight: 600 }}>
+                    <TableCell
+                      align="right"
+                      sx={{
+                        fontWeight: 600,
+                        color: isPackage ? "text.disabled" : "text.primary",
+                        textDecoration: isPackage ? "line-through" : "none",
+                      }}
+                    >
                       {(t.amount_cents / 100).toLocaleString("pt-BR", {
                         style: "currency",
                         currency: "BRL",

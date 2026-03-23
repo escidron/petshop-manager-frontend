@@ -33,52 +33,44 @@ export default function FinancialPage() {
   });
 
   const filteredTransactions = useMemo(() => {
-    const appointmentsInRange = allAppointments
-      .filter((a) => {
-        const date = dayjs(a.scheduled_at);
-        const isCompleted = a.status === "completed";
-        const isUnpaid = !a.is_paid; // Se já foi pago, aparecerá como Venda PDV
-        const isInRange =
-          (!startDate ||
-            date.isAfter(startDate, "day") ||
-            date.isSame(startDate, "day")) &&
-          (!endDate ||
-            date.isBefore(endDate, "day") ||
-            date.isSame(endDate, "day"));
+    const inRange = (dateStr: string) => {
+      const date = dayjs(dateStr);
+      return (
+        (!startDate ||
+          date.isAfter(startDate, "day") ||
+          date.isSame(startDate, "day")) &&
+        (!endDate ||
+          date.isBefore(endDate, "day") ||
+          date.isSame(endDate, "day"))
+      );
+    };
 
-        return isCompleted && isUnpaid && isInRange;
-      })
+    const appointmentsInRange = allAppointments
+      .filter(
+        (a) => a.status === "completed" && !a.is_paid && inRange(a.scheduled_at),
+      )
       .map((a) => ({
         id: `apt-${a.id}`,
         date: a.scheduled_at,
         client: a.client.name,
-        type: "Agendamento" as const,
+        // Coberto por pacote é informativo — não gera receita nova
+        type: a.is_fully_package_covered
+          ? ("Pago via Pacote" as const)
+          : ("Agendamento" as const),
+        // getAppointmentTotal já exclui serviços cobertos → será 0 se 100% coberto
         amount_cents: getAppointmentTotal(a),
-        payment_method: a.is_paid ? "Caixa" : "Pendente",
+        payment_method: a.is_fully_package_covered ? "Pacote" : "Pendente",
         original: a,
       }));
 
     const salesInRange = allSales
-      .filter((s) => {
-        const date = dayjs(s.created_at);
-        const isCompleted = s.status === "completed";
-        const isInRange =
-          (!startDate ||
-            date.isAfter(startDate, "day") ||
-            date.isSame(startDate, "day")) &&
-          (!endDate ||
-            date.isBefore(endDate, "day") ||
-            date.isSame(endDate, "day"));
-
-        return isCompleted && isInRange;
-      })
+      .filter((s) => s.status === "completed" && inRange(s.created_at))
       .map((s) => ({
         id: `sale-${s.id}`,
         date: s.created_at,
         client: s.client?.name || "Consumidor",
         type: "Venda PDV" as const,
         payment_method: s.payment_method,
-        // Convert float to cents for consistency
         amount_cents: Math.round(s.total_amount * 100),
         original: s,
       }));
@@ -89,18 +81,22 @@ export default function FinancialPage() {
   }, [allAppointments, allSales, startDate, endDate]);
 
   const summary = useMemo<FinancialSummary>(() => {
-    const totalRevenueCents = filteredTransactions.reduce(
+    // "Pago via Pacote" não entra na receita — a receita já foi capturada na venda do pacote
+    const revenueTransactions = filteredTransactions.filter(
+      (t) => t.type !== "Pago via Pacote",
+    );
+    const totalRevenueCents = revenueTransactions.reduce(
       (acc, t) => acc + t.amount_cents,
       0,
     );
 
     return {
       totalRevenueCents,
-      completedCount: filteredTransactions.length,
+      completedCount: revenueTransactions.length,
       canceledCount: 0,
       averageTicketCents:
-        filteredTransactions.length > 0
-          ? totalRevenueCents / filteredTransactions.length
+        revenueTransactions.length > 0
+          ? totalRevenueCents / revenueTransactions.length
           : 0,
     };
   }, [filteredTransactions]);

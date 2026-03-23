@@ -31,6 +31,7 @@ export type ServiceBase = {
   name: string;
   price_cents: number;
   duration_minutes?: number;
+  is_package_covered?: boolean;
 };
 
 export type StatusPalette = "success" | "error" | "warning" | "info";
@@ -80,6 +81,7 @@ export type Appointment = {
   client: Client;
   items: AppointmentItem[];
   is_paid: boolean;
+  is_fully_package_covered: boolean;
 
   created_at: string;
 };

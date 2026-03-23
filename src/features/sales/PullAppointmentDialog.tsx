@@ -157,21 +157,21 @@ export default function PullAppointmentDialog({
                     </Box>
                     <Typography
                       variant="subtitle2"
-                      color="primary.main"
+                      color={apt.is_fully_package_covered ? "success.main" : "primary.main"}
                       fontWeight={800}
                     >
-                      R${" "}
-                      {(
-                        apt.items.reduce(
-                          (acc, item) =>
-                            acc +
-                            item.services.reduce(
-                              (sAcc, s) => sAcc + s.price_cents,
+                      {apt.is_fully_package_covered
+                        ? "Pacote"
+                        : `R$ ${(
+                            apt.items.reduce(
+                              (acc, item) =>
+                                acc +
+                                item.services
+                                  .filter((s) => !s.is_package_covered)
+                                  .reduce((sAcc, s) => sAcc + s.price_cents, 0),
                               0,
-                            ),
-                          0,
-                        ) / 100
-                      ).toFixed(2)}
+                            ) / 100
+                          ).toFixed(2)}`}
                     </Typography>
                   </Box>
 
