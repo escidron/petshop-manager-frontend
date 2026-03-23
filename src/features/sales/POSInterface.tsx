@@ -16,6 +16,9 @@ import {
   Autocomplete,
   Tooltip,
   alpha,
+  Dialog,
+  DialogTitle,
+  DialogContent,
 } from "@mui/material";
 import {
   Search,
@@ -30,6 +33,8 @@ import {
   Filter,
   LayoutGrid,
   List as ListIcon,
+  Dog,
+  X,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -38,11 +43,13 @@ import { fetchProducts } from "../../api/services/products";
 import { fetchClients } from "../../api/services/clients";
 import { getTenantServices } from "../../api/services/tenant_services";
 import { listPackages } from "../../api/services/packages";
+import { fetchPetsByClient } from "../../api/services/pets";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
 import type { SaleItem } from "./schemas";
 import { toast } from "react-toastify";
 import type { Appointment } from "../appointments/types";
+import type { Pet } from "../pets/types";
 
 export default function POSInterface() {
   const location = useLocation();
@@ -58,6 +65,11 @@ export default function POSInterface() {
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [categoryTab, setCategoryTab] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [pendingPackageItem, setPendingPackageItem] = useState<{
+    id: number;
+    name: string;
+    price_cents?: number;
+  } | null>(null);
 
   // Fetch Catalogs
   const { data: products = [] } = useQuery({
@@ -78,6 +90,12 @@ export default function POSInterface() {
   const { data: packages = [] } = useQuery({
     queryKey: ["packages"],
     queryFn: listPackages,
+  });
+
+  const { data: clientPets = [] } = useQuery<Pet[]>({
+    queryKey: ["pets", "client", selectedClientId],
+    queryFn: () => fetchPetsByClient(selectedClientId!),
+    enabled: !!selectedClientId,
   });
 
   // Calculate cart total
@@ -118,10 +136,27 @@ export default function POSInterface() {
     },
     type: "product" | "service" | "package",
   ) => {
+    // Pacotes com cliente selecionado pedem o pet antes de adicionar ao carrinho
+    if (type === "package" && selectedClientId) {
+      setPendingPackageItem(item);
+      return;
+    }
+
+    addItemToCart(item, type);
+  };
+
+  const addItemToCart = (
+    item: { id: number; name: string; price_cents?: number; quantity?: number },
+    type: "product" | "service" | "package",
+    petId?: number,
+    petName?: string,
+  ) => {
     const price = (item.price_cents || 0) / 100;
+    const displayName =
+      type === "package" && petName ? `${item.name} (${petName})` : item.name;
 
     const existingIndex = cart.findIndex(
-      (c) => c.item_id === item.id && c.item_type === type,
+      (c) => c.item_id === item.id && c.item_type === type && c.pet_id === petId,
     );
 
     if (existingIndex >= 0) {
@@ -144,13 +179,26 @@ export default function POSInterface() {
         {
           item_id: item.id,
           item_type: type,
-          name: item.name,
+          name: displayName,
           quantity: 1,
           unit_price: price,
           subtotal: price,
+          pet_id: petId,
         },
       ]);
     }
+  };
+
+  const handlePetSelected = (pet: Pet) => {
+    if (!pendingPackageItem) return;
+    addItemToCart(pendingPackageItem, "package", pet.id, pet.name);
+    setPendingPackageItem(null);
+  };
+
+  const handlePetSelectionSkip = () => {
+    if (!pendingPackageItem) return;
+    addItemToCart(pendingPackageItem, "package");
+    setPendingPackageItem(null);
   };
 
   const handleUpdateQuantity = (index: number, delta: number) => {
@@ -1219,6 +1267,97 @@ export default function POSInterface() {
         onClose={() => setIsPullDialogOpen(false)}
         onSelect={handlePullAppointment}
       />
+
+      {/* Pet selection dialog for package sales */}
+      <Dialog
+        open={!!pendingPackageItem}
+        onClose={handlePetSelectionSkip}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            bgcolor: "primary.main",
+            color: "white",
+            py: 1.5,
+            px: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Dog size={18} />
+            <Typography variant="subtitle1" fontWeight={700}>
+              Para qual pet é este pacote?
+            </Typography>
+          </Box>
+          <IconButton
+            size="small"
+            onClick={handlePetSelectionSkip}
+            sx={{ color: "white" }}
+          >
+            <X size={18} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          {clientPets.length === 0 ? (
+            <Box sx={{ p: 3, textAlign: "center" }}>
+              <Typography color="text.primary" variant="body2">
+                Nenhum pet encontrado para este cliente.
+              </Typography>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={handlePetSelectionSkip}
+                sx={{ mt: 2 }}
+              >
+                Adicionar sem pet
+              </Button>
+            </Box>
+          ) : (
+            <List sx={{ pt: 0 }}>
+              {clientPets.map((pet) => (
+                <ListItem
+                  key={pet.id}
+                  onClick={() => handlePetSelected(pet)}
+                  sx={{
+                    cursor: "pointer",
+                    borderBottom: "1px solid",
+                    borderColor: "divider",
+                    "&:hover": { bgcolor: "action.hover" },
+                    gap: 1.5,
+                  }}
+                >
+                  <Dog size={16} color="gray" />
+                  <Box>
+                    <Typography variant="body2" fontWeight={700}>
+                      {pet.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.primary">
+                      {pet.species}
+                      {pet.breed ? ` · ${pet.breed}` : ""}
+                    </Typography>
+                  </Box>
+                </ListItem>
+              ))}
+              <ListItem
+                onClick={handlePetSelectionSkip}
+                sx={{
+                  cursor: "pointer",
+                  "&:hover": { bgcolor: "action.hover" },
+                  gap: 1.5,
+                  color: "text.primary",
+                }}
+              >
+                <Typography variant="body2">
+                  Adicionar sem vincular pet
+                </Typography>
+              </ListItem>
+            </List>
+          )}
+        </DialogContent>
+      </Dialog>
     </Grid>
   );
 }

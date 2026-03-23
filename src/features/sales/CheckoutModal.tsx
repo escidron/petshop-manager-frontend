@@ -57,7 +57,8 @@ export default function CheckoutModal({
       toast.success("Venda finalizada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
-      queryClient.invalidateQueries({ queryKey: ["appointments"] }); // Added to refresh agenda
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["client-packages"] });
       onSuccess();
       onClose();
     },

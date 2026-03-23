@@ -7,6 +7,7 @@ export const SaleItemSchema = z.object({
   quantity: z.number().min(1),
   unit_price: z.number().min(0),
   subtotal: z.number().min(0),
+  pet_id: z.number().optional(),
 });
 
 export const SaleCreateSchema = z.object({
