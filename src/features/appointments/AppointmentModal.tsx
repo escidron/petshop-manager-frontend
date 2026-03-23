@@ -42,7 +42,7 @@ export default function AppointmentModal({
 }: Props) {
   const toast = useToast();
   const defaultValues: AppointmentFormData = appointment
-    ? appointmentToFormData(appointment)
+    ? appointmentToFormData(appointment)!
     : DEFAULT_APPOINTMENT_FORM;
   const initialClientId =
     selectedClient?.id ||
