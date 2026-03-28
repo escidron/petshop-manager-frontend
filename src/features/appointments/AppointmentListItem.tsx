@@ -64,7 +64,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             {dayjs(appointment.scheduled_at).format("HH:mm")}
           </Typography>
         </Box>
-        <Box>
+        <Box sx={{ flex: 1 }}>
           <Typography fontSize={"16px"} fontWeight={600}>
             {appointment.client.name}
           </Typography>
@@ -93,9 +93,10 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           sx={{
             display: "flex",
             gap: 1,
-            marginLeft: "auto",
+            width: 96,
+            flexShrink: 0,
+            justifyContent: "flex-end",
             alignItems: "center",
-            // backgroundColor: "secondary.main",
             cursor: "pointer",
             borderRadius: 1,
             px: 1,

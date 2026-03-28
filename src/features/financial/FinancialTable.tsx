@@ -62,10 +62,8 @@ export default function FinancialTable({ transactions }: Props) {
               transactions.map((t) => {
                 const isPackage = t.type === "Pago via Pacote";
                 let details = "";
-                if (t.type === "Venda PDV") {
-                  const sale = t.original as SaleResponse;
-                  details = sale.items.map((i) => i.name).join(", ");
-                } else {
+                if ("scheduled_at" in t.original) {
+                  // Appointment não pago ainda
                   const apt = t.original as Appointment;
                   details = apt.items
                     .flatMap((i) =>
@@ -74,6 +72,10 @@ export default function FinancialTable({ transactions }: Props) {
                       ),
                     )
                     .join(", ");
+                } else {
+                  // SaleResponse (PDV ou agendamento já pago pelo caixa)
+                  const sale = t.original as SaleResponse;
+                  details = sale.items.map((i) => i.name).join(", ");
                 }
 
                 return (

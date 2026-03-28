@@ -50,6 +50,8 @@ import type { SaleItem } from "./schemas";
 import { toast } from "react-toastify";
 import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
+import { getCoatTypeLabel } from "../../utils/formatCoatType";
+import type { CoatType } from "../pets/types";
 
 export default function POSInterface() {
   const location = useLocation();
@@ -940,12 +942,28 @@ export default function POSInterface() {
                             variant="body2"
                             sx={{
                               fontWeight: 700,
-                              mb: 1,
+                              mb: 0.5,
                               color: "text.primary",
                             }}
                           >
                             {service.name}
                           </Typography>
+                          {(service.species || service.size || service.coat_type || service.duration_minutes) && (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+                              {service.species && (
+                                <Chip label={service.species} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />
+                              )}
+                              {service.size && (
+                                <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />
+                              )}
+                              {service.coat_type && (
+                                <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />
+                              )}
+                              {service.duration_minutes && (
+                                <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />
+                              )}
+                            </Box>
+                          )}
                           <Box
                             sx={{
                               mt: "auto",
@@ -1014,12 +1032,27 @@ export default function POSInterface() {
                           >
                             <ClipboardList size={18} />
                           </Box>
-                          <Typography
-                            variant="body2"
-                            sx={{ fontWeight: 700, flexGrow: 1 }}
-                          >
-                            {service.name}
-                          </Typography>
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {service.name}
+                            </Typography>
+                            {(service.species || service.size || service.coat_type || service.duration_minutes) && (
+                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+                                {service.species && (
+                                  <Chip label={service.species} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />
+                                )}
+                                {service.size && (
+                                  <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />
+                                )}
+                                {service.coat_type && (
+                                  <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />
+                                )}
+                                {service.duration_minutes && (
+                                  <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />
+                                )}
+                              </Box>
+                            )}
+                          </Box>
                           <Typography
                             variant="body2"
                             sx={{

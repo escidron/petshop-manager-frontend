@@ -29,6 +29,8 @@ import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import { Button } from "../../components/Button/Button";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import { formatAppointmentDate } from "../../utils/formatAppointmentDate";
+import { getCoatTypeLabel } from "../../utils/formatCoatType";
+import type { CoatType } from "../pets/types";
 
 type Props = {
   open: boolean;
@@ -339,7 +341,7 @@ const AppointmentDetailsModal = ({
                     <>
                       <Dot color={theme.palette.text.disabled} size={16} />
                       <Typography variant="body2">
-                        Pelagem {item.pet.coat_type}
+                        Pelagem {getCoatTypeLabel(item.pet.coat_type as CoatType)}
                       </Typography>
                     </>
                   )}

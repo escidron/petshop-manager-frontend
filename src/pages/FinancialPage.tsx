@@ -69,7 +69,9 @@ export default function FinancialPage() {
         id: `sale-${s.id}`,
         date: s.created_at,
         client: s.client?.name || "Consumidor",
-        type: "Venda PDV" as const,
+        type: s.appointment_id
+          ? ("Agendamento" as const)
+          : ("Venda PDV" as const),
         payment_method: s.payment_method,
         amount_cents: Math.round(s.total_amount * 100),
         original: s,
