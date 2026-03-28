@@ -534,16 +534,17 @@ export default function POSInterface() {
         {/* Search & Tabs Header */}
         <Box sx={{ mb: 3 }}>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 6 }}>
+            <Grid size={{ xs: 12, sm: 5 }}>
               <TextField
                 fullWidth
+                size="small"
                 placeholder="Buscar (Nome, Código...)"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
-                      <Search size={20} color="gray" />
+                      <Search size={16} color="gray" />
                     </InputAdornment>
                   ),
                   sx: { borderRadius: 3, bgcolor: "background.paper" },
@@ -551,7 +552,7 @@ export default function POSInterface() {
               />
             </Grid>
             <Grid
-              size={{ xs: 12, sm: 6 }}
+              size={{ xs: 12, sm: 7 }}
               sx={{
                 display: "flex",
                 alignItems: "center",
@@ -563,7 +564,15 @@ export default function POSInterface() {
                 value={categoryTab}
                 onChange={(_, newValue) => setCategoryTab(newValue)}
                 sx={{
-                  "& .MuiTab-root": { color: "text.primary", fontWeight: 600 },
+                  minHeight: 36,
+                  "& .MuiTab-root": {
+                    color: "text.primary",
+                    fontWeight: 600,
+                    fontSize: 12,
+                    minWidth: 0,
+                    px: 1.5,
+                    minHeight: 36,
+                  },
                   "& .Mui-selected": { color: "primary.main" },
                   "& .MuiTabs-indicator": {
                     height: 3,

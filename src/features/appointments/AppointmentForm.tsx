@@ -400,7 +400,7 @@ export default function AppointmentForm({
 
                     // eslint-disable-next-line react-hooks/rules-of-hooks
                     const filteredServices = useMemo(() => {
-                      if (showAllBySection[index]) return services ?? [];
+                      if (!showAllBySection[index]) return services ?? [];
                       return getServicesForPet(services ?? [], currentPet);
                       // eslint-disable-next-line react-hooks/exhaustive-deps
                     }, [services, currentPet, showAllBySection[index]]);
@@ -503,6 +503,7 @@ export default function AppointmentForm({
               </Box>
 
               <FormControlLabel
+                sx={{ width: "fit-content" }}
                 control={
                   <Checkbox
                     disableRipple
@@ -517,7 +518,7 @@ export default function AppointmentForm({
                     }
                   />
                 }
-                label="Mostrar todos os serviços"
+                label="Filtrar por porte, pelagem e animal"
                 slotProps={{ typography: { sx: { fontSize: 12 } } }}
               />
 
