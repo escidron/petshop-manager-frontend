@@ -6,6 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import axios from "axios";
 
 import PetForm from "./PetForm";
 import { DEFAULT_PET_FORM } from "./constants";
@@ -46,23 +47,32 @@ export default function PetFormModal({
   const { clients } = useClients();
 
   const handleSubmit = async (data: PetFormData) => {
-    const payload = {
-      ...data,
-      birth_date: brDateToISO(data.birth_date),
-    };
-    const saved =
-      mode === "create"
-        ? await createPet(payload)
-        : await updatePet(pet!.id, payload);
+    try {
+      const payload = {
+        ...data,
+        birth_date: brDateToISO(data.birth_date),
+      };
+      const saved =
+        mode === "create"
+          ? await createPet(payload)
+          : await updatePet(pet!.id, payload);
 
-    toast.success(
-      mode === "create"
-        ? "Pet cadastrado com sucesso"
-        : "Pet atualizado com sucesso",
-    );
+      toast.success(
+        mode === "create"
+          ? "Pet cadastrado com sucesso"
+          : "Pet atualizado com sucesso",
+      );
 
-    onSuccess(saved);
-    onClose();
+      onSuccess(saved);
+      onClose();
+    } catch (error) {
+      let message =
+        mode === "create" ? "Erro ao cadastrar pet." : "Erro ao atualizar pet.";
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.detail ?? message;
+      }
+      toast.error(message);
+    }
   };
 
   return (

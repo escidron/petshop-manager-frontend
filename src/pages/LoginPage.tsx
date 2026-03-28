@@ -6,6 +6,8 @@ import { useNavigate } from "react-router";
 import { login, type LoginPayload } from "../api/services/users";
 import UserLoginForm from "../features/users/UserLoginForm";
 import { useAuth } from "../hooks/useAuth";
+import { useToast } from "../hooks/useToast";
+import axios from "axios";
 
 const LoginPage = () => {
   const [userForm, setUserForm] = useState<LoginPayload>({
@@ -14,6 +16,7 @@ const LoginPage = () => {
   });
   const navigate = useNavigate();
   const { setUser } = useAuth();
+  const toast = useToast();
 
   const handleAuth = async () => {
     try {
@@ -21,7 +24,15 @@ const LoginPage = () => {
       setUser(response);
       navigate("/dashboard");
     } catch (error) {
-      console.error(error);
+      let message = "Erro ao fazer login. Tente novamente.";
+      if (axios.isAxiosError(error)) {
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          message = "E-mail ou senha incorretos.";
+        } else if (error.response?.status === 429) {
+          message = "Muitas tentativas. Aguarde alguns instantes.";
+        }
+      }
+      toast.error(message);
     }
   };
 

@@ -6,6 +6,7 @@ import {
   Typography,
 } from "@mui/material";
 import { useState } from "react";
+import axios from "axios";
 
 import { createProduct, updateProduct } from "../../api/services/products";
 import ProductForm from "./ProductForm";
@@ -38,19 +39,30 @@ export default function ProductFormModal({
     : DEFAULT_PRODUCT_FORM;
 
   const handleSubmit = async (data: ProductFormData) => {
-    const saved =
-      mode === "create"
-        ? await createProduct(data)
-        : await updateProduct(product!.id, data);
+    try {
+      const saved =
+        mode === "create"
+          ? await createProduct(data)
+          : await updateProduct(product!.id, data);
 
-    toast.success(
-      mode === "create"
-        ? "Produto cadastrado com sucesso"
-        : "Produto atualizado com sucesso",
-    );
+      toast.success(
+        mode === "create"
+          ? "Produto cadastrado com sucesso"
+          : "Produto atualizado com sucesso",
+      );
 
-    onSuccess(saved);
-    onClose();
+      onSuccess(saved);
+      onClose();
+    } catch (error) {
+      let message =
+        mode === "create"
+          ? "Erro ao cadastrar produto."
+          : "Erro ao atualizar produto.";
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.detail ?? message;
+      }
+      toast.error(message);
+    }
   };
 
   return (

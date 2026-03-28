@@ -17,6 +17,7 @@ import { useEffect, useState } from "react";
 
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
+import { useToast } from "../../hooks/useToast";
 
 import { Info, Minus, Plus, Search } from "lucide-react";
 import theme from "../../theme";
@@ -52,6 +53,7 @@ export default function ClientForm({
 }: Props) {
   const [addPhone, setAddPhone] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
+  const toast = useToast();
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -79,8 +81,8 @@ export default function ClientForm({
       setValue("neighborhood", address.neighborhood || "");
       setValue("city", address.city || "");
       setValue("state", address.state || "");
-    } catch (error) {
-      console.error("Erro ao buscar CEP", error);
+    } catch {
+      toast.warning("CEP não encontrado. Preencha o endereço manualmente.");
     } finally {
       setLoadingCep(false);
     }

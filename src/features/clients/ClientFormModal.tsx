@@ -5,6 +5,7 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
+import axios from "axios";
 import { createClient, updateClient } from "../../api/services/clients";
 import { useToast } from "../../hooks/useToast";
 import type { Client, ClientFormData } from "./types";
@@ -39,29 +40,39 @@ export default function ClientFormModal({
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
 
   const handleSubmit = async (data: ClientFormData, action?: "addPet") => {
+    try {
+      const payload = {
+        ...data,
+        birth_date: brDateToISO(data.birth_date),
+      };
+      const saved =
+        mode === "create"
+          ? await createClient(payload)
+          : await updateClient(client!.id.toString(), payload);
 
-    const payload = {
-      ...data,
-      birth_date: brDateToISO(data.birth_date),
-    };
-    const saved =
-      mode === "create"
-        ? await createClient(payload)
-        : await updateClient(client!.id.toString(), payload);
+      toast.success(
+        mode === "create"
+          ? "Cliente cadastrado com sucesso"
+          : "Cliente atualizado com sucesso",
+      );
 
-    toast.success(
-      mode === "create"
-        ? "Cliente cadastrado com sucesso"
-        : "Cliente atualizado com sucesso",
-    );
+      if (action === "addPet") {
+        onSuccessAndAddPet?.(saved);
+      } else {
+        onSuccess(saved);
+      }
 
-    if (action === "addPet") {
-      onSuccessAndAddPet?.(saved);
-    } else {
-      onSuccess(saved);
+      onClose();
+    } catch (error) {
+      let message =
+        mode === "create"
+          ? "Erro ao cadastrar cliente."
+          : "Erro ao atualizar cliente.";
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.detail ?? message;
+      }
+      toast.error(message);
     }
-
-    onClose();
   };
 
   return (

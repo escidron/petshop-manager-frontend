@@ -10,12 +10,14 @@ import ClientStep from "../features/onboarding/ClientStep";
 import { Box, Typography } from "@mui/material";
 import CustomCard from "../components/Card/CustomCard";
 import PetStep from "../features/onboarding/PetStep";
+import { useToast } from "../hooks/useToast";
 
 export default function OnboardingPage() {
   const { tenant, setTenant } = useAuth();
   const [step, setStep] = useState<OnboardingStep>("client");
   const navigate = useNavigate();
-  console.log("Onboarding page")
+  const toast = useToast();
+
   async function loadStep() {
     if (!tenant) return;
     setStep(tenant.onboarding_step);
@@ -23,11 +25,15 @@ export default function OnboardingPage() {
 
   async function updateStep(newStep: OnboardingStep) {
     if (!tenant) return;
-    await updateTenantOnboardingStep(newStep);
-    setStep(newStep);
-    if (newStep === "completed") {
-      setTenant({ ...tenant, onboarding_step: "completed" });
-      navigate("/");
+    try {
+      await updateTenantOnboardingStep(newStep);
+      setStep(newStep);
+      if (newStep === "completed") {
+        setTenant({ ...tenant, onboarding_step: "completed" });
+        navigate("/");
+      }
+    } catch {
+      toast.error("Erro ao avançar etapa. Tente novamente.");
     }
   }
   useEffect(() => {
