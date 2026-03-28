@@ -29,7 +29,7 @@ export default function PullAppointmentDialog({
 }: PullAppointmentDialogProps) {
   const { data: allAppointments = [], isLoading } = useQuery({
     queryKey: ["appointments", "pull-list"],
-    queryFn: getAppointmentsByTenant,
+    queryFn: () => getAppointmentsByTenant(),
   });
 
   // Filter for confirmed, in-progress or completed appointments that are recent (today or yesterday)
