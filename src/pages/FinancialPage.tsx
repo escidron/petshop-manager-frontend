@@ -23,8 +23,11 @@ export default function FinancialPage() {
   const [endDate, setEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
 
   const { data: allAppointments = [] } = useQuery<Appointment[]>({
-    queryKey: ["appointments", "all"],
-    queryFn: getAppointmentsByTenant,
+    queryKey: ["appointments", "financial", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
+    queryFn: () => getAppointmentsByTenant(
+      startDate?.format("YYYY-MM-DD"),
+      endDate?.format("YYYY-MM-DD"),
+    ),
   });
 
   const { data: allSales = [] } = useQuery<SaleResponse[]>({
@@ -47,7 +50,7 @@ export default function FinancialPage() {
 
     const appointmentsInRange = allAppointments
       .filter(
-        (a) => a.status === "completed" && !a.is_paid && inRange(a.scheduled_at),
+        (a) => a.status === "completed" && !a.is_paid,
       )
       .map((a) => ({
         id: `apt-${a.id}`,

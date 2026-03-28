@@ -45,11 +45,16 @@ export const getAppointmentsByDay = async (
 
   return response.data;
 };
-export const getAppointmentsByTenant = async (): Promise<Appointment[]> => {
-  const response = await apiClient.get<Appointment[]>(
-    "/api/v1/appointments/"
-  );
-
+export const getAppointmentsByTenant = async (
+  startDate?: string,
+  endDate?: string,
+): Promise<Appointment[]> => {
+  const response = await apiClient.get<Appointment[]>("/api/v1/appointments/", {
+    params: {
+      ...(startDate && { start_date: startDate }),
+      ...(endDate && { end_date: endDate }),
+    },
+  });
   return response.data;
 };
 
