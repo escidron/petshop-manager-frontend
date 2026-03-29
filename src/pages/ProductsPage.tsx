@@ -1,6 +1,5 @@
 import { Box } from "@mui/material";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 import { useProducts } from "../hooks/useProducts";
 import ProductFormModal from "../features/products/ProductFormModal";
 import ProductDeleteModal from "../features/products/ProductToDeleteModal";
@@ -22,8 +21,6 @@ export default function ProductsPage() {
     product?: Product;
   }>({ open: false, mode: "create" });
   const { products, loading, getProducts } = useProducts();
-  const navigate = useNavigate();
-
   const filteredRows = useMemo(() => {
     if (!search) return products;
 
@@ -58,7 +55,6 @@ export default function ProductsPage() {
       <ProductsTable
         rows={filteredRows}
         loading={loading}
-        onRowClick={(id) => navigate(`/registration/products/${id}`)}
         onEdit={(product) =>
           setProductModal({ open: true, mode: "edit", product })
         }
