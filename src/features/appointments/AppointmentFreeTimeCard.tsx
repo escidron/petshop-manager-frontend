@@ -3,13 +3,11 @@ import type { TimelineBlock } from "./types";
 
 type Props = {
     block: TimelineBlock;
-    key: string
     openFlow: () => void
 }
-const AppointmentFreeTimeCard = ({ block,key, openFlow }: Props) => {
+const AppointmentFreeTimeCard = ({ block, openFlow }: Props) => {
   return (
     <Box
-      key={key}
       sx={{
         display: "flex",
         gap: 2,
