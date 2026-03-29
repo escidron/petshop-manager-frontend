@@ -26,7 +26,6 @@ export default function InventoryAlerts() {
   return (
     <Card
       sx={{
-        height: "100%",
         borderTop: "4px solid",
         borderTopColor: "warning.main",
       }}
