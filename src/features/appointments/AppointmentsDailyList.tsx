@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Typography } from "@mui/material";
+import { Box, Skeleton, Typography } from "@mui/material";
 import { applyAppointmentAction } from "../../api/services/appointments";
 import { CalendarDays, Plus } from "lucide-react";
 import type { Dayjs } from "dayjs";
@@ -21,7 +21,7 @@ type Props = {
   date: Dayjs;
   setDate: (date: Dayjs) => void;
   appointments: Appointment[];
-  isLoading: boolean;
+  isFetching?: boolean;
 };
 
 const AppointmentsDailyList = ({
@@ -30,7 +30,7 @@ const AppointmentsDailyList = ({
   date,
   setDate,
   appointments,
-  isLoading,
+  isFetching = false,
 }: Props) => {
   const [detailsModal, setDetailsModal] = useState<{
     open: boolean;
@@ -63,14 +63,6 @@ const AppointmentsDailyList = ({
   const selectedAppointment = appointments.find(
     (a) => a.id === detailsModal.appointmentId,
   );
-
-  if (isLoading) {
-    return (
-      <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-        <CircularProgress />
-      </Box>
-    );
-  }
 
   return (
     <>
@@ -136,37 +128,49 @@ const AppointmentsDailyList = ({
       )}
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 2 }}>
-        {timeline.map((block, index) => {
-          if (block.type === "appointment") {
-            return (
-              <AppointmentListItem
-                key={block.data.id}
-                appointment={block.data}
-                openDetails={() => {
-                  setDetailsModal({
-                    open: true,
-                    appointmentId: block.data.id,
-                  });
-                }}
-              />
-            );
-          }
-          if (block.type === "free") {
-            return (
-              <AppointmentFreeTimeCard
-                key={`free-${index}`}
-                block={block}
-                openFlow={openFlow}
-              />
-            );
-          }
-
-          return null;
-        })}
-        {appointments.length === 0 && (
-          <Typography variant="body1" color="text.disabled">
-            Nenhum agendamento para este dia
-          </Typography>
+        {isFetching ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <Skeleton
+              key={i}
+              variant="rounded"
+              height={64}
+              sx={{ borderRadius: 2 }}
+            />
+          ))
+        ) : (
+          <>
+            {timeline.map((block, index) => {
+              if (block.type === "appointment") {
+                return (
+                  <AppointmentListItem
+                    key={block.data.id}
+                    appointment={block.data}
+                    openDetails={() => {
+                      setDetailsModal({
+                        open: true,
+                        appointmentId: block.data.id,
+                      });
+                    }}
+                  />
+                );
+              }
+              if (block.type === "free") {
+                return (
+                  <AppointmentFreeTimeCard
+                    key={`free-${index}`}
+                    block={block}
+                    openFlow={openFlow}
+                  />
+                );
+              }
+              return null;
+            })}
+            {appointments.length === 0 && (
+              <Typography variant="body1" color="text.disabled">
+                Nenhum agendamento para este dia
+              </Typography>
+            )}
+          </>
         )}
       </Box>
       {detailsModal.open && selectedAppointment && (

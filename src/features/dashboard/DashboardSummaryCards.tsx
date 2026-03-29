@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box, Skeleton, Typography } from "@mui/material";
 import { CalendarDays, CalendarCheck, DollarSign } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import type { Appointment } from "../appointments/types";
@@ -7,6 +7,7 @@ import theme from "../../theme";
 
 type Props = {
   appointments: Appointment[];
+  isFetching?: boolean;
 };
 
 const SummaryCard = ({
@@ -18,7 +19,7 @@ const SummaryCard = ({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
   iconColor: string;
   bgColor: string;
 }) => (
@@ -60,7 +61,7 @@ const SummaryCard = ({
   </CustomCard>
 );
 
-export default function DashboardSummaryCards({ appointments }: Props) {
+export default function DashboardSummaryCards({ appointments, isFetching = false }: Props) {
   const totalAppointments = appointments.length;
 
   const completedAppointments = appointments.filter(
@@ -97,21 +98,21 @@ export default function DashboardSummaryCards({ appointments }: Props) {
       <SummaryCard
         icon={<CalendarDays size={24} />}
         label="Agendamentos do dia"
-        value={totalAppointments}
+        value={isFetching ? <Skeleton width={40} /> : totalAppointments}
         iconColor={theme.palette.primary.main}
         bgColor="rgba(49, 52, 133, 0.1)"
       />
       <SummaryCard
         icon={<DollarSign size={24} />}
         label="Faturamento do dia"
-        value={formattedRevenue}
+        value={isFetching ? <Skeleton width={80} /> : formattedRevenue}
         iconColor={theme.palette.success.main}
         bgColor="rgba(46, 125, 50, 0.1)"
       />
       <SummaryCard
         icon={<CalendarCheck size={24} />}
         label="Agendamentos confirmados"
-        value={confirmedCount}
+        value={isFetching ? <Skeleton width={40} /> : confirmedCount}
         iconColor={theme.palette.info.main}
         bgColor="rgba(2, 136, 209, 0.1)"
       />

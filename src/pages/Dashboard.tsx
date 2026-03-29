@@ -1,6 +1,6 @@
 import { useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
-import { Box, CircularProgress } from "@mui/material";
+import { Box } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
 import InventoryAlerts from "../features/dashboard/InventoryAlerts";
@@ -24,8 +24,8 @@ const Dashboard = () => {
   const [date, setDate] = useState<dayjs.Dayjs>(dayjs());
   const formattedDate = date.format("YYYY-MM-DD");
 
-  const { data: dailyAppointments = [], isLoading } = useQuery({
-    queryKey: ["appointments", formattedDate, flow],
+  const { data: dailyAppointments = [], isFetching } = useQuery({
+    queryKey: ["appointments", formattedDate],
     queryFn: () => getAppointmentsByDay(formattedDate),
   });
 
@@ -47,18 +47,7 @@ const Dashboard = () => {
           gap: 2,
         }}
       >
-        {isLoading ? (
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "center",
-              alignItems: "center",
-              minHeight: "200px",
-            }}
-          >
-            <CircularProgress />
-          </Box>
-        ) : isOnboarding ? (
+        {isOnboarding ? (
           <>
             <OnboardingFinishBanner
               openFlow={() =>
@@ -73,16 +62,14 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            {dailyAppointments.length > 0 && (
-              <DashboardSummaryCards appointments={dailyAppointments} />
-            )}
+            <DashboardSummaryCards appointments={dailyAppointments} isFetching={isFetching} />
             <Box sx={{ width: "100%", display: "flex", gap: 4 }}>
               <Box sx={{ width: "100%", maxWidth: "70%" }}>
                 <AppointmentsDailyList
                   date={date}
                   setDate={setDate}
                   appointments={dailyAppointments}
-                  isLoading={isLoading}
+                  isFetching={isFetching}
                   onEdit={(appointment: Appointment) =>
                     setFlow({
                       open: true,
