@@ -32,6 +32,7 @@ const SignupPage = () => {
   const [planCode, setPlanCode] = useState<PlanCode | null>(planFromUrl);
   const [userData, setUserData] = useState<UserFormData | null>(null);
   const [tenantData, setTenantData] = useState<TenantFormData | null>(null);
+  const [loading, setLoading] = useState(false);
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ const SignupPage = () => {
     setTenantData(data);
     if (!planCode || !userData) return;
 
+    setLoading(true);
     try {
       await signup(
         {
@@ -78,6 +80,8 @@ const SignupPage = () => {
         message = error.response?.data?.detail ?? message;
       }
       toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -324,6 +328,7 @@ const SignupPage = () => {
                 >
                   <TenantCreateForm
                     onSubmit={handleSubmitTenant}
+                    loading={loading}
                     defaultValues={tenantData || {}}
                   />
                 </CustomCard>

@@ -14,11 +14,13 @@ const LoginPage = () => {
     email: "",
     password: "",
   });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const toast = useToast();
 
   const handleAuth = async () => {
+    setLoading(true);
     try {
       const response = await login(userForm);
       setUser(response);
@@ -33,6 +35,8 @@ const LoginPage = () => {
         }
       }
       toast.error(message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -219,6 +223,7 @@ const LoginPage = () => {
                 user={userForm}
                 onChange={setUserForm}
                 handleSubmit={handleAuth}
+                loading={loading}
               />
             </CustomCard>
 

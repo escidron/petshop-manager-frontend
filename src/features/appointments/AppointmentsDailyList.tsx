@@ -76,6 +76,7 @@ const AppointmentsDailyList = ({
   );
   const [search, setSearch] = useState("");
   const [showCanceled, setShowCanceled] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
   const queryClient = useQueryClient();
 
   const workStart = date.hour(8).minute(0).second(0);
@@ -103,8 +104,13 @@ const AppointmentsDailyList = ({
     appointment: Appointment,
     action: AppointmentAction,
   ) => {
-    await applyAppointmentAction(appointment.id, action);
-    queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    setLoadingAction(action);
+    try {
+      await applyAppointmentAction(appointment.id, action);
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    } finally {
+      setLoadingAction(null);
+    }
   };
 
   const selectedAppointment = appointments.find(
@@ -285,6 +291,7 @@ const AppointmentsDailyList = ({
           onClose={() => setDetailsModal({ open: false })}
           appointment={selectedAppointment}
           handleAction={handleAction}
+          loadingAction={loadingAction}
           onEdit={onEdit}
         />
       )}

@@ -37,6 +37,7 @@ type Props = {
   appointment: Appointment;
   onClose: () => void;
   handleAction: (appointment: Appointment, action: AppointmentAction) => void;
+  loadingAction: AppointmentAction | null;
   onEdit: (appointment: Appointment) => void;
 };
 const AppointmentDetailsModal = ({
@@ -44,6 +45,7 @@ const AppointmentDetailsModal = ({
   appointment,
   onClose,
   handleAction,
+  loadingAction,
   onEdit,
 }: Props) => {
   const navigate = useNavigate();
@@ -128,6 +130,8 @@ const AppointmentDetailsModal = ({
                         variant="text"
                         size="small"
                         startIcon={<X size={16} />}
+                        loading={loadingAction === "cancel"}
+                        disabled={!!loadingAction}
                         onClick={() => handleAction(appointment, "cancel")}
                       >
                         Cancelar Agendamento
@@ -137,6 +141,7 @@ const AppointmentDetailsModal = ({
                           variant="outlined"
                           onClick={() => onEdit(appointment)}
                           startIcon={<Pencil size={16} />}
+                          disabled={!!loadingAction}
                           size="small"
                         >
                           Alterar
@@ -144,6 +149,8 @@ const AppointmentDetailsModal = ({
                         <Button
                           onClick={() => handleAction(appointment, "confirm")}
                           startIcon={<CalendarCheck size={16} />}
+                          loading={loadingAction === "confirm"}
+                          disabled={!!loadingAction}
                           size="small"
                         >
                           Confirmar
@@ -167,6 +174,8 @@ const AppointmentDetailsModal = ({
                         variant="text"
                         size="small"
                         startIcon={<X size={16} />}
+                        loading={loadingAction === "cancel"}
+                        disabled={!!loadingAction}
                         onClick={() => handleAction(appointment, "cancel")}
                       >
                         Cancelar Agendamento
@@ -176,6 +185,7 @@ const AppointmentDetailsModal = ({
                           variant="outlined"
                           onClick={() => onEdit(appointment)}
                           startIcon={<Pencil size={16} />}
+                          disabled={!!loadingAction}
                           size="small"
                         >
                           Alterar
@@ -183,6 +193,8 @@ const AppointmentDetailsModal = ({
                         <Button
                           size="small"
                           startIcon={<Play size={16} />}
+                          loading={loadingAction === "start"}
+                          disabled={!!loadingAction}
                           onClick={() => handleAction(appointment, "start")}
                         >
                           Iniciar Serviços
@@ -204,6 +216,8 @@ const AppointmentDetailsModal = ({
                       <Button
                         size="small"
                         startIcon={<Check size={16} />}
+                        loading={loadingAction === "complete"}
+                        disabled={!!loadingAction}
                         onClick={() => handleAction(appointment, "complete")}
                       >
                         Finalizar

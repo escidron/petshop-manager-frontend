@@ -12,9 +12,10 @@ import { maskPhone } from "../../utils/masks";
 type Props = {
   onSubmit: (data: TenantFormData) => void;
   defaultValues?: Partial<TenantFormData>;
+  loading?: boolean;
 };
 
-const TenantCreateForm = ({ onSubmit, defaultValues }: Props) => {
+const TenantCreateForm = ({ onSubmit, defaultValues, loading }: Props) => {
   const {
     control,
     handleSubmit,
@@ -76,6 +77,7 @@ const TenantCreateForm = ({ onSubmit, defaultValues }: Props) => {
       </FormControl>
 
       <Button
+        loading={loading}
         sx={{ marginTop: 2, fontWeight: 600, fontSize: "18px" }}
         onClick={handleSubmit((data: TenantFormData) => onSubmit(data))}
       >

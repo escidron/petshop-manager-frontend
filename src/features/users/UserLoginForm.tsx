@@ -26,8 +26,9 @@ type Props = {
   user: LoginPayload;
   onChange: (value: LoginPayload) => void;
   handleSubmit: () => void;
+  loading?: boolean;
 };
-const UserLoginForm = ({ user, onChange, handleSubmit }: Props) => {
+const UserLoginForm = ({ user, onChange, handleSubmit, loading }: Props) => {
   const navigate = useNavigate();
   const handleRedirect = () => navigate("/signup");
   const handleChange =
@@ -74,6 +75,7 @@ const UserLoginForm = ({ user, onChange, handleSubmit }: Props) => {
       </FormControl>
       <Button
         type="submit"
+        loading={loading}
         sx={{ marginTop: 2, fontWeight: 600, fontSize: "18px" }}
       >
         Entrar
