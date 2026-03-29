@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
 import { Box, CircularProgress } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
@@ -10,26 +10,22 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  getAppointmentsByDay,
-  getAppointmentsByTenant,
-} from "../api/services/appointments";
+import { getAppointmentsByDay } from "../api/services/appointments";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
+import { useAuth } from "../hooks/useAuth";
 
 const Dashboard = () => {
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const queryClient = useQueryClient();
+  const { tenant, checkAuth } = useAuth();
+  const isOnboarding = tenant?.onboarding_step !== "completed";
 
-  // Date state for the daily view
   const [date, setDate] = useState<dayjs.Dayjs>(dayjs());
   const formattedDate = date.format("YYYY-MM-DD");
 
-  // Daily appointments query
-  const { data: dailyAppointments = [], isLoading: isLoadingDaily } = useQuery({
-    queryKey: ["appointments", formattedDate],
+  const { data: dailyAppointments = [], isLoading } = useQuery({
+    queryKey: ["appointments", formattedDate, flow],
     queryFn: () => getAppointmentsByDay(formattedDate),
   });
 
@@ -38,32 +34,6 @@ const Dashboard = () => {
   ): flow is Extract<AppointmentFlowState, { open: true }> => {
     return flow.open;
   };
-
-  useEffect(() => {
-    let isMounted = true;
-
-    const fetchAppointments = async () => {
-      setIsLoading(true);
-      try {
-        const fetchedAppointments = await getAppointmentsByTenant();
-        if (isMounted) {
-          setAppointments(fetchedAppointments);
-        }
-      } catch (error) {
-        console.error("Failed to fetch appointments:", error);
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
-      }
-    };
-
-    fetchAppointments();
-
-    return () => {
-      isMounted = false;
-    };
-  }, [flow]);
 
   return (
     <Box>
@@ -88,16 +58,31 @@ const Dashboard = () => {
           >
             <CircularProgress />
           </Box>
-        ) : appointments.length > 0 ? (
+        ) : isOnboarding ? (
           <>
-            <DashboardSummaryCards appointments={dailyAppointments} />
+            <OnboardingFinishBanner
+              openFlow={() =>
+                setFlow({
+                  open: true,
+                  step: "appointment",
+                  mode: "create",
+                })
+              }
+            />
+            <NoAppointmentsBanner />
+          </>
+        ) : (
+          <>
+            {dailyAppointments.length > 0 && (
+              <DashboardSummaryCards appointments={dailyAppointments} />
+            )}
             <Box sx={{ width: "100%", display: "flex", gap: 4 }}>
               <Box sx={{ width: "100%", maxWidth: "70%" }}>
                 <AppointmentsDailyList
                   date={date}
                   setDate={setDate}
                   appointments={dailyAppointments}
-                  isLoading={isLoadingDaily}
+                  isLoading={isLoading}
                   onEdit={(appointment: Appointment) =>
                     setFlow({
                       open: true,
@@ -120,19 +105,6 @@ const Dashboard = () => {
               </Box>
             </Box>
           </>
-        ) : (
-          <>
-            <OnboardingFinishBanner
-              openFlow={() =>
-                setFlow({
-                  open: true,
-                  step: "appointment",
-                  mode: "create",
-                })
-              }
-            />
-            <NoAppointmentsBanner />
-          </>
         )}
       </Box>
 
@@ -147,6 +119,7 @@ const Dashboard = () => {
             queryClient.invalidateQueries({
               queryKey: ["appointments"],
             });
+            if (isOnboarding) checkAuth();
             setFlow({ open: false });
           }}
           onClose={() => setFlow({ open: false })}
