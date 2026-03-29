@@ -22,7 +22,7 @@ export default function FinancialPage() {
   );
   const [endDate, setEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
 
-  const { data: allAppointments = [] } = useQuery<Appointment[]>({
+  const { data: allAppointments = [], isLoading: isLoadingAppointments } = useQuery<Appointment[]>({
     queryKey: ["appointments", "financial", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
     queryFn: () => getAppointmentsByTenant(
       startDate?.format("YYYY-MM-DD"),
@@ -30,44 +30,33 @@ export default function FinancialPage() {
     ),
   });
 
-  const { data: allSales = [] } = useQuery<SaleResponse[]>({
-    queryKey: ["sales", "all"],
-    queryFn: listSales,
+  const { data: allSales = [], isLoading: isLoadingSales } = useQuery<SaleResponse[]>({
+    queryKey: ["sales", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
+    queryFn: () => listSales(
+      startDate?.format("YYYY-MM-DD"),
+      endDate?.format("YYYY-MM-DD"),
+    ),
   });
 
-  const filteredTransactions = useMemo(() => {
-    const inRange = (dateStr: string) => {
-      const date = dayjs(dateStr);
-      return (
-        (!startDate ||
-          date.isAfter(startDate, "day") ||
-          date.isSame(startDate, "day")) &&
-        (!endDate ||
-          date.isBefore(endDate, "day") ||
-          date.isSame(endDate, "day"))
-      );
-    };
+  const isLoading = isLoadingAppointments || isLoadingSales;
 
-    const appointmentsInRange = allAppointments
-      .filter(
-        (a) => a.status === "completed" && !a.is_paid,
-      )
+  const filteredTransactions = useMemo(() => {
+    const appointmentRows = allAppointments
+      .filter((a) => a.status === "completed" && !a.is_paid)
       .map((a) => ({
         id: `apt-${a.id}`,
         date: a.scheduled_at,
         client: a.client.name,
-        // Coberto por pacote é informativo — não gera receita nova
         type: a.is_fully_package_covered
           ? ("Pago via Pacote" as const)
           : ("Agendamento" as const),
-        // getAppointmentTotal já exclui serviços cobertos → será 0 se 100% coberto
         amount_cents: getAppointmentTotal(a),
         payment_method: a.is_fully_package_covered ? "Pacote" : "Pendente",
         original: a,
       }));
 
-    const salesInRange = allSales
-      .filter((s) => s.status === "completed" && inRange(s.created_at))
+    const saleRows = allSales
+      .filter((s) => s.status === "completed")
       .map((s) => ({
         id: `sale-${s.id}`,
         date: s.created_at,
@@ -80,10 +69,10 @@ export default function FinancialPage() {
         original: s,
       }));
 
-    return [...appointmentsInRange, ...salesInRange].sort((a, b) =>
+    return [...appointmentRows, ...saleRows].sort((a, b) =>
       dayjs(b.date).diff(dayjs(a.date)),
     );
-  }, [allAppointments, allSales, startDate, endDate]);
+  }, [allAppointments, allSales]);
 
   const summary = useMemo<FinancialSummary>(() => {
     // "Pago via Pacote" não entra na receita — a receita já foi capturada na venda do pacote
@@ -138,9 +127,9 @@ export default function FinancialPage() {
         </LocalizationProvider>
       </Box>
 
-      <FinancialSummaryCards summary={summary} />
+      <FinancialSummaryCards summary={summary} isLoading={isLoading} />
 
-      <FinancialTable transactions={filteredTransactions} />
+      <FinancialTable transactions={filteredTransactions} isLoading={isLoading} />
     </Box>
   );
 }

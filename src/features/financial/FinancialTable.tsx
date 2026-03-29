@@ -8,6 +8,7 @@ import {
   Typography,
   Box,
   Chip,
+  Skeleton,
 } from "@mui/material";
 import CustomCard from "../../components/Card/CustomCard";
 import dayjs from "dayjs";
@@ -27,9 +28,10 @@ type Transaction = {
 
 type Props = {
   transactions: Transaction[];
+  isLoading?: boolean;
 };
 
-export default function FinancialTable({ transactions }: Props) {
+export default function FinancialTable({ transactions, isLoading = false }: Props) {
   return (
     <CustomCard sx={{ p: 0, overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -50,7 +52,17 @@ export default function FinancialTable({ transactions }: Props) {
             </TableRow>
           </TableHead>
           <TableBody>
-            {transactions.length === 0 ? (
+            {isLoading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={i}>
+                  {Array.from({ length: 6 }).map((_, j) => (
+                    <TableCell key={j}>
+                      <Skeleton variant="text" width={j === 5 ? 60 : "80%"} />
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))
+            ) : transactions.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                   <Typography color="text.disabled">

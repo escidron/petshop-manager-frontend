@@ -6,8 +6,13 @@ export const createSale = async (data: SaleCreate): Promise<SaleResponse> => {
   return response.data;
 };
 
-export const listSales = async (): Promise<SaleResponse[]> => {
-  const response = await apiClient.get<SaleResponse[]>("/api/v1/sales/");
+export const listSales = async (startDate?: string, endDate?: string): Promise<SaleResponse[]> => {
+  const response = await apiClient.get<SaleResponse[]>("/api/v1/sales/", {
+    params: {
+      ...(startDate && { start_date: startDate }),
+      ...(endDate && { end_date: endDate }),
+    },
+  });
   return response.data;
 };
 
