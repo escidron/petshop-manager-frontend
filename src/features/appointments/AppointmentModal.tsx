@@ -73,16 +73,26 @@ export default function AppointmentModal({
     { index: number; id: number } | undefined
   >();
 
-  const handleSubmit = async (data: AppointmentFormData) => {
-    await (mode === "create"
-      ? createAppointment(data)
-      : updateAppointment(appointment!.id, data));
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-    toast.success(
-      mode === "create" ? "Agendamento criado com sucesso" : "Agendamento atualizado com sucesso",
-    );
-    onSuccess();
-    onClose();
+  const handleSubmit = async (data: AppointmentFormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await (mode === "create"
+        ? createAppointment(data)
+        : updateAppointment(appointment!.id, data));
+
+      toast.success(
+        mode === "create" ? "Agendamento criado com sucesso" : "Agendamento atualizado com sucesso",
+      );
+      onSuccess();
+      onClose();
+    } catch {
+      toast.error("Erro ao salvar agendamento. Tente novamente.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleClientCreated = async (client: Client) => {
@@ -127,6 +137,8 @@ export default function AppointmentModal({
             selectedClient={selectedClient}
             selectedPet={selectedPet}
             onSubmit={handleSubmit}
+            mode={mode}
+            isSubmitting={isSubmitting}
             onCreateClient={() => setClientModalOpen(true)}
             onCreatePet={(index, clientId) => setPetModal({ open: true, index, clientId })}
             onCreateService={(index) => setServiceModal({ open: true, index })}

@@ -2,6 +2,7 @@ import {
   Autocomplete,
   Box,
   Checkbox,
+  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -42,6 +43,8 @@ type Props = {
   selectedClient?: Client;
   selectedPet?: Pet;
   onSubmit: (data: AppointmentFormData) => void;
+  mode?: "create" | "edit";
+  isSubmitting?: boolean;
   onCreateClient?: () => void;
   onCreatePet?: (index: number, clientId: number) => void;
   onCreateService?: (index: number) => void;
@@ -59,6 +62,8 @@ export default function AppointmentForm({
   selectedClient,
   selectedPet,
   onSubmit,
+  mode = "create",
+  isSubmitting = false,
   onCreateClient,
   onCreatePet,
   onCreateService,
@@ -574,9 +579,11 @@ export default function AppointmentForm({
       <Divider />
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
+          disabled={isSubmitting}
+          startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
           onClick={handleSubmit((data: AppointmentFormData) => onSubmit(data))}
         >
-          Salvar
+          {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}
         </Button>
       </Box>
     </Box>
