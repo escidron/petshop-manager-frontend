@@ -7,7 +7,6 @@ import {
   Store,
   CheckCircle2,
   ArrowLeft,
-  ShieldCheck,
   Zap,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
@@ -130,21 +129,8 @@ const SignupPage = () => {
           }}
         />
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, zIndex: 1 }}>
-          <Box
-            sx={{
-              bgcolor: "rgba(255, 255, 255, 0.1)",
-              p: 1.5,
-              borderRadius: 3,
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-            }}
-          >
-            <ShieldCheck size={28} />
-          </Box>
-          <Typography variant="h5" fontWeight={800} letterSpacing={-0.5}>
-            PetControle
-          </Typography>
+        <Box sx={{ zIndex: 1 }}>
+          <img src="/logo.png" alt="PetControle" width={150} />
         </Box>
 
         <Box sx={{ zIndex: 1 }}>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Typography, Button, Stack } from "@mui/material";
 import CustomCard from "../components/Card/CustomCard";
-import { ShieldCheck, Zap, PawPrint, Lock } from "lucide-react";
+import { Zap, PawPrint, Lock } from "lucide-react";
 import { useNavigate } from "react-router";
 import { login, type LoginPayload } from "../api/services/users";
 import UserLoginForm from "../features/users/UserLoginForm";
@@ -84,21 +84,8 @@ const LoginPage = () => {
           }}
         />
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2, zIndex: 1 }}>
-          <Box
-            sx={{
-              bgcolor: "rgba(255, 255, 255, 0.1)",
-              p: 1.5,
-              borderRadius: 3,
-              backdropFilter: "blur(10px)",
-              border: "1px solid rgba(255, 255, 255, 0.2)",
-            }}
-          >
-            <ShieldCheck size={28} />
-          </Box>
-          <Typography variant="h5" fontWeight={800} letterSpacing={-0.5}>
-            PetControle
-          </Typography>
+        <Box sx={{ zIndex: 1 }}>
+          <img src="/logo.png" alt="PetControle" width={150} />
         </Box>
 
         <Box sx={{ zIndex: 1 }}>

@@ -13,7 +13,6 @@ import {
   Divider,
 } from "@mui/material";
 import {
-  PawPrint,
   Menu as MenuIcon,
   ArrowRight,
   CheckCircle2,
@@ -129,30 +128,7 @@ const LandingPage = () => {
             disableGutters
             sx={{ justifyContent: "space-between", height: 80 }}
           >
-            <Stack direction="row" spacing={1.5} alignItems="center">
-              <Box
-                sx={{
-                  bgcolor: "primary.main",
-                  p: 1,
-                  borderRadius: 2,
-                  display: "flex",
-                  alignItems: "center",
-                }}
-              >
-                <PawPrint style={{ color: "white" }} size={24} />
-              </Box>
-              <Typography
-                variant="h5"
-                fontWeight="800"
-                sx={{
-                  color: "primary.main",
-                  letterSpacing: -0.5,
-                  fontSize: { xs: "1.2rem", md: "1.5rem" },
-                }}
-              >
-                PetControle
-              </Typography>
-            </Stack>
+            <img src="/logo_dark.png" alt="PetControle" height={40} />
 
             {!isMobile && (
               <Stack direction="row" spacing={4} alignItems="center">
@@ -645,21 +621,9 @@ const LandingPage = () => {
         <Container maxWidth="lg">
           <Stack direction={{ xs: "column", md: "row" }} spacing={8}>
             <Box sx={{ flex: 2 }}>
-              <Stack
-                direction="row"
-                spacing={1.5}
-                alignItems="center"
-                sx={{ mb: 3 }}
-              >
-                <Box
-                  sx={{ bgcolor: "primary.main", p: 0.5, borderRadius: 1.5 }}
-                >
-                  <PawPrint style={{ color: "white" }} size={20} />
-                </Box>
-                <Typography variant="h6" fontWeight="800">
-                  PetControle
-                </Typography>
-              </Stack>
+              <Box sx={{ mb: 3 }}>
+                <img src="/logo_dark.png" alt="PetControle" height={36} />
+              </Box>
               <Typography
                 variant="body1"
                 sx={{ color: "text.primary", opacity: 0.6, lineHeight: 1.8 }}
