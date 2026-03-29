@@ -98,21 +98,21 @@ export default function DashboardSummaryCards({ appointments, isFetching = false
       <SummaryCard
         icon={<CalendarDays size={24} />}
         label="Agendamentos do dia"
-        value={isFetching ? <Skeleton width={40} sx={{ bgcolor: "grey.100" }} /> : totalAppointments}
+        value={isFetching ? <Skeleton width={40} sx={{ bgcolor: "grey.200" }} /> : totalAppointments}
         iconColor={theme.palette.primary.main}
         bgColor="rgba(49, 52, 133, 0.1)"
       />
       <SummaryCard
         icon={<DollarSign size={24} />}
         label="Faturamento do dia"
-        value={isFetching ? <Skeleton width={80} sx={{ bgcolor: "grey.100" }} /> : formattedRevenue}
+        value={isFetching ? <Skeleton width={80} sx={{ bgcolor: "grey.200" }} /> : formattedRevenue}
         iconColor={theme.palette.success.main}
         bgColor="rgba(46, 125, 50, 0.1)"
       />
       <SummaryCard
         icon={<CalendarCheck size={24} />}
         label="Agendamentos confirmados"
-        value={isFetching ? <Skeleton width={40} sx={{ bgcolor: "grey.100" }} /> : confirmedCount}
+        value={isFetching ? <Skeleton width={40} sx={{ bgcolor: "grey.200" }} /> : confirmedCount}
         iconColor={theme.palette.info.main}
         bgColor="rgba(2, 136, 209, 0.1)"
       />

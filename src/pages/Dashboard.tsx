@@ -9,7 +9,7 @@ import type {
   Appointment,
   AppointmentFlowState,
 } from "../features/appointments/types";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import { getAppointmentsByDay } from "../api/services/appointments";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
@@ -27,6 +27,7 @@ const Dashboard = () => {
   const { data: dailyAppointments = [], isFetching } = useQuery({
     queryKey: ["appointments", formattedDate],
     queryFn: () => getAppointmentsByDay(formattedDate),
+    placeholderData: keepPreviousData,
   });
 
   const isFlowOpen = (

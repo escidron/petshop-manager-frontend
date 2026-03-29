@@ -237,7 +237,7 @@ const AppointmentsDailyList = ({
               key={i}
               variant="rounded"
               height={64}
-              sx={{ borderRadius: 2, bgcolor: "grey.100" }}
+              sx={{ borderRadius: 2, bgcolor: "grey.200" }}
             />
           ))
         ) : (
