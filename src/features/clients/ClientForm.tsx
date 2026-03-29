@@ -40,6 +40,7 @@ type Props = {
   showAdditionalInfo: boolean;
   createPetMandatory?: boolean;
   onSubmit: (data: ClientFormData, action?: "addPet") => void;
+  isSubmitting?: boolean;
   setShowAdditionalInfo: (value: boolean) => void;
 };
 
@@ -49,6 +50,7 @@ export default function ClientForm({
   showAdditionalInfo,
   createPetMandatory,
   onSubmit,
+  isSubmitting = false,
   setShowAdditionalInfo,
 }: Props) {
   const [addPhone, setAddPhone] = useState(false);
@@ -644,6 +646,8 @@ export default function ClientForm({
           {!createPetMandatory && (
             <Button
               variant="outlined"
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
               onClick={handleSubmit((data: ClientFormData) => onSubmit(data))}
               data-action="save"
             >
@@ -653,6 +657,8 @@ export default function ClientForm({
 
           {mode === "create" && (
             <Button
+              disabled={isSubmitting}
+              startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
               onClick={handleSubmit((data: ClientFormData) =>
                 onSubmit(data, "addPet"),
               )}

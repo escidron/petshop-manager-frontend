@@ -38,8 +38,11 @@ export default function ClientFormModal({
   const toast = useToast();
   const defaultValues = client ? clientToFormData(client) : DEFAULT_CLIENT_FORM;
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (data: ClientFormData, action?: "addPet") => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         ...data,
@@ -72,6 +75,8 @@ export default function ClientFormModal({
         message = error.response?.data?.detail ?? message;
       }
       toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -106,6 +111,7 @@ export default function ClientFormModal({
           showAdditionalInfo={showAdditionalInfo}
           createPetMandatory={createPetMandatory}
           onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
           setShowAdditionalInfo={setShowAdditionalInfo}
         />
       </DialogContent>

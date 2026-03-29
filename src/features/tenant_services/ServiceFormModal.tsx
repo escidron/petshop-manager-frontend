@@ -38,22 +38,32 @@ export default function ServiceFormModal({
     ? serviceToFormData(service)
     : DEFAULT_SERVICE_FORM;
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (data: ServiceFormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      const saved =
+        mode === "create"
+          ? await createService(data)
+          : await updateService(service!.id, data);
 
-    const saved =
-      mode === "create"
-        ? await createService(data)
-        : await updateService(service!.id, data);
+      toast.success(
+        mode === "create"
+          ? "Serviço cadastrado com sucesso"
+          : "Serviço atualizado com sucesso",
+      );
 
-    toast.success(
-      mode === "create"
-        ? "Serviço cadastrado com sucesso"
-        : "Serviço atualizado com sucesso",
-    );
-
-    onSuccess(saved);
-    onClose();
+      onSuccess(saved);
+      onClose();
+    } catch {
+      toast.error(
+        mode === "create" ? "Erro ao cadastrar serviço." : "Erro ao atualizar serviço.",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -85,6 +95,7 @@ export default function ServiceFormModal({
         <ServiceForm
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
           showAdditionalInfo={showAdditionalInfo}
           setShowAdditionalInfo={setShowAdditionalInfo}
         />

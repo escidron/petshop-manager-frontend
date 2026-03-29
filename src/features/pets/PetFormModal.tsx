@@ -44,9 +44,12 @@ export default function PetFormModal({
   const toast = useToast();
   const defaultValues = pet ? petToFormData(pet) : DEFAULT_PET_FORM;
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { clients } = useClients();
 
   const handleSubmit = async (data: PetFormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const payload = {
         ...data,
@@ -72,6 +75,8 @@ export default function PetFormModal({
         message = error.response?.data?.detail ?? message;
       }
       toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -104,6 +109,7 @@ export default function PetFormModal({
         <PetForm
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
           showAdditionalInfo={showAdditionalInfo}
           setShowAdditionalInfo={setShowAdditionalInfo}
           clients={clients}

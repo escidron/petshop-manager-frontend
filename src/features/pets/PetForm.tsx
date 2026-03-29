@@ -2,6 +2,7 @@ import {
   Autocomplete,
   Box,
   Checkbox,
+  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -33,6 +34,7 @@ import {
 type Props = {
   defaultValues?: Partial<PetFormData>;
   onSubmit: (data: PetFormData) => void;
+  isSubmitting?: boolean;
   showAdditionalInfo: boolean;
   setShowAdditionalInfo: (value: boolean) => void;
   clients?: Client[];
@@ -42,6 +44,7 @@ type Props = {
 const PetForm = ({
   defaultValues,
   onSubmit,
+  isSubmitting = false,
   showAdditionalInfo,
   setShowAdditionalInfo,
   clients,
@@ -603,6 +606,8 @@ const PetForm = ({
         <Divider />
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
           <Button
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             onClick={handleSubmit((data: PetFormData) => onSubmit(data))}
             data-action="save"
           >

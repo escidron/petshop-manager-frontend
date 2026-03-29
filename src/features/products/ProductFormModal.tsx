@@ -33,12 +33,15 @@ export default function ProductFormModal({
 }: Props) {
   const toast = useToast();
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const defaultValues = product
     ? productToFormData(product)
     : DEFAULT_PRODUCT_FORM;
 
   const handleSubmit = async (data: ProductFormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
       const saved =
         mode === "create"
@@ -62,6 +65,8 @@ export default function ProductFormModal({
         message = error.response?.data?.detail ?? message;
       }
       toast.error(message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -94,6 +99,7 @@ export default function ProductFormModal({
         <ProductForm
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
+          isSubmitting={isSubmitting}
           showAdditionalInfo={showAdditionalInfo}
           setShowAdditionalInfo={setShowAdditionalInfo}
         />

@@ -1,6 +1,7 @@
 import {
   Autocomplete,
   Box,
+  CircularProgress,
   Divider,
   FormControl,
   FormLabel,
@@ -23,6 +24,7 @@ import { formatBRLFromCents } from "../../utils/masks";
 type Props = {
   defaultValues?: Partial<ProductFormData>;
   onSubmit: (data: ProductFormData) => void;
+  isSubmitting?: boolean;
   showAdditionalInfo: boolean;
   setShowAdditionalInfo: (value: boolean) => void;
 };
@@ -30,6 +32,7 @@ type Props = {
 const ProductForm = ({
   defaultValues,
   onSubmit,
+  isSubmitting = false,
   showAdditionalInfo,
   setShowAdditionalInfo,
 }: Props) => {
@@ -327,7 +330,13 @@ const ProductForm = ({
 
         <Divider />
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-          <Button onClick={handleSubmit(onSubmitHandler)}>Salvar</Button>
+          <Button
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            onClick={handleSubmit(onSubmitHandler)}
+          >
+            Salvar
+          </Button>
         </Box>
       </Box>
     </form>

@@ -1,6 +1,7 @@
 import {
   Autocomplete,
   Box,
+  CircularProgress,
   Divider,
   FormControl,
   FormLabel,
@@ -21,6 +22,7 @@ import { formatBRLFromCents } from "../../utils/masks";
 type Props = {
   defaultValues?: Partial<ServiceFormData>;
   onSubmit: (data: ServiceFormData) => void;
+  isSubmitting?: boolean;
   showAdditionalInfo: boolean;
   setShowAdditionalInfo: (value: boolean) => void;
 };
@@ -28,6 +30,7 @@ type Props = {
 const ServiceForm = ({
   defaultValues,
   onSubmit,
+  isSubmitting = false,
   showAdditionalInfo,
   setShowAdditionalInfo,
 }: Props) => {
@@ -348,6 +351,8 @@ const ServiceForm = ({
         <Divider />
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
           <Button
+            disabled={isSubmitting}
+            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
             onClick={handleSubmit((data: ServiceFormData) => onSubmit(data))}
             data-action="save"
           >
