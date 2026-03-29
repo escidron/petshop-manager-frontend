@@ -47,7 +47,7 @@ const OnboardingFinishBanner = ({ openFlow }: Props) => {
         color="text.primary"
         gutterBottom
       >
-        Bem-vindo(a) ao Animora!
+        Bem-vindo(a) ao PetControle!
       </Typography>
 
       <Typography

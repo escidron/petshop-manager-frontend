@@ -150,7 +150,7 @@ const LandingPage = () => {
                   fontSize: { xs: "1.2rem", md: "1.5rem" },
                 }}
               >
-                Petshop Manager
+                PetControle
               </Typography>
             </Stack>
 
@@ -657,7 +657,7 @@ const LandingPage = () => {
                   <PawPrint style={{ color: "white" }} size={20} />
                 </Box>
                 <Typography variant="h6" fontWeight="800">
-                  Petshop Manager
+                  PetControle
                 </Typography>
               </Stack>
               <Typography
@@ -756,7 +756,7 @@ const LandingPage = () => {
             }}
           >
             <Typography variant="body2" sx={{ opacity: 0.5 }}>
-              © {new Date().getFullYear()} Petshop Manager Ltda. CNPJ
+              © {new Date().getFullYear()} PetControle Ltda. CNPJ
               00.000.000/0001-00. Feito com ❤️ para pets.
             </Typography>
           </Box>

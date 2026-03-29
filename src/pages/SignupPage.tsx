@@ -143,7 +143,7 @@ const SignupPage = () => {
             <ShieldCheck size={28} />
           </Box>
           <Typography variant="h5" fontWeight={800} letterSpacing={-0.5}>
-            Petshop Manager
+            PetControle
           </Typography>
         </Box>
 
@@ -232,7 +232,7 @@ const SignupPage = () => {
         </Box>
 
         <Typography variant="caption" sx={{ opacity: 0.5, zIndex: 1 }}>
-          © 2026 Petshop Manager. Todos os direitos reservados.
+          © 2026 PetControle. Todos os direitos reservados.
         </Typography>
       </Box>
 

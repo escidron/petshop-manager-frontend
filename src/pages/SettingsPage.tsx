@@ -488,7 +488,7 @@ const SettingsPage = () => {
                           />
                           <Typography variant="caption" color="text.secondary">
                             Ao final desse período, você precisará escolher um
-                            plano para continuar usando o Petshop Manager.
+                            plano para continuar usando o PetControle.
                           </Typography>
                         </Stack>
                       </Box>
@@ -710,7 +710,7 @@ const SettingsPage = () => {
                       variant="caption"
                       sx={{ opacity: 0.8, display: "block" }}
                     >
-                      "O Petshop Manager mudou a forma como gerencio meu banho e
+                      "O PetControle mudou a forma como gerencio meu banho e
                       tosa. Economizo pelo menos 5h por semana."
                     </Typography>
                     <Typography
@@ -795,7 +795,7 @@ const SettingsPage = () => {
                     Usuários do Sistema
                   </Typography>
                   <Typography variant="body2" color="text.primary">
-                    Gerencie quem tem acesso ao Petshop Manager.
+                    Gerencie quem tem acesso ao PetControle.
                   </Typography>
                 </Box>
                 <Button
