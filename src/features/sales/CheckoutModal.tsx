@@ -25,7 +25,7 @@ import { useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSale } from "../../api/services/sales";
 import type { SaleItem, SaleCreate } from "./schemas";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
 
 interface CheckoutModalProps {
@@ -50,6 +50,7 @@ export default function CheckoutModal({
   const [paymentMethod, setPaymentMethod] =
     useState<SaleCreate["payment_method"]>("credit_card");
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const saleMutation = useMutation({
     mutationFn: createSale,
@@ -63,7 +64,7 @@ export default function CheckoutModal({
       onClose();
     },
     onError: (error: any) => {
-      toast.error(error.response?.data?.detail || "Erro ao processar venda");
+      toast.error(error.response?.data?.detail || "Erro ao processar venda.");
     },
   });
 
