@@ -37,7 +37,7 @@ type Props = {
   isFetching?: boolean;
 };
 
-const CustomDay = (props: PickersDayProps<Dayjs> & { selectedDate: Dayjs }) => {
+const CustomDay = (props: PickersDayProps & { selectedDate: Dayjs }) => {
   const { day, selectedDate, ...other } = props;
   const isToday = day.isSame(dayjs(), "day");
   const isSelected = day.isSame(selectedDate, "day");
