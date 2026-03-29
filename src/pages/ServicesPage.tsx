@@ -47,7 +47,7 @@ export default function ServicesPage() {
   };
 
   return (
-    <Box sx={{ width: "60%", mx: "auto", p: 3,maxWidth: "1200px" }}>
+    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
       <ServiceToolbar
         search={search}
         onSearchChange={setSearch}

@@ -77,6 +77,13 @@ const theme = createTheme({
         },
       },
     },
+    MuiAutocomplete: {
+      styleOverrides: {
+        noOptions: {
+          color: "#3d4048",
+        },
+      },
+    },
   },
 });
 

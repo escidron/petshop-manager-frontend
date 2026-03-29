@@ -215,14 +215,14 @@ const LandingPage = () => {
       <Box
         sx={{
           position: "relative",
-          pt: { xs: 8, md: 15 },
-          pb: { xs: 8, md: 20 },
+          pt: { xs: 6, md: 11 },
+          pb: { xs: 6, md: 12 },
         }}
       >
         <Container maxWidth="lg">
           <Stack
             direction={{ xs: "column", md: "row" }}
-            spacing={8}
+            spacing={5}
             alignItems="center"
           >
             <Box sx={{ flex: 1 }}>
@@ -235,7 +235,7 @@ const LandingPage = () => {
                   px: 2,
                   py: 0.5,
                   borderRadius: 10,
-                  mb: 3,
+                  mb: 2,
                   opacity: 0.9,
                 }}
               >
@@ -246,10 +246,10 @@ const LandingPage = () => {
               <Typography
                 variant="h1"
                 sx={{
-                  fontSize: { xs: "2.8rem", md: "4.5rem" },
+                  fontSize: { xs: "2.2rem", md: "3.2rem" },
                   fontWeight: 900,
                   lineHeight: 1.1,
-                  mb: 3,
+                  mb: 2,
                   color: "primary.main",
                   letterSpacing: -1.5,
                 }}
@@ -261,9 +261,9 @@ const LandingPage = () => {
                 crescer.
               </Typography>
               <Typography
-                variant="h5"
+                variant="body1"
                 sx={{
-                  mb: 5,
+                  mb: 3,
                   color: "text.primary",
                   opacity: 0.8,
                   lineHeight: 1.6,
@@ -274,16 +274,16 @@ const LandingPage = () => {
                 Pare de perder tempo com planilhas. Automatize seu agendamento,
                 controle seu financeiro e foque no que importa: os pets.
               </Typography>
-              <Stack direction={{ xs: "column", sm: "row" }} spacing={2.5}>
+              <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
                 <Button
                   variant="contained"
-                  size="large"
+                  size="medium"
                   onClick={() => navigate("/signup?plan=FREE_TRIAL&step=2")}
                   endIcon={<ArrowRight />}
                   sx={{
-                    px: 5,
-                    py: 2,
-                    fontSize: "1.1rem",
+                    px: 4,
+                    py: 1.5,
+                    fontSize: "1rem",
                     borderRadius: 2.5,
                     textTransform: "none",
                     fontWeight: 800,
@@ -291,20 +291,20 @@ const LandingPage = () => {
                     whiteSpace: "nowrap",
                   }}
                 >
-                  Começar agora — É grátis
+                  Começar agora, é grátis
                 </Button>
                 <Button
                   variant="outlined"
-                  size="large"
+                  size="medium"
                   onClick={() =>
                     document
                       .getElementById("features")
                       ?.scrollIntoView({ behavior: "smooth" })
                   }
                   sx={{
-                    px: 5,
-                    py: 2,
-                    fontSize: "1.1rem",
+                    px: 4,
+                    py: 1.5,
+                    fontSize: "1rem",
                     borderRadius: 2.5,
                     textTransform: "none",
                     fontWeight: 800,
@@ -344,7 +344,7 @@ const LandingPage = () => {
                 alt="Petshop"
                 sx={{
                   width: "100%",
-                  height: 600,
+                  height: 500,
                   objectFit: "cover",
                   borderRadius: 6,
                   boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
@@ -429,9 +429,9 @@ const LandingPage = () => {
       </Box>
 
       {/* Pricing Section */}
-      <Box id="pricing" sx={{ py: 15 }}>
+      <Box id="pricing" sx={{ py: { xs: 8, md: 10 } }}>
         <Container maxWidth="md">
-          <Box sx={{ textAlign: "center", mb: 8 }}>
+          <Box sx={{ textAlign: "center", mb: 5 }}>
             <Typography
               variant="h2"
               sx={{ fontWeight: 900, letterSpacing: -1 }}
@@ -499,14 +499,14 @@ const LandingPage = () => {
                       RECOMENDADO
                     </Box>
                   )}
-                  <Box sx={{ p: 5 }}>
+                  <Box sx={{ p: 3.5 }}>
                     <Typography variant="h5" fontWeight="900" sx={{ mb: 1 }}>
                       {plan.title}
                     </Typography>
                     <Box
-                      sx={{ display: "flex", alignItems: "baseline", mb: 2 }}
+                      sx={{ display: "flex", alignItems: "baseline", mb: 1.5 }}
                     >
-                      <Typography variant="h3" fontWeight="900" color="primary">
+                      <Typography variant="h4" fontWeight="900" color="primary">
                         {plan.price}
                       </Typography>
                       <Typography
@@ -518,14 +518,14 @@ const LandingPage = () => {
                     </Box>
                     <Typography
                       variant="body2"
-                      sx={{ mb: 4, color: "text.primary", opacity: 0.7 }}
+                      sx={{ mb: 2, color: "text.primary", opacity: 0.7 }}
                     >
                       {plan.description}
                     </Typography>
 
-                    <Divider sx={{ mb: 4 }} />
+                    <Divider sx={{ mb: 2 }} />
 
-                    <Stack spacing={2} sx={{ mb: 5 }}>
+                    <Stack spacing={1.5} sx={{ mb: 3 }}>
                       {plan.features.map((feature, fIndex) => (
                         <Stack
                           direction="row"
@@ -534,7 +534,7 @@ const LandingPage = () => {
                           alignItems="center"
                         >
                           <CheckCircle2
-                            size={20}
+                            size={18}
                             color={theme.palette.success.main}
                           />
                           <Typography variant="body2" sx={{ fontWeight: 500 }}>
@@ -547,12 +547,12 @@ const LandingPage = () => {
                     <Button
                       fullWidth
                       variant={plan.popular ? "contained" : "outlined"}
-                      size="large"
+                      size="medium"
                       onClick={() =>
                         navigate(`/signup?plan=${plan.code}&step=2`)
                       }
                       sx={{
-                        py: 2,
+                        py: 1.5,
                         borderRadius: 2,
                         textTransform: "none",
                         fontWeight: 800,

@@ -1,4 +1,4 @@
-import {  Box, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 
 const NoAppointmentsBanner = () => {
   return (
@@ -7,17 +7,14 @@ const NoAppointmentsBanner = () => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        gap: 1,
+        gap: 0.5,
       }}
     >
-      <Typography variant="h5">Nenhum agendamento ainda</Typography>
-      <Typography variant="body1">
-        Você ainda não possui agendamentos marcados.
+      <Typography variant="h6">Nenhum agendamento ainda</Typography>
+      <Typography variant="body2" color="text.disabled">
+        Clique no botão "Criar Agendamento" para começar!
       </Typography>
-      <img src="/no_appointment.png" />
-      <Typography variant="body1" color="text.disabled">
-        Clique no botão "Criar Agendamento" para começar!
-      </Typography>
+      <img src="/no_appointment.png" style={{ maxHeight: 280, width: "auto" }} />
     </Box>
   );
 };

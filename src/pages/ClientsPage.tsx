@@ -56,7 +56,7 @@ export default function ClientsPage() {
   };
 
   return (
-    <Box sx={{ width: "60%", mx: "auto", p: 3, maxWidth: "1200px" }}>
+    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
       <ClientsToolbar
         search={search}
         onSearchChange={setSearch}

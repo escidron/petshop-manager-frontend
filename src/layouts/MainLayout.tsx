@@ -241,6 +241,9 @@ export default function MainLayout() {
         PaperProps={{
           sx: {
             backgroundColor: "primary.main",
+            overflow: "hidden",
+            display: "flex",
+            flexDirection: "column",
           },
         }}
       >

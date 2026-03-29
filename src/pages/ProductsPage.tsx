@@ -48,7 +48,7 @@ export default function ProductsPage() {
   };
 
   return (
-    <Box sx={{ maxWidth: "60%", mx: "auto", p: 3 }}>
+    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
       <ProductsToolbar
         search={search}
         onSearchChange={setSearch}

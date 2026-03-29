@@ -285,6 +285,7 @@ export default function AppointmentForm({
               <Autocomplete<Client>
                 sx={{ flex: 1 }}
                 options={clients ?? []}
+                noOptionsText="Nenhum cliente cadastrado"
                 size="small"
                 value={
                   selectedClient ??
@@ -360,6 +361,7 @@ export default function AppointmentForm({
                       <Autocomplete<Pet>
                         sx={{ flex: 1 }}
                         options={availablePets}
+                        noOptionsText="Nenhum pet cadastrado"
                         size="small"
                         value={pets?.find((p) => p.id === field.value) ?? null}
                         getOptionLabel={(option) => option.name}
@@ -414,6 +416,7 @@ export default function AppointmentForm({
                       <Autocomplete
                         sx={{ flex: 1 }}
                         disabled={!currentPet}
+                        noOptionsText="Nenhum serviço cadastrado"
                         multiple
                         options={filteredServices}
                         filterOptions={(options, state) => {
@@ -461,7 +464,7 @@ export default function AppointmentForm({
                                 <Checkbox
                                   checked={selected}
                                   disableRipple
-                                  sx={{ color: "primary.main" }}
+                                  color="primary"
                                 />
                                 <Box>
                                   <Box style={{ fontWeight: 500 }}>
@@ -513,7 +516,7 @@ export default function AppointmentForm({
                   <Checkbox
                     disableRipple
                     size="small"
-                    sx={{ color: "primary.main" }}
+                    color="primary"
                     checked={!!showAllBySection[index]}
                     onChange={(e) =>
                       setShowAllBySection((prev) => ({

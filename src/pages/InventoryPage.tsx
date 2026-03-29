@@ -107,7 +107,7 @@ export default function InventoryPage() {
   return (
     <Box
       sx={{
-        width: "60%",
+        width: "100%",
         mx: "auto",
         p: 3,
         maxWidth: "1200px",

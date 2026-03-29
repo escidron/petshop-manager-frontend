@@ -135,6 +135,7 @@ const PetForm = ({
                   <Autocomplete<Client>
                     disabled={selectedClient !== undefined}
                     options={clients ?? []}
+                    noOptionsText="Nenhum cliente cadastrado"
                     size="small"
                     value={
                       selectedClient ??

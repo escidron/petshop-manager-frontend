@@ -1,4 +1,4 @@
-import { List, Box, Typography, LinearProgress, Stack } from "@mui/material";
+import { List, Box, Typography, LinearProgress } from "@mui/material";
 import dayjs from "dayjs";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
@@ -132,19 +132,37 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   return (
     <Box
       sx={{
-        height: "100%",
+        flex: 1,
+        minHeight: 0,
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
         bgcolor: "primary.main",
-        pb: 2,
+        pb: 1,
       }}
     >
-      <Box sx={{ overflowY: "auto", flexGrow: 1 }}>
+      <Box
+        sx={{
+          overflowY: "auto",
+          flexGrow: 1,
+          minHeight: 0,
+          "&::-webkit-scrollbar": { width: 4 },
+          "&::-webkit-scrollbar-track": { background: "transparent" },
+          "&::-webkit-scrollbar-thumb": {
+            background: "rgba(255,255,255,0.15)",
+            borderRadius: 4,
+          },
+          "&::-webkit-scrollbar-thumb:hover": {
+            background: "rgba(255,255,255,0.3)",
+          },
+          scrollbarWidth: "thin",
+          scrollbarColor: "rgba(255,255,255,0.15) transparent",
+        }}
+      >
         {menuSections.map((section, index) => (
           <Box
             key={section.title}
-            sx={{ mt: index === 0 ? 0.5 : 1.5, mb: 0.5 }}
+            sx={{ mt: index === 0 ? 0.5 : 1, mb: 0 }}
           >
             {!collapsed && (
               <Typography
@@ -154,7 +172,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                   opacity: 0.5,
                   fontWeight: 700,
                   px: 2.5,
-                  mb: 0.25,
+                  mb: 0,
                   display: "block",
                   letterSpacing: 1.2,
                 }}
@@ -162,7 +180,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                 {section.title}
               </Typography>
             )}
-            <List sx={{ px: 1 }}>
+            <List sx={{ px: 1, py: 0 }}>
               {section.items.map((item) => (
                 <SidebarItem key={item.id} item={item} collapsed={collapsed} />
               ))}
@@ -175,77 +193,44 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         <Box
           sx={{
             mx: 2,
-            p: 2,
+            mb: 1,
+            p: 1.5,
             bgcolor: "rgba(255, 255, 255, 0.08)",
             borderRadius: 2,
             border: "1px solid rgba(255, 255, 255, 0.1)",
+            flexShrink: 0,
           }}
         >
-          <Stack spacing={1}>
-            <Typography
-              variant="caption"
-              sx={{ color: "white", opacity: 0.7, fontWeight: 700 }}
-            >
-              PLANO ATUAL
+          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
+            <Typography variant="caption" sx={{ color: "white", fontWeight: 700 }}>
+              {trialInfo.daysLeft === 0 ? "Último dia de teste!" : `${trialInfo.daysLeft} de 14 dias`}
             </Typography>
-            <Typography
-              variant="body2"
-              sx={{ color: "white", fontWeight: 800 }}
-            >
-              Teste Gratuito
-            </Typography>
-            <Box sx={{ mt: 1 }}>
-              <Box
-                sx={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  mb: 0.5,
-                }}
-              >
-                <Typography
-                  variant="caption"
-                  sx={{ color: "white", opacity: 0.8 }}
-                >
-                  {trialInfo.daysLeft === 0 ? "Último dia!" : "Dias restantes"}
-                </Typography>
-                <Typography
-                  variant="caption"
-                  sx={{ color: "white", fontWeight: 700 }}
-                >
-                  {trialInfo.daysLeft} de 14
-                </Typography>
-              </Box>
-              <LinearProgress
-                variant="determinate"
-                value={trialInfo.progress}
-                sx={{
-                  height: 6,
-                  borderRadius: 3,
-                  bgcolor: "rgba(255, 255, 255, 0.1)",
-                  "& .MuiLinearProgress-bar": {
-                    bgcolor: "secondary.main",
-                    borderRadius: 3,
-                  },
-                }}
-              />
-            </Box>
             <Typography
               variant="caption"
               onClick={() => navigate("/settings?tab=billing")}
               sx={{
                 color: "secondary.main",
                 fontWeight: 800,
-                textAlign: "center",
-                mt: 1,
                 cursor: "pointer",
-                textTransform: "uppercase",
-                letterSpacing: 0.5,
                 "&:hover": { textDecoration: "underline" },
               }}
             >
-              🚀 Assinar Agora
+              Assinar
             </Typography>
-          </Stack>
+          </Box>
+          <LinearProgress
+            variant="determinate"
+            value={trialInfo.progress}
+            sx={{
+              height: 5,
+              borderRadius: 3,
+              bgcolor: "rgba(255, 255, 255, 0.1)",
+              "& .MuiLinearProgress-bar": {
+                bgcolor: "secondary.main",
+                borderRadius: 3,
+              },
+            }}
+          />
         </Box>
       )}
     </Box>

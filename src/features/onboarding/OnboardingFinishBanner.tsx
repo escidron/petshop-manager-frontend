@@ -18,7 +18,7 @@ const OnboardingFinishBanner = ({ openFlow }: Props) => {
         display: "flex",
         flexDirection: "column",
         alignItems: "center",
-        p: { xs: 3, md: 5 },
+        p: { xs: 2, md: 3 },
         background: `linear-gradient(to right bottom, #ffffff, ${theme.palette.primary.light}10)`,
         border: `1px solid ${theme.palette.primary.light}40`,
         boxShadow: "0 10px 40px -10px rgba(0,0,0,0.05)",
@@ -29,32 +29,32 @@ const OnboardingFinishBanner = ({ openFlow }: Props) => {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 60,
-          height: 60,
+          width: 48,
+          height: 48,
           borderRadius: "50%",
           backgroundColor: `${theme.palette.primary.main}15`,
           color: theme.palette.primary.main,
-          mb: 3,
+          mb: 1.5,
         }}
       >
-        <Sparkles size={30} />
+        <Sparkles size={24} />
       </Box>
 
       <Typography
-        variant="h4"
+        variant="h5"
         fontWeight={700}
         textAlign="center"
         color="text.primary"
-        gutterBottom
+        sx={{ mb: 1 }}
       >
         Bem-vindo(a) ao PetControle!
       </Typography>
 
       <Typography
-        variant="body1"
+        variant="body2"
         textAlign="center"
         color="text.primary"
-        sx={{ maxWidth: 650, mb: 4, fontSize: "1.1rem", lineHeight: 1.6 }}
+        sx={{ maxWidth: 600, mb: 2.5, lineHeight: 1.6 }}
       >
         Sua agenda está livre por enquanto. Aqui é onde você vai visualizar e
         gerenciar todos os banhos, tosas e consultas. Que tal começarmos a
@@ -64,34 +64,34 @@ const OnboardingFinishBanner = ({ openFlow }: Props) => {
       <Box
         sx={{
           display: "flex",
-          gap: 2,
+          gap: 1.5,
           flexWrap: "wrap",
           justifyContent: "center",
         }}
       >
         <Button
-          size="medium"
-          startIcon={<CalendarPlus size={20} />}
+          size="small"
+          startIcon={<CalendarPlus size={16} />}
           onClick={openFlow}
-          sx={{ px: 4, py: 1.5, borderRadius: 2, fontSize: "1rem" }}
+          sx={{ px: 3, borderRadius: 2 }}
         >
           Primeiro Agendamento
         </Button>
         <Button
-          size="medium"
+          size="small"
           variant="outlined"
-          startIcon={<Scissors size={20} />}
+          startIcon={<Scissors size={16} />}
           onClick={() => navigate("/registration/services")}
-          sx={{ px: 4, py: 1.5, borderRadius: 2, fontSize: "1rem" }}
+          sx={{ px: 3, borderRadius: 2 }}
         >
           Cadastrar Serviços
         </Button>
         <Button
-          size="medium"
+          size="small"
           variant="outlined"
-          startIcon={<Users size={20} />}
+          startIcon={<Users size={16} />}
           onClick={() => navigate("/registration/clients")}
-          sx={{ px: 4, py: 1.5, borderRadius: 2, fontSize: "1rem" }}
+          sx={{ px: 3, borderRadius: 2 }}
         >
           Cadastrar Clientes
         </Button>
