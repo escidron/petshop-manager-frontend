@@ -38,6 +38,8 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import dayjs from "dayjs";
@@ -58,6 +60,11 @@ import {
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
 import { toast } from "react-toastify";
+import { createCheckout, createSetupIntent } from "../api/services/subscriptions";
+import CheckoutForm from "../features/billing/CheckoutForm";
+import type { CheckoutResponse } from "../features/billing/types";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -106,7 +113,8 @@ const SettingsPage = () => {
   const [value, setValue] = useState(0);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
-  const [upgrading, setUpgrading] = useState(false);
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
+  const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [savingTenant, setSavingTenant] = useState(false);
   const { tenant, user, setTenant } = useAuth();
   const { isOwner } = usePermission();
@@ -226,15 +234,32 @@ const SettingsPage = () => {
 
   const trialDays = getTrialDays();
 
-  const handleUpgrade = () => {
-    setUpgrading(true);
-    setTimeout(() => {
-      setUpgrading(false);
-      setOpenCheckout(false);
-      alert(
-        "Upgrade simulado com sucesso! Em uma integração real, aqui processaríamos o pagamento via Stripe.",
-      );
-    }, 2000);
+  const handleOpenCheckout = async () => {
+    setCheckoutLoading(true);
+    try {
+      const data = await createCheckout("MONTHLY");
+      if ("client_secret" in data) {
+        setCheckoutSecret((data as CheckoutResponse).client_secret);
+        setOpenCheckout(true);
+      }
+    } catch {
+      toast.error("Erro ao iniciar checkout. Tente novamente.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleOpenSetupCard = async () => {
+    setCheckoutLoading(true);
+    try {
+      const data = await createSetupIntent();
+      setCheckoutSecret(data.client_secret);
+      setOpenCheckout(true);
+    } catch {
+      toast.error("Erro ao configurar cartão. Tente novamente.");
+    } finally {
+      setCheckoutLoading(false);
+    }
   };
 
   const onSaveTenant = async (data: TenantFormData) => {
@@ -513,7 +538,8 @@ const SettingsPage = () => {
                           variant="contained"
                           size="large"
                           fullWidth
-                          onClick={() => setOpenCheckout(true)}
+                          onClick={handleOpenCheckout}
+                          disabled={checkoutLoading}
                           startIcon={<TrendingUp size={18} />}
                           sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
                         >
@@ -612,7 +638,8 @@ const SettingsPage = () => {
                           variant="outlined"
                           fullWidth
                           startIcon={<CreditCard size={18} />}
-                          onClick={() => setOpenCheckout(true)}
+                          onClick={handleOpenSetupCard}
+                          disabled={checkoutLoading}
                         >
                           Adicionar Cartão
                         </Button>
@@ -1149,10 +1176,10 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL DE CHECKOUT SIMULADO --- */}
+      {/* --- MODAL DE CHECKOUT STRIPE --- */}
       <Modal
         open={openCheckout}
-        onClose={() => !upgrading && setOpenCheckout(false)}
+        onClose={() => setOpenCheckout(false)}
         closeAfterTransition
         BackdropComponent={Backdrop}
         BackdropProps={{ timeout: 500 }}
@@ -1164,7 +1191,7 @@ const SettingsPage = () => {
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              width: { xs: "90%", sm: 450 },
+              width: { xs: "90%", sm: 480 },
               bgcolor: "background.paper",
               borderRadius: 4,
               boxShadow: 24,
@@ -1187,103 +1214,37 @@ const SettingsPage = () => {
                   Checkout Seguro
                 </Typography>
               </Stack>
-              <IconButton
-                onClick={() => setOpenCheckout(false)}
-                sx={{ color: "white" }}
-                disabled={upgrading}
-              >
+              <IconButton onClick={() => setOpenCheckout(false)} sx={{ color: "white" }}>
                 <X size={20} />
               </IconButton>
             </Box>
 
             <Box sx={{ p: 4 }}>
-              <Stack spacing={3}>
-                <Box>
-                  <Typography
-                    variant="subtitle2"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    PLANO ESCOLHIDO
-                  </Typography>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
+              {checkoutSecret ? (
+                <Elements stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
+                  <CheckoutForm
+                    onSuccess={() => {
+                      setOpenCheckout(false);
+                      setCheckoutSecret(null);
+                      toast.success("Assinatura realizada com sucesso!");
                     }}
-                  >
-                    <Typography variant="h6" fontWeight={800}>
-                      Plano Mensal Profissional
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      fontWeight={800}
-                      color="primary.main"
-                    >
-                      R$ 99,90
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Cobrado mensalmente. Cancele quando quiser.
-                  </Typography>
+                  />
+                </Elements>
+              ) : (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <CircularProgress />
                 </Box>
+              )}
 
-                <Divider />
-
-                <Stack spacing={2}>
-                  <TextField
-                    fullWidth
-                    label="Número do Cartão"
-                    placeholder="0000 0000 0000 0000"
-                    disabled={upgrading}
-                  />
-                  <Stack direction="row" spacing={2}>
-                    <TextField
-                      fullWidth
-                      label="Validade"
-                      placeholder="MM/AA"
-                      disabled={upgrading}
-                    />
-                    <TextField
-                      fullWidth
-                      label="CVC"
-                      placeholder="123"
-                      disabled={upgrading}
-                    />
-                  </Stack>
-                  <TextField
-                    fullWidth
-                    label="Nome no Cartão"
-                    placeholder="NOME COMPLETO"
-                    disabled={upgrading}
-                  />
-                </Stack>
-
-                <Button
-                  variant="contained"
-                  fullWidth
-                  size="large"
-                  disabled={upgrading}
-                  onClick={handleUpgrade}
-                  sx={{ py: 2, borderRadius: 2, fontWeight: 700, mt: 1 }}
-                >
-                  {upgrading ? (
-                    <CircularProgress size={24} color="inherit" />
-                  ) : (
-                    "Confirmar Assinatura"
-                  )}
-                </Button>
-
-                <Typography
-                  variant="caption"
-                  color="text.primary"
-                  textAlign="center"
-                  display="block"
-                >
-                  Seus dados estão protegidos por criptografia de ponta a ponta.
-                </Typography>
-              </Stack>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                textAlign="center"
+                display="block"
+                sx={{ mt: 2 }}
+              >
+                Dados protegidos por criptografia Stripe. PCI-DSS compliant.
+              </Typography>
             </Box>
           </Box>
         </Fade>
