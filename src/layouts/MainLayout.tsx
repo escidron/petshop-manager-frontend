@@ -145,13 +145,13 @@ export default function MainLayout() {
     }
     if (subscriptionStatus === "trialing") {
       // Trial expirado (isSubscriptionActive já é false aqui)
-      return { severity: "error", message: "Seu período de teste expirou. Você está em modo leitura — novos agendamentos estão bloqueados.", actionLabel: "Assinar agora" };
+      return { severity: "error", message: "Seu período de teste expirou. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Assinar agora" };
     }
     if (subscriptionStatus === "past_due") {
-      return { severity: "error", message: "Pagamento em atraso. Você está em modo leitura — novos agendamentos estão bloqueados.", actionLabel: "Atualizar pagamento" };
+      return { severity: "error", message: "Pagamento em atraso. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Atualizar pagamento" };
     }
     if (subscriptionStatus === "canceled") {
-      return { severity: "error", message: "Assinatura cancelada. Você está em modo leitura — novos agendamentos estão bloqueados.", actionLabel: "Reativar assinatura" };
+      return { severity: "error", message: "Assinatura cancelada. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Reativar assinatura" };
     }
     return null;
   };
@@ -300,16 +300,17 @@ export default function MainLayout() {
         {subscriptionAlert && (
           <Box
             sx={{
+              margin: '0 auto',
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
               gap: 2,
               px: 2,
-              py: 0.75,
-              mb: 2,
+              py: 2,
+              mb: 6,
               borderRadius: 2,
-              maxWidth: 860,
-              bgcolor: subscriptionAlert.severity === "error" ? "#FEF2F2" : "#FFFBEB",
+              maxWidth: 960,
+              bgcolor: 'white',
               border: `1px solid ${subscriptionAlert.severity === "error" ? "#FECACA" : "#FDE68A"}`,
             }}
           >
@@ -320,11 +321,10 @@ export default function MainLayout() {
                 <AlertTriangle size={16} color="#D97706" />
               )}
               <Typography
-                variant="body2"
+                variant="body1"
                 sx={{
                   fontWeight: 600,
                   color: subscriptionAlert.severity === "error" ? "#991B1B" : "#92400E",
-                  fontSize: "0.8rem",
                 }}
               >
                 {subscriptionAlert.message}

@@ -292,7 +292,7 @@ const SettingsPage = () => {
   const getTrialDays = () => {
     if (!tenant?.subscription?.trial_ends_at) return 0;
     const expiryDate = dayjs(tenant.subscription.trial_ends_at);
-    const daysLeft = expiryDate.diff(dayjs(), "day") + 1;
+    const daysLeft = Math.ceil(expiryDate.diff(dayjs(), "hour") / 24);
     return daysLeft > 0 ? daysLeft : 0;
   };
 
@@ -568,17 +568,23 @@ const SettingsPage = () => {
                               alignItems: "center",
                             }}
                           >
-                            <Typography variant="body2" fontWeight={700}>
-                              Faltam {trialDays} dias para o fim do teste
+                            <Typography variant="body2" fontWeight={700} color={trialDays === 0 ? "error" : "inherit"}>
+                              {trialDays === 0
+                                ? dayjs(tenant.subscription.trial_ends_at).isBefore(dayjs())
+                                  ? "Seu período de teste expirou"
+                                  : `Seu teste grátis acaba hoje às ${dayjs(tenant.subscription.trial_ends_at).format("HH:mm")}`
+                                : `Faltam ${trialDays} ${trialDays === 1 ? "dia" : "dias"} para o fim do teste`}
                             </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {dayjs(tenant.subscription.trial_ends_at).format(
-                                "DD/MM/YYYY",
-                              )}
-                            </Typography>
+                            {trialDays > 0 && (
+                              <Typography
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                {dayjs(tenant.subscription.trial_ends_at).format(
+                                  "DD/MM/YYYY",
+                                )}
+                              </Typography>
+                            )}
                           </Box>
                           <LinearProgress
                             variant="determinate"

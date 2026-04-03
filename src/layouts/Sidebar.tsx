@@ -121,11 +121,11 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
       return null;
     }
     const expiryDate = dayjs(subscription.trial_ends_at);
-    const daysLeft = expiryDate.diff(dayjs(), "day") + 1;
+    const daysLeft = Math.ceil(expiryDate.diff(dayjs(), "hour") / 24);
     const totalDays = subscription.plan?.trial_days || 14;
     const progress = Math.max(0, Math.min(100, (daysLeft / totalDays) * 100));
 
-    return { daysLeft: daysLeft > 0 ? daysLeft : 0, progress };
+    return { daysLeft: daysLeft > 0 ? daysLeft : 0, progress, expiryDate };
   };
 
   const trialInfo = getTrialInfo();
@@ -203,7 +203,11 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         >
           <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
             <Typography variant="caption" sx={{ color: "white", fontWeight: 700 }}>
-              {trialInfo.daysLeft === 0 ? "Último dia de teste!" : `${trialInfo.daysLeft} de 14 dias`}
+              {trialInfo.daysLeft === 0
+              ? trialInfo.expiryDate.isBefore(dayjs())
+                ? "Teste expirado"
+                : `Acaba hoje às ${trialInfo.expiryDate.format("HH:mm")}`
+              : `${trialInfo.daysLeft} ${trialInfo.daysLeft === 1 ? "dia" : "dias"} restantes`}
             </Typography>
             <Typography
               variant="caption"
