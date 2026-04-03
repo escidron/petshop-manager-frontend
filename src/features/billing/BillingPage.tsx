@@ -171,6 +171,7 @@ const BillingPage = () => {
           </Typography>
           <Elements stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
             <CheckoutForm
+              clientSecret={checkoutSecret}
               onSuccess={() => {
                 setCheckoutSecret(null);
                 toast.success("Assinatura realizada com sucesso!");
@@ -189,6 +190,7 @@ const BillingPage = () => {
           </Typography>
           <Elements stripe={stripePromise} options={{ clientSecret: setupSecret }}>
             <CheckoutForm
+              clientSecret={setupSecret}
               onSuccess={() => {
                 setSetupSecret(null);
                 toast.success("Cartão atualizado com sucesso!");
