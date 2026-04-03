@@ -23,6 +23,13 @@ import type { PlanCode } from "../features/plans/types";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import axios from "axios";
+import { Elements } from "@stripe/react-stripe-js";
+import { loadStripe } from "@stripe/stripe-js";
+import CheckoutForm from "../features/billing/CheckoutForm";
+import { createCheckout } from "../api/services/subscriptions";
+import type { CheckoutResponse } from "../features/billing/types";
+
+const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
 const SignupPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -33,6 +40,7 @@ const SignupPage = () => {
   const [userData, setUserData] = useState<UserFormData | null>(null);
   const [tenantData, setTenantData] = useState<TenantFormData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -73,7 +81,16 @@ const SignupPage = () => {
 
       toast.success("Conta criada com sucesso");
       await checkAuth();
-      navigate("/dashboard");
+
+      if (planCode === "MONTHLY") {
+        // Precisa pagar antes de entrar no dashboard
+        const checkoutData = await createCheckout("MONTHLY");
+        if ("client_secret" in checkoutData) {
+          setCheckoutSecret((checkoutData as CheckoutResponse).client_secret);
+        }
+      } else {
+        navigate("/dashboard");
+      }
     } catch (error: unknown) {
       let message = "Erro ao criar conta";
       if (axios.isAxiosError(error)) {
@@ -164,21 +181,24 @@ const SignupPage = () => {
             variant="h2"
             sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2, color: "white" }}
           >
-            {step === 1 && "Simplicidade para gerenciar seu tempo."}
-            {step === 2 && "Sua conta é a porta para o sucesso."}
-            {step === 3 && "Personalize a vitrine do seu negócio."}
+            {!checkoutSecret && step === 1 && "Simplicidade para gerenciar seu tempo."}
+            {!checkoutSecret && step === 2 && "Sua conta é a porta para o sucesso."}
+            {!checkoutSecret && step === 3 && "Personalize a vitrine do seu negócio."}
+            {checkoutSecret && "Último passo — ative sua assinatura."}
           </Typography>
 
           <Typography
             variant="body1"
             sx={{ opacity: 0.8, mb: 5, fontSize: "1.1rem", maxWidth: 450 }}
           >
-            {step === 1 &&
+            {!checkoutSecret && step === 1 &&
               "Escolha o plano que melhor se adapta à sua rotina e comece a escalar hoje mesmo."}
-            {step === 2 &&
+            {!checkoutSecret && step === 2 &&
               "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
-            {step === 3 &&
+            {!checkoutSecret && step === 3 &&
               "Seus clientes vão notar a diferença desde o primeiro agendamento."}
+            {checkoutSecret &&
+              "Pagamento seguro via Stripe. Cancele quando quiser."}
           </Typography>
 
           <Stack spacing={2} sx={{ mt: 4 }}>
@@ -301,9 +321,24 @@ const SignupPage = () => {
                 },
               }}
             >
-              {step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
+              {/* Passo de pagamento para plano MONTHLY */}
+              {checkoutSecret && (
+                <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
+                  <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ mb: 1 }}>
+                    Finalize seu pagamento
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    Insira os dados do cartão para ativar o Plano Mensal.
+                  </Typography>
+                  <Elements stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
+                    <CheckoutForm clientSecret={checkoutSecret} onSuccess={() => navigate("/dashboard")} />
+                  </Elements>
+                </CustomCard>
+              )}
 
-              {step === 2 && (
+              {!checkoutSecret && step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
+
+              {!checkoutSecret && step === 2 && (
                 <CustomCard
                   sx={{
                     p: 4,
@@ -318,7 +353,7 @@ const SignupPage = () => {
                 </CustomCard>
               )}
 
-              {step === 3 && (
+              {!checkoutSecret && step === 3 && (
                 <CustomCard
                   sx={{
                     p: 4,

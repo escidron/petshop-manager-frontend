@@ -23,9 +23,10 @@ import {
 } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { Typography } from "@mui/material";
+import { Button, Typography } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
 import UserMenu from "../features/users/UserMenu";
+import { AlertTriangle, Zap } from "lucide-react";
 
 const drawerWidth = 240;
 
@@ -114,7 +115,7 @@ const Drawer = styled(MuiDrawer, {
 export default function MainLayout() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
-  const { user } = useAuth();
+  const { user, isSubscriptionActive, subscriptionStatus } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -134,6 +135,28 @@ export default function MainLayout() {
   const handleDrawerClose = () => {
     setOpen(false);
   };
+
+  const getSubscriptionAlert = (): { severity: "warning" | "error"; message: string; actionLabel?: string } | null => {
+    if (isSubscriptionActive) return null;
+    if (!subscriptionStatus) return null;
+
+    if (subscriptionStatus === "incomplete") {
+      return { severity: "warning", message: "Pagamento em processamento — aguardando confirmação do Stripe.", actionLabel: "Ver cobrança" };
+    }
+    if (subscriptionStatus === "trialing") {
+      // Trial expirado (isSubscriptionActive já é false aqui)
+      return { severity: "error", message: "Seu período de teste expirou. Você está em modo leitura — novos agendamentos estão bloqueados.", actionLabel: "Assinar agora" };
+    }
+    if (subscriptionStatus === "past_due") {
+      return { severity: "error", message: "Pagamento em atraso. Você está em modo leitura — novos agendamentos estão bloqueados.", actionLabel: "Atualizar pagamento" };
+    }
+    if (subscriptionStatus === "canceled") {
+      return { severity: "error", message: "Assinatura cancelada. Você está em modo leitura — novos agendamentos estão bloqueados.", actionLabel: "Reativar assinatura" };
+    }
+    return null;
+  };
+
+  const subscriptionAlert = getSubscriptionAlert();
 
   const getPageTitle = () => {
     const path = location.pathname;
@@ -274,6 +297,63 @@ export default function MainLayout() {
       </Drawer>
       <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
         <DrawerHeader />
+        {subscriptionAlert && (
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 2,
+              px: 2,
+              py: 0.75,
+              mb: 2,
+              borderRadius: 2,
+              maxWidth: 860,
+              bgcolor: subscriptionAlert.severity === "error" ? "#FEF2F2" : "#FFFBEB",
+              border: `1px solid ${subscriptionAlert.severity === "error" ? "#FECACA" : "#FDE68A"}`,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              {subscriptionAlert.severity === "error" ? (
+                <AlertTriangle size={16} color="#DC2626" />
+              ) : (
+                <AlertTriangle size={16} color="#D97706" />
+              )}
+              <Typography
+                variant="body2"
+                sx={{
+                  fontWeight: 600,
+                  color: subscriptionAlert.severity === "error" ? "#991B1B" : "#92400E",
+                  fontSize: "0.8rem",
+                }}
+              >
+                {subscriptionAlert.message}
+              </Typography>
+            </Box>
+            {subscriptionAlert.actionLabel && (
+              <Button
+                size="small"
+                variant="contained"
+                onClick={() => navigate("/settings?tab=billing")}
+                startIcon={<Zap size={13} />}
+                sx={{
+                  py: 0.4,
+                  px: 1.5,
+                  fontSize: "0.75rem",
+                  fontWeight: 700,
+                  whiteSpace: "nowrap",
+                  flexShrink: 0,
+                  bgcolor: subscriptionAlert.severity === "error" ? "#DC2626" : "#D97706",
+                  "&:hover": {
+                    bgcolor: subscriptionAlert.severity === "error" ? "#B91C1C" : "#B45309",
+                  },
+                }}
+              >
+                {subscriptionAlert.actionLabel}
+              </Button>
+            )}
+          </Box>
+        )}
         <Outlet />
       </Box>
     </Box>

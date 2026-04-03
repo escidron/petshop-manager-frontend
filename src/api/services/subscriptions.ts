@@ -42,3 +42,11 @@ export const createSetupIntent = async () => {
   );
   return response.data;
 };
+
+export const setDefaultPaymentMethod = async (pmId: string) => {
+  await apiClient.post(`/api/v1/subscriptions/payment-methods/${pmId}/default`);
+};
+
+export const removePaymentMethod = async (pmId: string) => {
+  await apiClient.delete(`/api/v1/subscriptions/payment-methods/${pmId}`);
+};

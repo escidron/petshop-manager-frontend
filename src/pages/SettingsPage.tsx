@@ -60,9 +60,10 @@ import {
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
 import { toast } from "react-toastify";
-import { createCheckout, createSetupIntent } from "../api/services/subscriptions";
+import { createCheckout, createSetupIntent, listPaymentMethods, setDefaultPaymentMethod, removePaymentMethod } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
-import type { CheckoutResponse } from "../features/billing/types";
+import PaymentMethodCard from "../features/billing/PaymentMethodCard";
+import type { CheckoutResponse, PaymentMethod } from "../features/billing/types";
 
 const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
 
@@ -114,9 +115,15 @@ const SettingsPage = () => {
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
   const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
+  const [checkoutMode, setCheckoutMode] = useState<"payment" | "setup">("payment");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [savingTenant, setSavingTenant] = useState(false);
-  const { tenant, user, setTenant } = useAuth();
+  const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
+  const [loadingCards, setLoadingCards] = useState(false);
+  const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
+  const [pollCount, setPollCount] = useState(0);
+  const { tenant, user, setTenant, checkAuth } = useAuth();
   const { isOwner } = usePermission();
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
@@ -221,6 +228,64 @@ const SettingsPage = () => {
       .finally(() => setLoadingUsers(false));
   }, [isOwner]);
 
+  const fetchCards = async () => {
+    setLoadingCards(true);
+    try {
+      const methods = await listPaymentMethods();
+      setSavedCards(methods);
+    } finally {
+      setLoadingCards(false);
+    }
+  };
+
+  const handleSetDefault = async (pmId: string) => {
+    await setDefaultPaymentMethod(pmId);
+    setSavedCards((prev) =>
+      prev.map((c) => ({ ...c, is_default: c.id === pmId }))
+    );
+    toast.success("Cartão padrão atualizado!");
+  };
+
+  const handleRemoveCard = async (pmId: string) => {
+    await removePaymentMethod(pmId);
+    setSavedCards((prev) => prev.filter((c) => c.id !== pmId));
+    toast.success("Cartão removido.");
+  };
+
+  // Busca cartões ao abrir a aba de cobrança
+  useEffect(() => {
+    if (!isOwner) return;
+    const billingIdx = tabConfig.findIndex((t) => t.id === "billing");
+    if (value === billingIdx) {
+      fetchCards();
+    }
+  }, [value, isOwner]);
+
+  // Polling após pagamento: verifica status a cada 2s até ficar active
+  useEffect(() => {
+    if (!awaitingConfirmation) return;
+
+    if (tenant?.subscription?.status === "active") {
+      setAwaitingConfirmation(false);
+      setPollCount(0);
+      fetchCards();
+      return;
+    }
+
+    if (pollCount >= 15) {
+      setAwaitingConfirmation(false);
+      setPollCount(0);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      await checkAuth();
+      setPollCount((c) => c + 1);
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [awaitingConfirmation, pollCount, tenant?.subscription?.status]);
+
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
   };
@@ -234,29 +299,40 @@ const SettingsPage = () => {
 
   const trialDays = getTrialDays();
 
-  const handleOpenCheckout = async () => {
+  const openCheckoutModal = () => {
+    setCheckoutSecret(null);
+    setCheckoutError(null);
+    setOpenCheckout(true);
     setCheckoutLoading(true);
+  };
+
+  const handleOpenCheckout = async () => {
+    setCheckoutMode("payment");
+    openCheckoutModal();
     try {
       const data = await createCheckout("MONTHLY");
       if ("client_secret" in data) {
         setCheckoutSecret((data as CheckoutResponse).client_secret);
-        setOpenCheckout(true);
+      } else {
+        setCheckoutError("Não foi possível iniciar o checkout. Tente novamente.");
       }
-    } catch {
-      toast.error("Erro ao iniciar checkout. Tente novamente.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setCheckoutError(msg ?? "Erro ao iniciar checkout. Tente novamente.");
     } finally {
       setCheckoutLoading(false);
     }
   };
 
   const handleOpenSetupCard = async () => {
-    setCheckoutLoading(true);
+    setCheckoutMode("setup");
+    openCheckoutModal();
     try {
       const data = await createSetupIntent();
       setCheckoutSecret(data.client_secret);
-      setOpenCheckout(true);
-    } catch {
-      toast.error("Erro ao configurar cartão. Tente novamente.");
+    } catch (err: unknown) {
+      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
+      setCheckoutError(msg ?? "Erro ao configurar cartão. Tente novamente.");
     } finally {
       setCheckoutLoading(false);
     }
@@ -459,14 +535,17 @@ const SettingsPage = () => {
                       </Box>
                       <Chip
                         label={
-                          tenant?.subscription?.status === "trialing"
-                            ? "PERÍODO DE TESTE"
-                            : "ATIVO"
+                          tenant?.subscription?.status === "trialing" ? "PERÍODO DE TESTE" :
+                          tenant?.subscription?.status === "active" ? "ATIVO" :
+                          tenant?.subscription?.status === "incomplete" ? "PAGAMENTO PENDENTE" :
+                          tenant?.subscription?.status === "past_due" ? "PAGAMENTO ATRASADO" :
+                          tenant?.subscription?.status === "canceled" ? "CANCELADO" :
+                          "DESCONHECIDO"
                         }
                         color={
-                          tenant?.subscription?.status === "trialing"
-                            ? "secondary"
-                            : "success"
+                          tenant?.subscription?.status === "active" ? "success" :
+                          tenant?.subscription?.status === "trialing" ? "secondary" :
+                          "error"
                         }
                         size="small"
                         sx={{ fontWeight: 700 }}
@@ -521,18 +600,54 @@ const SettingsPage = () => {
 
                     <Divider />
 
-                    {tenant?.subscription?.plan?.code === "FREE_TRIAL" && (
+                    {awaitingConfirmation && (
+                      <Box
+                        sx={{
+                          p: 3,
+                          borderRadius: 3,
+                          bgcolor: "rgba(111,66,193,0.04)",
+                          border: "1px solid rgba(111,66,193,0.15)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                        }}
+                      >
+                        <CircularProgress size={20} />
+                        <Box>
+                          <Typography variant="subtitle2" fontWeight={700}>
+                            Aguardando confirmação do pagamento
+                          </Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Isso pode levar alguns segundos...
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+
+                    {!awaitingConfirmation && (tenant?.subscription?.plan?.code === "FREE_TRIAL" ||
+                      tenant?.subscription?.status === "incomplete" ||
+                      tenant?.subscription?.status === "past_due" ||
+                      tenant?.subscription?.status === "canceled") && (
                       <Box>
                         <Typography variant="h6" fontWeight={800} gutterBottom>
-                          Faça o Upgrade agora
+                          {tenant?.subscription?.status === "incomplete"
+                            ? "Complete o pagamento"
+                            : tenant?.subscription?.status === "past_due"
+                            ? "Regularize seu pagamento"
+                            : tenant?.subscription?.status === "canceled"
+                            ? "Reative sua assinatura"
+                            : "Faça o Upgrade agora"}
                         </Typography>
                         <Typography
                           variant="body2"
                           color="text.primary"
                           sx={{ mb: 3 }}
                         >
-                          Desbloqueie todos os recursos, clientes ilimitados e
-                          suporte prioritário.
+                          {tenant?.subscription?.status === "incomplete"
+                            ? "Seu cadastro foi criado. Insira o cartão ou pague via PIX para ativar."
+                            : tenant?.subscription?.status === "past_due"
+                            ? "Atualize seus dados de pagamento para continuar com acesso total."
+                            : "Desbloqueie todos os recursos, clientes ilimitados e suporte prioritário."}
                         </Typography>
                         <Button
                           variant="contained"
@@ -543,7 +658,7 @@ const SettingsPage = () => {
                           startIcon={<TrendingUp size={18} />}
                           sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
                         >
-                          Assinar Plano Mensal (R$ 99,90)
+                          {checkoutLoading ? "Carregando..." : "Assinar Plano Mensal (R$ 99,90)"}
                         </Button>
                       </Box>
                     )}
@@ -617,29 +732,47 @@ const SettingsPage = () => {
 
                     {paymentMethod === "card" ? (
                       <Box>
-                        <Stack
-                          direction="row"
-                          spacing={2}
-                          alignItems="center"
-                          sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            bgcolor: "rgba(0,0,0,0.02)",
-                            border: "1px dashed rgba(0,0,0,0.1)",
-                            mb: 2,
-                          }}
-                        >
-                          <CreditCard size={24} color="gray" />
-                          <Typography variant="body2" color="text.primary">
-                            Nenhum cartão cadastrado.
-                          </Typography>
-                        </Stack>
+                        {loadingCards ? (
+                          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+                            <CircularProgress size={24} />
+                          </Box>
+                        ) : savedCards.length > 0 ? (
+                          <Stack spacing={1.5} sx={{ mb: 2 }}>
+                            {savedCards.map((card) => (
+                              <PaymentMethodCard
+                                key={card.id}
+                                card={card}
+                                onSetDefault={handleSetDefault}
+                                onRemove={handleRemoveCard}
+                              />
+                            ))}
+                          </Stack>
+                        ) : (
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 2,
+                              p: 2.5,
+                              borderRadius: 2,
+                              bgcolor: "rgba(0,0,0,0.02)",
+                              border: "1px dashed rgba(0,0,0,0.12)",
+                              mb: 2,
+                            }}
+                          >
+                            <CreditCard size={22} color="#bbb" />
+                            <Typography variant="body2" color="text.secondary">
+                              Nenhum cartão cadastrado.
+                            </Typography>
+                          </Box>
+                        )}
                         <Button
                           variant="outlined"
                           fullWidth
-                          startIcon={<CreditCard size={18} />}
+                          startIcon={<Plus size={16} />}
                           onClick={handleOpenSetupCard}
                           disabled={checkoutLoading}
+                          sx={{ borderRadius: 2 }}
                         >
                           Adicionar Cartão
                         </Button>
@@ -1211,7 +1344,7 @@ const SettingsPage = () => {
               <Stack direction="row" spacing={1} alignItems="center">
                 <Lock size={20} />
                 <Typography variant="h6" fontWeight={700}>
-                  Checkout Seguro
+                  {checkoutMode === "setup" ? "Adicionar Cartão" : "Assinar Plano Mensal"}
                 </Typography>
               </Stack>
               <IconButton onClick={() => setOpenCheckout(false)} sx={{ color: "white" }}>
@@ -1220,31 +1353,54 @@ const SettingsPage = () => {
             </Box>
 
             <Box sx={{ p: 4 }}>
-              {checkoutSecret ? (
-                <Elements stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
-                  <CheckoutForm
-                    onSuccess={() => {
-                      setOpenCheckout(false);
-                      setCheckoutSecret(null);
-                      toast.success("Assinatura realizada com sucesso!");
-                    }}
-                  />
-                </Elements>
-              ) : (
+              {checkoutError ? (
+                <Box>
+                  <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                    {checkoutError}
+                  </Typography>
+                  <Button variant="outlined" onClick={() => setOpenCheckout(false)} sx={{ width: "100%" }}>
+                    Fechar
+                  </Button>
+                </Box>
+              ) : checkoutLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress />
                 </Box>
-              )}
+              ) : checkoutSecret ? (
+                <Elements key={checkoutSecret} stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
+                  <CheckoutForm
+                    clientSecret={checkoutSecret}
+                    onSuccess={async (pmId?: string) => {
+                      setOpenCheckout(false);
+                      setCheckoutSecret(null);
+                      if (checkoutMode === "setup") {
+                        if (pmId) {
+                          try { await setDefaultPaymentMethod(pmId); } catch { /* ignore */ }
+                        }
+                        toast.success("Cartão salvo e definido como padrão!");
+                        await fetchCards();
+                      } else {
+                        toast.success("Pagamento enviado! Aguardando confirmação...");
+                        await checkAuth();
+                        setAwaitingConfirmation(true);
+                        setPollCount(0);
+                      }
+                    }}
+                  />
+                </Elements>
+              ) : null}
 
-              <Typography
-                variant="caption"
-                color="text.secondary"
-                textAlign="center"
-                display="block"
-                sx={{ mt: 2 }}
-              >
-                Dados protegidos por criptografia Stripe. PCI-DSS compliant.
-              </Typography>
+              {!checkoutError && (
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  textAlign="center"
+                  display="block"
+                  sx={{ mt: 2 }}
+                >
+                  Dados protegidos por criptografia Stripe. PCI-DSS compliant.
+                </Typography>
+              )}
             </Box>
           </Box>
         </Fade>

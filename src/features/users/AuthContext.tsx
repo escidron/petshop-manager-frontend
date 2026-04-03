@@ -13,6 +13,8 @@ type AuthContextType = {
   logout: () => void;
   checking: boolean;
   checkAuth: () => Promise<void>;
+  isSubscriptionActive: boolean;
+  subscriptionStatus: string | null;
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
@@ -23,8 +25,21 @@ export const AuthContext = createContext<AuthContextType | undefined>(
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [tenant, setTenant] = useState<Tenant | null>(null);
-  const [checking, setChecking] = useState(true); // 🔹 novo estado
+  const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
+
+  const subscriptionStatus = tenant?.subscription?.status ?? null;
+
+  const isSubscriptionActive = (() => {
+    const sub = tenant?.subscription;
+    if (!sub) return false;
+    if (sub.status === "active") return true;
+    if (sub.status === "trialing") {
+      if (!sub.trial_ends_at) return false;
+      return new Date(sub.trial_ends_at) > new Date();
+    }
+    return false;
+  })();
 
   const checkAuth = async () => {
     setChecking(true);
@@ -62,7 +77,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   return (
     <AuthContext.Provider
-      value={{ user, setUser, logout, checking, tenant, setTenant, checkAuth }}
+      value={{ user, setUser, logout, checking, tenant, setTenant, checkAuth, isSubscriptionActive, subscriptionStatus }}
     >
       {children}
     </AuthContext.Provider>
