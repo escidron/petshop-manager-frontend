@@ -698,6 +698,15 @@ const SettingsPage = () => {
                             todos os recursos.
                           </Typography>
                           {(() => {
+                            if (tenant?.subscription?.payment_method === "pix") {
+                              return (
+                                <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
+                                  Próxima cobrança em{" "}
+                                  {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
+                                  • Pagamento via PIX
+                                </Typography>
+                              );
+                            }
                             const defaultCard = savedCards.find((c) => c.is_default);
                             if (!defaultCard) return null;
                             return (
