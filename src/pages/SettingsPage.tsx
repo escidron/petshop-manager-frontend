@@ -1462,6 +1462,7 @@ const SettingsPage = () => {
                 )
               ) : !checkoutLoading ? (
                 <CheckoutForm
+                  buttonLabel={checkoutMode === "setup" ? "Adicionar Cartão" : "Confirmar Assinatura"}
                   onSuccess={async (cardToken, document, billingAddress) => {
                     setCheckoutLoading(true);
                     try {

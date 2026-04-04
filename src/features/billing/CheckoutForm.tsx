@@ -22,13 +22,14 @@ export interface BillingAddress {
 
 interface Props {
   onSuccess: (cardToken: string, document: string, billingAddress: BillingAddress) => void;
+  buttonLabel?: string;
 }
 
 const formatCardNumber = (value: string) =>
   value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
 
 const formatExpiry = (value: string) => {
-  const digits = value.replace(/\D/g, "").slice(0, 6);
+  const digits = value.replace(/\D/g, "").slice(0, 4);
   if (digits.length <= 2) return digits;
   return digits.slice(0, 2) + "/" + digits.slice(2);
 };
@@ -54,7 +55,7 @@ const formatCep = (value: string) => {
   return digits;
 };
 
-const CheckoutForm = ({ onSuccess }: Props) => {
+const CheckoutForm = ({ onSuccess, buttonLabel }: Props) => {
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -80,7 +81,7 @@ const CheckoutForm = ({ onSuccess }: Props) => {
     setCard((p) => ({ ...p, expiry: formatExpiry(e.target.value) }));
 
   const handleCvv = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCard((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 4) }));
+    setCard((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }));
 
   const handleName = (e: React.ChangeEvent<HTMLInputElement>) =>
     setCard((p) => ({ ...p, holder_name: e.target.value.toUpperCase() }));
@@ -208,7 +209,7 @@ const CheckoutForm = ({ onSuccess }: Props) => {
           <Box sx={{ textAlign: "right" }}>
             <Typography variant="caption" sx={{ opacity: 0.7, display: "block", letterSpacing: 1 }}>VALIDADE</Typography>
             <Typography variant="body2" sx={{ fontWeight: 600, opacity: card.expiry ? 1 : 0.4 }}>
-              {card.expiry || "MM/AAAA"}
+              {card.expiry || "MM/AA"}
             </Typography>
           </Box>
         </Box>
@@ -275,7 +276,7 @@ const CheckoutForm = ({ onSuccess }: Props) => {
             <TextField
               value={card.expiry}
               onChange={handleExpiry}
-              placeholder="MM/AAAA"
+              placeholder="MM/AA"
               required
               sx={{ ...fieldSx, flex: 1 }}
               InputProps={{
@@ -377,7 +378,7 @@ const CheckoutForm = ({ onSuccess }: Props) => {
         disabled={loading}
         sx={{ mt: 3, width: "100%", py: 1.5, fontSize: "1rem", fontWeight: 700, borderRadius: 2 }}
       >
-        {loading ? <CircularProgress size={22} sx={{ color: "white" }} /> : "Confirmar assinatura"}
+        {loading ? <CircularProgress size={22} sx={{ color: "white" }} /> : (buttonLabel || "Confirmar assinatura")}
       </Button>
 
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 2 }}>
