@@ -140,8 +140,12 @@ export default function MainLayout() {
     if (isSubscriptionActive) return null;
     if (!subscriptionStatus) return null;
 
+    if (subscriptionStatus === "active") {
+      // Período expirado (isSubscriptionActive já é false aqui)
+      return { severity: "error", message: "Seu período de assinatura expirou. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Renovar assinatura" };
+    }
     if (subscriptionStatus === "incomplete") {
-      return { severity: "warning", message: "Pagamento em processamento — aguardando confirmação do Stripe.", actionLabel: "Ver cobrança" };
+      return { severity: "warning", message: "Pagamento em processamento — aguardando confirmação do Pagar.me.", actionLabel: "Ver cobrança" };
     }
     if (subscriptionStatus === "trialing") {
       // Trial expirado (isSubscriptionActive já é false aqui)

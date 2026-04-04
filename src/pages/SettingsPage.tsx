@@ -23,6 +23,7 @@ import {
   DialogContent,
   Select,
   MenuItem,
+  TextField,
 } from "@mui/material";
 import {
   Settings,
@@ -37,8 +38,7 @@ import {
   Plus,
   Trash2,
 } from "lucide-react";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
+import Skeleton from "@mui/material/Skeleton";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import dayjs from "dayjs";
@@ -59,12 +59,11 @@ import {
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
 import { toast } from "react-toastify";
-import { createCheckout, createSetupIntent, listPaymentMethods, setDefaultPaymentMethod, removePaymentMethod } from "../api/services/subscriptions";
+import { addPaymentMethod, createCheckout, listPaymentMethods, removePaymentMethod, setDefaultPaymentMethod } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
 import PaymentMethodCard from "../features/billing/PaymentMethodCard";
-import type { CheckoutResponse, PaymentMethod } from "../features/billing/types";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+import PixQrCode from "../features/billing/PixQrCode";
+import type { PaymentMethod, CheckoutPixResponse } from "../features/billing/types";
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -113,7 +112,6 @@ const SettingsPage = () => {
   const [value, setValue] = useState(0);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
-  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
   const [checkoutMode, setCheckoutMode] = useState<"payment" | "setup">("payment");
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
@@ -122,6 +120,8 @@ const SettingsPage = () => {
   const [loadingCards, setLoadingCards] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [pollCount, setPollCount] = useState(0);
+  const [pixDocument, setPixDocument] = useState("");
+  const [pixData, setPixData] = useState<CheckoutPixResponse | null>(null);
   const { tenant, user, setTenant, checkAuth } = useAuth();
   const { isOwner } = usePermission();
 
@@ -173,6 +173,12 @@ const SettingsPage = () => {
   const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">(
     (tenant?.subscription?.payment_method as "card" | "pix") ?? "card",
   );
+
+  useEffect(() => {
+    if (tenant?.subscription?.payment_method) {
+      setPaymentMethod(tenant.subscription.payment_method as "card" | "pix");
+    }
+  }, [tenant?.subscription?.payment_method]);
   const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
 
   const handlePaymentMethodChange = async (method: "card" | "pix") => {
@@ -298,43 +304,34 @@ const SettingsPage = () => {
 
   const trialDays = getTrialDays();
 
-  const openCheckoutModal = () => {
-    setCheckoutSecret(null);
+  const handleOpenCheckout = () => {
+    setCheckoutMode("payment");
+    setCheckoutError(null);
+    setPixData(null);
+    setPixDocument("");
+    setOpenCheckout(true);
+  };
+
+  const handleGeneratePix = async () => {
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      const data = await createCheckout("MONTHLY", "pix", undefined, pixDocument);
+      if ("pix_qr_code" in data) {
+        setPixData(data as CheckoutPixResponse);
+        await checkAuth();
+      }
+    } catch {
+      setCheckoutError("Erro ao gerar PIX. Tente novamente.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleOpenSetupCard = () => {
+    setCheckoutMode("setup");
     setCheckoutError(null);
     setOpenCheckout(true);
-    setCheckoutLoading(true);
-  };
-
-  const handleOpenCheckout = async () => {
-    setCheckoutMode("payment");
-    openCheckoutModal();
-    try {
-      const data = await createCheckout("MONTHLY");
-      if ("client_secret" in data) {
-        setCheckoutSecret((data as CheckoutResponse).client_secret);
-      } else {
-        setCheckoutError("Não foi possível iniciar o checkout. Tente novamente.");
-      }
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setCheckoutError(msg ?? "Erro ao iniciar checkout. Tente novamente.");
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleOpenSetupCard = async () => {
-    setCheckoutMode("setup");
-    openCheckoutModal();
-    try {
-      const data = await createSetupIntent();
-      setCheckoutSecret(data.client_secret);
-    } catch (err: unknown) {
-      const msg = (err as { response?: { data?: { detail?: string } } })?.response?.data?.detail;
-      setCheckoutError(msg ?? "Erro ao configurar cartão. Tente novamente.");
-    } finally {
-      setCheckoutLoading(false);
-    }
   };
 
   const onSaveTenant = async (data: TenantFormData) => {
@@ -537,9 +534,11 @@ const SettingsPage = () => {
                           tenant?.subscription?.status === "trialing" ? "PERÍODO DE TESTE" :
                           tenant?.subscription?.status === "active" ? "ATIVO" :
                           tenant?.subscription?.status === "incomplete" ? "PAGAMENTO PENDENTE" :
+                          tenant?.subscription?.status === "pending" ? "AGUARDANDO PAGAMENTO" :
                           tenant?.subscription?.status === "past_due" ? "PAGAMENTO ATRASADO" :
                           tenant?.subscription?.status === "canceled" ? "CANCELADO" :
-                          "DESCONHECIDO"
+                          tenant?.subscription?.status === "failed" ? "FALHA NO PAGAMENTO" :
+                          "PENDENTE"
                         }
                         color={
                           tenant?.subscription?.status === "active" ? "success" :
@@ -631,16 +630,23 @@ const SettingsPage = () => {
 
                     {!awaitingConfirmation && (tenant?.subscription?.plan?.code === "FREE_TRIAL" ||
                       tenant?.subscription?.status === "incomplete" ||
+                      tenant?.subscription?.status === "pending" ||
+                      tenant?.subscription?.status === "failed" ||
                       tenant?.subscription?.status === "past_due" ||
-                      tenant?.subscription?.status === "canceled") && (
+                      tenant?.subscription?.status === "canceled" ||
+                      (tenant?.subscription?.status === "active" &&
+                        !!tenant.subscription.current_period_end &&
+                        new Date(tenant.subscription.current_period_end) < new Date())) && (
                       <Box>
                         <Typography variant="h6" fontWeight={800} gutterBottom>
-                          {tenant?.subscription?.status === "incomplete"
+                          {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
                             ? "Complete o pagamento"
-                            : tenant?.subscription?.status === "past_due"
+                            : tenant?.subscription?.status === "past_due" || tenant?.subscription?.status === "failed"
                             ? "Regularize seu pagamento"
                             : tenant?.subscription?.status === "canceled"
                             ? "Reative sua assinatura"
+                            : tenant?.subscription?.status === "active"
+                            ? "Renove sua assinatura"
                             : "Faça o Upgrade agora"}
                         </Typography>
                         <Typography
@@ -648,10 +654,12 @@ const SettingsPage = () => {
                           color="text.primary"
                           sx={{ mb: 3 }}
                         >
-                          {tenant?.subscription?.status === "incomplete"
-                            ? "Seu cadastro foi criado. Insira o cartão ou pague via PIX para ativar."
-                            : tenant?.subscription?.status === "past_due"
-                            ? "Atualize seus dados de pagamento para continuar com acesso total."
+                          {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
+                            ? "Seu cadastro foi criado. Insira os dados do cartão para ativar."
+                            : tenant?.subscription?.status === "past_due" || tenant?.subscription?.status === "failed"
+                            ? "Houve uma falha no pagamento. Tente novamente com outro cartão."
+                            : tenant?.subscription?.status === "active"
+                            ? "Seu período atual expirou. Renove para continuar usando o PetControle."
                             : "Desbloqueie todos os recursos, clientes ilimitados e suporte prioritário."}
                         </Typography>
                         <Button
@@ -663,12 +671,12 @@ const SettingsPage = () => {
                           startIcon={<TrendingUp size={18} />}
                           sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
                         >
-                          {checkoutLoading ? "Carregando..." : "Assinar Plano Mensal (R$ 99,90)"}
+                          {checkoutLoading ? "Carregando..." : tenant?.subscription?.status === "active" ? "Renovar Plano Mensal (R$ 99,90)" : "Assinar Plano Mensal (R$ 99,90)"}
                         </Button>
                       </Box>
                     )}
 
-                    {tenant?.subscription?.plan?.code === "MONTHLY" && (
+                    {tenant?.subscription?.plan?.code === "MONTHLY" && tenant?.subscription?.status === "active" && (
                       <Box
                         sx={{
                           p: 3,
@@ -681,7 +689,7 @@ const SettingsPage = () => {
                         }}
                       >
                         <CheckCircle2 color="#4caf50" size={24} />
-                        <Box>
+                        <Box sx={{ flex: 1 }}>
                           <Typography variant="subtitle2" fontWeight={800}>
                             Você está no Plano Profissional
                           </Typography>
@@ -689,6 +697,17 @@ const SettingsPage = () => {
                             Sua assinatura está ativa e você tem acesso total a
                             todos os recursos.
                           </Typography>
+                          {(() => {
+                            const defaultCard = savedCards.find((c) => c.is_default);
+                            if (!defaultCard) return null;
+                            return (
+                              <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
+                                Próxima cobrança em{" "}
+                                {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
+                                • {defaultCard.brand.toUpperCase()} •••• {defaultCard.last4}
+                              </Typography>
+                            );
+                          })()}
                         </Box>
                       </Box>
                     )}
@@ -738,9 +757,28 @@ const SettingsPage = () => {
                     {paymentMethod === "card" ? (
                       <Box>
                         {loadingCards ? (
-                          <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-                            <CircularProgress size={24} />
-                          </Box>
+                          <Stack spacing={1.5} sx={{ mb: 2 }}>
+                            {[0, 1].map((i) => (
+                              <Box
+                                key={i}
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 2,
+                                  p: "12px 16px",
+                                  borderRadius: 3,
+                                  border: "1px solid #E0E0E0",
+                                }}
+                              >
+                                <Skeleton variant="rounded" width={54} height={34} sx={{ flexShrink: 0 }} />
+                                <Box sx={{ flex: 1 }}>
+                                  <Skeleton variant="text" width={160} height={18} />
+                                  <Skeleton variant="text" width={90} height={14} />
+                                </Box>
+                                <Skeleton variant="circular" width={30} height={30} sx={{ flexShrink: 0 }} />
+                              </Box>
+                            ))}
+                          </Stack>
                         ) : savedCards.length > 0 ? (
                           <Stack spacing={1.5} sx={{ mb: 2 }}>
                             {savedCards.map((card) => (
@@ -766,7 +804,7 @@ const SettingsPage = () => {
                             }}
                           >
                             <CreditCard size={22} color="#bbb" />
-                            <Typography variant="body2" color="text.secondary">
+                            <Typography variant="body2" color="text.primary">
                               Nenhum cartão cadastrado.
                             </Typography>
                           </Box>
@@ -1314,7 +1352,7 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL DE CHECKOUT STRIPE --- */}
+      {/* --- MODAL DE CHECKOUT --- */}
       <Modal
         open={openCheckout}
         onClose={() => setOpenCheckout(false)}
@@ -1329,7 +1367,7 @@ const SettingsPage = () => {
               top: "50%",
               left: "50%",
               transform: "translate(-50%, -50%)",
-              width: { xs: "90%", sm: 480 },
+              width: { xs: "95%", sm: 900 },
               bgcolor: "background.paper",
               borderRadius: 4,
               boxShadow: 24,
@@ -1371,41 +1409,73 @@ const SettingsPage = () => {
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress />
                 </Box>
-              ) : checkoutSecret ? (
-                <Elements key={checkoutSecret} stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
-                  <CheckoutForm
-                    clientSecret={checkoutSecret}
-                    onSuccess={async (pmId?: string) => {
-                      setOpenCheckout(false);
-                      setCheckoutSecret(null);
+              ) : !checkoutLoading && checkoutMode === "payment" && paymentMethod === "pix" ? (
+                pixData ? (
+                  <PixQrCode
+                    qrCode={pixData.pix_qr_code}
+                    qrCodeUrl={pixData.pix_qr_code_url}
+                    expiresAt={pixData.expires_at}
+                    onClose={() => setOpenCheckout(false)}
+                  />
+                ) : (
+                  <Box>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      Informe seu CPF ou CNPJ para gerar o QR Code PIX.
+                    </Typography>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <TextField
+                        fullWidth
+                        label="CPF ou CNPJ"
+                        value={pixDocument}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
+                          let formatted = digits;
+                          if (digits.length <= 11) {
+                            formatted = digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                          } else {
+                            formatted = digits.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+                          }
+                          setPixDocument(formatted);
+                        }}
+                        placeholder="000.000.000-00"
+                        size="small"
+                      />
+                      <Button
+                        variant="contained"
+                        disabled={pixDocument.replace(/\D/g, "").length < 11}
+                        onClick={handleGeneratePix}
+                        sx={{ whiteSpace: "nowrap" }}
+                      >
+                        Gerar PIX
+                      </Button>
+                    </Box>
+                  </Box>
+                )
+              ) : !checkoutLoading ? (
+                <CheckoutForm
+                  onSuccess={async (cardToken, document, billingAddress) => {
+                    setCheckoutLoading(true);
+                    try {
                       if (checkoutMode === "setup") {
-                        if (pmId) {
-                          try { await setDefaultPaymentMethod(pmId); } catch { /* ignore */ }
-                        }
-                        toast.success("Cartão salvo e definido como padrão!");
+                        await addPaymentMethod(cardToken, billingAddress, document);
+                        toast.success("Cartão salvo com sucesso!");
                         await fetchCards();
                       } else {
+                        await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress);
                         toast.success("Pagamento enviado! Aguardando confirmação...");
                         await checkAuth();
                         setAwaitingConfirmation(true);
                         setPollCount(0);
                       }
-                    }}
-                  />
-                </Elements>
+                      setOpenCheckout(false);
+                    } catch {
+                      setCheckoutError("Erro ao processar pagamento. Tente novamente.");
+                    } finally {
+                      setCheckoutLoading(false);
+                    }
+                  }}
+                />
               ) : null}
-
-              {!checkoutError && (
-                <Typography
-                  variant="caption"
-                  color="text.secondary"
-                  textAlign="center"
-                  display="block"
-                  sx={{ mt: 2 }}
-                >
-                  Dados protegidos por criptografia Stripe. PCI-DSS compliant.
-                </Typography>
-              )}
             </Box>
           </Box>
         </Fade>

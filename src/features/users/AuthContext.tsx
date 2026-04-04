@@ -33,7 +33,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isSubscriptionActive = (() => {
     const sub = tenant?.subscription;
     if (!sub) return false;
-    if (sub.status === "active") return true;
+    if (sub.status === "active") {
+      if (sub.current_period_end && new Date(sub.current_period_end) < new Date()) {
+        return false;
+      }
+      return true;
+    }
     if (sub.status === "trialing") {
       if (!sub.trial_ends_at) return false;
       return new Date(sub.trial_ends_at) > new Date();

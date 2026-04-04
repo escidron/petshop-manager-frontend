@@ -26,14 +26,23 @@ export interface SubscriptionResponse {
   current_period_end: string;
   canceled_at: string | null;
   payment_method: string | null;
-  stripe_subscription_id: string | null;
+  pagarme_subscription_id: string | null;
   plan: Plan;
 }
 
-/** Returned by POST /checkout for paid plans */
-export interface CheckoutResponse {
-  client_secret: string;
-  stripe_subscription_id: string;
+/** Returned by POST /checkout for paid plans — card */
+export interface CheckoutCardResponse {
+  pagarme_subscription_id: string;
+  status: string;
+}
+
+/** Returned by POST /checkout for paid plans — pix */
+export interface CheckoutPixResponse {
+  pagarme_subscription_id: string;
+  status: string;
+  pix_qr_code: string;
+  pix_qr_code_url: string;
+  expires_at: string;
 }
 
 /** Returned by POST /checkout for FREE_TRIAL */
@@ -42,6 +51,8 @@ export interface FreeTrialResponse {
   trial_ends_at: string;
 }
 
+export type CheckoutResponse = CheckoutCardResponse | CheckoutPixResponse | FreeTrialResponse;
+
 export interface PaymentMethod {
   id: string;
   brand: string;
@@ -49,8 +60,4 @@ export interface PaymentMethod {
   exp_month: number;
   exp_year: number;
   is_default: boolean;
-}
-
-export interface SetupIntentResponse {
-  client_secret: string;
 }

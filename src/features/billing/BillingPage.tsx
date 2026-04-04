@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Elements } from "@stripe/react-stripe-js";
-import { loadStripe } from "@stripe/stripe-js";
 import {
   Box,
   Chip,
   CircularProgress,
   Divider,
+  TextField,
   Typography,
 } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -15,15 +14,13 @@ import dayjs from "dayjs";
 import CustomCard from "../../components/Card/CustomCard";
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
+import PixQrCode from "./PixQrCode";
 import {
   cancelSubscription,
   createCheckout,
-  createSetupIntent,
   getMySubscription,
 } from "../../api/services/subscriptions";
-import type { CheckoutResponse } from "./types";
-
-const stripePromise = loadStripe(import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY);
+import type { CheckoutPixResponse } from "./types";
 
 const STATUS_LABEL: Record<string, { label: string; color: "success" | "warning" | "error" | "default" }> = {
   active: { label: "Ativa", color: "success" },
@@ -35,23 +32,15 @@ const STATUS_LABEL: Record<string, { label: string; color: "success" | "warning"
 
 const BillingPage = () => {
   const queryClient = useQueryClient();
-  const [checkoutSecret, setCheckoutSecret] = useState<string | null>(null);
-  const [setupSecret, setSetupSecret] = useState<string | null>(null);
+  const [showCardForm, setShowCardForm] = useState(false);
+  const [pixData, setPixData] = useState<CheckoutPixResponse | null>(null);
+  const [pixDocument, setPixDocument] = useState("");
+  const [showPixDocInput, setShowPixDocInput] = useState(false);
 
   const { data: subscription, isLoading } = useQuery({
     queryKey: ["subscription"],
     queryFn: getMySubscription,
     retry: false,
-  });
-
-  const checkoutMutation = useMutation({
-    mutationFn: () => createCheckout("MONTHLY"),
-    onSuccess: (data) => {
-      if ("client_secret" in data) {
-        setCheckoutSecret((data as CheckoutResponse).client_secret);
-      }
-    },
-    onError: () => toast.error("Erro ao iniciar checkout"),
   });
 
   const cancelMutation = useMutation({
@@ -63,11 +52,29 @@ const BillingPage = () => {
     onError: () => toast.error("Erro ao cancelar assinatura"),
   });
 
-  const setupMutation = useMutation({
-    mutationFn: createSetupIntent,
-    onSuccess: (data) => setSetupSecret(data.client_secret),
-    onError: () => toast.error("Erro ao iniciar troca de cartão"),
+  const checkoutWithPix = useMutation({
+    mutationFn: (doc: string) => createCheckout("MONTHLY", "pix", undefined, doc),
+    onSuccess: (data) => {
+      if ("pix_qr_code" in data) {
+        setPixData(data as CheckoutPixResponse);
+        setShowPixDocInput(false);
+        setPixDocument("");
+        queryClient.invalidateQueries({ queryKey: ["subscription"] });
+      }
+    },
+    onError: () => toast.error("Erro ao gerar PIX"),
   });
+
+  const handleCardSuccess = async (cardToken: string, document: string, billingAddress: import("./CheckoutForm").BillingAddress) => {
+    try {
+      await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress);
+      setShowCardForm(false);
+      toast.success("Assinatura realizada com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["subscription"] });
+    } catch {
+      toast.error("Erro ao finalizar assinatura");
+    }
+  };
 
   if (isLoading) {
     return (
@@ -81,22 +88,29 @@ const BillingPage = () => {
     ? STATUS_LABEL[subscription.status] ?? { label: subscription.status, color: "default" as const }
     : null;
 
+  const isExpired =
+    subscription?.status === "active" &&
+    !!subscription.current_period_end &&
+    new Date(subscription.current_period_end) < new Date();
+
+  const canSubscribe =
+    !subscription ||
+    subscription.status === "trialing" ||
+    subscription.status === "past_due" ||
+    subscription.status === "canceled" ||
+    isExpired;
+
   return (
-    <Box sx={{ maxWidth: 640, mx: "auto", mt: 4, px: 2 }}>
+    <Box sx={{ maxWidth: 960, mx: "auto", mt: 4, px: 2 }}>
       <Typography variant="h5" fontWeight={600} mb={3}>
         Minha Assinatura
       </Typography>
 
-      {/* Current subscription card */}
       {subscription ? (
         <CustomCard sx={{ mb: 3 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography variant="h6">{subscription.plan.name}</Typography>
-            <Chip
-              label={statusInfo?.label}
-              color={statusInfo?.color}
-              size="small"
-            />
+            <Chip label={statusInfo?.label} color={statusInfo?.color} size="small" />
           </Box>
 
           <Typography variant="body2" color="text.secondary">
@@ -105,48 +119,52 @@ const BillingPage = () => {
               : `Próxima cobrança: ${dayjs(subscription.current_period_end).format("DD/MM/YYYY")}`}
           </Typography>
 
-          {subscription.status !== "canceled" && (
+          {canSubscribe && (
             <>
               <Divider sx={{ my: 2 }} />
               <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                {(subscription.status === "trialing" || subscription.status === "past_due") && (
+                <Button onClick={() => setShowCardForm(true)}>
+                  Pagar com cartão
+                </Button>
+                <Button
+                  variant="outlined"
+                  onClick={() => setShowPixDocInput(true)}
+                  disabled={checkoutWithPix.isPending}
+                >
+                  Pagar com PIX
+                </Button>
+                {subscription.status !== "canceled" && (
                   <Button
-                    onClick={() => checkoutMutation.mutate()}
-                    disabled={checkoutMutation.isPending}
+                    variant="outlined"
+                    color="error"
+                    onClick={() => {
+                      if (confirm("Tem certeza que deseja cancelar a assinatura?")) {
+                        cancelMutation.mutate();
+                      }
+                    }}
+                    disabled={cancelMutation.isPending}
                   >
-                    {checkoutMutation.isPending ? <CircularProgress size={18} /> : "Assinar plano mensal"}
+                    Cancelar assinatura
                   </Button>
                 )}
-
-                <Button
-                  variant="outlined"
-                  onClick={() => setupMutation.mutate()}
-                  disabled={setupMutation.isPending}
-                >
-                  Trocar cartão
-                </Button>
-
-                <Button
-                  variant="outlined"
-                  color="error"
-                  onClick={() => {
-                    if (confirm("Tem certeza que deseja cancelar a assinatura?")) {
-                      cancelMutation.mutate();
-                    }
-                  }}
-                  disabled={cancelMutation.isPending}
-                >
-                  Cancelar assinatura
-                </Button>
               </Box>
             </>
           )}
 
-          {subscription.status === "canceled" && (
+          {subscription.status === "active" && (
             <>
               <Divider sx={{ my: 2 }} />
-              <Button onClick={() => checkoutMutation.mutate()} disabled={checkoutMutation.isPending}>
-                {checkoutMutation.isPending ? <CircularProgress size={18} /> : "Reativar assinatura"}
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  if (confirm("Tem certeza que deseja cancelar a assinatura?")) {
+                    cancelMutation.mutate();
+                  }
+                }}
+                disabled={cancelMutation.isPending}
+              >
+                Cancelar assinatura
               </Button>
             </>
           )}
@@ -154,49 +172,75 @@ const BillingPage = () => {
       ) : (
         <CustomCard sx={{ mb: 3 }}>
           <Typography mb={2}>Você ainda não tem uma assinatura ativa.</Typography>
-          <Button
-            onClick={() => checkoutMutation.mutate()}
-            disabled={checkoutMutation.isPending}
-          >
-            {checkoutMutation.isPending ? <CircularProgress size={18} /> : "Assinar plano mensal"}
-          </Button>
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Button onClick={() => setShowCardForm(true)}>
+              Pagar com cartão
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => setShowPixDocInput(true)}
+              disabled={checkoutWithPix.isPending}
+            >
+              Pagar com PIX
+            </Button>
+          </Box>
         </CustomCard>
       )}
 
-      {/* Checkout flow */}
-      {checkoutSecret && (
+      {/* Formulário de cartão */}
+      {showCardForm && (
         <CustomCard sx={{ mb: 3 }}>
-          <Typography variant="h6" mb={2}>
-            Dados de pagamento
-          </Typography>
-          <Elements stripe={stripePromise} options={{ clientSecret: checkoutSecret }}>
-            <CheckoutForm
-              clientSecret={checkoutSecret}
-              onSuccess={() => {
-                setCheckoutSecret(null);
-                toast.success("Assinatura realizada com sucesso!");
-                queryClient.invalidateQueries({ queryKey: ["subscription"] });
-              }}
-            />
-          </Elements>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="h6">Dados do cartão</Typography>
+            <Button variant="text" onClick={() => setShowCardForm(false)}>Cancelar</Button>
+          </Box>
+          <CheckoutForm onSuccess={handleCardSuccess} />
         </CustomCard>
       )}
 
-      {/* Change card flow */}
-      {setupSecret && (
-        <CustomCard>
-          <Typography variant="h6" mb={2}>
-            Novo cartão
-          </Typography>
-          <Elements stripe={stripePromise} options={{ clientSecret: setupSecret }}>
-            <CheckoutForm
-              clientSecret={setupSecret}
-              onSuccess={() => {
-                setSetupSecret(null);
-                toast.success("Cartão atualizado com sucesso!");
+      {/* Documento para PIX */}
+      {showPixDocInput && !pixData && (
+        <CustomCard sx={{ mb: 3 }}>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Typography variant="h6">Informe seu CPF ou CNPJ</Typography>
+            <Button variant="text" onClick={() => setShowPixDocInput(false)}>Cancelar</Button>
+          </Box>
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <TextField
+              fullWidth
+              value={pixDocument}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
+                let formatted = digits;
+                if (digits.length <= 11) {
+                  formatted = digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
+                } else {
+                  formatted = digits.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
+                }
+                setPixDocument(formatted);
               }}
+              placeholder="000.000.000-00"
+              size="small"
             />
-          </Elements>
+            <Button
+              onClick={() => checkoutWithPix.mutate(pixDocument)}
+              disabled={checkoutWithPix.isPending || pixDocument.replace(/\D/g, "").length < 11}
+            >
+              {checkoutWithPix.isPending ? <CircularProgress size={18} sx={{ color: "white" }} /> : "Gerar PIX"}
+            </Button>
+          </Box>
+        </CustomCard>
+      )}
+
+      {/* QR Code PIX */}
+      {pixData && (
+        <CustomCard>
+          <PixQrCode
+            qrCode={pixData.pix_qr_code}
+            qrCodeUrl={pixData.pix_qr_code_url}
+            expiresAt={pixData.expires_at}
+            onClose={() => setPixData(null)}
+          />
         </CustomCard>
       )}
     </Box>
