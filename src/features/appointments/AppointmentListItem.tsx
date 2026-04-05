@@ -1,5 +1,5 @@
 import CustomCard from "../../components/Card/CustomCard";
-import { Box, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import dayjs from "dayjs";
 
 import type { Appointment } from "./types";
@@ -8,7 +8,7 @@ import { getAppointmentStatusUI } from "../../utils/getAppointmentStatusColor";
 import { getServiceIcons } from "../../utils/getServiceIcons";
 import { useState } from "react";
 import AppointmentServiceList from "./AppointmentServiceList";
-import { Info } from "lucide-react";
+import { Info, MessageSquare } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 
 type Props = {
@@ -103,6 +103,25 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             handleClick(e);
           }}
         >
+          {appointment.notes?.trim() && (
+            <Tooltip
+              placement="top"
+              arrow
+              onClick={(e) => e.stopPropagation()}
+              title={
+                <Box>
+                  <Typography variant="caption" fontWeight={700} display="block">
+                    Observações:
+                  </Typography>
+                  <Typography variant="caption">{appointment.notes}</Typography>
+                </Box>
+              }
+            >
+              <Box sx={{ display: "flex", alignItems: "center", cursor: "default" }}>
+                <MessageSquare size={16} color={theme.palette.error.main} />
+              </Box>
+            </Tooltip>
+          )}
           <Box
             sx={{
               display: "flex",

@@ -464,7 +464,7 @@ export default function AppointmentForm({
                                 <Checkbox
                                   checked={selected}
                                   disableRipple
-                                  color="primary"
+                                  sx={{ color: "primary.main", py: 0 }}
                                 />
                                 <Box>
                                   <Box style={{ fontWeight: 500 }}>
@@ -583,7 +583,11 @@ export default function AppointmentForm({
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           disabled={isSubmitting}
-          startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+          startIcon={
+            isSubmitting ? (
+              <CircularProgress size={16} color="inherit" />
+            ) : undefined
+          }
           onClick={handleSubmit((data: AppointmentFormData) => onSubmit(data))}
         >
           {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}
