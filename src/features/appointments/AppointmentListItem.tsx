@@ -97,21 +97,29 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             flexShrink: 0,
             justifyContent: "flex-end",
             alignItems: "center",
-            cursor: "pointer",
-            borderRadius: 1,
-            px: 1,
-            "&:hover": { backgroundColor: "secondary.main" },
           }}
           onClick={(e) => {
             e.stopPropagation();
             handleClick(e);
           }}
         >
-          {icons.map((icon, index) => (
-            <Box sx={{ display: "flex", alignItems: "center" }} key={index}>
-              {icon}
-            </Box>
-          ))}
+          <Box
+            sx={{
+              display: "flex",
+              alignItems: "center",
+              cursor: "pointer",
+              borderRadius: 1,
+              px: 1,
+              py: 0.5,
+              "&:hover": { backgroundColor: "secondary.main" },
+            }}
+          >
+            {icons.map((icon, index) => (
+              <Box sx={{ display: "flex", alignItems: "center" }} key={index}>
+                {icon}
+              </Box>
+            ))}
+          </Box>
         </Box>
         <AppointmentServiceList
           open={open}

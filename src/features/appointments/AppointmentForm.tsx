@@ -516,7 +516,7 @@ export default function AppointmentForm({
                   <Checkbox
                     disableRipple
                     size="small"
-                    color="primary"
+                    sx={{ color: "primary.main", py: 0 }}
                     checked={!!showAllBySection[index]}
                     onChange={(e) =>
                       setShowAllBySection((prev) => ({
