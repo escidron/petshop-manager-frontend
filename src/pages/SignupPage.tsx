@@ -23,8 +23,6 @@ import type { PlanCode } from "../features/plans/types";
 import { useSearchParams } from "react-router";
 import { useAuth } from "../hooks/useAuth";
 import axios from "axios";
-import CheckoutForm from "../features/billing/CheckoutForm";
-import { createCheckout } from "../api/services/subscriptions";
 
 const SignupPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,7 +33,6 @@ const SignupPage = () => {
   const [userData, setUserData] = useState<UserFormData | null>(null);
   const [tenantData, setTenantData] = useState<TenantFormData | null>(null);
   const [loading, setLoading] = useState(false);
-  const [showCardForm, setShowCardForm] = useState(false);
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -77,12 +74,7 @@ const SignupPage = () => {
 
       toast.success("Conta criada com sucesso");
       await checkAuth();
-
-      if (planCode === "MONTHLY") {
-        setShowCardForm(true);
-      } else {
-        navigate("/dashboard");
-      }
+      navigate("/dashboard");
     } catch (error: unknown) {
       let message = "Erro ao criar conta";
       if (axios.isAxiosError(error)) {
@@ -173,24 +165,18 @@ const SignupPage = () => {
             variant="h2"
             sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2, color: "white" }}
           >
-            {!showCardForm && step === 1 && "Simplicidade para gerenciar seu tempo."}
-            {!showCardForm && step === 2 && "Sua conta é a porta para o sucesso."}
-            {!showCardForm && step === 3 && "Personalize a vitrine do seu negócio."}
-            {showCardForm && "Último passo — ative sua assinatura."}
+            {step === 1 && "Simplicidade para gerenciar seu tempo."}
+            {step === 2 && "Sua conta é a porta para o sucesso."}
+            {step === 3 && "Personalize a vitrine do seu negócio."}
           </Typography>
 
           <Typography
             variant="body1"
             sx={{ opacity: 0.8, mb: 5, fontSize: "1.1rem", maxWidth: 450 }}
           >
-            {!showCardForm && step === 1 &&
-              "Escolha o plano que melhor se adapta à sua rotina e comece a escalar hoje mesmo."}
-            {!showCardForm && step === 2 &&
-              "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
-            {!showCardForm && step === 3 &&
-              "Seus clientes vão notar a diferença desde o primeiro agendamento."}
-            {showCardForm &&
-              "Pagamento seguro via Pagar.me. Cancele quando quiser."}
+            {step === 1 && "Escolha o plano que melhor se adapta à sua rotina e comece a escalar hoje mesmo."}
+            {step === 2 && "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
+            {step === 3 && "Seus clientes vão notar a diferença desde o primeiro agendamento."}
           </Typography>
 
           <Stack spacing={2} sx={{ mt: 4 }}>
@@ -313,54 +299,17 @@ const SignupPage = () => {
                 },
               }}
             >
-              {/* Passo de pagamento para plano MONTHLY */}
-              {showCardForm && (
+              {step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
+
+              {step === 2 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
-                  <Typography variant="h6" fontWeight={700} color="primary.main" sx={{ mb: 1 }}>
-                    Finalize seu pagamento
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Insira os dados do cartão para ativar o Plano Mensal.
-                  </Typography>
-                  <CheckoutForm
-                    onSuccess={async (cardToken, document) => {
-                      await createCheckout("MONTHLY", "credit_card", cardToken, document);
-                      navigate("/dashboard");
-                    }}
-                  />
+                  <UserSignupForm onSubmit={handleSubmitUser} defaultValues={userData || {}} />
                 </CustomCard>
               )}
 
-              {!showCardForm && step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
-
-              {!showCardForm && step === 2 && (
-                <CustomCard
-                  sx={{
-                    p: 4,
-                    borderRadius: 5,
-                    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <UserSignupForm
-                    onSubmit={handleSubmitUser}
-                    defaultValues={userData || {}}
-                  />
-                </CustomCard>
-              )}
-
-              {!showCardForm && step === 3 && (
-                <CustomCard
-                  sx={{
-                    p: 4,
-                    borderRadius: 5,
-                    boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
-                  }}
-                >
-                  <TenantCreateForm
-                    onSubmit={handleSubmitTenant}
-                    loading={loading}
-                    defaultValues={tenantData || {}}
-                  />
+              {step === 3 && (
+                <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
+                  <TenantCreateForm onSubmit={handleSubmitTenant} loading={loading} defaultValues={tenantData || {}} />
                 </CustomCard>
               )}
             </Box>

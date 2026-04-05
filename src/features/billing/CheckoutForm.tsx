@@ -26,6 +26,34 @@ interface Props {
   defaultDocument?: string | null;
 }
 
+const PAGARME_ERROR_MAP: Record<string, string> = {
+  "Card expired.": "Cartão expirado. Verifique a validade e tente novamente.",
+  "Invalid card number.": "Número do cartão inválido.",
+  "Invalid cvv.": "CVV inválido.",
+  "Invalid expiration date.": "Data de validade inválida.",
+  "Card number is required.": "Número do cartão é obrigatório.",
+  "Holder name is required.": "Nome do titular é obrigatório.",
+  "Invalid holder name.": "Nome do titular inválido.",
+  "Card declined.": "Cartão recusado. Entre em contato com seu banco.",
+  "Insufficient funds.": "Saldo insuficiente.",
+  "Card blocked.": "Cartão bloqueado. Entre em contato com seu banco.",
+};
+
+function translatePagarmeError(err: { message?: string; errors?: Record<string, string[]> }): string {
+  // Tenta pegar o erro específico dentro de `errors`
+  if (err.errors) {
+    const firstErrors = Object.values(err.errors).flat();
+    for (const msg of firstErrors) {
+      if (PAGARME_ERROR_MAP[msg]) return PAGARME_ERROR_MAP[msg];
+    }
+    // Retorna o primeiro erro específico traduzido ou em PT fallback
+    if (firstErrors.length > 0) {
+      return PAGARME_ERROR_MAP[firstErrors[0]] ?? "Dados do cartão inválidos. Verifique e tente novamente.";
+    }
+  }
+  return "Dados do cartão inválidos. Verifique e tente novamente.";
+}
+
 const formatCardNumber = (value: string) =>
   value.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
 
@@ -144,7 +172,7 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
 
       if (!resp.ok) {
         const err = await resp.json();
-        setErrorMsg(err?.message ?? "Dados do cartão inválidos. Verifique e tente novamente.");
+        setErrorMsg(translatePagarmeError(err));
         return;
       }
 

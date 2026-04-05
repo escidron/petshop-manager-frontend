@@ -144,8 +144,8 @@ export default function MainLayout() {
       // Período expirado (isSubscriptionActive já é false aqui)
       return { severity: "error", message: "Seu período de assinatura expirou. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Renovar assinatura" };
     }
-    if (subscriptionStatus === "incomplete") {
-      return { severity: "warning", message: "Pagamento em processamento — aguardando confirmação do Pagar.me.", actionLabel: "Ver cobrança" };
+    if (subscriptionStatus === "incomplete" || subscriptionStatus === "pending") {
+      return { severity: "warning", message: "Sua assinatura está pendente de pagamento. Adicione um método de pagamento para ativar sua conta e criar agendamentos.", actionLabel: "Adicionar método de pagamento" };
     }
     if (subscriptionStatus === "trialing") {
       // Trial expirado (isSubscriptionActive já é false aqui)
@@ -308,13 +308,13 @@ export default function MainLayout() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: 2,
-              px: 2,
-              py: 2,
+              gap: 1,
+              px: 3,
+              py: 2.5,
               mb: 6,
-              borderRadius: 2,
-              maxWidth: 960,
-              bgcolor: 'white',
+              borderRadius: 3,
+              maxWidth: 1400,
+              bgcolor: "white",
               border: `1px solid ${subscriptionAlert.severity === "error" ? "#FECACA" : "#FDE68A"}`,
             }}
           >
@@ -327,7 +327,6 @@ export default function MainLayout() {
               <Typography
                 variant="body1"
                 sx={{
-                  fontWeight: 600,
                   color: subscriptionAlert.severity === "error" ? "#991B1B" : "#92400E",
                 }}
               >

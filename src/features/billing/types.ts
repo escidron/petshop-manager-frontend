@@ -2,6 +2,7 @@ export type SubscriptionStatus =
   | "trialing"
   | "active"
   | "incomplete"
+  | "pending"
   | "past_due"
   | "canceled";
 

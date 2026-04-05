@@ -189,13 +189,39 @@ const SettingsPage = () => {
   }, [tenant?.document, pixDocument]);
 
   const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
+  const [pendingPaymentMethod, setPendingPaymentMethod] = useState<"card" | "pix" | null>(null);
+  const [checkoutStartAt, setCheckoutStartAt] = useState<string | null>(null);
 
-  const handlePaymentMethodChange = async (method: "card" | "pix") => {
+  const handlePaymentMethodChange = (method: "card" | "pix") => {
     if (!tenant?.id || method === paymentMethod) return;
+    if (tenant?.subscription?.status === "active") {
+      setPendingPaymentMethod(method);
+    } else {
+      confirmPaymentMethodChange(method);
+    }
+  };
+
+  const confirmPaymentMethodChange = async (method: "card" | "pix") => {
+    if (!tenant?.id) return;
+    setPendingPaymentMethod(null);
+
+    // PIX → Cartão com assinatura ativa: precisa criar subscription no Pagarme
+    // com start_at = current_period_end para não sobrepor o período já pago
+    if (method === "card" && tenant?.subscription?.payment_method === "pix" && tenant?.subscription?.status === "active") {
+      const startAt = tenant.subscription.current_period_end;
+      setCheckoutStartAt(startAt);
+      setCheckoutMode("payment");
+      setCheckoutError(null);
+      setPixData(null);
+      setOpenCheckout(true);
+      return;
+    }
+
     setPaymentMethod(method);
     setSavingPaymentMethod(true);
     try {
       await updateSubscription(tenant.id, method);
+      await checkAuth();
     } catch {
       setPaymentMethod(paymentMethod); // revert on error
     } finally {
@@ -319,18 +345,28 @@ const SettingsPage = () => {
     setCheckoutMode("payment");
     setCheckoutError(null);
     setPixData(null);
-    setPixDocument("");
     setOpenCheckout(true);
+
+    if (paymentMethod === "pix" && tenant?.document) {
+      const doc = maskDocument(tenant.document);
+      setPixDocument(doc);
+      handleGeneratePix(doc);
+    } else {
+      setPixDocument(tenant?.document ? maskDocument(tenant.document) : "");
+    }
   };
 
-  const handleGeneratePix = async () => {
+  const handleGeneratePix = async (docOverride?: string) => {
+    const doc = docOverride ?? pixDocument;
     setCheckoutLoading(true);
     setCheckoutError(null);
     try {
-      const data = await createCheckout("MONTHLY", "pix", undefined, pixDocument);
+      const data = await createCheckout("MONTHLY", "pix", undefined, doc);
       if ("pix_qr_code" in data) {
         setPixData(data as CheckoutPixResponse);
         await checkAuth();
+        setAwaitingConfirmation(true);
+        setPollCount(0);
       }
     } catch {
       setCheckoutError("Erro ao gerar PIX. Tente novamente.");
@@ -565,7 +601,9 @@ const SettingsPage = () => {
                       <Chip
                         label={
                           tenant?.subscription?.status === "trialing" ? "PERÍODO DE TESTE" :
-                          tenant?.subscription?.status === "active" ? "ATIVO" :
+                          tenant?.subscription?.status === "active"
+                            ? (tenant.subscription.current_period_end && new Date(tenant.subscription.current_period_end) < new Date() ? "EXPIRADO" : "ATIVO")
+                            :
                           tenant?.subscription?.status === "incomplete" ? "PAGAMENTO PENDENTE" :
                           tenant?.subscription?.status === "pending" ? "AGUARDANDO PAGAMENTO" :
                           tenant?.subscription?.status === "past_due" ? "PAGAMENTO ATRASADO" :
@@ -709,7 +747,8 @@ const SettingsPage = () => {
                       </Box>
                     )}
 
-                    {tenant?.subscription?.plan?.code === "MONTHLY" && tenant?.subscription?.status === "active" && (
+                    {tenant?.subscription?.plan?.code === "MONTHLY" && tenant?.subscription?.status === "active" &&
+                      tenant.subscription.current_period_end && new Date(tenant.subscription.current_period_end) >= new Date() && (
                       <Box>
                         <Box
                           sx={{
@@ -867,11 +906,17 @@ const SettingsPage = () => {
                           variant="outlined"
                           fullWidth
                           startIcon={<Plus size={16} />}
-                          onClick={handleOpenSetupCard}
+                          onClick={
+                            tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
+                              ? handleOpenCheckout
+                              : handleOpenSetupCard
+                          }
                           disabled={checkoutLoading}
                           sx={{ borderRadius: 2 }}
                         >
-                          Adicionar Cartão
+                          {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
+                            ? "Ativar assinatura com cartão"
+                            : "Adicionar Cartão"}
                         </Button>
                       </Box>
                     ) : (
@@ -1463,7 +1508,7 @@ const SettingsPage = () => {
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress />
                 </Box>
-              ) : !checkoutLoading && checkoutMode === "payment" && paymentMethod === "pix" ? (
+              ) : !checkoutLoading && checkoutMode === "payment" && paymentMethod === "pix" && !checkoutStartAt ? (
                 pixData ? (
                   <PixQrCode
                     qrCode={pixData.pix_qr_code}
@@ -1509,7 +1554,8 @@ const SettingsPage = () => {
                         toast.success("Cartão salvo com sucesso!");
                         await fetchCards();
                       } else {
-                        await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress);
+                        await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress, checkoutStartAt ?? undefined);
+                        setCheckoutStartAt(null);
                         toast.success("Pagamento enviado! Aguardando confirmação...");
                         await checkAuth();
                         setAwaitingConfirmation(true);
@@ -1641,6 +1687,41 @@ const SettingsPage = () => {
               </Box>
             </Stack>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* --- DIALOG CONFIRMAR TROCA DE MÉTODO DE PAGAMENTO --- */}
+      <Dialog
+        open={pendingPaymentMethod !== null}
+        onClose={() => setPendingPaymentMethod(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Trocar método de pagamento</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+            {pendingPaymentMethod === "pix"
+              ? "Você está trocando para PIX. A partir do próximo vencimento, você receberá um QR Code para pagar sua mensalidade manualmente."
+              : (() => {
+                  const periodEnd = tenant?.subscription?.current_period_end;
+                  const formatted = periodEnd ? new Intl.DateTimeFormat("pt-BR").format(new Date(periodEnd)) : null;
+                  return formatted
+                    ? `Sua assinatura via PIX está paga até ${formatted}. No próximo passo, adicione um cartão, a cobrança automática começará nessa data, sem cobrar em duplicidade.`
+                    : "Você está trocando para Cartão de Crédito. A próxima cobrança será debitada automaticamente no cartão cadastrado.";
+                })()}
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+            <Button variant="text" onClick={() => setPendingPaymentMethod(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={() => pendingPaymentMethod && confirmPaymentMethodChange(pendingPaymentMethod)}
+            >
+              {pendingPaymentMethod === "card" && tenant?.subscription?.payment_method === "pix"
+                ? "Continuar e adicionar cartão"
+                : `Sim, trocar para ${pendingPaymentMethod === "pix" ? "PIX" : "Cartão"}`}
+            </Button>
+          </Box>
         </DialogContent>
       </Dialog>
       {/* --- DIALOG CANCELAR ASSINATURA --- */}

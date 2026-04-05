@@ -13,6 +13,7 @@ export const createCheckout = async (
   cardToken?: string,
   document?: string,
   billingAddress?: BillingAddress,
+  startAt?: string,
 ) => {
   const response = await apiClient.post<CheckoutResponse | FreeTrialResponse>(
     "/api/v1/subscriptions/checkout",
@@ -22,6 +23,7 @@ export const createCheckout = async (
       ...(cardToken ? { card_token: cardToken } : {}),
       ...(document ? { document } : {}),
       ...(billingAddress ? { billing_address: billingAddress } : {}),
+      ...(startAt ? { start_at: startAt } : {}),
     }
   );
   return response.data;
