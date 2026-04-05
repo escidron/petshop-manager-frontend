@@ -1534,7 +1534,7 @@ const SettingsPage = () => {
                       <Button
                         variant="contained"
                         disabled={pixDocument.replace(/\D/g, "").length < 11}
-                        onClick={handleGeneratePix}
+                        onClick={() => handleGeneratePix()}
                         sx={{ whiteSpace: "nowrap" }}
                       >
                         Gerar PIX
