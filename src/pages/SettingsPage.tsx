@@ -43,7 +43,6 @@ import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
-import { maskPhone } from "../utils/masks";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -59,7 +58,8 @@ import {
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
 import { toast } from "react-toastify";
-import { addPaymentMethod, createCheckout, listPaymentMethods, removePaymentMethod, setDefaultPaymentMethod } from "../api/services/subscriptions";
+import { maskPhone, maskDocument } from "../utils/masks";
+import { addPaymentMethod, createCheckout, listPaymentMethods, removePaymentMethod, setDefaultPaymentMethod, cancelSubscription } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
 import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import PixQrCode from "../features/billing/PixQrCode";
@@ -113,6 +113,8 @@ const SettingsPage = () => {
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
   const [checkoutMode, setCheckoutMode] = useState<"payment" | "setup">("payment");
+  const [openCancelModal, setOpenCancelModal] = useState(false);
+  const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [savingTenant, setSavingTenant] = useState(false);
@@ -179,6 +181,13 @@ const SettingsPage = () => {
       setPaymentMethod(tenant.subscription.payment_method as "card" | "pix");
     }
   }, [tenant?.subscription?.payment_method]);
+
+  useEffect(() => {
+    if (tenant?.document && !pixDocument) {
+      setPixDocument(maskDocument(tenant.document));
+    }
+  }, [tenant?.document, pixDocument]);
+
   const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
 
   const handlePaymentMethodChange = async (method: "card" | "pix") => {
@@ -204,6 +213,7 @@ const SettingsPage = () => {
     defaultValues: {
       name: tenant?.name || "",
       phone: tenant?.phone || "",
+      document: tenant?.document || "",
     },
   });
 
@@ -212,6 +222,7 @@ const SettingsPage = () => {
       reset({
         name: tenant.name,
         phone: tenant.phone,
+        document: tenant.document || "",
       });
     }
   }, [tenant, reset]);
@@ -396,6 +407,20 @@ const SettingsPage = () => {
     }
   };
 
+  const handleCancelSubscription = async () => {
+    setCancelingSubscription(true);
+    try {
+      await cancelSubscription();
+      toast.success("Assinatura cancelada com sucesso.");
+      await checkAuth(); // Updates tenant state
+      setOpenCancelModal(false);
+    } catch {
+      toast.error("Erro ao cancelar a assinatura. Tente novamente.");
+    } finally {
+      setCancelingSubscription(false);
+    }
+  };
+
   return (
     <Box sx={{ maxWidth: 1000, margin: "0 auto" }}>
       <Stack spacing={4}>
@@ -458,6 +483,14 @@ const SettingsPage = () => {
                       </Typography>
                       <Typography variant="body1">
                         {maskPhone(tenant?.phone) || "Não informado"}
+                      </Typography>
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        CPF ou CNPJ
+                      </Typography>
+                      <Typography variant="body1">
+                        {tenant?.document ? maskDocument(tenant.document) : "Não informado"}
                       </Typography>
                     </Box>
                     <Box>
@@ -677,47 +710,59 @@ const SettingsPage = () => {
                     )}
 
                     {tenant?.subscription?.plan?.code === "MONTHLY" && tenant?.subscription?.status === "active" && (
-                      <Box
-                        sx={{
-                          p: 3,
-                          borderRadius: 3,
-                          bgcolor: "rgba(76, 175, 80, 0.05)",
-                          border: "1px solid rgba(76, 175, 80, 0.2)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                        }}
-                      >
-                        <CheckCircle2 color="#4caf50" size={24} />
-                        <Box sx={{ flex: 1 }}>
-                          <Typography variant="subtitle2" fontWeight={800}>
-                            Você está no Plano Profissional
-                          </Typography>
-                          <Typography variant="caption" color="text.primary">
-                            Sua assinatura está ativa e você tem acesso total a
-                            todos os recursos.
-                          </Typography>
-                          {(() => {
-                            if (tenant?.subscription?.payment_method === "pix") {
+                      <Box>
+                        <Box
+                          sx={{
+                            p: 3,
+                            borderRadius: 3,
+                            bgcolor: "rgba(76, 175, 80, 0.05)",
+                            border: "1px solid rgba(76, 175, 80, 0.2)",
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 2,
+                            mb: 2,
+                          }}
+                        >
+                          <CheckCircle2 color="#4caf50" size={24} />
+                          <Box sx={{ flex: 1 }}>
+                            <Typography variant="subtitle2" fontWeight={800}>
+                              Você está no Plano Profissional
+                            </Typography>
+                            <Typography variant="caption" color="text.primary">
+                              Sua assinatura está ativa e você tem acesso total a
+                              todos os recursos.
+                            </Typography>
+                            {(() => {
+                              if (tenant?.subscription?.payment_method === "pix") {
+                                return (
+                                  <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
+                                    Próxima cobrança em{" "}
+                                    {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
+                                    • Pagamento via PIX
+                                  </Typography>
+                                );
+                              }
+                              const defaultCard = savedCards.find((c) => c.is_default);
+                              if (!defaultCard) return null;
                               return (
                                 <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
                                   Próxima cobrança em{" "}
                                   {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
-                                  • Pagamento via PIX
+                                  • {defaultCard.brand.toUpperCase()} •••• {defaultCard.last4}
                                 </Typography>
                               );
-                            }
-                            const defaultCard = savedCards.find((c) => c.is_default);
-                            if (!defaultCard) return null;
-                            return (
-                              <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
-                                Próxima cobrança em{" "}
-                                {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
-                                • {defaultCard.brand.toUpperCase()} •••• {defaultCard.last4}
-                              </Typography>
-                            );
-                          })()}
+                            })()}
+                          </Box>
                         </Box>
+                        <Button
+                          variant="outlined"
+                          color="error"
+                          size="small"
+                          onClick={() => setOpenCancelModal(true)}
+                          sx={{ borderRadius: 2 }}
+                        >
+                          Cancelar Assinatura
+                        </Button>
                       </Box>
                     )}
                   </Stack>
@@ -1428,23 +1473,15 @@ const SettingsPage = () => {
                   />
                 ) : (
                   <Box>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                    <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
                       Informe seu CPF ou CNPJ para gerar o QR Code PIX.
                     </Typography>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <TextField
                         fullWidth
-                        label="CPF ou CNPJ"
                         value={pixDocument}
                         onChange={(e) => {
-                          const digits = e.target.value.replace(/\D/g, "").slice(0, 14);
-                          let formatted = digits;
-                          if (digits.length <= 11) {
-                            formatted = digits.replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d{1,2})$/, "$1-$2");
-                          } else {
-                            formatted = digits.replace(/(\d{2})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1.$2").replace(/(\d{3})(\d)/, "$1/$2").replace(/(\d{4})(\d{1,2})$/, "$1-$2");
-                          }
-                          setPixDocument(formatted);
+                          setPixDocument(maskDocument(e.target.value));
                         }}
                         placeholder="000.000.000-00"
                         size="small"
@@ -1463,6 +1500,7 @@ const SettingsPage = () => {
               ) : !checkoutLoading ? (
                 <CheckoutForm
                   buttonLabel={checkoutMode === "setup" ? "Adicionar Cartão" : "Confirmar Assinatura"}
+                  defaultDocument={tenant?.document}
                   onSuccess={async (cardToken, document, billingAddress) => {
                     setCheckoutLoading(true);
                     try {
@@ -1552,6 +1590,28 @@ const SettingsPage = () => {
                 />
               </FormControl>
 
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  CPF ou CNPJ (Opcional)
+                </FormLabel>
+                <Controller
+                  name="document"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      value={field.value || ""}
+                      error={!!errors.document}
+                      helperText={errors.document?.message}
+                      placeholder="000.000.000-00"
+                      onChange={(e) =>
+                        field.onChange(maskDocument(e.target.value))
+                      }
+                    />
+                  )}
+                />
+              </FormControl>
+
               <Box
                 sx={{
                   display: "flex",
@@ -1581,6 +1641,42 @@ const SettingsPage = () => {
               </Box>
             </Stack>
           </form>
+        </DialogContent>
+      </Dialog>
+      {/* --- DIALOG CANCELAR ASSINATURA --- */}
+      <Dialog
+        open={openCancelModal}
+        onClose={() => !cancelingSubscription && setOpenCancelModal(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Cancelar Assinatura</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Tem certeza que deseja cancelar sua assinatura? Você perderá imediatamente o
+            acesso a novos agendamentos e o sistema entrará em modo leitura.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+            <Button
+              variant="text"
+              onClick={() => setOpenCancelModal(false)}
+              disabled={cancelingSubscription}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleCancelSubscription}
+              disabled={cancelingSubscription}
+            >
+              {cancelingSubscription ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "Sim, cancelar"
+              )}
+            </Button>
+          </Box>
         </DialogContent>
       </Dialog>
     </Box>

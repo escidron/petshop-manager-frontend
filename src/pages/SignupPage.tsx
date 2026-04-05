@@ -70,6 +70,7 @@ const SignupPage = () => {
         {
           name: data.name,
           phone: data.phone,
+          document: data.document,
         },
         planCode,
       );

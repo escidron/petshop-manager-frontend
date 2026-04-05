@@ -3,6 +3,7 @@ import type { TenantFormData } from "./types";
 export const DEFAULT_TENANT_FORM: TenantFormData = {
   name: "",
   phone: "",
+  document: "",
 };
 
 export const days = [

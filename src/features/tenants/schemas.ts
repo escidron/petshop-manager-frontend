@@ -12,4 +12,6 @@ export const tenantSchema = z.object({
     .min(1, "Telefone é obrigatório")
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v.length === 10 || v.length === 11, "Telefone inválido"),
+    
+  document: z.string().nullable().optional(),
 });

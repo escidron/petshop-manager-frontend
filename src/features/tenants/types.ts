@@ -21,6 +21,7 @@ export type Tenant = {
   name: string;
   phone: string;
   is_active: boolean;
+  document?: string | null;
   created_at: string;
   onboarding_step: OnboardingStep;
   type: {

@@ -7,6 +7,7 @@ export interface SignupPayload {
   tenant: {
     name: string;
     phone: string;
+    document?: string | null;
     plan_code: "MONTHLY" | "FREE_TRIAL";
   };
 }

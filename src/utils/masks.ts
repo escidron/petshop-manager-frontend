@@ -23,6 +23,14 @@ export const maskCnpj = (value = "") => {
     .replace(/(\d{4})(\d{1,2})$/, "$1-$2");
 };
 
+export const maskDocument = (value = "") => {
+  const digits = value.replace(/\D/g, "").slice(0, 14);
+  if (digits.length <= 11) {
+    return maskCpf(digits);
+  }
+  return maskCnpj(digits);
+};
+
 export const maskBirthDate = (value = "") => {
   const digits = value.replace(/\D/g, "").slice(0, 8);
 

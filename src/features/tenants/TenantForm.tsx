@@ -7,7 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import type { TenantFormData } from "./types";
 import { tenantSchema } from "./schemas";
 import { DEFAULT_TENANT_FORM } from "./constants";
-import { maskPhone } from "../../utils/masks";
+import { maskPhone, maskDocument } from "../../utils/masks";
 
 type Props = {
   onSubmit: (data: TenantFormData) => void;
@@ -71,6 +71,29 @@ const TenantCreateForm = ({ onSubmit, defaultValues, loading }: Props) => {
               onChange={(e) => field.onChange(maskPhone(e.target.value))}
               error={!!errors.phone}
               helperText={errors.phone?.message}
+            />
+          )}
+        />
+      </FormControl>
+
+      <FormControl error={!!errors.document}>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Typography>CPF / CNPJ da Empresa (Opcional)</Typography>
+          </Stack>
+        </FormLabel>
+
+        <Controller
+          name="document"
+          control={control}
+          render={({ field }) => (
+            <CustomTextField
+              {...field}
+              value={field.value || ""}
+              placeholder="000.000.000-00"
+              onChange={(e) => field.onChange(maskDocument(e.target.value))}
+              error={!!errors.document}
+              helperText={errors.document?.message}
             />
           )}
         />

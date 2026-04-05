@@ -23,6 +23,7 @@ export interface BillingAddress {
 interface Props {
   onSuccess: (cardToken: string, document: string, billingAddress: BillingAddress) => void;
   buttonLabel?: string;
+  defaultDocument?: string | null;
 }
 
 const formatCardNumber = (value: string) =>
@@ -55,11 +56,11 @@ const formatCep = (value: string) => {
   return digits;
 };
 
-const CheckoutForm = ({ onSuccess, buttonLabel }: Props) => {
+const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
   const [loading, setLoading] = useState(false);
   const [cepLoading, setCepLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [document, setDocument] = useState("");
+  const [document, setDocument] = useState(defaultDocument || "");
   const [card, setCard] = useState({
     number: "",
     holder_name: "",
