@@ -449,6 +449,7 @@ const ProductForm = ({
     
     <SupplierFormModal
       open={supplierModalOpen}
+      mode="create"
       initialName={supplierSearch}
       onClose={() => setSupplierModalOpen(false)}
       onSuccess={(newSupplier) => {

@@ -3,10 +3,12 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  Divider,
+  FormControl,
+  FormLabel,
   Typography,
-  CircularProgress,
 } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -17,7 +19,7 @@ import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
 import { createSupplier, updateSupplier } from "../../api/services/suppliers";
 import type { SupplierFormData, Supplier } from "./types";
-import { useEffect } from "react";
+import { maskCnpj } from "../../utils/masks";
 
 const supplierSchema = z.object({
   name: z.string().min(1, "O nome é obrigatório"),
@@ -26,18 +28,20 @@ const supplierSchema = z.object({
 
 type Props = {
   open: boolean;
+  mode: "create" | "edit";
+  supplier?: Supplier;
+  initialName?: string;
   onClose: () => void;
   onSuccess: (supplier: Supplier) => void;
-  initialName?: string;
-  supplierToEdit?: Supplier;
 };
 
 export default function SupplierFormModal({
   open,
+  mode,
+  supplier,
+  initialName = "",
   onClose,
   onSuccess,
-  initialName = "",
-  supplierToEdit,
 }: Props) {
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,91 +49,117 @@ export default function SupplierFormModal({
   const { control, handleSubmit, reset } = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
-      name: supplierToEdit?.name || initialName,
-      cnpj: supplierToEdit?.cnpj || "",
+      name: supplier?.name || initialName,
+      cnpj: supplier?.cnpj || "",
     },
   });
 
   useEffect(() => {
     if (open) {
       reset({
-        name: supplierToEdit?.name || initialName,
-        cnpj: supplierToEdit?.cnpj || "",
+        name: supplier?.name || initialName,
+        cnpj: supplier?.cnpj || "",
       });
     }
-  }, [open, supplierToEdit, initialName, reset]);
+  }, [open, supplier, initialName, reset]);
 
   const onSubmit = async (data: SupplierFormData) => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
     try {
-      setIsSubmitting(true);
-      let supplier;
-      if (supplierToEdit) {
-        supplier = await updateSupplier(supplierToEdit.id, data);
-        toast.success("Fornecedor atualizado com sucesso!");
-      } else {
-        supplier = await createSupplier(data);
-        toast.success("Fornecedor criado com sucesso!");
-      }
+      const saved =
+        mode === "create"
+          ? await createSupplier(data)
+          : await updateSupplier(supplier!.id, data);
+
+      toast.success(
+        mode === "create"
+          ? "Fornecedor cadastrado com sucesso"
+          : "Fornecedor atualizado com sucesso",
+      );
+
       reset();
-      onSuccess(supplier);
+      onSuccess(saved);
       onClose();
     } catch {
-      toast.error("Erro ao criar fornecedor.");
+      toast.error(
+        mode === "create" ? "Erro ao cadastrar fornecedor." : "Erro ao atualizar fornecedor.",
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs">
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between" }}>
-        <Typography variant="h5">{supplierToEdit ? "Editar Fornecedor" : "Novo Fornecedor"}</Typography>
+    <Dialog
+      open={open}
+      maxWidth={false}
+      slotProps={{
+        paper: {
+          sx: {
+            width: "500px",
+            maxWidth: "500px",
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+      >
+        <Typography variant="h5">
+          {mode === "create" ? "Novo Fornecedor" : "Editar Fornecedor"}
+        </Typography>
         <Box sx={{ cursor: "pointer" }}>
           <X onClick={onClose} />
         </Box>
       </DialogTitle>
+
       <DialogContent>
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
-          <Box>
-            <Typography variant="caption" sx={{ mb: 0.5, display: "block", color: "text.primary" }}>
-              Nome do Fornecedor *
-            </Typography>
-            <Controller
-              name="name"
-              control={control}
-              render={({ field, fieldState }) => (
-                <CustomTextField
-                  {...field}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  placeholder="Nome Fantasia ou Razão Social"
-                />
-              )}
-            />
+        <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Divider />
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+            <FormControl fullWidth>
+              <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>
+                Nome do Fornecedor
+              </FormLabel>
+              <Controller
+                name="name"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <CustomTextField
+                    {...field}
+                    fullWidth
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="Nome Fantasia ou Razão Social"
+                  />
+                )}
+              />
+            </FormControl>
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                CNPJ
+              </FormLabel>
+              <Controller
+                name="cnpj"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <CustomTextField
+                    {...field}
+                    fullWidth
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="00.000.000/0000-00"
+                    onChange={(e) => field.onChange(maskCnpj(e.target.value))}
+                  />
+                )}
+              />
+            </FormControl>
           </Box>
-          <Box>
-            <Typography variant="caption" sx={{ mb: 0.5, display: "block", color: "text.primary" }}>
-              CNPJ
-            </Typography>
-            <Controller
-              name="cnpj"
-              control={control}
-              render={({ field, fieldState }) => (
-                <CustomTextField
-                  {...field}
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  placeholder="00.000.000/0000-00"
-                />
-              )}
-            />
-          </Box>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 2 }}>
-            <Button
-              disabled={isSubmitting}
-              onClick={handleSubmit(onSubmit)}
-            >
-              Salvar Fornecedor
+          <Divider sx={{ mt: 1 }} />
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Button disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+              Salvar
             </Button>
           </Box>
         </Box>

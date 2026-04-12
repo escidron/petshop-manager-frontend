@@ -10,6 +10,8 @@ import {
   IconButton,
   TextField,
   InputAdornment,
+  Typography,
+  CircularProgress,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
@@ -97,14 +99,41 @@ export default function SuppliersPage() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>
-                <strong>Nome</strong>
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Nome
               </TableCell>
-              <TableCell>
-                <strong>CNPJ</strong>
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                CNPJ
               </TableCell>
-              <TableCell align="right">
-                <strong>Ações</strong>
+              <TableCell
+                align="right"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                {}
               </TableCell>
             </TableRow>
           </TableHead>
@@ -133,15 +162,17 @@ export default function SuppliersPage() {
             ))}
             {filteredRows.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={3} align="center">
-                  Nenhum fornecedor encontrado.
+                <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
+                  <Typography color="text.disabled" variant="body1">
+                    Nenhum fornecedor cadastrado ainda.
+                  </Typography>
                 </TableCell>
               </TableRow>
             )}
             {loading && (
               <TableRow>
-                <TableCell colSpan={3} align="center">
-                  Carregando...
+                <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
+                  <CircularProgress />
                 </TableCell>
               </TableRow>
             )}
@@ -151,12 +182,13 @@ export default function SuppliersPage() {
 
       <SupplierFormModal
         open={modalOpen}
+        mode={supplierToEdit ? "edit" : "create"}
+        supplier={supplierToEdit}
         onClose={() => setModalOpen(false)}
         onSuccess={() => {
           setModalOpen(false);
           getSuppliers();
         }}
-        supplierToEdit={supplierToEdit}
       />
     </Box>
   );
