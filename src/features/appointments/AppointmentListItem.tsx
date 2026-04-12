@@ -1,5 +1,5 @@
 import CustomCard from "../../components/Card/CustomCard";
-import { Box, Tooltip, Typography } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import dayjs from "dayjs";
 
 import type { Appointment } from "./types";
@@ -8,8 +8,9 @@ import { getAppointmentStatusUI } from "../../utils/getAppointmentStatusColor";
 import { getServiceIcons } from "../../utils/getServiceIcons";
 import { useState } from "react";
 import AppointmentServiceList from "./AppointmentServiceList";
-import { Info, MessageSquare } from "lucide-react";
+import { Info } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
+import AppointmentObservationList from "./AppointmentObservationList";
 
 type Props = {
   appointment: Appointment;
@@ -24,6 +25,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
   const hasPetNotes = appointment.items.some(
     (item) => item.pet?.notes && item.pet.notes.trim() !== "",
   );
+  const hasAnyNotes = hasPetNotes || (appointment.notes && appointment.notes.trim() !== "");
   const icons = getServiceIcons(allServiceNames);
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -35,9 +37,22 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
   const handleClose = () => {
     setAnchorEl(null);
   };
+
+  const [obsAnchorEl, setObsAnchorEl] = useState<null | HTMLElement>(null);
+  const openObs = Boolean(obsAnchorEl);
+  const handleObsClick = (
+    event: React.MouseEvent<HTMLButtonElement | HTMLDivElement>,
+  ) => {
+    event.stopPropagation();
+    setObsAnchorEl(event.currentTarget);
+  };
+  const handleObsClose = () => {
+    setObsAnchorEl(null);
+  };
   return (
-    <CustomCard
-      key={appointment.id}
+    <>
+      <CustomCard
+        key={appointment.id}
       sx={{
         px: 2,
         py: 1,
@@ -78,8 +93,19 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
                 {index < appointment.items.length - 1 && "•"}
               </Box>
             ))}
-            {hasPetNotes && (
-              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            {hasAnyNotes && (
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 1,
+                  alignItems: "center",
+                  cursor: "pointer",
+                  p: 0.5,
+                  borderRadius: 1,
+                  "&:hover": { bgcolor: "rgba(233, 30, 99, 0.1)" },
+                }}
+                onClick={handleObsClick}
+              >
                 <Info size={14} color={theme.palette.error.main} />
                 <Typography variant="body2" color="error.main">
                   Possui observações
@@ -103,25 +129,6 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             handleClick(e);
           }}
         >
-          {appointment.notes?.trim() && (
-            <Tooltip
-              placement="top"
-              arrow
-              onClick={(e) => e.stopPropagation()}
-              title={
-                <Box>
-                  <Typography variant="caption" fontWeight={700} display="block">
-                    Observações:
-                  </Typography>
-                  <Typography variant="caption">{appointment.notes}</Typography>
-                </Box>
-              }
-            >
-              <Box sx={{ display: "flex", alignItems: "center", cursor: "default" }}>
-                <MessageSquare size={16} color={theme.palette.error.main} />
-              </Box>
-            </Tooltip>
-          )}
           <Box
             sx={{
               display: "flex",
@@ -140,14 +147,21 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             ))}
           </Box>
         </Box>
-        <AppointmentServiceList
-          open={open}
-          anchorEl={anchorEl}
-          handleClose={handleClose}
-          appointment={appointment}
-        />
       </Box>
     </CustomCard>
+    <AppointmentServiceList
+      open={open}
+      anchorEl={anchorEl}
+      handleClose={handleClose}
+      appointment={appointment}
+    />
+    <AppointmentObservationList
+      open={openObs}
+      anchorEl={obsAnchorEl}
+      handleClose={handleObsClose}
+      appointment={appointment}
+    />
+    </>
   );
 };
 

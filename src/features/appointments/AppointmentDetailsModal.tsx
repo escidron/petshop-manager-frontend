@@ -71,6 +71,9 @@ const AppointmentDetailsModal = ({
             minWidth: "1250px",
           },
         },
+        backdrop: {
+          sx: { backgroundColor: "rgba(0, 0, 0, 0.6)" },
+        },
       }}
     >
       <DialogTitle

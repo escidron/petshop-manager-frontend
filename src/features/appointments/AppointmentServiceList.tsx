@@ -1,4 +1,4 @@
-import { Box, Divider, Popover, Typography } from "@mui/material";
+import { Box, Divider, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
 import type { Appointment } from "./types";
 import { Dot, List, X } from "lucide-react";
 import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
@@ -7,7 +7,7 @@ import CustomCard from "../../components/Card/CustomCard";
 
 type Props = {
   open: boolean;
-  anchorEl: null | HTMLElement;
+  anchorEl?: null | HTMLElement;
   handleClose: () => void;
   appointment: Appointment;
 };
@@ -24,44 +24,37 @@ const AppointmentServiceList = ({
     currency: "BRL",
   });
   return (
-    <Popover
+    <Dialog
       open={open}
-      anchorEl={anchorEl}
       onClose={handleClose}
-      anchorOrigin={{
-        vertical: "bottom",
-        horizontal: "left",
-      }}
+      fullWidth
+      maxWidth="sm"
       slotProps={{
-        paper: {
-          elevation: 1,
-          sx: {
-            p: 2,
-            borderRadius: 2,
-            minWidth: 500,
-          },
-        },
+        paper: { sx: { borderRadius: 3, p: 1 } },
+        backdrop: { sx: { backgroundColor: "rgba(0, 0, 0, 0.6)" } },
       }}
     >
-      <Box
-        sx={{
-          display: "flex",
-          gap: 2,
-          alignItems: "center",
-          justifyContent: "space-between",
-        }}
-      >
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-          <List size={20} />
-          <Typography variant="h6">Serviços à realizar</Typography>
-          <Typography variant="h6"> {formattedTotal}</Typography>
+      <DialogTitle sx={{ pb: 1 }}>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            alignItems: "center",
+            justifyContent: "space-between",
+          }}
+        >
+          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+            <List size={24} color={theme.palette.primary.main} />
+            <Typography variant="h5" fontWeight={600}>Serviços à realizar</Typography>
+            <Typography variant="h6" color="text.secondary"> {formattedTotal}</Typography>
+          </Box>
+          <Box sx={{ cursor: "pointer", display: "flex" }} onClick={handleClose}>
+            <X size={24} />
+          </Box>
         </Box>
-        <Box sx={{ cursor: "pointer" }} onClick={handleClose}>
-          <X size={20} />
-        </Box>
-      </Box>
-      <Divider sx={{ my: 1 }} />
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+      </DialogTitle>
+      <Divider />
+      <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {appointment.items.map((item, index) => {
           return (
             <CustomCard key={item.id} sx={{ p: 1 }}>
@@ -125,8 +118,8 @@ const AppointmentServiceList = ({
             </CustomCard>
           );
         })}
-      </Box>
-    </Popover>
+      </DialogContent>
+    </Dialog>
   );
 };
 
