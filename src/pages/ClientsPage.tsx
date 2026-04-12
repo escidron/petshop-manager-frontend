@@ -89,7 +89,8 @@ export default function ClientsPage() {
           await getClients();
           setClientModal({ open: false, mode: "create" });
         }}
-        onSuccessAndAddPet={(client) => {
+        onSuccessAndAddPet={async (client) => {
+          await getClients();
           setClientModal({ open: false, mode: "create", client });
           setPetModal({ open: true, mode: "create" });
         }}

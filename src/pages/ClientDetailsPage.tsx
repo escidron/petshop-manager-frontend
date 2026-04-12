@@ -186,6 +186,7 @@ export default function ClientDetailsPage() {
         open={petModal.open}
         mode={petModal.mode}
         pet={petModal.pet}
+        client={client}
         onClose={() => setPetModal({ open: false, mode: "create" })}
         onSuccess={async () => {
           await refetchPets();
