@@ -9,6 +9,15 @@ export const productSchema = z.object({
   cost_cents: z.coerce.number().min(0, "O custo deve ser maior ou igual a zero").optional(),
   quantity: z.coerce.number().int().min(0, "A quantidade deve ser maior ou igual a zero").default(0),
   min_stock: z.coerce.number().int().min(0, "O estoque mínimo deve ser maior ou igual a zero").default(0),
+  
+  barcode: z.string().optional(),
+  ncm: z.string().optional(),
+  cest: z.string().optional(),
+  cfop: z.string().optional(),
+  csosn: z.string().optional(),
+  cst_pis: z.string().optional(),
+  cst_cofins: z.string().optional(),
+  supplier_id: z.number().optional().nullable(),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;

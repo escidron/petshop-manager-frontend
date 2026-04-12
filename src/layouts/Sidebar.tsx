@@ -15,6 +15,7 @@ import {
   Package,
   ShoppingCart,
   HelpCircle,
+  Truck,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -55,6 +56,12 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Produtos",
         icon: <Barcode size={20} />,
         path: "/registration/products",
+      },
+      {
+        id: "suppliers",
+        label: "Fornecedores",
+        icon: <Truck size={20} />,
+        path: "/registration/suppliers",
       },
       {
         id: "packages",

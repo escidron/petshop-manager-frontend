@@ -8,6 +8,16 @@ export type Product = {
   cost_cents?: number;
   quantity: number;
   min_stock: number;
+  
+  barcode?: string;
+  ncm?: string;
+  cest?: string;
+  cfop?: string;
+  csosn?: string;
+  cst_pis?: string;
+  cst_cofins?: string;
+  supplier_id?: number;
+  
   is_active: boolean;
 };
 
