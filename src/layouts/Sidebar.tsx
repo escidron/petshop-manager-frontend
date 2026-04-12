@@ -23,7 +23,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
     items: [
       {
         id: "home",
-        label: "Inicio",
+        label: "Início",
         icon: <Home size={20} />,
         path: "/dashboard",
       },

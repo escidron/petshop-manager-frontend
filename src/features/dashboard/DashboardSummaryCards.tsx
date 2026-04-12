@@ -1,9 +1,10 @@
 import { Box, Skeleton, Typography } from "@mui/material";
-import { CalendarDays, CalendarCheck, DollarSign } from "lucide-react";
+import { CalendarDays, CalendarCheck, DollarSign, CalendarX } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import type { Appointment } from "../appointments/types";
 import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import theme from "../../theme";
+import { useAuth } from "../../hooks/useAuth";
 
 type Props = {
   appointments: Appointment[];
@@ -62,6 +63,9 @@ const SummaryCard = ({
 );
 
 export default function DashboardSummaryCards({ appointments, isFetching = false }: Props) {
+  const { user } = useAuth();
+  const isOwner = user?.role === "owner";
+
   const totalAppointments = appointments.length;
 
   const completedAppointments = appointments.filter(
@@ -78,6 +82,10 @@ export default function DashboardSummaryCards({ appointments, isFetching = false
       a.status === "confirmed" ||
       a.status === "completed" ||
       a.status === "in_progress",
+  ).length;
+
+  const cancelledCount = appointments.filter(
+    (a) => a.status === "canceled",
   ).length;
 
   const formattedRevenue = (totalRevenueCents / 100).toLocaleString("pt-BR", {
@@ -103,19 +111,28 @@ export default function DashboardSummaryCards({ appointments, isFetching = false
         bgColor="rgba(49, 52, 133, 0.1)"
       />
       <SummaryCard
-        icon={<DollarSign size={24} />}
-        label="Faturamento do dia"
-        value={isFetching ? <Skeleton width={80} sx={{ bgcolor: "grey.200" }} /> : formattedRevenue}
-        iconColor={theme.palette.success.main}
-        bgColor="rgba(46, 125, 50, 0.1)"
-      />
-      <SummaryCard
         icon={<CalendarCheck size={24} />}
         label="Agendamentos confirmados"
         value={isFetching ? <Skeleton width={40} sx={{ bgcolor: "grey.200" }} /> : confirmedCount}
         iconColor={theme.palette.info.main}
         bgColor="rgba(2, 136, 209, 0.1)"
       />
+      <SummaryCard
+        icon={<CalendarX size={24} />}
+        label="Agendamentos cancelados"
+        value={isFetching ? <Skeleton width={40} sx={{ bgcolor: "grey.200" }} /> : cancelledCount}
+        iconColor={theme.palette.error.main}
+        bgColor="rgba(211, 47, 47, 0.1)"
+      />
+      {isOwner && (
+        <SummaryCard
+          icon={<DollarSign size={24} />}
+          label="Faturamento do dia"
+          value={isFetching ? <Skeleton width={80} sx={{ bgcolor: "grey.200" }} /> : formattedRevenue}
+          iconColor={theme.palette.success.main}
+          bgColor="rgba(46, 125, 50, 0.1)"
+        />
+      )}
     </Box>
   );
 }

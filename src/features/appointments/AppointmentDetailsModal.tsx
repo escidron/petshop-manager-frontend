@@ -4,9 +4,11 @@ import {
   Dialog,
   DialogContent,
   DialogTitle,
+  DialogActions,
   Divider,
   Typography,
 } from "@mui/material";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   CalendarCheck,
@@ -49,6 +51,7 @@ const AppointmentDetailsModal = ({
   onEdit,
 }: Props) => {
   const navigate = useNavigate();
+  const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const totalCents = getAppointmentTotal(appointment);
 
   const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
@@ -130,9 +133,8 @@ const AppointmentDetailsModal = ({
                         variant="text"
                         size="small"
                         startIcon={<X size={16} />}
-                        loading={loadingAction === "cancel"}
                         disabled={!!loadingAction}
-                        onClick={() => handleAction(appointment, "cancel")}
+                        onClick={() => setCancelConfirmOpen(true)}
                       >
                         Cancelar Agendamento
                       </Button>
@@ -174,9 +176,8 @@ const AppointmentDetailsModal = ({
                         variant="text"
                         size="small"
                         startIcon={<X size={16} />}
-                        loading={loadingAction === "cancel"}
                         disabled={!!loadingAction}
-                        onClick={() => handleAction(appointment, "cancel")}
+                        onClick={() => setCancelConfirmOpen(true)}
                       >
                         Cancelar Agendamento
                       </Button>
@@ -457,6 +458,30 @@ const AppointmentDetailsModal = ({
           </Box>
         </Box>
       </DialogContent>
+
+      <Dialog open={cancelConfirmOpen} onClose={() => setCancelConfirmOpen(false)}>
+        <DialogTitle>Cancelar Agendamento</DialogTitle>
+        <DialogContent>
+          <Typography>Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="text" onClick={() => setCancelConfirmOpen(false)} disabled={!!loadingAction}>
+            Voltar
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => {
+              handleAction(appointment, "cancel");
+              setCancelConfirmOpen(false);
+            }}
+            loading={loadingAction === "cancel"}
+            disabled={!!loadingAction}
+          >
+            Sim, cancelar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Dialog>
   );
 };
