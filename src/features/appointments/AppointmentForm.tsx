@@ -535,6 +535,7 @@ export default function AppointmentForm({
                   startIcon={<Trash size={15} />}
                   variant="text"
                   color="error"
+                  sx={{ width: "fit-content", mx: "auto" }}
                   onClick={() => remove(index)}
                 >
                   Remover Pet
