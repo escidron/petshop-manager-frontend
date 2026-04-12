@@ -86,7 +86,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
 
           <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
             {appointment.items.map((item, index) => (
-              <Box key={item.id} sx={{ display: "flex", gap: 1 }}>
+              <Box key={item.id} sx={{ display: "flex", gap: 1,alignItems: "center"  }}>
                 <Typography key={item.id} variant="body2" color="text.primary">
                   {item.pet.name}
                 </Typography>
