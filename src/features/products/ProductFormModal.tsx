@@ -77,9 +77,9 @@ export default function ProductFormModal({
       slotProps={{
         paper: {
           sx: {
-            width: showAdditionalInfo ? "80%" : "500px",
-            maxWidth: "1000px",
-            minWidth: showAdditionalInfo ? "1000px" : "500px",
+            width: showAdditionalInfo ? "85%" : "500px",
+            maxWidth: "1200px",
+            minWidth: showAdditionalInfo ? "1200px" : "500px",
           },
         },
       }}

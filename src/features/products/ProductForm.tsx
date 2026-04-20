@@ -164,16 +164,18 @@ const ProductForm = ({
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Estoque Mínimo.
+                  Estoque Mínimo
                 </FormLabel>
                 <Controller
                   name="min_stock"
                   control={control}
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <TextField
                       {...field}
                       type="number"
                       size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
                       placeholder="0"
                       onChange={(e) => {
                         const val = e.target.value;
