@@ -7,13 +7,11 @@ import CustomCard from "../../components/Card/CustomCard";
 
 type Props = {
   open: boolean;
-  anchorEl?: null | HTMLElement;
   handleClose: () => void;
   appointment: Appointment;
 };
 const AppointmentServiceList = ({
   open,
-  anchorEl,
   handleClose,
   appointment,
 }: Props) => {

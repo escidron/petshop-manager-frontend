@@ -16,7 +16,7 @@ export type Product = {
   csosn?: string;
   cst_pis?: string;
   cst_cofins?: string;
-  supplier_id?: number;
+  supplier_id?: number | null;
   
   is_active: boolean;
 };

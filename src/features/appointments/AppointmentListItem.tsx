@@ -151,7 +151,6 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
     </CustomCard>
     <AppointmentServiceList
       open={open}
-      anchorEl={anchorEl}
       handleClose={handleClose}
       appointment={appointment}
     />
