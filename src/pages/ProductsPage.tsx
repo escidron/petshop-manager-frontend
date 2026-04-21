@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useProducts } from "../hooks/useProducts";
 import ProductFormModal from "../features/products/ProductFormModal";
 import ProductDeleteModal from "../features/products/ProductToDeleteModal";
+import ImportProductsModal from "../features/products/ImportProductsModal";
 import ProductsToolbar from "../features/products/ProductsToolbar";
 import ProductsTable from "../features/products/ProductsTable";
 import { deleteProduct } from "../api/services/products";
@@ -20,6 +21,7 @@ export default function ProductsPage() {
     mode?: "create" | "edit";
     product?: Product;
   }>({ open: false, mode: "create" });
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const { products, loading, getProducts } = useProducts();
   const filteredRows = useMemo(() => {
     if (!search) return products;
@@ -50,6 +52,7 @@ export default function ProductsPage() {
         search={search}
         onSearchChange={setSearch}
         onCreate={() => setProductModal({ open: true, mode: "create" })}
+        onImport={() => setImportModalOpen(true)}
       />
 
       <ProductsTable
@@ -87,6 +90,15 @@ export default function ProductsPage() {
           onConfirm={handleConfirmDelete}
         />
       )}
+      {/* Import Modal */}
+      <ImportProductsModal
+        open={importModalOpen}
+        onClose={() => setImportModalOpen(false)}
+        onSuccess={() => {
+          setImportModalOpen(false);
+          getProducts();
+        }}
+      />
     </Box>
   );
 }
