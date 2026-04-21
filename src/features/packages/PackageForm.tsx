@@ -56,6 +56,7 @@ export default function PackageForm({
       name: "",
       description: "",
       price_cents: 0,
+      validity_days: null,
       is_active: true,
       items: [
         { type: "service", service_id: null, product_id: null, quantity: 1 },
@@ -83,6 +84,7 @@ export default function PackageForm({
         name: editingPackage.name,
         description: editingPackage.description,
         price_cents: editingPackage.price_cents,
+        validity_days: editingPackage.validity_days,
         is_active: editingPackage.is_active,
         items: editingPackage.items.map((item) => ({
           type: (item.service_id ? "service" : "product") as
@@ -98,6 +100,7 @@ export default function PackageForm({
         name: "",
         description: "",
         price_cents: 0,
+        validity_days: null,
         is_active: true,
         items: [
           { type: "service", service_id: null, product_id: null, quantity: 1 },
@@ -222,6 +225,31 @@ export default function PackageForm({
                       />
                     );
                   }}
+                />
+              </FormControl>
+            </Grid>
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <FormControl fullWidth>
+                <FormLabel
+                  sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}
+                >
+                  Validade (dias)
+                </FormLabel>
+                <Controller
+                  name="validity_days"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      value={field.value ?? ""}
+                      type="number"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message || "Deixe vazio para validade infinita"}
+                      size="small"
+                      placeholder="ex: 30"
+                      fullWidth
+                    />
+                  )}
                 />
               </FormControl>
             </Grid>
@@ -370,10 +398,33 @@ export default function PackageForm({
                               onChange={(_, val) =>
                                 serviceField.onChange(val?.id || null)
                               }
-                              getOptionLabel={(option) => option.name}
+                              getOptionLabel={(option) => {
+                                const details = [];
+                                if (option.species) details.push(option.species);
+                                if (option.size) details.push(option.size);
+                                if (option.coat_type) details.push(option.coat_type);
+                                return details.length > 0
+                                  ? `${option.name} (${details.join(", ")})`
+                                  : option.name;
+                              }}
                               isOptionEqualToValue={(option, value) =>
                                 option.id === value.id
                               }
+                              renderOption={(props, option) => (
+                                <Box component="li" {...props} key={option.id}>
+                                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                                    <Typography variant="body2" fontWeight="bold">
+                                      {option.name}
+                                    </Typography>
+                                    <Typography variant="caption" color="text.primary">
+                                      {option.species || "Qualquer espécie"} • {option.size || "Qualquer porte"} • {option.coat_type || "Qualquer pelagem"}
+                                    </Typography>
+                                    <Typography variant="caption" color="primary.main" fontWeight="medium">
+                                      {formatBRLFromCents(option.price_cents)}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                              )}
                               renderInput={(params) => (
                                 <TextField
                                   {...params}
@@ -405,6 +456,25 @@ export default function PackageForm({
                               isOptionEqualToValue={(option, value) =>
                                 option.id === value.id
                               }
+                              renderOption={(props, option) => (
+                                <Box component="li" {...props} key={option.id}>
+                                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                                    <Typography variant="body2" fontWeight="bold">
+                                      {option.name}
+                                    </Typography>
+                                    <Box sx={{ display: "flex", gap: 1 }}>
+                                      {option.sku && (
+                                        <Typography variant="caption" color="text.primary">
+                                          SKU: {option.sku}
+                                        </Typography>
+                                      )}
+                                      <Typography variant="caption" color="primary.main" fontWeight="medium">
+                                        • {formatBRLFromCents(option.price_cents)}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              )}
                               renderInput={(params) => (
                                 <TextField
                                   {...params}

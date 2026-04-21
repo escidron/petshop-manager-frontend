@@ -16,6 +16,7 @@ export type ClientPackage = {
   package_name: string;
   is_active: boolean;
   created_at: string;
+  expires_at: string | null;
   credits: ClientPackageCredit[];
 };
 

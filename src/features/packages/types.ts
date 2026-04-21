@@ -15,11 +15,11 @@ export interface Package {
   id: number;
   tenant_id: number;
   name: string;
-  description?: string;
+  description: string | null;
   price_cents: number;
+  validity_days: number | null;
   is_active: boolean;
   items: PackageItem[];
 }
 
 export type { PackageFormData } from "./schemas";
-

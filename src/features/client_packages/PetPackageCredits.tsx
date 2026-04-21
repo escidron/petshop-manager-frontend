@@ -64,6 +64,18 @@ export default function PetPackageCredits({ packages, onRefresh }: Props) {
               <Typography variant="body2" fontWeight={600}>
                 {pkg.package_name}
               </Typography>
+              {pkg.expires_at && (
+                <Chip
+                  label={
+                    new Date(pkg.expires_at) < new Date()
+                      ? "Expirado"
+                      : `Expira em: ${new Date(pkg.expires_at).toLocaleDateString()}`
+                  }
+                  size="small"
+                  color={new Date(pkg.expires_at) < new Date() ? "error" : "default"}
+                  sx={{ height: 20, fontSize: 10 }}
+                />
+              )}
             </Box>
             <Tooltip title="Cancelar pacote">
               <IconButton
