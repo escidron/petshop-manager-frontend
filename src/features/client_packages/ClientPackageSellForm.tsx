@@ -12,7 +12,7 @@ import { clientPackageSellSchema, type ClientPackageSellFormData } from "./schem
 import { Button } from "../../components/Button/Button";
 import type { Pet } from "../pets/types";
 import type { Package } from "../packages/types";
-import { formatPrice } from "../../utils/formatServiceLabel";
+import { formatPrice, formatServiceLabel } from "../../utils/formatServiceLabel";
 
 type Props = {
   pets: Pet[];
@@ -94,14 +94,17 @@ export default function ClientPackageSellForm({
                       }}
                     >
                       <Box>
-                        <Typography variant="body2" fontWeight={500}>
+                        <Typography variant="body2" fontWeight={700} color="primary">
                           {option.name}
                         </Typography>
-                        {option.description && (
-                          <Typography variant="caption" color="text.secondary">
-                            {option.description}
-                          </Typography>
-                        )}
+                        <Typography variant="caption" color="text.primary" sx={{ display: 'block', mt: 0.5 }}>
+                          {option.items.map(item => {
+                            const name = item.service 
+                              ? formatServiceLabel(item.service) 
+                              : item.product?.name;
+                            return `${item.quantity}x ${name || 'Item'}`;
+                          }).join(", ")}
+                        </Typography>
                       </Box>
                       <Typography variant="body2" fontWeight={600}>
                         {formatPrice(option.price_cents)}

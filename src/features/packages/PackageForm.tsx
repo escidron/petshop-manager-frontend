@@ -15,7 +15,12 @@ import {
   InputAdornment,
   Divider,
   Autocomplete,
+  Chip,
+  Stack,
 } from "@mui/material";
+import { getCoatTypeLabel } from "../../utils/formatCoatType";
+import { formatPrice } from "../../utils/formatServiceLabel";
+import type { CoatType } from "../pets/types";
 import { Plus, X, Trash2 } from "lucide-react";
 import { useForm, useFieldArray, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -402,7 +407,12 @@ export default function PackageForm({
                                 const details = [];
                                 if (option.species) details.push(option.species);
                                 if (option.size) details.push(option.size);
-                                if (option.coat_type) details.push(option.coat_type);
+                                if (option.coat_type)
+                                  details.push(
+                                    getCoatTypeLabel(
+                                      option.coat_type as CoatType,
+                                    ) || option.coat_type,
+                                  );
                                 return details.length > 0
                                   ? `${option.name} (${details.join(", ")})`
                                   : option.name;
@@ -411,16 +421,102 @@ export default function PackageForm({
                                 option.id === value.id
                               }
                               renderOption={(props, option) => (
-                                <Box component="li" {...props} key={option.id}>
-                                  <Box sx={{ display: "flex", flexDirection: "column" }}>
-                                    <Typography variant="body2" fontWeight="bold">
-                                      {option.name}
-                                    </Typography>
-                                    <Typography variant="caption" color="text.primary">
-                                      {option.species || "Qualquer espécie"} • {option.size || "Qualquer porte"} • {option.coat_type || "Qualquer pelagem"}
-                                    </Typography>
-                                    <Typography variant="caption" color="primary.main" fontWeight="medium">
-                                      {formatBRLFromCents(option.price_cents)}
+                                <Box
+                                  component="li"
+                                  {...props}
+                                  key={option.id}
+                                  sx={{
+                                    py: 1,
+                                    px: 2,
+                                    borderBottom: "1px solid",
+                                    borderColor: "divider",
+                                    "&:last-child": { borderBottom: 0 },
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      width: "100%",
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight="700"
+                                        color="primary.main"
+                                      >
+                                        {option.name}
+                                      </Typography>
+                                      <Stack
+                                        direction="row"
+                                        spacing={0.5}
+                                        flexWrap="wrap"
+                                        useFlexGap
+                                      >
+                                        {option.species && (
+                                          <Chip
+                                            label={option.species}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{
+                                              fontSize: "11px",
+                                              height: "22px",
+                                            }}
+                                          />
+                                        )}
+                                        {option.size && (
+                                          <Chip
+                                            label={option.size}
+                                            size="small"
+                                            color="secondary"
+                                            sx={{
+                                              fontSize: "11px",
+                                              height: "22px",
+                                              fontWeight: 600,
+                                            }}
+                                          />
+                                        )}
+                                        {option.coat_type && (
+                                          <Chip
+                                            label={`Pelagem: ${
+                                              getCoatTypeLabel(
+                                                option.coat_type as CoatType,
+                                              ) || option.coat_type
+                                            }`}
+                                            size="small"
+                                            variant="outlined"
+                                            sx={{
+                                              fontSize: "11px",
+                                              height: "22px",
+                                            }}
+                                          />
+                                        )}
+                                        {!option.species &&
+                                          !option.size &&
+                                          !option.coat_type && (
+                                            <Typography
+                                              variant="caption"
+                                              color="text.disabled"
+                                            >
+                                              Geral
+                                            </Typography>
+                                          )}
+                                      </Stack>
+                                    </Box>
+                                    <Typography
+                                      variant="subtitle2"
+                                      fontWeight="bold"
+                                      sx={{ color: "success.main", mt: 0.5 }}
+                                    >
+                                      {formatPrice(option.price_cents)}
                                     </Typography>
                                   </Box>
                                 </Box>
@@ -457,21 +553,59 @@ export default function PackageForm({
                                 option.id === value.id
                               }
                               renderOption={(props, option) => (
-                                <Box component="li" {...props} key={option.id}>
-                                  <Box sx={{ display: "flex", flexDirection: "column" }}>
-                                    <Typography variant="body2" fontWeight="bold">
-                                      {option.name}
-                                    </Typography>
-                                    <Box sx={{ display: "flex", gap: 1 }}>
+                                <Box
+                                  component="li"
+                                  {...props}
+                                  key={option.id}
+                                  sx={{
+                                    py: 1,
+                                    px: 2,
+                                    borderBottom: "1px solid",
+                                    borderColor: "divider",
+                                    "&:last-child": { borderBottom: 0 },
+                                  }}
+                                >
+                                  <Box
+                                    sx={{
+                                      display: "flex",
+                                      justifyContent: "space-between",
+                                      alignItems: "flex-start",
+                                      width: "100%",
+                                    }}
+                                  >
+                                    <Box
+                                      sx={{
+                                        display: "flex",
+                                        flexDirection: "column",
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      <Typography
+                                        variant="body2"
+                                        fontWeight="700"
+                                        color="primary.main"
+                                      >
+                                        {option.name}
+                                      </Typography>
                                       {option.sku && (
-                                        <Typography variant="caption" color="text.primary">
+                                        <Typography
+                                          variant="caption"
+                                          sx={{
+                                            color: "text.secondary",
+                                            fontSize: "11px",
+                                          }}
+                                        >
                                           SKU: {option.sku}
                                         </Typography>
                                       )}
-                                      <Typography variant="caption" color="primary.main" fontWeight="medium">
-                                        • {formatBRLFromCents(option.price_cents)}
-                                      </Typography>
                                     </Box>
+                                    <Typography
+                                      variant="subtitle2"
+                                      fontWeight="bold"
+                                      sx={{ color: "success.main", mt: 0.5 }}
+                                    >
+                                      {formatPrice(option.price_cents)}
+                                    </Typography>
                                   </Box>
                                 </Box>
                               )}

@@ -1,3 +1,6 @@
+import type { Service } from "../tenant_services/types";
+import type { Product } from "../products/types";
+
 export interface PackageItemBase {
   type: "service" | "product";
   service_id?: number | null;
@@ -9,6 +12,8 @@ export interface PackageItemBase {
 export interface PackageItem extends PackageItemBase {
   id: number;
   package_id: number;
+  service?: Service;
+  product?: Product;
 }
 
 export interface Package {

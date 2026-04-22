@@ -11,6 +11,7 @@ import { useState } from "react";
 import { deactivateClientPackage } from "../../api/services/client_packages";
 import type { ClientPackage } from "./types";
 import theme from "../../theme";
+import { formatServiceLabel } from "../../utils/formatServiceLabel";
 
 type Props = {
   packages: ClientPackage[];
@@ -108,7 +109,7 @@ export default function PetPackageCredits({ packages, onRefresh }: Props) {
                     color={exhausted ? "text.disabled" : "text.primary"}
                     sx={{ textDecoration: exhausted ? "line-through" : "none" }}
                   >
-                    {credit.service_name}
+                    {credit.service ? formatServiceLabel(credit.service) : credit.service_name}
                   </Typography>
                   <Chip
                     label={`${credit.remaining_qty} / ${credit.total_qty}`}

@@ -1,3 +1,5 @@
+import type { Service } from "../tenant_services/types";
+
 export type ClientPackageCredit = {
   id: number;
   service_id: number | null;
@@ -5,6 +7,7 @@ export type ClientPackageCredit = {
   total_qty: number;
   used_qty: number;
   remaining_qty: number;
+  service?: Service | null;
 };
 
 export type ClientPackage = {

@@ -57,7 +57,7 @@ export default function PackagesList() {
           <Typography variant="h5" fontWeight="bold">
             Pacotes e Combos
           </Typography>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.primary">
             Gerencie seus pacotes promocionais de produtos e serviços.
           </Typography>
         </Box>
