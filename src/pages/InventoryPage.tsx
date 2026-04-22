@@ -13,8 +13,10 @@ import {
   TableRow,
   Chip,
   CircularProgress,
+  TextField,
+  InputAdornment,
 } from "@mui/material";
-import { Plus, AlertTriangle } from "lucide-react";
+import { Plus, AlertTriangle, Search } from "lucide-react";
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -66,6 +68,7 @@ export default function InventoryPage() {
   const [tabValue, setTabValue] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [stockSearch, setStockSearch] = useState("");
 
   // Queries
   const { data: products = [], isLoading: loadingProducts } = useQuery({
@@ -159,6 +162,20 @@ export default function InventoryPage() {
 
         {/* Tab 1: Posição de Estoque */}
         <TabPanel value={tabValue} index={0}>
+          <TextField
+            size="small"
+            placeholder="Buscar produto..."
+            value={stockSearch}
+            onChange={(e) => setStockSearch(e.target.value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Search size={16} color="gray" />
+                </InputAdornment>
+              ),
+            }}
+            sx={{ mb: 2, width: 300 }}
+          />
           {loadingProducts ? (
             <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
               <CircularProgress />
@@ -177,6 +194,9 @@ export default function InventoryPage() {
                 </TableHead>
                 <TableBody>
                   {[...products]
+                    .filter((p) =>
+                      p.name.toLowerCase().includes(stockSearch.toLowerCase()),
+                    )
                     .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
                     .map((product: Product) => {
                     const isLow = product.quantity <= (product.min_stock || 0);
