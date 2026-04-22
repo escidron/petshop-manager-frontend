@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import { CircularProgress, Typography } from "@mui/material";
+import { CircularProgress, Typography, Chip } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -238,7 +238,26 @@ export default function ProductsTable({
                 </TableCell>
                 <TableCell align="left">{row.name ?? "-"}</TableCell>
                 <TableCell align="left">{row.category ?? "-"}</TableCell>
-                <TableCell align="left">{row.quantity ?? "-"}</TableCell>
+                <TableCell align="left">
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {row.quantity ?? "-"}
+                    {row.quantity === 0 ? (
+                      <Chip
+                        label="Sem estoque"
+                        size="small"
+                        color="error"
+                        variant="outlined"
+                      />
+                    ) : row.quantity <= row.min_stock ? (
+                      <Chip
+                        label="Estoque baixo"
+                        size="small"
+                        color="warning"
+                        variant="outlined"
+                      />
+                    ) : null}
+                  </Box>
+                </TableCell>
                 <TableCell align="left">
                   R$ {formatBRLFromCents(row.price_cents) ?? "-"}
                 </TableCell>

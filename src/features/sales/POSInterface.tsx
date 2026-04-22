@@ -19,6 +19,8 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  Alert,
+  Collapse,
 } from "@mui/material";
 import {
   Search,
@@ -35,6 +37,8 @@ import {
   List as ListIcon,
   Dog,
   X,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -67,6 +71,7 @@ export default function POSInterface() {
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [categoryTab, setCategoryTab] = useState(0);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [lowStockExpanded, setLowStockExpanded] = useState(false);
   const [pendingPackageItem, setPendingPackageItem] = useState<{
     id: number;
     name: string;
@@ -104,6 +109,12 @@ export default function POSInterface() {
   const cartTotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
 
   // Filter items
+  const lowStockProducts = useMemo(() => {
+    return products.filter(
+      (p) => p.is_active && p.quantity <= p.min_stock,
+    );
+  }, [products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter(
       (p) =>
@@ -644,6 +655,44 @@ export default function POSInterface() {
 
         {/* Catalog Grid */}
         <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5 }}>
+          {/* Low Stock Alert */}
+          <Collapse in={lowStockProducts.length > 0}>
+            <Alert
+              severity="warning"
+              action={
+                <IconButton
+                  size="small"
+                  onClick={() => setLowStockExpanded((prev) => !prev)}
+                >
+                  {lowStockExpanded ? (
+                    <ChevronUp size={22} />
+                  ) : (
+                    <ChevronDown size={22} />
+                  )}
+                </IconButton>
+              }
+              sx={{ mb: 2, borderRadius: 2 }}
+            >
+              <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                {lowStockProducts.length} produto
+                {lowStockProducts.length > 1 ? "s" : ""} com estoque baixo
+              </Typography>
+              <Collapse in={lowStockExpanded}>
+                <Box sx={{ mt: 0.5 }}>
+                  {lowStockProducts.map((p) => (
+                    <Typography
+                      key={p.id}
+                      variant="body2"
+                      color="text.primary"
+                    >
+                      {p.name} ({p.quantity} un)
+                    </Typography>
+                  ))}
+                </Box>
+              </Collapse>
+            </Alert>
+          </Collapse>
+
           {(categoryTab === 0 || categoryTab === 1) &&
             filteredProducts.length > 0 && (
               <Box sx={{ mb: 4 }}>
@@ -1281,10 +1330,10 @@ export default function POSInterface() {
             filteredPackages.length === 0 && (
               <Box sx={{ textAlign: "center", mt: 10 }}>
                 <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
-                <Typography variant="h6" color="text.secondary">
+                <Typography variant="h6" color="text.primary">
                   Nenhum item encontrado
                 </Typography>
-                <Typography variant="body2" color="text.secondary">
+                <Typography variant="body2" color="text.primary">
                   Tente mudar sua busca ou categoria
                 </Typography>
               </Box>
