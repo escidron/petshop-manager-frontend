@@ -146,6 +146,7 @@ export default function ProductsTable({
                   color: "text.primary",
                   py: 1.25,
                   fontSize: "0.875rem",
+                  width: "10%",
                 }}
               >
                 Codigo
@@ -159,6 +160,7 @@ export default function ProductsTable({
                   color: "text.primary",
                   py: 1.25,
                   fontSize: "0.875rem",
+                  width: "30%",
                 }}
               >
                 Nome
@@ -172,6 +174,7 @@ export default function ProductsTable({
                   color: "text.primary",
                   py: 1.25,
                   fontSize: "0.875rem",
+                  width: "15%",
                 }}
               >
                 Categoria
@@ -185,6 +188,7 @@ export default function ProductsTable({
                   color: "text.primary",
                   py: 1.25,
                   fontSize: "0.875rem",
+                  width: "22%",
                 }}
               >
                 Quantidade
@@ -198,6 +202,7 @@ export default function ProductsTable({
                   color: "text.primary",
                   py: 1.25,
                   fontSize: "0.875rem",
+                  width: "13%",
                 }}
               >
                 Preço
@@ -211,6 +216,7 @@ export default function ProductsTable({
                   color: "text.primary",
                   py: 1.25,
                   fontSize: "0.875rem",
+                  width: "10%",
                 }}
               >
                 {}

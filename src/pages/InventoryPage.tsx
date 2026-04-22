@@ -168,15 +168,17 @@ export default function InventoryPage() {
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Produto</TableCell>
-                    <TableCell align="center">Estoque Atual</TableCell>
-                    <TableCell align="center">Estoque Mínimo</TableCell>
-                    <TableCell align="center">Status</TableCell>
-                    <TableCell align="right">Ações</TableCell>
+                    <TableCell sx={{ width: "40%" }}>Produto</TableCell>
+                    <TableCell align="center" sx={{ width: "15%" }}>Estoque Atual</TableCell>
+                    <TableCell align="center" sx={{ width: "15%" }}>Estoque Mínimo</TableCell>
+                    <TableCell align="center" sx={{ width: "20%" }}>Status</TableCell>
+                    <TableCell align="right" sx={{ width: "10%" }}>Ações</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {products.map((product: Product) => {
+                  {[...products]
+                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
+                    .map((product: Product) => {
                     const isLow = product.quantity <= (product.min_stock || 0);
                     return (
                       <TableRow key={product.id}>

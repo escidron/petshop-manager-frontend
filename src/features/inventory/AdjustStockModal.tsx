@@ -159,13 +159,20 @@ export default function AdjustStockModal({
                 render={({ field }) => (
                   <TextField
                     size="small"
-                    {...field}
                     type="number"
                     fullWidth
                     placeholder="Quantidade"
                     error={!!errors.quantity_changed}
                     helperText={errors.quantity_changed?.message}
-                    onChange={(e) => field.onChange(Number(e.target.value))}
+                    value={field.value === 0 ? "" : field.value}
+                    onChange={(e) =>
+                      field.onChange(
+                        e.target.value === "" ? 0 : Number(e.target.value),
+                      )
+                    }
+                    onBlur={field.onBlur}
+                    name={field.name}
+                    ref={field.ref}
                   />
                 )}
               />
