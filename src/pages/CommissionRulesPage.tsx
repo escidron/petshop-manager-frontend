@@ -123,7 +123,7 @@ export default function CommissionRulesPage() {
               <TableCell sx={headerCellSx}>Funcionário</TableCell>
               <TableCell sx={headerCellSx}>Serviço</TableCell>
               <TableCell sx={headerCellSx}>Comissão</TableCell>
-              <TableCell sx={headerCellSx}>Prioridade</TableCell>
+              <TableCell sx={headerCellSx}>Abrangência</TableCell>
               <TableCell sx={headerCellSx}>Status</TableCell>
               <TableCell align="right" sx={headerCellSx} />
             </TableRow>
@@ -139,7 +139,15 @@ export default function CommissionRulesPage() {
                     ? `${Number(row.value).toFixed(2)}%`
                     : `R$ ${Number(row.value).toFixed(2)}`}
                 </TableCell>
-                <TableCell>{row.priority}</TableCell>
+                <TableCell>
+                  {row.employee_id && row.service_id
+                    ? "Funcionário + Serviço"
+                    : row.employee_id
+                    ? "Funcionário"
+                    : row.service_id
+                    ? "Serviço"
+                    : "Global"}
+                </TableCell>
                 <TableCell>
                   <Chip
                     label={row.is_active ? "Ativa" : "Inativa"}

@@ -1,17 +1,19 @@
 import {
+  Autocomplete,
   Box,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
   FormControl,
+  FormControlLabel,
   FormLabel,
+  InputAdornment,
   MenuItem,
   Select,
-  Typography,
-  FormControlLabel,
   Switch,
-  InputAdornment,
+  TextField,
+  Typography,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
@@ -26,15 +28,15 @@ import { createCommissionRule, updateCommissionRule } from "../../api/services/c
 import type { CommissionRule, CommissionRuleFormData } from "./types";
 import type { Employee } from "../employees/types";
 import type { Service } from "../tenant_services/types";
+import { formatServiceLabel } from "../../utils/formatServiceLabel";
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
-  employee_id: z.number().nullable().optional(),
-  service_id: z.number().nullable().optional(),
-  applies_to: z.enum(["service", "product", "both"]),
   commission_type: z.enum(["percentage", "fixed"]),
   value: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
-  priority: z.coerce.number().int().min(1),
+  applies_to: z.enum(["service", "product", "both"]),
+  employee_id: z.number().nullable().optional(),
+  service_id: z.number().nullable().optional(),
   valid_from: z.string().nullable().optional(),
   valid_until: z.string().nullable().optional(),
   is_active: z.boolean(),
@@ -60,12 +62,11 @@ export default function CommissionRuleFormModal({
     resolver: zodResolver(schema),
     defaultValues: {
       name: "",
-      employee_id: null,
-      service_id: null,
-      applies_to: "service",
       commission_type: "percentage",
       value: 10,
-      priority: 100,
+      applies_to: "service",
+      employee_id: null,
+      service_id: null,
       valid_from: null,
       valid_until: null,
       is_active: true,
@@ -78,12 +79,11 @@ export default function CommissionRuleFormModal({
     if (open) {
       reset({
         name: rule?.name ?? "",
-        employee_id: rule?.employee_id ?? null,
-        service_id: rule?.service_id ?? null,
-        applies_to: rule?.applies_to ?? "service",
         commission_type: rule?.commission_type ?? "percentage",
         value: rule?.value ?? 10,
-        priority: rule?.priority ?? 100,
+        applies_to: rule?.applies_to ?? "service",
+        employee_id: rule?.employee_id ?? null,
+        service_id: rule?.service_id ?? null,
         valid_from: rule?.valid_from ?? null,
         valid_until: rule?.valid_until ?? null,
         is_active: rule?.is_active ?? true,
@@ -117,8 +117,19 @@ export default function CommissionRuleFormModal({
     }
   };
 
+  const colStyle = {
+    display: "flex",
+    flexDirection: "column" as const,
+    gap: 2,
+    width: "47%",
+  };
+
   return (
-    <Dialog open={open} maxWidth={false} slotProps={{ paper: { sx: { width: "560px", maxWidth: "560px" } } }}>
+    <Dialog
+      open={open}
+      maxWidth={false}
+      slotProps={{ paper: { sx: { width: "760px", maxWidth: "760px" } } }}
+    >
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
         <Typography variant="h5">
           {mode === "create" ? "Nova Regra de Comissão" : "Editar Regra"}
@@ -132,189 +143,210 @@ export default function CommissionRuleFormModal({
         <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Divider />
 
-          <FormControl fullWidth>
-            <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Nome da regra</FormLabel>
-            <Controller
-              name="name"
-              control={control}
-              render={({ field, fieldState }) => (
-                <CustomTextField
-                  {...field}
-                  fullWidth
-                  error={!!fieldState.error}
-                  helperText={fieldState.error?.message}
-                  placeholder='Ex: "Tosa grande - João"'
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            {/* ── ESQUERDA — Campos obrigatórios ────────────────────── */}
+            <Box sx={colStyle}>
+              <Box>
+                <Typography variant="h6">Configuração</Typography>
+                <Typography fontSize="12px" color="text.disabled">
+                  Campos obrigatórios
+                </Typography>
+              </Box>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Nome da regra
+                </FormLabel>
+                <Controller
+                  name="name"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <CustomTextField
+                      {...field}
+                      fullWidth
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder='Ex: "Tosa grande — João"'
+                    />
+                  )}
                 />
-              )}
-            />
-          </FormControl>
+              </FormControl>
 
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <FormControl fullWidth>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Funcionário (opcional)</FormLabel>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Tipo de comissão
+                </FormLabel>
+                <Controller
+                  name="commission_type"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} size="small">
+                      <MenuItem value="percentage">Percentual (%)</MenuItem>
+                      <MenuItem value="fixed">Valor fixo (R$)</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Valor
+                </FormLabel>
+                <Controller
+                  name="value"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <CustomTextField
+                      {...field}
+                      type="number"
+                      fullWidth
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              {commissionType === "percentage" ? "%" : "R$"}
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Aplica-se a
+                </FormLabel>
+                <Controller
+                  name="applies_to"
+                  control={control}
+                  render={({ field }) => (
+                    <Select {...field} size="small">
+                      <MenuItem value="service">Serviços</MenuItem>
+                      <MenuItem value="product">Produtos</MenuItem>
+                      <MenuItem value="both">Ambos</MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+            </Box>
+
+            {/* ── DIREITA — Filtros e vigência (opcionais) ──────────── */}
+            <Box sx={colStyle}>
+              <Box>
+                <Typography variant="h6">Filtros e Vigência</Typography>
+                <Typography fontSize="12px" color="text.disabled">
+                  Campos não obrigatórios
+                </Typography>
+              </Box>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Funcionário
+                </FormLabel>
+                <Controller
+                  name="employee_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete<Employee>
+                      options={employees.filter((e) => e.is_active)}
+                      size="small"
+                      value={employees.find((e) => e.id === field.value) ?? null}
+                      getOptionLabel={(o) => o.name}
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                      onChange={(_, v) => field.onChange(v?.id ?? null)}
+                      noOptionsText="Nenhum funcionário cadastrado"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Qualquer funcionário"
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Serviço
+                </FormLabel>
+                <Controller
+                  name="service_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete<Service>
+                      options={services}
+                      size="small"
+                      value={services.find((s) => s.id === field.value) ?? null}
+                      getOptionLabel={(o) => formatServiceLabel(o)}
+                      isOptionEqualToValue={(o, v) => o.id === v.id}
+                      onChange={(_, v) => field.onChange(v?.id ?? null)}
+                      noOptionsText="Nenhum serviço cadastrado"
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Qualquer serviço"
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Válido de
+                  </FormLabel>
+                  <Controller
+                    name="valid_from"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        value={field.value ?? ""}
+                        type="date"
+                        fullWidth
+                      />
+                    )}
+                  />
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Válido até
+                  </FormLabel>
+                  <Controller
+                    name="valid_until"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        value={field.value ?? ""}
+                        type="date"
+                        fullWidth
+                      />
+                    )}
+                  />
+                </FormControl>
+              </Box>
+
               <Controller
-                name="employee_id"
+                name="is_active"
                 control={control}
                 render={({ field }) => (
-                  <Select
-                    {...field}
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
-                    size="small"
-                    displayEmpty
-                  >
-                    <MenuItem value=""><em>Qualquer funcionário</em></MenuItem>
-                    {employees.filter((e) => e.is_active).map((e) => (
-                      <MenuItem key={e.id} value={e.id}>{e.name}</MenuItem>
-                    ))}
-                  </Select>
-                )}
-              />
-            </FormControl>
-
-            <FormControl fullWidth>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Serviço (opcional)</FormLabel>
-              <Controller
-                name="service_id"
-                control={control}
-                render={({ field }) => (
-                  <Select
-                    {...field}
-                    value={field.value ?? ""}
-                    onChange={(e) => field.onChange(e.target.value === "" ? null : Number(e.target.value))}
-                    size="small"
-                    displayEmpty
-                  >
-                    <MenuItem value=""><em>Qualquer serviço</em></MenuItem>
-                    {services.map((s) => (
-                      <MenuItem key={s.id} value={s.id}>{s.name}</MenuItem>
-                    ))}
-                  </Select>
-                )}
-              />
-            </FormControl>
-          </Box>
-
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <FormControl fullWidth>
-              <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Aplica-se a</FormLabel>
-              <Controller
-                name="applies_to"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} size="small">
-                    <MenuItem value="service">Serviços</MenuItem>
-                    <MenuItem value="product">Produtos</MenuItem>
-                    <MenuItem value="both">Ambos</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-
-            <FormControl fullWidth>
-              <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Tipo de comissão</FormLabel>
-              <Controller
-                name="commission_type"
-                control={control}
-                render={({ field }) => (
-                  <Select {...field} size="small">
-                    <MenuItem value="percentage">Percentual (%)</MenuItem>
-                    <MenuItem value="fixed">Valor fixo (R$)</MenuItem>
-                  </Select>
-                )}
-              />
-            </FormControl>
-          </Box>
-
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <FormControl fullWidth>
-              <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Valor</FormLabel>
-              <Controller
-                name="value"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <CustomTextField
-                    {...field}
-                    type="number"
-                    fullWidth
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    slotProps={{
-                      input: {
-                        endAdornment: (
-                          <InputAdornment position="end">
-                            {commissionType === "percentage" ? "%" : "R$"}
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
+                  <FormControlLabel
+                    control={<Switch checked={field.value} onChange={field.onChange} />}
+                    label="Regra ativa"
                   />
                 )}
               />
-            </FormControl>
-
-            <FormControl fullWidth>
-              <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Prioridade</FormLabel>
-              <Controller
-                name="priority"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <CustomTextField
-                    {...field}
-                    type="number"
-                    fullWidth
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message || "Menor = mais prioritário"}
-                  />
-                )}
-              />
-            </FormControl>
+            </Box>
           </Box>
-
-          <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <FormControl fullWidth>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Válido de</FormLabel>
-              <Controller
-                name="valid_from"
-                control={control}
-                render={({ field }) => (
-                  <CustomTextField
-                    {...field}
-                    value={field.value ?? ""}
-                    type="date"
-                    fullWidth
-                  />
-                )}
-              />
-            </FormControl>
-
-            <FormControl fullWidth>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Válido até</FormLabel>
-              <Controller
-                name="valid_until"
-                control={control}
-                render={({ field }) => (
-                  <CustomTextField
-                    {...field}
-                    value={field.value ?? ""}
-                    type="date"
-                    fullWidth
-                  />
-                )}
-              />
-            </FormControl>
-          </Box>
-
-          <Controller
-            name="is_active"
-            control={control}
-            render={({ field }) => (
-              <FormControlLabel
-                control={<Switch checked={field.value} onChange={field.onChange} />}
-                label="Regra ativa"
-              />
-            )}
-          />
 
           <Divider sx={{ mt: 1 }} />
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>

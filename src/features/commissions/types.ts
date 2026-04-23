@@ -11,7 +11,6 @@ export type CommissionRule = {
   applies_to: AppliesTo;
   commission_type: CommissionType;
   value: number;
-  priority: number;
   valid_from?: string | null;
   valid_until?: string | null;
   is_active: boolean;
@@ -25,7 +24,6 @@ export type CommissionRuleFormData = {
   applies_to: AppliesTo;
   commission_type: CommissionType;
   value: number;
-  priority: number;
   valid_from?: string | null;
   valid_until?: string | null;
   is_active: boolean;
