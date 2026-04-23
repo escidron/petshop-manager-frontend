@@ -16,6 +16,8 @@ import {
   ShoppingCart,
   HelpCircle,
   Truck,
+  UserCheck,
+  BarChart2,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -68,6 +70,29 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Pacotes",
         icon: <Package size={20} />,
         path: "/registration/packages",
+      },
+      {
+        id: "employees",
+        label: "Funcionários",
+        icon: <UserCheck size={20} />,
+        path: "/registration/employees",
+      },
+    ],
+  },
+  {
+    title: "COMISSÕES",
+    items: [
+      {
+        id: "commission-rules",
+        label: "Regras",
+        icon: <ClipboardList size={20} />,
+        path: "/commissions/rules",
+      },
+      {
+        id: "commission-report",
+        label: "Relatório",
+        icon: <BarChart2 size={20} />,
+        path: "/commissions/report",
       },
     ],
   },

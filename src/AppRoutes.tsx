@@ -18,6 +18,9 @@ import PackagesPage from "./pages/PackagesPage";
 import POSPage from "./pages/POSPage";
 import InventoryPage from "./pages/InventoryPage";
 import SuppliersPage from "./pages/SuppliersPage";
+import EmployeesPage from "./pages/EmployeesPage";
+import CommissionRulesPage from "./pages/CommissionRulesPage";
+import CommissionReportPage from "./pages/CommissionReportPage";
 
 type Props = {
   children: JSX.Element;
@@ -76,6 +79,13 @@ export default function AppRoutes() {
           <Route path="packages">
             <Route index element={<PackagesPage />} />
           </Route>
+          <Route path="employees">
+            <Route index element={<EmployeesPage />} />
+          </Route>
+        </Route>
+        <Route path="/commissions">
+          <Route path="rules" element={<CommissionRulesPage />} />
+          <Route path="report" element={<CommissionReportPage />} />
         </Route>
         <Route path="/settings" element={<SettingsPage />} />
       </Route>

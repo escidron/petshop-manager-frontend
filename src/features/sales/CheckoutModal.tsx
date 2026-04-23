@@ -12,6 +12,11 @@ import {
   Paper,
   IconButton,
   alpha,
+  Select,
+  MenuItem,
+  InputLabel,
+  Alert,
+  Button as MuiButton,
 } from "@mui/material";
 import {
   ShoppingCart,
@@ -20,13 +25,16 @@ import {
   QrCode,
   X,
   CheckCircle,
+  AlertTriangle,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSale } from "../../api/services/sales";
+import { getEmployees } from "../../api/services/employees";
 import type { SaleItem, SaleCreate } from "./schemas";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
+import type { Employee } from "../employees/types";
 
 interface CheckoutModalProps {
   open: boolean;
@@ -49,8 +57,30 @@ export default function CheckoutModal({
 }: CheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] =
     useState<SaleCreate["payment_method"]>("credit_card");
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [employeeMap, setEmployeeMap] = useState<Record<number, number | null>>({});
+  const [showNoEmployeeWarning, setShowNoEmployeeWarning] = useState(false);
   const queryClient = useQueryClient();
   const toast = useToast();
+
+  const serviceItems = cart
+    .map((item, idx) => ({ item, idx }))
+    .filter(({ item }) => item.item_type === "service");
+
+  const serviceItemsWithoutEmployee = serviceItems.filter(
+    ({ idx }) => !employeeMap[idx],
+  );
+
+  useEffect(() => {
+    if (open) {
+      getEmployees()
+        .then((data) => setEmployees(data.filter((e) => e.is_active)))
+        .catch(() => {});
+      // Reset map when cart changes
+      setEmployeeMap({});
+      setShowNoEmployeeWarning(false);
+    }
+  }, [open]);
 
   const saleMutation = useMutation({
     mutationFn: createSale,
@@ -68,151 +98,229 @@ export default function CheckoutModal({
     },
   });
 
-  const handleCheckout = () => {
+  const doCheckout = () => {
+    const itemsWithEmployee: SaleItem[] = cart.map((item, idx) => ({
+      ...item,
+      employee_id: item.item_type === "service" ? (employeeMap[idx] ?? null) : null,
+    }));
+
     const payload: SaleCreate = {
       client_id: clientId,
       appointment_id: appointmentId,
       total_amount: totalAmount,
       payment_method: paymentMethod,
       status: "completed",
-      items: cart,
+      items: itemsWithEmployee,
     };
     saleMutation.mutate(payload);
   };
 
+  const handleCheckout = () => {
+    if (serviceItemsWithoutEmployee.length > 0) {
+      setShowNoEmployeeWarning(true);
+      return;
+    }
+    doCheckout();
+  };
+
   return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="sm"
-      fullWidth
-      PaperProps={{
-        sx: { borderRadius: 4, overflow: "hidden" },
-      }}
-    >
-      <DialogTitle
-        sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          bgcolor: "primary.main",
-          color: "white",
-          px: 3,
-          py: 2,
-        }}
+    <>
+      <Dialog
+        open={open}
+        onClose={onClose}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <ShoppingCart size={24} />
-          <Typography variant="h6" sx={{ fontWeight: 700 }}>
-            Finalizar Venda
-          </Typography>
-        </Box>
-        <IconButton onClick={onClose} size="small" sx={{ color: "white" }}>
-          <X size={20} />
-        </IconButton>
-      </DialogTitle>
-
-      <DialogContent sx={{ p: 4 }}>
-        <Box
+        <DialogTitle
           sx={{
-            mb: 4,
-            p: 3,
-            bgcolor: alpha("#1976d2", 0.05),
-            borderRadius: 3,
-            textAlign: "center",
-            border: "1px solid",
-            borderColor: alpha("#1976d2", 0.1),
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            bgcolor: "primary.main",
+            color: "white",
+            px: 3,
+            py: 2,
           }}
         >
-          <Typography
-            variant="subtitle2"
-            color="text.secondary"
-            sx={{ fontWeight: 600, mb: 0.5 }}
-          >
-            TOTAL A RECEBER
-          </Typography>
-          <Typography variant="h3" color="primary" sx={{ fontWeight: 900 }}>
-            R$ {totalAmount.toFixed(2)}
-          </Typography>
-        </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <ShoppingCart size={24} />
+            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+              Finalizar Venda
+            </Typography>
+          </Box>
+          <IconButton onClick={onClose} size="small" sx={{ color: "white" }}>
+            <X size={20} />
+          </IconButton>
+        </DialogTitle>
 
-        <FormControl component="fieldset" fullWidth>
-          <Typography
-            variant="subtitle1"
-            sx={{ mb: 2, fontWeight: 700, color: "text.primary" }}
+        <DialogContent sx={{ p: 4 }}>
+          <Box
+            sx={{
+              mb: 3,
+              p: 3,
+              bgcolor: alpha("#1976d2", 0.05),
+              borderRadius: 3,
+              textAlign: "center",
+              border: "1px solid",
+              borderColor: alpha("#1976d2", 0.1),
+            }}
           >
-            Selecione a Forma de Pagamento
-          </Typography>
-          <RadioGroup
-            value={paymentMethod}
-            onChange={(e) =>
-              setPaymentMethod(e.target.value as SaleCreate["payment_method"])
-            }
-          >
-            <Box
-              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
-            >
-              <PaymentMethodCard
-                value="credit_card"
-                label="Cartão de Crédito"
-                icon={CreditCard}
-                color="#1976d2"
-                selectedPaymentMethod={paymentMethod}
-              />
-              <PaymentMethodCard
-                value="debit_card"
-                label="Cartão de Débito"
-                icon={CreditCard}
-                color="#0288d1"
-                selectedPaymentMethod={paymentMethod}
-              />
-              <PaymentMethodCard
-                value="pix"
-                label="PIX"
-                icon={QrCode}
-                color="#2e7d32"
-                selectedPaymentMethod={paymentMethod}
-              />
-              <PaymentMethodCard
-                value="money"
-                label="Dinheiro"
-                icon={Banknote}
-                color="#ed6c02"
-                selectedPaymentMethod={paymentMethod}
-              />
+            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
+              TOTAL A RECEBER
+            </Typography>
+            <Typography variant="h3" color="primary" sx={{ fontWeight: 900 }}>
+              R$ {totalAmount.toFixed(2)}
+            </Typography>
+          </Box>
+
+          {/* Employee assignment per service item */}
+          {serviceItems.length > 0 && employees.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700 }}>
+                Funcionário por Serviço
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {serviceItems.map(({ item, idx }) => (
+                  <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                    <Typography variant="body2" sx={{ flex: 1, color: "text.secondary" }}>
+                      {item.name}
+                    </Typography>
+                    <FormControl size="small" sx={{ minWidth: 180 }}>
+                      <InputLabel>Funcionário</InputLabel>
+                      <Select
+                        label="Funcionário"
+                        value={employeeMap[idx] ?? ""}
+                        onChange={(e) =>
+                          setEmployeeMap((prev) => ({
+                            ...prev,
+                            [idx]: e.target.value === "" ? null : Number(e.target.value),
+                          }))
+                        }
+                      >
+                        <MenuItem value=""><em>Não atribuir</em></MenuItem>
+                        {employees.map((emp) => (
+                          <MenuItem key={emp.id} value={emp.id}>{emp.name}</MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
+                ))}
+              </Box>
             </Box>
-          </RadioGroup>
-        </FormControl>
-      </DialogContent>
+          )}
 
-      <Divider />
+          <FormControl component="fieldset" fullWidth>
+            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700, color: "text.primary" }}>
+              Selecione a Forma de Pagamento
+            </Typography>
+            <RadioGroup
+              value={paymentMethod}
+              onChange={(e) =>
+                setPaymentMethod(e.target.value as SaleCreate["payment_method"])
+              }
+            >
+              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+                <PaymentMethodCard
+                  value="credit_card"
+                  label="Cartão de Crédito"
+                  icon={CreditCard}
+                  color="#1976d2"
+                  selectedPaymentMethod={paymentMethod}
+                />
+                <PaymentMethodCard
+                  value="debit_card"
+                  label="Cartão de Débito"
+                  icon={CreditCard}
+                  color="#0288d1"
+                  selectedPaymentMethod={paymentMethod}
+                />
+                <PaymentMethodCard
+                  value="pix"
+                  label="PIX"
+                  icon={QrCode}
+                  color="#2e7d32"
+                  selectedPaymentMethod={paymentMethod}
+                />
+                <PaymentMethodCard
+                  value="money"
+                  label="Dinheiro"
+                  icon={Banknote}
+                  color="#ed6c02"
+                  selectedPaymentMethod={paymentMethod}
+                />
+              </Box>
+            </RadioGroup>
+          </FormControl>
+        </DialogContent>
 
-      <DialogActions sx={{ p: 3, gap: 2 }}>
-        <Button
-          onClick={onClose}
-          disabled={saleMutation.isPending}
-          variant="outlined"
-          sx={{ borderRadius: 2, px: 3 }}
-        >
-          Cancelar
-        </Button>
-        <Button
-          variant="contained"
-          color="success"
-          size="large"
-          fullWidth
-          onClick={handleCheckout}
-          disabled={saleMutation.isPending}
-          sx={{
-            borderRadius: 2,
-            fontWeight: 600,
-            boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
-          }}
-        >
-          {saleMutation.isPending ? "Processando..." : "Confirmar e Finalizar"}
-        </Button>
-      </DialogActions>
-    </Dialog>
+        <Divider />
+
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button
+            onClick={onClose}
+            disabled={saleMutation.isPending}
+            variant="outlined"
+            sx={{ borderRadius: 2, px: 3 }}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            color="success"
+            size="large"
+            fullWidth
+            onClick={handleCheckout}
+            disabled={saleMutation.isPending}
+            sx={{ borderRadius: 2, fontWeight: 600, boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)" }}
+          >
+            {saleMutation.isPending ? "Processando..." : "Confirmar e Finalizar"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Warning dialog when service items have no employee */}
+      <Dialog
+        open={showNoEmployeeWarning}
+        onClose={() => setShowNoEmployeeWarning(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogContent sx={{ pt: 3 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 2 }}>
+            <AlertTriangle size={24} color="#ed6c02" />
+            <Typography variant="h6" fontWeight={700}>
+              Serviços sem funcionário
+            </Typography>
+          </Box>
+          <Alert severity="warning" sx={{ mb: 2 }}>
+            {serviceItemsWithoutEmployee.length}{" "}
+            {serviceItemsWithoutEmployee.length === 1 ? "serviço" : "serviços"} sem funcionário
+            atribuído. A comissão não será calculada para {serviceItemsWithoutEmployee.length === 1 ? "esse item" : "esses itens"}.
+          </Alert>
+          <Typography variant="body2" color="text.secondary">
+            Você pode atribuir o funcionário retroativamente no histórico de vendas.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <MuiButton
+            variant="outlined"
+            onClick={() => setShowNoEmployeeWarning(false)}
+          >
+            Voltar e corrigir
+          </MuiButton>
+          <MuiButton
+            variant="contained"
+            onClick={() => {
+              setShowNoEmployeeWarning(false);
+              doCheckout();
+            }}
+          >
+            Finalizar mesmo assim
+          </MuiButton>
+        </DialogActions>
+      </Dialog>
+    </>
   );
 }
 
