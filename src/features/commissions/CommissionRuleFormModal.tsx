@@ -33,10 +33,13 @@ import { formatServiceLabel } from "../../utils/formatServiceLabel";
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
   commission_type: z.enum(["percentage", "fixed"]),
-  value: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
+  value: z.preprocess(
+    (v) => (v === "" || v === undefined || v === null ? undefined : Number(v)),
+    z.number({ error: "Valor obrigatório" }).min(0.01, "Valor deve ser maior que zero")
+  ),
   applies_to: z.enum(["service", "product", "both"]),
   employee_id: z.number().nullable().optional(),
-  service_id: z.number().nullable().optional(),
+  service_ids: z.array(z.number()),
   valid_from: z.string().nullable().optional(),
   valid_until: z.string().nullable().optional(),
   is_active: z.boolean(),
@@ -63,10 +66,10 @@ export default function CommissionRuleFormModal({
     defaultValues: {
       name: "",
       commission_type: "percentage",
-      value: 10,
+      value: "" as unknown as number,
       applies_to: "service",
       employee_id: null,
-      service_id: null,
+      service_ids: [],
       valid_from: null,
       valid_until: null,
       is_active: true,
@@ -80,10 +83,10 @@ export default function CommissionRuleFormModal({
       reset({
         name: rule?.name ?? "",
         commission_type: rule?.commission_type ?? "percentage",
-        value: rule?.value ?? 10,
+        value: rule?.value ?? ("" as unknown as number),
         applies_to: rule?.applies_to ?? "service",
         employee_id: rule?.employee_id ?? null,
-        service_id: rule?.service_id ?? null,
+        service_ids: rule?.service_ids ?? [],
         valid_from: rule?.valid_from ?? null,
         valid_until: rule?.valid_until ?? null,
         is_active: rule?.is_active ?? true,
@@ -272,24 +275,25 @@ export default function CommissionRuleFormModal({
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Serviço
+                  Serviços
                 </FormLabel>
                 <Controller
-                  name="service_id"
+                  name="service_ids"
                   control={control}
                   render={({ field }) => (
-                    <Autocomplete<Service>
+                    <Autocomplete<Service, true>
+                      multiple
                       options={services}
                       size="small"
-                      value={services.find((s) => s.id === field.value) ?? null}
+                      value={services.filter((s) => field.value.includes(s.id))}
                       getOptionLabel={(o) => formatServiceLabel(o)}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
-                      onChange={(_, v) => field.onChange(v?.id ?? null)}
+                      onChange={(_, v) => field.onChange(v.map((s) => s.id))}
                       noOptionsText="Nenhum serviço cadastrado"
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          placeholder="Qualquer serviço"
+                          placeholder={field.value.length === 0 ? "Qualquer serviço" : ""}
                         />
                       )}
                     />

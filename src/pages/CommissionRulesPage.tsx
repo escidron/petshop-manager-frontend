@@ -23,6 +23,7 @@ import { deleteCommissionRule, getCommissionRules } from "../api/services/commis
 import { useToast } from "../hooks/useToast";
 import type { CommissionRule } from "../features/commissions/types";
 import { Button } from "../components/Button/Button";
+import { formatServiceLabel } from "../utils/formatServiceLabel";
 
 const headerCellSx = {
   backgroundColor: "secondary.main",
@@ -66,8 +67,8 @@ export default function CommissionRulesPage() {
     [employees],
   );
 
-  const serviceMap = useMemo(
-    () => Object.fromEntries(services.map((s) => [s.id, s.name])),
+  const serviceById = useMemo(
+    () => Object.fromEntries(services.map((s) => [s.id, s])),
     [services],
   );
 
@@ -133,19 +134,28 @@ export default function CommissionRulesPage() {
               <TableRow key={row.id}>
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.employee_id ? (employeeMap[row.employee_id] ?? "-") : <em style={{ color: "gray" }}>Qualquer</em>}</TableCell>
-                <TableCell>{row.service_id ? (serviceMap[row.service_id] ?? "-") : <em style={{ color: "gray" }}>Qualquer</em>}</TableCell>
+                <TableCell>
+                  {row.service_ids?.length
+                    ? row.service_ids.map((id) => {
+                        const svc = serviceById[id];
+                        return svc ? (
+                          <Chip key={id} label={formatServiceLabel(svc)} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                        ) : null;
+                      })
+                    : <em style={{ color: "gray" }}>Qualquer</em>}
+                </TableCell>
                 <TableCell>
                   {row.commission_type === "percentage"
                     ? `${Number(row.value).toFixed(2)}%`
                     : `R$ ${Number(row.value).toFixed(2)}`}
                 </TableCell>
                 <TableCell>
-                  {row.employee_id && row.service_id
-                    ? "Funcionário + Serviço"
+                  {row.employee_id && row.service_ids?.length
+                    ? "Funcionário + Serviços"
                     : row.employee_id
                     ? "Funcionário"
-                    : row.service_id
-                    ? "Serviço"
+                    : row.service_ids?.length
+                    ? "Serviços"
                     : "Global"}
                 </TableCell>
                 <TableCell>

@@ -7,7 +7,7 @@ export type CommissionRule = {
   tenant_id: number;
   name: string;
   employee_id?: number | null;
-  service_id?: number | null;
+  service_ids: number[];
   applies_to: AppliesTo;
   commission_type: CommissionType;
   value: number;
@@ -20,7 +20,7 @@ export type CommissionRule = {
 export type CommissionRuleFormData = {
   name: string;
   employee_id?: number | null;
-  service_id?: number | null;
+  service_ids: number[];
   applies_to: AppliesTo;
   commission_type: CommissionType;
   value: number;
