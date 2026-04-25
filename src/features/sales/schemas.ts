@@ -32,4 +32,5 @@ export interface SaleResponse extends SaleCreate {
   client?: { id: number; name: string };
   pet?: { id: number; name: string };
   appointment_id?: number | null;
+  appointment?: { id: number; client: { id: number; name: string } } | null;
 }

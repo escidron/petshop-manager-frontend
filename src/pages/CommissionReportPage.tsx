@@ -13,17 +13,23 @@ import {
   TextField,
   MenuItem,
   Select,
-  FormControl,
-  InputLabel,
   Checkbox,
   Button as MuiButton,
   Alert,
+  Autocomplete,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
+import { Clock, CheckCircle2, DollarSign } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
-import { getCommissionEntries, payCommissionEntries } from "../api/services/commissions";
+import {
+  getCommissionEntries,
+  payCommissionEntries,
+} from "../api/services/commissions";
 import { useToast } from "../hooks/useToast";
+import CustomCard from "../components/Card/CustomCard";
+import theme from "../theme";
 import type { CommissionEntry } from "../features/commissions/types";
+import SaleDetailsModal from "../features/sales/SaleDetailsModal";
 
 const headerCellSx = {
   backgroundColor: "secondary.main",
@@ -32,6 +38,44 @@ const headerCellSx = {
   py: 1.25,
   fontSize: "0.875rem",
 };
+
+const CommissionCard = ({
+  icon,
+  label,
+  value,
+  color,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+  color: string;
+}) => (
+  <CustomCard
+    sx={{
+      flex: 1,
+      display: "flex",
+      flexDirection: "column",
+      gap: 1,
+      borderTop: `4px solid ${color}`,
+    }}
+  >
+    <Box
+      sx={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+      }}
+    >
+      <Typography variant="body2" color="text.disabled" fontWeight={600}>
+        {label}
+      </Typography>
+      <Box sx={{ color: color }}>{icon}</Box>
+    </Box>
+    <Typography variant="h5" fontWeight={700}>
+      {value}
+    </Typography>
+  </CustomCard>
+);
 
 export default function CommissionReportPage() {
   const { employees, getEmployees } = useEmployees();
@@ -46,6 +90,14 @@ export default function CommissionReportPage() {
   const [filterStatus, setFilterStatus] = useState<string>("");
   const [filterFrom, setFilterFrom] = useState<string>("");
   const [filterTo, setFilterTo] = useState<string>("");
+
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+  const [isSaleModalOpen, setIsSaleModalOpen] = useState(false);
+
+  const handleOpenSaleDetails = (saleId: number) => {
+    setSelectedSaleId(saleId);
+    setIsSaleModalOpen(true);
+  };
 
   const loadEntries = async () => {
     try {
@@ -76,15 +128,24 @@ export default function CommissionReportPage() {
     [employees],
   );
 
-  const pendingEntries = useMemo(() => entries.filter((e) => e.status === "pending"), [entries]);
+  const pendingEntries = useMemo(
+    () => entries.filter((e) => e.status === "pending"),
+    [entries],
+  );
 
   const totalPending = useMemo(
-    () => entries.filter((e) => e.status === "pending").reduce((acc, e) => acc + Number(e.commission_amount), 0),
+    () =>
+      entries
+        .filter((e) => e.status === "pending")
+        .reduce((acc, e) => acc + Number(e.commission_amount), 0),
     [entries],
   );
 
   const totalPaid = useMemo(
-    () => entries.filter((e) => e.status === "paid").reduce((acc, e) => acc + Number(e.commission_amount), 0),
+    () =>
+      entries
+        .filter((e) => e.status === "paid")
+        .reduce((acc, e) => acc + Number(e.commission_amount), 0),
     [entries],
   );
 
@@ -115,7 +176,9 @@ export default function CommissionReportPage() {
 
     const employeeIds = [...new Set(selectedPending.map((e) => e.employee_id))];
     if (employeeIds.length > 1) {
-      toast.error("Selecione entradas de um único funcionário por vez para pagamento.");
+      toast.error(
+        "Selecione entradas de um único funcionário por vez para pagamento.",
+      );
       return;
     }
 
@@ -125,7 +188,9 @@ export default function CommissionReportPage() {
         employee_id: employeeIds[0],
         entry_ids: selectedPending.map((e) => e.id),
       });
-      toast.success(`${selectedPending.length} comissão(ões) marcada(s) como paga(s).`);
+      toast.success(
+        `${selectedPending.length} comissão(ões) marcada(s) como paga(s).`,
+      );
       loadEntries();
     } catch {
       toast.error("Erro ao registrar pagamento.");
@@ -141,56 +206,75 @@ export default function CommissionReportPage() {
       </Typography>
 
       {/* Summary cards */}
-      <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 3 }}>
-        <Paper sx={{ p: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.primary">Total Pendente</Typography>
-          <Typography variant="h5" color="warning.main" fontWeight={700}>
-            R$ {totalPending.toFixed(2)}
-          </Typography>
-        </Paper>
-        <Paper sx={{ p: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.primary">Total Pago</Typography>
-          <Typography variant="h5" color="success.main" fontWeight={700}>
-            R$ {totalPaid.toFixed(2)}
-          </Typography>
-        </Paper>
-        <Paper sx={{ p: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.primary">Total Geral</Typography>
-          <Typography variant="h5" fontWeight={700}>
-            R$ {(totalPending + totalPaid).toFixed(2)}
-          </Typography>
-        </Paper>
+      <Box
+        sx={{
+          display: "flex",
+          gap: 2,
+          mb: 4,
+          flexWrap: { xs: "wrap", md: "nowrap" },
+        }}
+      >
+        <CommissionCard
+          icon={<Clock size={20} />}
+          label="TOTAL PENDENTE"
+          value={`R$ ${totalPending.toFixed(2)}`}
+          color={theme.palette.warning.main}
+        />
+        <CommissionCard
+          icon={<CheckCircle2 size={20} />}
+          label="TOTAL PAGO"
+          value={`R$ ${totalPaid.toFixed(2)}`}
+          color={theme.palette.success.main}
+        />
+        <CommissionCard
+          icon={<DollarSign size={20} />}
+          label="TOTAL GERAL"
+          value={`R$ ${(totalPending + totalPaid).toFixed(2)}`}
+          color={theme.palette.primary.main}
+        />
       </Box>
 
       {/* Filters */}
       <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-          <FormControl size="small" sx={{ minWidth: 180 }}>
-            <InputLabel>Funcionário</InputLabel>
-            <Select
-              value={filterEmployee}
-              label="Funcionário"
-              onChange={(e) => setFilterEmployee(e.target.value)}
-            >
-              <MenuItem value=""><em>Todos</em></MenuItem>
-              {employees.map((e) => (
-                <MenuItem key={e.id} value={String(e.id)}>{e.name}</MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+        <Box
+          sx={{
+            display: "flex",
+            gap: 2,
+            flexWrap: "wrap",
+            alignItems: "center",
+          }}
+        >
+          <Autocomplete
+            size="small"
+            sx={{ minWidth: 220 }}
+            options={employees}
+            getOptionLabel={(option) => option.name}
+            isOptionEqualToValue={(option, value) =>
+              String(option.id) === String(value.id)
+            }
+            value={
+              employees.find((e) => String(e.id) === filterEmployee) || null
+            }
+            onChange={(_, val) => setFilterEmployee(val ? String(val.id) : "")}
+            renderInput={(params) => (
+              <TextField {...params} placeholder="Funcionário" />
+            )}
+            noOptionsText="Nenhum funcionário"
+          />
 
-          <FormControl size="small" sx={{ minWidth: 140 }}>
-            <InputLabel>Status</InputLabel>
-            <Select
-              value={filterStatus}
-              label="Status"
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <MenuItem value=""><em>Todos</em></MenuItem>
-              <MenuItem value="pending">Pendente</MenuItem>
-              <MenuItem value="paid">Pago</MenuItem>
-            </Select>
-          </FormControl>
+          <Select
+            size="small"
+            displayEmpty
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            sx={{ minWidth: 140 }}
+          >
+            <MenuItem value="">
+              <em>Status (Todos)</em>
+            </MenuItem>
+            <MenuItem value="pending">Pendente</MenuItem>
+            <MenuItem value="paid">Pago</MenuItem>
+          </Select>
 
           <TextField
             size="small"
@@ -209,7 +293,11 @@ export default function CommissionReportPage() {
             slotProps={{ inputLabel: { shrink: true } }}
           />
 
-          <MuiButton variant="contained" onClick={loadEntries} disabled={loading}>
+          <MuiButton
+            variant="contained"
+            onClick={loadEntries}
+            disabled={loading}
+          >
             Filtrar
           </MuiButton>
         </Box>
@@ -221,12 +309,23 @@ export default function CommissionReportPage() {
           severity="info"
           sx={{ mb: 2 }}
           action={
-            <MuiButton color="success" variant="contained" size="small" onClick={handlePay} disabled={paying}>
-              {paying ? "Processando..." : `Marcar ${selectedPending.length} como pago`}
+            <MuiButton
+              color="success"
+              variant="contained"
+              size="small"
+              onClick={handlePay}
+              disabled={paying}
+            >
+              {paying
+                ? "Processando..."
+                : `Marcar ${selectedPending.length} como pago`}
             </MuiButton>
           }
         >
-          {selectedPending.length} entrada(s) selecionada(s) — total R$ {selectedPending.reduce((acc, e) => acc + Number(e.commission_amount), 0).toFixed(2)}
+          {selectedPending.length} entrada(s) selecionada(s) — total R${" "}
+          {selectedPending
+            .reduce((acc, e) => acc + Number(e.commission_amount), 0)
+            .toFixed(2)}
         </Alert>
       )}
 
@@ -236,8 +335,16 @@ export default function CommissionReportPage() {
             <TableRow>
               <TableCell sx={headerCellSx} padding="checkbox">
                 <Checkbox
-                  indeterminate={selectedIds.size > 0 && selectedIds.size < pendingEntries.length}
-                  checked={pendingEntries.length > 0 && selectedIds.size === pendingEntries.length}
+                  sx={{ color: "primary.main", py: 0 }}
+                  disableRipple
+                  indeterminate={
+                    selectedIds.size > 0 &&
+                    selectedIds.size < pendingEntries.length
+                  }
+                  checked={
+                    pendingEntries.length > 0 &&
+                    selectedIds.size === pendingEntries.length
+                  }
                   onChange={toggleSelectAll}
                 />
               </TableCell>
@@ -259,19 +366,40 @@ export default function CommissionReportPage() {
                   <TableCell padding="checkbox">
                     {isPending && (
                       <Checkbox
+                        sx={{ color: "primary.main", py: 0 }}
+                        disableRipple
                         checked={selectedIds.has(entry.id)}
                         onChange={() => toggleSelect(entry.id)}
                       />
                     )}
                   </TableCell>
-                  <TableCell>{employeeMap[entry.employee_id] ?? `#${entry.employee_id}`}</TableCell>
-                  <TableCell>#{entry.sale_id}</TableCell>
+                  <TableCell>
+                    {employeeMap[entry.employee_id] ?? `#${entry.employee_id}`}
+                  </TableCell>
+                  <TableCell>
+                    <Typography
+                      variant="body2"
+                      color="primary"
+                      fontWeight={600}
+                      sx={{
+                        cursor: "pointer",
+                        textDecoration: "underline",
+                        textUnderlineOffset: 3,
+                        "&:hover": { opacity: 0.75 },
+                      }}
+                      onClick={() => handleOpenSaleDetails(entry.sale_id)}
+                    >
+                      #{entry.sale_id}
+                    </Typography>
+                  </TableCell>
                   <TableCell>
                     {entry.commission_type === "percentage"
                       ? `${Number(entry.rate).toFixed(2)}%`
                       : `R$ ${Number(entry.rate).toFixed(2)} fixo`}
                   </TableCell>
-                  <TableCell>R$ {Number(entry.base_amount).toFixed(2)}</TableCell>
+                  <TableCell>
+                    R$ {Number(entry.base_amount).toFixed(2)}
+                  </TableCell>
                   <TableCell>
                     {entry.commission_type === "percentage"
                       ? `${Number(entry.rate).toFixed(2)}%`
@@ -288,6 +416,7 @@ export default function CommissionReportPage() {
                       label={entry.status === "pending" ? "Pendente" : "Pago"}
                       color={entry.status === "paid" ? "success" : "warning"}
                       size="small"
+                      variant="outlined"
                     />
                   </TableCell>
                 </TableRow>
@@ -312,6 +441,12 @@ export default function CommissionReportPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      <SaleDetailsModal
+        open={isSaleModalOpen}
+        saleId={selectedSaleId}
+        onClose={() => setIsSaleModalOpen(false)}
+      />
     </Box>
   );
 }
