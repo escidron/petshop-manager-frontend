@@ -172,10 +172,17 @@ export default function MainLayout() {
     if (path.startsWith("/registration/packages"))
       return "Pacotes de Serviços e Produtos";
 
+    if (path.startsWith("/registration/suppliers")) return "Fornecedores";
+    if (path.startsWith("/registration/employees")) return "Funcionários";
     if (path === "/pos") return "Caixa";
     if (path === "/financial") return "Financeiro";
     if (path === "/inventory") return "Controle de Estoque";
     if (path === "/settings") return "Configurações";
+    if (path.startsWith("/commissions/rules")) return "Regras de Comissão";
+    if (path.startsWith("/commissions/report")) return "Relatório de Comissões";
+    if (path === "/reports/financial") return "Relatório Financeiro";
+    if (path === "/reports/inventory") return "Relatório de Estoque";
+    if (path === "/reports") return "Relatórios";
     return "";
   };
 

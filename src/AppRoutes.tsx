@@ -22,6 +22,8 @@ import EmployeesPage from "./pages/EmployeesPage";
 import CommissionRulesPage from "./pages/CommissionRulesPage";
 import CommissionReportPage from "./pages/CommissionReportPage";
 import ReportsPage from "./pages/ReportsPage";
+import FinancialReportPage from "./pages/FinancialReportPage";
+import InventoryReportPage from "./pages/InventoryReportPage";
 
 type Props = {
   children: JSX.Element;
@@ -38,6 +40,16 @@ export const ProtectedRoute = ({ children }: Props) => {
   if (!user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
+
+  return children;
+};
+
+export const OwnerRoute = ({ children }: Props) => {
+  const { user, checking } = useAuth();
+
+  if (checking) return children;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "owner") return <Navigate to="/dashboard" replace />;
 
   return children;
 };
@@ -85,10 +97,12 @@ export default function AppRoutes() {
           </Route>
         </Route>
         <Route path="/commissions">
-          <Route path="rules" element={<CommissionRulesPage />} />
-          <Route path="report" element={<CommissionReportPage />} />
+          <Route path="rules" element={<OwnerRoute><CommissionRulesPage /></OwnerRoute>} />
+          <Route path="report" element={<OwnerRoute><CommissionReportPage /></OwnerRoute>} />
         </Route>
-        <Route path="/reports" element={<ReportsPage />} />
+        <Route path="/reports" element={<OwnerRoute><ReportsPage /></OwnerRoute>} />
+        <Route path="/reports/financial" element={<OwnerRoute><FinancialReportPage /></OwnerRoute>} />
+        <Route path="/reports/inventory" element={<OwnerRoute><InventoryReportPage /></OwnerRoute>} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}

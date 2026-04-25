@@ -31,14 +31,14 @@ const reports: ReportCard[] = [
     title: "Estoque",
     description: "Movimentação e posição atual do estoque de produtos.",
     icon: <Package size={32} />,
-    path: null,
+    path: "/reports/inventory",
   },
   {
     id: "financial",
     title: "Financeiro",
-    description: "Resumo de receitas, despesas e fluxo de caixa.",
+    description: "Faturamento, ticket médio, breakdown por método de pagamento e exportação CSV.",
     icon: <Wallet size={32} />,
-    path: null,
+    path: "/reports/financial",
   },
 ];
 

@@ -18,6 +18,7 @@ export type SidebarItemConfig = {
   label: string;
   icon?: ReactNode;
   path?: string;
+  ownerOnly?: boolean;
   children?: SidebarItemConfig[];
 };
 

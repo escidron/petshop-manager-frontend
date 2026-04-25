@@ -106,12 +106,14 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Comissão",
         icon: <Percent size={20} />,
         path: "/commissions/rules",
+        ownerOnly: true,
       },
       {
         id: "reports",
         label: "Relatórios",
         icon: <BarChart2 size={20} />,
         path: "/reports",
+        ownerOnly: true,
       },
     ],
   },
@@ -209,9 +211,11 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
               </Typography>
             )}
             <List sx={{ px: 1, py: 0 }}>
-              {section.items.map((item) => (
-                <SidebarItem key={item.id} item={item} collapsed={collapsed} />
-              ))}
+              {section.items
+                .filter((item) => !item.ownerOnly || isOwner)
+                .map((item) => (
+                  <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+                ))}
             </List>
           </Box>
         ))}
