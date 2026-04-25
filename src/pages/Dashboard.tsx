@@ -188,7 +188,7 @@ const Dashboard = () => {
                     </LocalizationProvider>
                   )}
                 </Box>
-                <GroomingQueue />
+                <GroomingQueue appointments={dailyAppointments} isFetching={isFetching} />
               </Box>
 
               {/* Coluna 3: Comandas em Aberto */}

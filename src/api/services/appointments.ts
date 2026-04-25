@@ -82,3 +82,8 @@ export const assignAppointmentEmployees = async (
   );
   return response.data;
 };
+
+export const getOpenInvoices = async (): Promise<Appointment[]> => {
+  const response = await apiClient.get<Appointment[]>("/api/v1/appointments/open-invoices");
+  return response.data;
+};
