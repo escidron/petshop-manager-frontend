@@ -71,3 +71,14 @@ export const applyAppointmentAction = async (
 
   return response.data;
 };
+
+export const assignAppointmentEmployees = async (
+  appointmentId: number,
+  assignments: { appointment_item_id: number; service_id: number; employee_id: number | null }[]
+) => {
+  const response = await apiClient.patch<Appointment>(
+    `/api/v1/appointments/${appointmentId}/assign-employees`,
+    { assignments }
+  );
+  return response.data;
+};

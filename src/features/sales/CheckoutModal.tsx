@@ -12,11 +12,10 @@ import {
   Paper,
   IconButton,
   alpha,
-  Select,
-  MenuItem,
-  InputLabel,
   Alert,
   Button as MuiButton,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
 import {
   ShoppingCart,
@@ -76,11 +75,19 @@ export default function CheckoutModal({
       getEmployees()
         .then((data) => setEmployees(data.filter((e) => e.is_active)))
         .catch(() => {});
-      // Reset map when cart changes
-      setEmployeeMap({});
+      
+      const initialMap: Record<number, number> = {};
+      cart.forEach((item, idx) => {
+        if (item.employee_id) {
+          initialMap[idx] = item.employee_id;
+        }
+      });
+      setEmployeeMap(initialMap);
       setShowNoEmployeeWarning(false);
+    } else {
+      setEmployeeMap({});
     }
-  }, [open]);
+  }, [cart, open]);
 
   const saleMutation = useMutation({
     mutationFn: createSale,
@@ -175,38 +182,44 @@ export default function CheckoutModal({
           </Box>
 
           {/* Employee assignment per service item */}
-          {serviceItems.length > 0 && employees.length > 0 && (
+          {serviceItems.length > 0 && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: 1.5, fontWeight: 700 }}>
+              <Typography variant="subtitle1" sx={{ mb: employees.length > 0 ? 1.5 : 0, fontWeight: 700 }}>
                 Funcionário por Serviço
               </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-                {serviceItems.map(({ item, idx }) => (
-                  <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography variant="body2" sx={{ flex: 1, color: "text.secondary" }}>
-                      {item.name}
-                    </Typography>
-                    <FormControl size="small" sx={{ minWidth: 180 }}>
-                      <InputLabel>Funcionário</InputLabel>
-                      <Select
-                        label="Funcionário"
-                        value={employeeMap[idx] ?? ""}
-                        onChange={(e) =>
+              {employees.length > 0 ? (
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  {serviceItems.map(({ item, idx }) => (
+                    <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                      <Typography variant="body2" sx={{ flex: 1, color: "text.primary" }}>
+                        {item.name}
+                      </Typography>
+                      <Autocomplete
+                        options={employees}
+                        getOptionLabel={(option) => option.name}
+                        isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
+                        value={employees.find((emp) => String(emp.id) === String(employeeMap[idx])) || null}
+                        onChange={(_, newValue) => {
                           setEmployeeMap((prev) => ({
                             ...prev,
-                            [idx]: e.target.value === "" ? null : Number(e.target.value),
-                          }))
-                        }
-                      >
-                        <MenuItem value=""><em>Não atribuir</em></MenuItem>
-                        {employees.map((emp) => (
-                          <MenuItem key={emp.id} value={emp.id}>{emp.name}</MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  </Box>
-                ))}
-              </Box>
+                            [idx]: newValue ? newValue.id : null,
+                          }));
+                        }}
+                        size="small"
+                        sx={{ minWidth: 300 }}
+                        noOptionsText="Nenhum funcionário encontrado"
+                        renderInput={(params) => (
+                          <TextField {...params} placeholder="Buscar..." />
+                        )}
+                      />
+                    </Box>
+                  ))}
+                </Box>
+              ) : (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  Você não possui funcionários cadastrados/ativos. Cadastre sua equipe na página de <strong>Funcionários</strong> para poder atribuir os serviços e calcular comissões!
+                </Alert>
+              )}
             </Box>
           )}
 
@@ -293,13 +306,21 @@ export default function CheckoutModal({
               Serviços sem funcionário
             </Typography>
           </Box>
-          <Alert severity="warning" sx={{ mb: 2 }}>
-            {serviceItemsWithoutEmployee.length}{" "}
-            {serviceItemsWithoutEmployee.length === 1 ? "serviço" : "serviços"} sem funcionário
-            atribuído. A comissão não será calculada para {serviceItemsWithoutEmployee.length === 1 ? "esse item" : "esses itens"}.
-          </Alert>
+          {employees.length === 0 ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              O sistema identificou serviços na venda, mas <strong>nenhum funcionário</strong> está cadastrado ainda. Com isso, nenhuma comissão será calculada em sua plataforma.
+            </Alert>
+          ) : (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {serviceItemsWithoutEmployee.length}{" "}
+              {serviceItemsWithoutEmployee.length === 1 ? "serviço" : "serviços"} sem funcionário
+              atribuído. A comissão não será calculada para {serviceItemsWithoutEmployee.length === 1 ? "esse item" : "esses itens"}.
+            </Alert>
+          )}
           <Typography variant="body2" color="text.primary">
-            Você pode atribuir o funcionário retroativamente no histórico de vendas.
+            {employees.length === 0 
+              ? "Para evitar que essa mensagem apareça, acesse a guia Funcionários no menu principal e cadastre sua equipe."
+              : "Você pode atribuir o funcionário retroativamente no histórico de vendas."}
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>

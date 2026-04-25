@@ -143,19 +143,19 @@ export default function CommissionReportPage() {
       {/* Summary cards */}
       <Box sx={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 2, mb: 3 }}>
         <Paper sx={{ p: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.secondary">Total Pendente</Typography>
+          <Typography variant="caption" color="text.primary">Total Pendente</Typography>
           <Typography variant="h5" color="warning.main" fontWeight={700}>
             R$ {totalPending.toFixed(2)}
           </Typography>
         </Paper>
         <Paper sx={{ p: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.secondary">Total Pago</Typography>
+          <Typography variant="caption" color="text.primary">Total Pago</Typography>
           <Typography variant="h5" color="success.main" fontWeight={700}>
             R$ {totalPaid.toFixed(2)}
           </Typography>
         </Paper>
         <Paper sx={{ p: 2, textAlign: "center" }}>
-          <Typography variant="caption" color="text.secondary">Total Geral</Typography>
+          <Typography variant="caption" color="text.primary">Total Geral</Typography>
           <Typography variant="h5" fontWeight={700}>
             R$ {(totalPending + totalPaid).toFixed(2)}
           </Typography>

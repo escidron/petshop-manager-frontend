@@ -7,9 +7,16 @@ import {
   DialogActions,
   Divider,
   Typography,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getEmployees } from "../../api/services/employees";
+import { assignAppointmentEmployees } from "../../api/services/appointments";
+import type { Employee } from "../employees/types";
+import { useToast } from "../../hooks/useToast";
 import {
   CalendarCheck,
   Check,
@@ -51,8 +58,59 @@ const AppointmentDetailsModal = ({
   onEdit,
 }: Props) => {
   const navigate = useNavigate();
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const totalCents = getAppointmentTotal(appointment);
+
+  const { data: employees = [] } = useQuery({
+    queryKey: ["employees"],
+    queryFn: getEmployees,
+    enabled: open,
+  });
+
+  const activeEmployees = employees.filter((e) => e.is_active);
+
+  const [localAssignments, setLocalAssignments] = useState<
+    Record<string, number | null>
+  >({});
+
+  useEffect(() => {
+    if (open && appointment) {
+      const initial: Record<string, number | null> = {};
+      appointment.items.forEach(item => {
+        item.services.forEach(svc => {
+          const key = `${item.id}-${svc.id}`;
+          initial[key] = svc.employee_id || null;
+        });
+      });
+      setLocalAssignments(initial);
+    }
+  }, [open, appointment]);
+
+  const assignMutation = useMutation({
+    mutationFn: (assignments: any) => assignAppointmentEmployees(appointment.id, assignments),
+    onSuccess: () => {
+      toast.success("Profissionais salvos com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+    },
+    onError: () => {
+      toast.error("Erro ao salvar profissionais");
+    }
+  });
+
+  const handleSaveEmployees = () => {
+    const payload = Object.entries(localAssignments).map(([key, empId]) => {
+      const [itemId, svcId] = key.split("-").map(Number);
+      return {
+        appointment_item_id: itemId,
+        service_id: svcId,
+        employee_id: empId,
+      };
+    });
+    assignMutation.mutate(payload);
+  };
 
   const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
     style: "currency",
@@ -391,50 +449,75 @@ const AppointmentDetailsModal = ({
                   Serviços do pet
                 </Typography>
                 <Box>
-                  {item.services.map((s) => (
+                  {item.services.map((s) => {
+                    const key = `${item.id}-${s.id}`;
+                    const currentEmpId = localAssignments[key];
+
+                    return (
                     <Box
                       key={s.id}
                       sx={{
                         display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
+                        flexDirection: "column",
                         py: 0.5,
                       }}
                     >
-                      <Box
-                        sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                      >
-                        <Dot color={theme.palette.text.disabled} size={16} />
-                        <Typography variant="body2">{s.name}</Typography>
-                        {s.is_package_covered && (
-                          <Chip
-                            label="pacote"
-                            size="small"
-                            color="success"
-                            variant="outlined"
-                            icon={<Package size={10} />}
-                            sx={{ height: 18, fontSize: 10, px: 0.5 }}
-                          />
-                        )}
+                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                          <Dot color={theme.palette.text.disabled} size={16} />
+                          <Typography variant="body2">{s.name}</Typography>
+                          {s.is_package_covered && (
+                            <Chip
+                              label="pacote"
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                              icon={<Package size={10} />}
+                              sx={{ height: 18, fontSize: 10, px: 0.5 }}
+                            />
+                          )}
+                        </Box>
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            textDecoration: s.is_package_covered
+                              ? "line-through"
+                              : "none",
+                            color: s.is_package_covered
+                              ? "text.disabled"
+                              : "text.primary",
+                          }}
+                        >
+                          {(s.price_cents / 100).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
+                        </Typography>
                       </Box>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          textDecoration: s.is_package_covered
-                            ? "line-through"
-                            : "none",
-                          color: s.is_package_covered
-                            ? "text.disabled"
-                            : "text.primary",
-                        }}
-                      >
-                        {(s.price_cents / 100).toLocaleString("pt-BR", {
-                          style: "currency",
-                          currency: "BRL",
-                        })}
-                      </Typography>
+
+                      {/* Employee Select */}
+                      {appointment.status !== "pending" && appointment.status !== "canceled" && appointment.status !== "no_show" && (
+                        <Box sx={{ display: "flex", alignItems: "center", pl: 2, pb: 1, pt: 1 }}>
+                          <Typography variant="caption" sx={{ width: 100, color: "text.primary" }}>Profissional:</Typography>
+                          <Autocomplete
+                            size="small"
+                            sx={{ flex: 1, ml: 1 }}
+                            options={activeEmployees}
+                            getOptionLabel={(option) => option.name}
+                            isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
+                            value={activeEmployees.find(e => String(e.id) === String(currentEmpId)) || null}
+                            onChange={(_, val) => {
+                              setLocalAssignments(prev => ({
+                                ...prev,
+                                [key]: val ? val.id : null
+                              }));
+                            }}
+                            renderInput={(params) => <TextField {...params} placeholder="Selecionar..." />}
+                          />
+                        </Box>
+                      )}
                     </Box>
-                  ))}
+                  )})}
                   <Divider sx={{ my: 1 }} />
                   <Box
                     sx={{
@@ -458,6 +541,19 @@ const AppointmentDetailsModal = ({
                 </Box>
               </CustomCard>
             ))}
+
+            {appointment.status !== "pending" && appointment.status !== "canceled" && appointment.status !== "no_show" && activeEmployees.length > 0 && (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
+                <Button 
+                   variant="outlined" 
+                   size="small" 
+                   onClick={handleSaveEmployees}
+                   loading={assignMutation.isPending}
+                >
+                   Salvar Profissionais
+                </Button>
+              </Box>
+            )}
           </Box>
         </Box>
       </DialogContent>

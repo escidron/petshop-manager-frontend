@@ -32,6 +32,7 @@ export type ServiceBase = {
   price_cents: number;
   duration_minutes?: number;
   is_package_covered?: boolean;
+  employee_id?: number | null;
 };
 
 export type StatusPalette = "success" | "error" | "warning" | "info";

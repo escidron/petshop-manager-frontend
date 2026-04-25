@@ -260,6 +260,7 @@ export default function POSInterface() {
           quantity: 1,
           unit_price: s.price_cents / 100,
           subtotal: s.price_cents / 100,
+          employee_id: s.employee_id || null,
         })),
     );
 
