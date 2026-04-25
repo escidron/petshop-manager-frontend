@@ -21,6 +21,7 @@ import SuppliersPage from "./pages/SuppliersPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import CommissionRulesPage from "./pages/CommissionRulesPage";
 import CommissionReportPage from "./pages/CommissionReportPage";
+import ReportsPage from "./pages/ReportsPage";
 
 type Props = {
   children: JSX.Element;
@@ -87,6 +88,7 @@ export default function AppRoutes() {
           <Route path="rules" element={<CommissionRulesPage />} />
           <Route path="report" element={<CommissionReportPage />} />
         </Route>
+        <Route path="/reports" element={<ReportsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
       </Route>
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}

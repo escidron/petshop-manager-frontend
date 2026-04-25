@@ -18,6 +18,7 @@ import {
   Truck,
   UserCheck,
   BarChart2,
+  Percent,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -80,23 +81,6 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
     ],
   },
   {
-    title: "COMISSÕES",
-    items: [
-      {
-        id: "commission-rules",
-        label: "Regras",
-        icon: <ClipboardList size={20} />,
-        path: "/commissions/rules",
-      },
-      {
-        id: "commission-report",
-        label: "Relatório",
-        icon: <BarChart2 size={20} />,
-        path: "/commissions/report",
-      },
-    ],
-  },
-  {
     title: "OPERACIONAL",
     items: [
       {
@@ -116,6 +100,18 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Financeiro",
         icon: <Wallet size={20} />,
         path: "/financial",
+      },
+      {
+        id: "commission-rules",
+        label: "Comissão",
+        icon: <Percent size={20} />,
+        path: "/commissions/rules",
+      },
+      {
+        id: "reports",
+        label: "Relatórios",
+        icon: <BarChart2 size={20} />,
+        path: "/reports",
       },
     ],
   },

@@ -166,7 +166,7 @@ export default function CheckoutModal({
               borderColor: alpha("#1976d2", 0.1),
             }}
           >
-            <Typography variant="subtitle2" color="text.secondary" sx={{ fontWeight: 600, mb: 0.5 }}>
+            <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 0.5 }}>
               TOTAL A RECEBER
             </Typography>
             <Typography variant="h3" color="primary" sx={{ fontWeight: 900 }}>
@@ -298,7 +298,7 @@ export default function CheckoutModal({
             {serviceItemsWithoutEmployee.length === 1 ? "serviço" : "serviços"} sem funcionário
             atribuído. A comissão não será calculada para {serviceItemsWithoutEmployee.length === 1 ? "esse item" : "esses itens"}.
           </Alert>
-          <Typography variant="body2" color="text.secondary">
+          <Typography variant="body2" color="text.primary">
             Você pode atribuir o funcionário retroativamente no histórico de vendas.
           </Typography>
         </DialogContent>
