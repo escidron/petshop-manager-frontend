@@ -33,7 +33,7 @@ import { formatServiceLabel } from "../../utils/formatServiceLabel";
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
   commission_type: z.enum(["percentage", "fixed"]),
-  value: z.coerce.number().min(0.01, "Valor deve ser maior que zero"),
+  value: z.coerce.number<number>().min(0.01, "Valor deve ser maior que zero"),
   applies_to: z.enum(["service", "product", "both"]),
   employee_id: z.number().nullable().optional(),
   service_ids: z.array(z.number()),
