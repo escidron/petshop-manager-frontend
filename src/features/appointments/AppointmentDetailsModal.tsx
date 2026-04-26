@@ -15,7 +15,6 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
 import { assignAppointmentEmployees } from "../../api/services/appointments";
-import type { Employee } from "../employees/types";
 import { useToast } from "../../hooks/useToast";
 import {
   CalendarCheck,
@@ -84,6 +83,7 @@ const AppointmentDetailsModal = ({
           initial[key] = svc.employee_id || null;
         });
       });
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setLocalAssignments(initial);
     }
   }, [open, appointment]);
