@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Box, Typography, Button, Stack } from "@mui/material";
 import CustomCard from "../components/Card/CustomCard";
 import {
@@ -38,13 +38,25 @@ const SignupPage = () => {
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
 
+  // Sincronizar estado local com a URL caso mude externamente (ex: botão voltar do navegador)
+  useEffect(() => {
+    if (planFromUrl && planFromUrl !== planCode) {
+      setPlanCode(planFromUrl);
+    }
+  }, [planFromUrl]);
+
   const goToStep = (newStep: 1 | 2 | 3) => {
-    setSearchParams({ step: String(newStep) });
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("step", String(newStep));
+    setSearchParams(newParams);
   };
 
   const handleSelectPlan = (plan: PlanCode) => {
     setPlanCode(plan);
-    goToStep(2);
+    const newParams = new URLSearchParams(searchParams);
+    newParams.set("step", "2");
+    newParams.set("plan", plan);
+    setSearchParams(newParams);
   };
 
   const handleSubmitUser = (data: UserFormData) => {
@@ -299,7 +311,7 @@ const SignupPage = () => {
                 },
               }}
             >
-              {step === 1 && <PlanForm onSubmit={handleSelectPlan} />}
+              {step === 1 && <PlanForm onSubmit={handleSelectPlan} selectedPlan={planCode || undefined} />}
 
               {step === 2 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
