@@ -84,7 +84,7 @@ export default function EmployeesPage() {
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
         <TextField
           size="small"
-          placeholder="Buscar..."
+          placeholder="Pesquisar funcionário"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           slotProps={{

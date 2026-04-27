@@ -61,16 +61,16 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         path: "/registration/products",
       },
       {
-        id: "suppliers",
-        label: "Fornecedores",
-        icon: <Truck size={20} />,
-        path: "/registration/suppliers",
-      },
-      {
         id: "packages",
         label: "Pacotes",
         icon: <Package size={20} />,
         path: "/registration/packages",
+      },
+      {
+        id: "suppliers",
+        label: "Fornecedores",
+        icon: <Truck size={20} />,
+        path: "/registration/suppliers",
       },
       {
         id: "employees",
@@ -190,10 +190,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
         }}
       >
         {menuSections.map((section, index) => (
-          <Box
-            key={section.title}
-            sx={{ mt: index === 0 ? 0.5 : 1, mb: 0 }}
-          >
+          <Box key={section.title} sx={{ mt: index === 0 ? 0.5 : 1, mb: 0 }}>
             {!collapsed && (
               <Typography
                 variant="caption"
@@ -214,7 +211,11 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
               {section.items
                 .filter((item) => !item.ownerOnly || isOwner)
                 .map((item) => (
-                  <SidebarItem key={item.id} item={item} collapsed={collapsed} />
+                  <SidebarItem
+                    key={item.id}
+                    item={item}
+                    collapsed={collapsed}
+                  />
                 ))}
             </List>
           </Box>
@@ -233,13 +234,18 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             flexShrink: 0,
           }}
         >
-          <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
-            <Typography variant="caption" sx={{ color: "white", fontWeight: 700 }}>
+          <Box
+            sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}
+          >
+            <Typography
+              variant="caption"
+              sx={{ color: "white", fontWeight: 700 }}
+            >
               {trialInfo.daysLeft === 0
-              ? trialInfo.expiryDate.isBefore(dayjs())
-                ? "Teste expirado"
-                : `Acaba hoje às ${trialInfo.expiryDate.format("HH:mm")}`
-              : `${trialInfo.daysLeft} ${trialInfo.daysLeft === 1 ? "dia" : "dias"} restantes`}
+                ? trialInfo.expiryDate.isBefore(dayjs())
+                  ? "Teste expirado"
+                  : `Acaba hoje às ${trialInfo.expiryDate.format("HH:mm")}`
+                : `${trialInfo.daysLeft} ${trialInfo.daysLeft === 1 ? "dia" : "dias"} restantes`}
             </Typography>
             <Typography
               variant="caption"
