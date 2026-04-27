@@ -24,6 +24,7 @@ import CommissionReportPage from "./pages/CommissionReportPage";
 import ReportsPage from "./pages/ReportsPage";
 import FinancialReportPage from "./pages/FinancialReportPage";
 import InventoryReportPage from "./pages/InventoryReportPage";
+import LoadingScreen from "./components/Loading/LoadingScreen";
 
 type Props = {
   children: JSX.Element;
@@ -33,11 +34,13 @@ export const ProtectedRoute = ({ children }: Props) => {
   const { user, checking } = useAuth();
   const location = useLocation();
 
-  if (checking) {
-    return children;
+  // Show full screen loader ONLY on initial load (when user is null)
+  if (checking && !user) {
+    return <LoadingScreen />;
   }
 
-  if (!user) {
+  // If no user and finished checking -> redirect
+  if (!checking && !user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
@@ -47,7 +50,7 @@ export const ProtectedRoute = ({ children }: Props) => {
 export const OwnerRoute = ({ children }: Props) => {
   const { user, checking } = useAuth();
 
-  if (checking) return children;
+  if (checking && !user) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "owner") return <Navigate to="/dashboard" replace />;
 

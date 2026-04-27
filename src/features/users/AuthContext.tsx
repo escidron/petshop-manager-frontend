@@ -72,11 +72,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     checkAuth();
-  }, [navigate]);
+  }, []);
 
   const logout = async () => {
     setUser(null);
-    await apiClient.post("/api/v1/auth/logout");
+    setTenant(null);
+    try {
+      await apiClient.post("/api/v1/auth/logout");
+    } catch (err) {
+      console.error("Logout error:", err);
+    }
     navigate("/login", { replace: true });
   };
 

@@ -9,9 +9,51 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@100..900&display=swap" rel="stylesheet">
     <meta name="description" content="Gerencie seu petshop com facilidade. Controle de clientes, pets, financeiro e muito mais em uma plataforma moderna e intuitiva." />
+    <style>
+      #initial-loader {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
+        background-color: #F8FAFC;
+        font-family: 'Outfit', sans-serif;
+      }
+      .paw-container {
+        position: relative;
+        width: 80px;
+        height: 80px;
+        color: #313485;
+        margin-bottom: 24px;
+        animation: pulse 1.5s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 0.8; }
+        50% { transform: scale(1.1); opacity: 1; }
+      }
+      .loader-text {
+        color: #313485;
+        font-size: 1.2rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+      }
+    </style>
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <div id="initial-loader">
+        <div class="paw-container">
+          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="12" cy="16" r="4" />
+            <circle cx="6" cy="11" r="2.5" />
+            <circle cx="18" cy="11" r="2.5" />
+            <circle cx="9" cy="5" r="2.5" />
+            <circle cx="15" cy="5" r="2.5" />
+          </svg>
+        </div>
+        <div class="loader-text">Preparando tudo para você...</div>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
