@@ -603,17 +603,6 @@ export default function PackageForm({
                                       >
                                         {option.name}
                                       </Typography>
-                                      {option.sku && (
-                                        <Typography
-                                          variant="caption"
-                                          sx={{
-                                            color: "text.secondary",
-                                            fontSize: "11px",
-                                          }}
-                                        >
-                                          SKU: {option.sku}
-                                        </Typography>
-                                      )}
                                     </Box>
                                     <Typography
                                       variant="subtitle2"

@@ -78,6 +78,10 @@ const theme = createTheme({
       },
     },
     MuiAutocomplete: {
+      defaultProps: {
+        noOptionsText: "Nenhum resultado encontrado",
+        loadingText: "Carregando...",
+      },
       styleOverrides: {
         noOptions: {
           color: "#3d4048",
