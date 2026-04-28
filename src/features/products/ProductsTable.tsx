@@ -233,7 +233,8 @@ export default function ProductsTable({
                 onClick={() => onRowClick?.(row.id)}
                 sx={{
                   cursor: "pointer",
-                  transition: "background-color 0.2s ease",
+                  transition: "background-color 0.2s ease, opacity 0.2s ease",
+                  opacity: row.is_active ? 1 : 0.5,
                   "&:hover": {
                     backgroundColor: "secondary.main",
                   },

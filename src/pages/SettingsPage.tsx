@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import axios from "axios";
 import {
   Box,
   Typography,
@@ -57,7 +58,7 @@ import {
   type TenantUserResponse,
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
-import { toast } from "react-toastify";
+import { useToast } from "../hooks/useToast";
 import { maskPhone, maskDocument } from "../utils/masks";
 import { addPaymentMethod, createCheckout, listPaymentMethods, removePaymentMethod, setDefaultPaymentMethod, cancelSubscription } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
@@ -126,6 +127,7 @@ const SettingsPage = () => {
   const [pixData, setPixData] = useState<CheckoutPixResponse | null>(null);
   const { tenant, user, setTenant, checkAuth } = useAuth();
   const { isOwner } = usePermission();
+  const toast = useToast();
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -170,7 +172,7 @@ const SettingsPage = () => {
     [isOwner],
   );
 
-  const getTabIndex = (id: string) => tabConfig.findIndex((t) => t.id === id);
+  const getTabIndex = useCallback((id: string) => tabConfig.findIndex((t) => t.id === id), [tabConfig]);
 
   const [paymentMethod, setPaymentMethod] = useState<"card" | "pix">(
     (tenant?.subscription?.payment_method as "card" | "pix") ?? "card",
@@ -260,7 +262,7 @@ const SettingsPage = () => {
     } else if (tab !== null && !isNaN(Number(tab))) {
       setValue(Number(tab));
     }
-  }, [searchParams, isOwner]);
+  }, [searchParams, isOwner, getTabIndex]);
 
   useEffect(() => {
     if (!isOwner) return;
@@ -270,7 +272,7 @@ const SettingsPage = () => {
       .finally(() => setLoadingUsers(false));
   }, [isOwner]);
 
-  const fetchCards = async () => {
+  const fetchCards = useCallback(async () => {
     setLoadingCards(true);
     try {
       const methods = await listPaymentMethods();
@@ -278,7 +280,7 @@ const SettingsPage = () => {
     } finally {
       setLoadingCards(false);
     }
-  };
+  }, []);
 
   const handleSetDefault = async (pmId: string) => {
     await setDefaultPaymentMethod(pmId);
@@ -301,7 +303,7 @@ const SettingsPage = () => {
     if (value === billingIdx) {
       fetchCards();
     }
-  }, [value, isOwner]);
+  }, [value, isOwner, tabConfig, fetchCards]);
 
   // Polling após pagamento: verifica status a cada 2s até ficar active
   useEffect(() => {
@@ -326,7 +328,7 @@ const SettingsPage = () => {
     }, 2000);
 
     return () => clearTimeout(timer);
-  }, [awaitingConfirmation, pollCount, tenant?.subscription?.status]);
+  }, [awaitingConfirmation, pollCount, tenant?.subscription?.status, checkAuth, fetchCards]);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setValue(newValue);
@@ -388,9 +390,10 @@ const SettingsPage = () => {
       const updatedTenant = await updateTenant(tenant.id, data);
       setTenant({ ...tenant, ...updatedTenant });
       setOpenTenantEdit(false);
+      toast.success("Informações da empresa atualizadas!");
     } catch (error) {
       console.error("Failed to update tenant:", error);
-      alert("Erro ao atualizar informações da empresa.");
+      toast.error("Erro ao atualizar informações da empresa.");
     } finally {
       setSavingTenant(false);
     }
@@ -406,8 +409,9 @@ const SettingsPage = () => {
       setOpenChangePassword(false);
       resetPasswordForm();
       toast.success("Senha alterada com sucesso!");
-    } catch {
-      toast.error("Senha atual incorreta.");
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Senha atual incorreta.";
+      toast.error(message || "Senha atual incorreta.");
     } finally {
       setChangingPassword(false);
     }
@@ -421,8 +425,9 @@ const SettingsPage = () => {
       setTenantUsers((prev) => prev.filter((u) => u.id !== userToDelete.id));
       setUserToDelete(null);
       toast.success("Usuário removido com sucesso!");
-    } catch {
-      toast.error("Erro ao remover usuário.");
+    } catch (error) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao remover usuário.";
+      toast.error(message || "Erro ao remover usuário.");
     } finally {
       setDeletingUser(false);
     }
@@ -436,8 +441,9 @@ const SettingsPage = () => {
       setOpenCreateUser(false);
       resetCreateUser();
       toast.success("Usuário criado com sucesso!");
-    } catch {
-      toast.error("Erro ao criar usuário. Verifique os dados e tente novamente.");
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao criar usuário. Verifique os dados e tente novamente.";
+      toast.error(message || "Erro ao criar usuário. Verifique os dados e tente novamente.");
     } finally {
       setCreatingUser(false);
     }
@@ -450,8 +456,9 @@ const SettingsPage = () => {
       toast.success("Assinatura cancelada com sucesso.");
       await checkAuth(); // Updates tenant state
       setOpenCancelModal(false);
-    } catch {
-      toast.error("Erro ao cancelar a assinatura. Tente novamente.");
+    } catch (error) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao cancelar a assinatura. Tente novamente.";
+      toast.error(message || "Erro ao cancelar a assinatura. Tente novamente.");
     } finally {
       setCancelingSubscription(false);
     }

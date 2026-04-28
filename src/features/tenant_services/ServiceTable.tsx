@@ -226,7 +226,8 @@ export default function ServiceTable({
               <TableRow
                 key={row.id}
                 sx={{
-                  transition: "background-color 0.2s ease",
+                  transition: "background-color 0.2s ease, opacity 0.2s ease",
+                  opacity: row.is_active ? 1 : 0.5,
                   "&:hover": {
                     backgroundColor: "secondary.main",
                   },

@@ -18,5 +18,6 @@ export const productToFormData = (product: Product): ProductFormData => {
     cst_pis: product.cst_pis || "",
     cst_cofins: product.cst_cofins || "",
     supplier_id: product.supplier_id ?? null,
+    is_active: product.is_active,
   };
 };

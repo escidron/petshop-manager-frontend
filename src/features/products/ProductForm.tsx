@@ -4,8 +4,10 @@ import {
   CircularProgress,
   Divider,
   FormControl,
+  FormControlLabel,
   FormLabel,
   InputAdornment,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -17,11 +19,10 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "../../components/Button/Button";
 import { Minus, Plus } from "lucide-react";
 import { productSchema } from "./schemas";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { PRODUCT_CATEGORIES } from "./constants";
 import { formatBRLFromCents } from "../../utils/masks";
 import { useSuppliers } from "../../hooks/useSuppliers";
-import SupplierFormModal from "../suppliers/SupplierFormModal";
 
 type Props = {
   defaultValues?: Partial<ProductFormData>;
@@ -39,8 +40,6 @@ const ProductForm = ({
   setShowAdditionalInfo,
 }: Props) => {
   const { suppliers, getSuppliers } = useSuppliers();
-  const [supplierModalOpen, setSupplierModalOpen] = useState(false);
-  const [supplierSearch, setSupplierSearch] = useState("");
 
   useEffect(() => {
     getSuppliers();
@@ -50,6 +49,7 @@ const ProductForm = ({
   const formObj = useForm<ProductFormData>({
     resolver: zodResolver(productSchema) as Resolver<ProductFormData>,
     defaultValues: {
+      is_active: true,
       ...defaultValues,
     },
   });
@@ -188,6 +188,34 @@ const ProductForm = ({
               </FormControl>
             </Box>
 
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                Status do Produto
+              </FormLabel>
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                      />
+                    }
+                    label={field.value ? "Ativo" : "Inativo"}
+                    sx={{
+                      "& .MuiFormControlLabel-label": {
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: field.value ? "success.main" : "text.disabled",
+                      },
+                    }}
+                  />
+                )}
+              />
+            </FormControl>
+
             <Button
               variant="text"
               startIcon={showAdditionalInfo ? <Minus /> : <Plus />}
@@ -255,12 +283,7 @@ const ProductForm = ({
                           isOptionEqualToValue={(o, v) => o.id === v.id}
                           value={suppliers.find((s) => s.id === field.value) || null}
                           onChange={(_, value) => field.onChange(value?.id ?? null)}
-                          onInputChange={(_, value) => setSupplierSearch(value)}
-                          noOptionsText={
-                            <Button size="small" onClick={() => setSupplierModalOpen(true)}>
-                              Cadastrar `{supplierSearch}`
-                            </Button>
-                          }
+                          noOptionsText="Nenhum fornecedor encontrado"
                           renderInput={(params) => <TextField {...params} placeholder="Pesquisar fornecedor" />}
                         />
                       </Box>
@@ -448,17 +471,6 @@ const ProductForm = ({
         </Box>
       </Box>
     </Box>
-    
-    <SupplierFormModal
-      open={supplierModalOpen}
-      mode="create"
-      initialName={supplierSearch}
-      onClose={() => setSupplierModalOpen(false)}
-      onSuccess={(newSupplier) => {
-        getSuppliers();
-        formObj.setValue("supplier_id", newSupplier.id);
-      }}
-    />
     </>
   );
 };

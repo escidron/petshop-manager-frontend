@@ -21,6 +21,7 @@ export const productSchema = z.object({
   cst_pis: z.string().optional(),
   cst_cofins: z.string().optional(),
   supplier_id: z.number().optional().nullable(),
+  is_active: z.boolean().default(true),
 });
 
 export type ProductFormData = z.infer<typeof productSchema>;

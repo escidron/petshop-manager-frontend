@@ -11,6 +11,8 @@ import PetFormModal from "../features/pets/PetFormModal";
 import type { Client } from "../features/clients/types";
 import type { Pet } from "../features/pets/types";
 import { usePets } from "../hooks/usePets";
+import { useToast } from "../hooks/useToast";
+import axios from "axios";
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
@@ -43,13 +45,22 @@ export default function ClientsPage() {
     );
   }, [search, clients]);
 
+  const toast = useToast();
+
   const handleConfirmDelete = async () => {
     if (!clientToDelete) return;
     try {
       setDeleting(true);
       await deleteClient(clientToDelete.id);
+      toast.success("Cliente excluído com sucesso");
       await getClients();
       setClientToDelete(null);
+    } catch (error: unknown) {
+      let message = "Erro ao excluir cliente";
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.detail || message;
+      }
+      toast.error(message);
     } finally {
       setDeleting(false);
     }

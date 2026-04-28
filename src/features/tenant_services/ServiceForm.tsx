@@ -4,8 +4,10 @@ import {
   CircularProgress,
   Divider,
   FormControl,
+  FormControlLabel,
   FormLabel,
   InputAdornment,
+  Switch,
   TextField,
   Typography,
 } from "@mui/material";
@@ -138,6 +140,34 @@ const ServiceForm = ({
                     />
                   );
                 }}
+              />
+            </FormControl>
+
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                Status do Serviço
+              </FormLabel>
+              <Controller
+                name="is_active"
+                control={control}
+                render={({ field }) => (
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={field.value}
+                        onChange={(e) => field.onChange(e.target.checked)}
+                      />
+                    }
+                    label={field.value ? "Ativo" : "Inativo"}
+                    sx={{
+                      "& .MuiFormControlLabel-label": {
+                        fontSize: "14px",
+                        fontWeight: 600,
+                        color: field.value ? "success.main" : "text.disabled",
+                      },
+                    }}
+                  />
+                )}
               />
             </FormControl>
             <Button

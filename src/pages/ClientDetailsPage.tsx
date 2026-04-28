@@ -18,6 +18,8 @@ import {
 import { listPackages } from "../api/services/packages";
 import PetPackageCredits from "../features/client_packages/PetPackageCredits";
 import ClientPackageSellModal from "../features/client_packages/ClientPackageSellModal";
+import { useToast } from "../hooks/useToast";
+import axios from "axios";
 
 export default function ClientDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -55,13 +57,22 @@ export default function ClientDetailsPage() {
     if (pets.length > 0) fetchPetPackages(pets);
   }, [pets, fetchPetPackages]);
 
+  const toast = useToast();
+
   const handleConfirmDelete = async () => {
     if (!petToDelete) return;
     try {
       setDeleting(true);
       await deletePet(petToDelete.id);
+      toast.success("Pet excluído com sucesso");
       await refetchPets();
       setPetToDelete(null);
+    } catch (error: unknown) {
+      let message = "Erro ao excluir pet";
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.detail || message;
+      }
+      toast.error(message);
     } finally {
       setDeleting(false);
     }
