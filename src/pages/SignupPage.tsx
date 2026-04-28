@@ -43,7 +43,7 @@ const SignupPage = () => {
     if (planFromUrl && planFromUrl !== planCode) {
       setPlanCode(planFromUrl);
     }
-  }, [planFromUrl]);
+  }, [planFromUrl, planCode]);
 
   const goToStep = (newStep: 1 | 2 | 3) => {
     const newParams = new URLSearchParams(searchParams);

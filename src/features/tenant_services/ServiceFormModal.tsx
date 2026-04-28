@@ -17,6 +17,7 @@ import { serviceToFormData } from "./mapper";
 import { X } from "lucide-react";
 import type { Service, ServiceFormData } from "./types";
 import ServiceForm from "./ServiceForm";
+import axios from "axios";
 
 type Props = {
   open: boolean;
@@ -57,10 +58,16 @@ export default function ServiceFormModal({
 
       onSuccess(saved);
       onClose();
-    } catch {
-      toast.error(
-        mode === "create" ? "Erro ao cadastrar serviço." : "Erro ao atualizar serviço.",
-      );
+    } catch (error: unknown) {
+      let message = mode === "create" 
+        ? "Erro ao cadastrar serviço." 
+        : "Erro ao atualizar serviço.";
+        
+      if (axios.isAxiosError(error)) {
+        message = error.response?.data?.detail || message;
+      }
+      
+      toast.error(message);
     } finally {
       setIsSubmitting(false);
     }
