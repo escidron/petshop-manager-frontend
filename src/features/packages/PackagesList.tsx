@@ -5,13 +5,17 @@ import { Plus } from "lucide-react";
 import { useState } from "react";
 import PackageForm from "./PackageForm";
 import PackageTable from "./PackageTable";
+import { useToast } from "../../hooks/useToast";
 import type { Package } from "./types";
 import { Button } from "../../components/Button/Button";
+import PackageDeleteModal from "./PackageDeleteModal";
 
 export default function PackagesList() {
   const queryClient = useQueryClient();
+  const toast = useToast();
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+  const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
 
   const { data: packages = [], isLoading } = useQuery({
     queryKey: ["packages"],
@@ -22,6 +26,12 @@ export default function PackagesList() {
     mutationFn: deletePackage,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["packages"] });
+      toast.success("Pacote excluído com sucesso!");
+    },
+    onError: (error: { response?: { data?: { detail?: string } } }) => {
+      const message =
+        error.response?.data?.detail || "Erro ao excluir o pacote.";
+      toast.error(message);
     },
   });
 
@@ -30,11 +40,14 @@ export default function PackagesList() {
     setIsFormOpen(true);
   };
 
-  const handleDelete = (pkg: Package) => {
-    if (
-      window.confirm(`Tem certeza que deseja excluir o pacote "${pkg.name}"?`)
-    ) {
-      deleteMutation.mutate(pkg.id);
+  const handleDeleteClick = (pkg: Package) => {
+    setPackageToDelete(pkg);
+  };
+
+  const handleConfirmDelete = () => {
+    if (packageToDelete) {
+      deleteMutation.mutate(packageToDelete.id);
+      setPackageToDelete(null);
     }
   };
 
@@ -74,7 +87,7 @@ export default function PackagesList() {
         rows={packages}
         loading={isLoading}
         onEdit={handleEdit}
-        onDelete={handleDelete}
+        onDelete={handleDeleteClick}
       />
 
       {isFormOpen && (
@@ -82,6 +95,16 @@ export default function PackagesList() {
           open={isFormOpen}
           onClose={handleCloseForm}
           editingPackage={editingPackage}
+        />
+      )}
+
+      {packageToDelete && (
+        <PackageDeleteModal
+          open={!!packageToDelete}
+          pkg={packageToDelete}
+          loading={deleteMutation.isPending}
+          onCancel={() => setPackageToDelete(null)}
+          onConfirm={handleConfirmDelete}
         />
       )}
     </Box>

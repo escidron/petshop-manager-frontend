@@ -22,10 +22,10 @@ export const packageItemSchema = z.object({
 });
 
 export const packageSchema = z.object({
-  name: z.string().min(1, "O nome do pacote é obrigatório"),
+  name: z.string().min(1, "O nome do pacote é obrigatório").max(100),
   description: z.string().max(500).optional().nullable(),
-  price_cents: z.coerce.number().min(0, "Preço deve ser maior ou igual a zero"),
-  validity_days: z.coerce.number().min(1, "Validade deve ser de pelo menos 1 dia").optional().nullable(),
+  price_cents: z.coerce.number().min(1, "O preço deve ser maior que zero"),
+  validity_days: z.coerce.number().min(1, "A validade deve ser de pelo menos 1 dia").optional().nullable(),
   is_active: z.boolean().default(true),
   items: z.array(packageItemSchema).min(1, "O pacote deve ter pelo menos um item"),
 });

@@ -226,7 +226,7 @@ export default function PackageTable({
                 </TableCell>
                 <TableCell align="left">{row.description || "-"}</TableCell>
                 <TableCell align="left">
-                  {row.items?.length || 0} itens
+                  {row.items?.length || 0} {row.items?.length === 1 ? "item" : "itens"}
                 </TableCell>
                 <TableCell align="right">
                   <Box

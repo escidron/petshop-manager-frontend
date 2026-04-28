@@ -35,6 +35,7 @@ import type { Product } from "../products/types";
 import { packageSchema, type PackageFormData } from "./schemas";
 import { formatBRLFromCents } from "../../utils/masks";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
+import { useToast } from "../../hooks/useToast";
 
 interface PackageFormProps {
   open: boolean;
@@ -48,6 +49,7 @@ export default function PackageForm({
   editingPackage,
 }: PackageFormProps) {
   const queryClient = useQueryClient();
+  const toast = useToast();
 
   const {
     control,
@@ -121,7 +123,17 @@ export default function PackageForm({
         : createPackage(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["packages"] });
+      toast.success(
+        editingPackage
+          ? "Pacote atualizado com sucesso!"
+          : "Pacote criado com sucesso!",
+      );
       onClose();
+    },
+    onError: (error: { response?: { data?: { detail?: string } } }) => {
+      const message =
+        error.response?.data?.detail || "Erro ao salvar o pacote.";
+      toast.error(message);
     },
   });
 
@@ -132,7 +144,7 @@ export default function PackageForm({
         (item.type === "product" && item.product_id),
     );
     if (validItems.length === 0) {
-      alert(
+      toast.warning(
         "Adicione pelo menos um item válido (serviço ou produto) ao pacote.",
       );
       return;
@@ -165,7 +177,7 @@ export default function PackageForm({
                 <FormLabel
                   sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}
                 >
-                  Nome do Pacote
+                  Nome do Pacote *
                 </FormLabel>
                 <Controller
                   name="name"
@@ -187,7 +199,7 @@ export default function PackageForm({
                 <FormLabel
                   sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}
                 >
-                  Preço do Combo
+                  Preço do Combo *
                 </FormLabel>
                 <Controller
                   name="price_cents"
@@ -525,7 +537,11 @@ export default function PackageForm({
                                 <TextField
                                   {...params}
                                   placeholder="Pesquisar serviço..."
-                                  error={!!errors.items?.[index]?.service_id}
+                                  error={!!errors.items?.[index]?.service_id || !!errors.items?.[index]?.quantity}
+                                  helperText={
+                                    errors.items?.[index]?.service_id?.message ||
+                                    errors.items?.[index]?.quantity?.message
+                                  }
                                   sx={{ backgroundColor: "#fff" }}
                                 />
                               )}
@@ -613,7 +629,11 @@ export default function PackageForm({
                                 <TextField
                                   {...params}
                                   placeholder="Pesquisar produto..."
-                                  error={!!errors.items?.[index]?.product_id}
+                                  error={!!errors.items?.[index]?.product_id || !!errors.items?.[index]?.quantity}
+                                  helperText={
+                                    errors.items?.[index]?.product_id?.message ||
+                                    errors.items?.[index]?.quantity?.message
+                                  }
                                   sx={{ backgroundColor: "#fff" }}
                                 />
                               )}
@@ -639,11 +659,12 @@ export default function PackageForm({
                   <Controller
                     name={`items.${index}.quantity`}
                     control={control}
-                    render={({ field }) => (
+                    render={({ field, fieldState }) => (
                       <TextField
                         {...field}
                         type="number"
                         size="small"
+                        error={!!fieldState.error}
                         sx={{ backgroundColor: "#fff" }}
                       />
                     )}
