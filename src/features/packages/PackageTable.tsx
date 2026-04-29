@@ -213,6 +213,10 @@ export default function PackageTable({
                 key={row.id}
                 sx={{
                   transition: "background-color 0.2s ease",
+                  opacity: row.is_active ? 1 : 0.6,
+                  backgroundColor: row.is_active
+                    ? "transparent"
+                    : "rgba(0,0,0,0.02)",
                   "&:hover": {
                     backgroundColor: "secondary.main",
                   },

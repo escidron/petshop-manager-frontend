@@ -12,11 +12,13 @@ import {
   InputAdornment,
   Typography,
   CircularProgress,
+  LinearProgress,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useSuppliers } from "../hooks/useSuppliers";
 import SupplierFormModal from "../features/suppliers/SupplierFormModal";
+import SupplierDeleteModal from "../features/suppliers/SupplierDeleteModal";
 import { deleteSupplier } from "../api/services/suppliers";
 import { useToast } from "../hooks/useToast";
 import type { Supplier } from "../features/suppliers/types";
@@ -31,6 +33,10 @@ export default function SuppliersPage() {
   const [supplierToEdit, setSupplierToEdit] = useState<Supplier | undefined>(
     undefined,
   );
+  const [supplierToDelete, setSupplierToDelete] = useState<Supplier | undefined>(
+    undefined,
+  );
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     getSuppliers();
@@ -44,17 +50,24 @@ export default function SuppliersPage() {
     );
   }, [suppliers, search]);
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este fornecedor?")) {
-      try {
-        await deleteSupplier(id);
-        toast.success("Fornecedor excluído!");
-        getSuppliers();
-      } catch {
-        toast.error(
-          "Erro ao excluir fornecedor. Verifique se ele está vinculado a produtos em estoque.",
-        );
-      }
+  const handleDeleteClick = (supplier: Supplier) => {
+    setSupplierToDelete(supplier);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!supplierToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteSupplier(supplierToDelete.id);
+      toast.success("Fornecedor excluído!");
+      setSupplierToDelete(undefined);
+      getSuppliers();
+    } catch {
+      toast.error(
+        "Erro ao excluir fornecedor. Verifique se ele está vinculado a produtos em estoque.",
+      );
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -95,7 +108,18 @@ export default function SuppliersPage() {
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ position: "relative" }}>
+        {loading && filteredRows.length > 0 && (
+          <LinearProgress
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1,
+            }}
+          />
+        )}
         <Table>
           <TableHead>
             <TableRow>
@@ -152,7 +176,7 @@ export default function SuppliersPage() {
                   </IconButton>
                   <IconButton
                     size="small"
-                    onClick={() => handleDelete(row.id)}
+                    onClick={() => handleDeleteClick(row)}
                     color="error"
                   >
                     <Trash2 size={16} />
@@ -169,7 +193,7 @@ export default function SuppliersPage() {
                 </TableCell>
               </TableRow>
             )}
-            {loading && (
+            {loading && filteredRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
                   <CircularProgress />
@@ -190,6 +214,16 @@ export default function SuppliersPage() {
           getSuppliers();
         }}
       />
+
+      {supplierToDelete && (
+        <SupplierDeleteModal
+          open={!!supplierToDelete}
+          supplier={supplierToDelete}
+          loading={isDeleting}
+          onCancel={() => setSupplierToDelete(undefined)}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </Box>
   );
 }

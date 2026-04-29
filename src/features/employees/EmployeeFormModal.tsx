@@ -23,17 +23,18 @@ import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
 import { createEmployee, updateEmployee } from "../../api/services/employees";
 import type { Employee, EmployeeFormData } from "./types";
+import { maskPhone } from "../../utils/masks";
 
 const ROLE_LABELS: Record<string, string> = {
   groomer: "Tosador(a)",
-  vet: "Veterinário(a)",
+  bather: "Banhista",
   salesperson: "Vendedor(a)",
   other: "Outro",
 };
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
-  role: z.enum(["groomer", "vet", "salesperson", "other"]),
+  role: z.enum(["groomer", "bather", "salesperson", "other"]),
   phone: z.string().nullable().optional(),
   email: z.string().email("E-mail inválido").nullable().optional().or(z.literal("")),
   is_active: z.boolean(),
@@ -156,6 +157,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                   placeholder="(11) 99999-9999"
+                  onChange={(e) => field.onChange(maskPhone(e.target.value))}
                 />
               )}
             />

@@ -7,7 +7,6 @@ import {
   Tab,
   Paper,
   Stack,
-  Button,
   Divider,
   Grid,
   Chip,
@@ -65,6 +64,7 @@ import CheckoutForm from "../features/billing/CheckoutForm";
 import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import PixQrCode from "../features/billing/PixQrCode";
 import type { PaymentMethod, CheckoutPixResponse } from "../features/billing/types";
+import { Button } from "../components/Button/Button";
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -1111,7 +1111,6 @@ const SettingsPage = () => {
                   variant="contained"
                   startIcon={<Plus size={18} />}
                   onClick={() => setOpenCreateUser(true)}
-                  sx={{ borderRadius: 2 }}
                 >
                   Novo Usuário
                 </Button>

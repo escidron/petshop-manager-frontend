@@ -13,11 +13,13 @@ import {
   Typography,
   CircularProgress,
   Chip,
+  LinearProgress,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
 import EmployeeFormModal from "../features/employees/EmployeeFormModal";
+import EmployeeDeleteModal from "../features/employees/EmployeeDeleteModal";
 import { deleteEmployee } from "../api/services/employees";
 import { useToast } from "../hooks/useToast";
 import type { Employee } from "../features/employees/types";
@@ -36,6 +38,8 @@ export default function EmployeesPage() {
   const toast = useToast();
   const [modalOpen, setModalOpen] = useState(false);
   const [employeeToEdit, setEmployeeToEdit] = useState<Employee | undefined>(undefined);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | undefined>(undefined);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     getEmployees();
@@ -49,15 +53,22 @@ export default function EmployeesPage() {
     );
   }, [employees, search]);
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Tem certeza que deseja excluir este funcionário?")) {
-      try {
-        await deleteEmployee(id);
-        toast.success("Funcionário excluído!");
-        getEmployees();
-      } catch {
-        toast.error("Erro ao excluir funcionário.");
-      }
+  const handleDeleteClick = (employee: Employee) => {
+    setEmployeeToDelete(employee);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!employeeToDelete) return;
+    setIsDeleting(true);
+    try {
+      await deleteEmployee(employeeToDelete.id);
+      toast.success("Funcionário excluído!");
+      setEmployeeToDelete(undefined);
+      getEmployees();
+    } catch {
+      toast.error("Erro ao excluir funcionário.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -102,7 +113,18 @@ export default function EmployeesPage() {
         </Button>
       </Box>
 
-      <TableContainer component={Paper}>
+      <TableContainer component={Paper} sx={{ position: "relative" }}>
+        {loading && filteredRows.length > 0 && (
+          <LinearProgress
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              zIndex: 1,
+            }}
+          />
+        )}
         <Table>
           <TableHead>
             <TableRow>
@@ -115,7 +137,15 @@ export default function EmployeesPage() {
           </TableHead>
           <TableBody>
             {filteredRows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                sx={{
+                  opacity: row.is_active ? 1 : 0.6,
+                  backgroundColor: row.is_active
+                    ? "transparent"
+                    : "rgba(0,0,0,0.02)",
+                }}
+              >
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{ROLE_LABELS[row.role] ?? row.role}</TableCell>
                 <TableCell>{row.phone || "-"}</TableCell>
@@ -130,7 +160,7 @@ export default function EmployeesPage() {
                   <IconButton size="small" onClick={() => handleEdit(row)} color="primary">
                     <Edit2 size={16} />
                   </IconButton>
-                  <IconButton size="small" onClick={() => handleDelete(row.id)} color="error">
+                  <IconButton size="small" onClick={() => handleDeleteClick(row)} color="error">
                     <Trash2 size={16} />
                   </IconButton>
                 </TableCell>
@@ -145,7 +175,7 @@ export default function EmployeesPage() {
                 </TableCell>
               </TableRow>
             )}
-            {loading && (
+            {loading && filteredRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
                   <CircularProgress />
@@ -166,6 +196,16 @@ export default function EmployeesPage() {
           getEmployees();
         }}
       />
+
+      {employeeToDelete && (
+        <EmployeeDeleteModal
+          open={!!employeeToDelete}
+          employee={employeeToDelete}
+          loading={isDeleting}
+          onCancel={() => setEmployeeToDelete(undefined)}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </Box>
   );
 }

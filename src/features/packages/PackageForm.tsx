@@ -12,6 +12,8 @@ import {
   Grid,
   FormControl,
   FormLabel,
+  FormControlLabel,
+  Switch,
   InputAdornment,
   Divider,
   Autocomplete,
@@ -245,6 +247,7 @@ export default function PackageForm({
                 />
               </FormControl>
             </Grid>
+
             <Grid size={{ xs: 12, sm: 4 }}>
               <FormControl fullWidth>
                 <FormLabel
@@ -261,10 +264,55 @@ export default function PackageForm({
                       value={field.value ?? ""}
                       type="number"
                       error={!!fieldState.error}
-                      helperText={fieldState.error?.message || "Deixe vazio para validade infinita"}
+                      helperText={
+                        fieldState.error?.message ||
+                        "Deixe vazio para validade infinita"
+                      }
+                      slotProps={{
+                        formHelperText: {
+                          sx: {
+                            color: fieldState.error
+                              ? "error.main"
+                              : "text.primary",
+                          },
+                        },
+                      }}
                       size="small"
                       placeholder="ex: 30"
                       fullWidth
+                    />
+                  )}
+                />
+              </FormControl>
+            </Grid>
+
+            {/* Status do Pacote */}
+            <Grid size={{ xs: 12, sm: 4 }}>
+              <FormControl fullWidth>
+                <FormLabel
+                  sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}
+                >
+                  Status do Pacote
+                </FormLabel>
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                        />
+                      }
+                      label={field.value ? "Ativo" : "Inativo"}
+                      sx={{
+                        "& .MuiFormControlLabel-label": {
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: field.value ? "success.main" : "text.disabled",
+                        },
+                      }}
                     />
                   )}
                 />

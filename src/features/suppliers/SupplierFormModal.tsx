@@ -23,7 +23,13 @@ import { maskCnpj } from "../../utils/masks";
 
 const supplierSchema = z.object({
   name: z.string().min(1, "O nome é obrigatório"),
-  cnpj: z.string().nullable().optional(),
+  cnpj: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((val) => !val || val.replace(/\D/g, "").length === 14, {
+      message: "CNPJ deve ter 14 dígitos",
+    }),
 });
 
 type Props = {
