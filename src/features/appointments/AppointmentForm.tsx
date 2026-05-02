@@ -407,7 +407,7 @@ export default function AppointmentForm({
 
                     // eslint-disable-next-line react-hooks/rules-of-hooks
                     const filteredServices = useMemo(() => {
-                      if (!showAllBySection[index]) return services ?? [];
+                      if (showAllBySection[index]) return services ?? [];
                       return getServicesForPet(services ?? [], currentPet);
                       // eslint-disable-next-line react-hooks/exhaustive-deps
                     }, [services, currentPet, showAllBySection[index]]);
@@ -526,7 +526,7 @@ export default function AppointmentForm({
                     }
                   />
                 }
-                label="Filtrar por porte, pelagem e animal"
+                label="Mostrar todos os serviços (ignorar porte e pelagem)"
                 slotProps={{ typography: { sx: { fontSize: 12 } } }}
               />
 
