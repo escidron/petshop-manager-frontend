@@ -10,11 +10,12 @@ import {
   Autocomplete,
   TextField,
 } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient, useQueries } from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
 import { assignAppointmentEmployees } from "../../api/services/appointments";
+import { listClientPackagesByPet } from "../../api/services/client_packages";
 import { useToast } from "../../hooks/useToast";
 import {
   CalendarCheck,
@@ -33,7 +34,6 @@ import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
 import CustomCard from "../../components/Card/CustomCard";
 import theme from "../../theme";
-import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import { Button } from "../../components/Button/Button";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import { formatAppointmentDate } from "../../utils/formatAppointmentDate";
@@ -60,8 +60,8 @@ const AppointmentDetailsModal = ({
   const toast = useToast();
   const queryClient = useQueryClient();
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
-  const totalCents = getAppointmentTotal(appointment);
 
+  // Fetch employees
   const { data: employees = [] } = useQuery({
     queryKey: ["employees"],
     queryFn: getEmployees,
@@ -69,6 +69,61 @@ const AppointmentDetailsModal = ({
   });
 
   const activeEmployees = employees.filter((e) => e.is_active);
+
+  // Fetch Active Packages for all Pets in Appointment
+  const packageQueries = useQueries({
+    queries: (appointment?.items || []).map((item) => ({
+      queryKey: ["clientPackages", "pet", item.pet.id],
+      queryFn: () => listClientPackagesByPet(item.pet.id),
+      enabled: open,
+    })),
+  });
+
+  // Dynamically map which services will be covered by packages
+  const coveredServiceKeys = useMemo(() => {
+    const coveredIds = new Set<string>();
+    
+    appointment.items.forEach((item, index) => {
+      const petPackages = packageQueries[index]?.data || [];
+      const map = new Map<number, number>();
+      
+      petPackages.forEach((pkg) => {
+        if (!pkg.is_active) return;
+        pkg.credits.forEach((credit) => {
+          if (credit.service_id && credit.remaining_qty > 0) {
+            const current = map.get(credit.service_id) || 0;
+            map.set(credit.service_id, current + credit.remaining_qty);
+          }
+        });
+      });
+
+      item.services.forEach((s) => {
+        const key = `${item.id}-${s.id}`;
+        if (s.is_package_covered) {
+           coveredIds.add(key);
+        } else if (appointment.status !== "completed") {
+           const current = map.get(s.id) || 0;
+           if (current > 0) {
+               coveredIds.add(key);
+               map.set(s.id, current - 1);
+           }
+        }
+      });
+    });
+    
+    return coveredIds;
+  }, [appointment, packageQueries]);
+
+  // Compute precise appointment total excluding currently-covered or future-covered
+  const totalCents = useMemo(() => {
+    return appointment.items.reduce((itemsAcc, item) => {
+      const itemTotal = item.services.reduce((servicesAcc, s) => {
+        const key = `${item.id}-${s.id}`;
+        return coveredServiceKeys.has(key) ? servicesAcc : servicesAcc + s.price_cents;
+      }, 0);
+      return itemsAcc + itemTotal;
+    }, 0);
+  }, [appointment, coveredServiceKeys]);
 
   const [localAssignments, setLocalAssignments] = useState<
     Record<string, number | null>
@@ -493,7 +548,7 @@ const AppointmentDetailsModal = ({
                               size={16}
                             />
                             <Typography variant="body2">{s.name}</Typography>
-                            {s.is_package_covered && (
+                            {coveredServiceKeys.has(key) && (
                               <Chip
                                 label="pacote"
                                 size="small"
@@ -507,14 +562,17 @@ const AppointmentDetailsModal = ({
                           <Typography
                             variant="body2"
                             sx={{
-                              textDecoration: s.is_package_covered
+                              textDecoration: coveredServiceKeys.has(key)
                                 ? "line-through"
                                 : "none",
-                              color: s.is_package_covered
+                              color: coveredServiceKeys.has(key)
                                 ? "text.disabled"
                                 : "text.primary",
                             }}
                           >
+                            {coveredServiceKeys.has(key) && !s.is_package_covered ? (
+                               <span style={{ fontSize: "0.75rem", marginRight: 8, fontStyle: "italic", textDecoration: "none" }}>disponível</span>
+                            ) : null}
                             {(s.price_cents / 100).toLocaleString("pt-BR", {
                               style: "currency",
                               currency: "BRL",
@@ -586,7 +644,10 @@ const AppointmentDetailsModal = ({
                     </Typography>
                     <Typography variant="body2" fontWeight={600}>
                       {item.services
-                        .reduce((acc, s) => acc + s.price_cents / 100, 0)
+                        .reduce((acc, s) => {
+                             const key = `${item.id}-${s.id}`;
+                             return coveredServiceKeys.has(key) ? acc : acc + s.price_cents / 100;
+                        }, 0)
                         .toLocaleString("pt-BR", {
                           style: "currency",
                           currency: "BRL",

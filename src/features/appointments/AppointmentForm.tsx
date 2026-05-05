@@ -1,11 +1,9 @@
 import {
   Autocomplete,
   Box,
-  Checkbox,
   CircularProgress,
   Divider,
   FormControl,
-  FormControlLabel,
   FormLabel,
   TextField,
 } from "@mui/material";
@@ -15,7 +13,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
-import { Plus, Trash } from "lucide-react";
+import { Plus } from "lucide-react";
 import type { Client } from "../clients/types";
 import type { Pet } from "../pets/types";
 import type { Service } from "../tenant_services/types";
@@ -23,15 +21,11 @@ import type { AppointmentFormData } from "./types";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appointmentSchema } from "./schemas";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dayjs from "dayjs";
-import { getServicesForPet } from "../../utils/serviceMatcher";
-import {
-  formatPrice,
-  formatServiceLabel,
-} from "../../utils/formatServiceLabel";
 import "dayjs/locale/pt-br";
 import theme from "../../theme";
+import AppointmentPetItem from "./AppointmentPetItem";
 dayjs.locale("pt-br");
 
 type Props = {
@@ -71,9 +65,6 @@ export default function AppointmentForm({
   autoSelectPet,
   autoSelectService,
 }: Props) {
-  const [showAllBySection, setShowAllBySection] = useState<
-    Record<number, boolean>
-  >({});
   const [scheduledDate, setScheduledDate] = useState<dayjs.Dayjs | null>(
     defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null,
   );
@@ -328,222 +319,23 @@ export default function AppointmentForm({
           Pets e Serviços
         </FormLabel>
 
-        {fields.map((item, index) => {
-          const itemError = errors.items?.[index];
-
-          return (
-            <Box
-              key={item.id}
-              sx={{
-                display: "flex",
-                flexDirection: "column",
-                gap: 1,
-                mb: 2,
-                p: 2,
-                border: "1px solid #eee",
-                borderRadius: 2,
-              }}
-            >
-              {/* PET */}
-              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                <Controller
-                  name={`items.${index}.pet_id`}
-                  control={control}
-                  render={({ field }) => {
-                    const selectedPetIds =
-                      items
-                        ?.map((i) => i.pet_id)
-                        .filter((id) => id && id !== field.value) ?? [];
-                    const availablePets =
-                      pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ??
-                      [];
-                    return (
-                      <Autocomplete<Pet>
-                        sx={{ flex: 1 }}
-                        options={availablePets}
-                        noOptionsText="Nenhum pet cadastrado"
-                        size="small"
-                        value={pets?.find((p) => p.id === field.value) ?? null}
-                        getOptionLabel={(option) => option.name}
-                        isOptionEqualToValue={(o, v) => o.id === v.id}
-                        onChange={(_, value) => {
-                          field.onChange(value?.id ?? 0);
-                          setValue(`items.${index}.service_ids`, []);
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder={
-                              watchedClientId
-                                ? "Selecionar pet"
-                                : "Selecione um cliente primeiro"
-                            }
-                          />
-                        )}
-                      />
-                    );
-                  }}
-                />
-                <Button
-                  variant="outlined"
-                  sx={{ width: "150px", height: "40px", flexShrink: 0 }}
-                  startIcon={<Plus size={14} />}
-                  onClick={() => onCreatePet?.(index, watchedClientId ?? 0)}
-                >
-                  Criar Pet
-                </Button>
-              </Box>
-
-              {/* SERVIÇOS */}
-              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                <Controller
-                  name={`items.${index}.service_ids`}
-                  control={control}
-                  render={({ field }) => {
-                    const selectedPetId = items?.[index]?.pet_id;
-                    const currentPet = pets?.find(
-                      (p) => p.id === selectedPetId,
-                    );
-
-                    // eslint-disable-next-line react-hooks/rules-of-hooks
-                    const filteredServices = useMemo(() => {
-                      if (showAllBySection[index]) return services ?? [];
-                      return getServicesForPet(services ?? [], currentPet);
-                      // eslint-disable-next-line react-hooks/exhaustive-deps
-                    }, [services, currentPet, showAllBySection[index]]);
-
-                    return (
-                      <Autocomplete
-                        sx={{ flex: 1 }}
-                        disabled={!currentPet}
-                        noOptionsText="Nenhum serviço cadastrado"
-                        multiple
-                        options={filteredServices}
-                        filterOptions={(options, state) => {
-                          const input = state.inputValue.toLowerCase();
-                          return options.filter((option) =>
-                            `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
-                              .toLowerCase()
-                              .includes(input),
-                          );
-                        }}
-                        disableCloseOnSelect
-                        size="small"
-                        value={
-                          filteredServices.filter((s) =>
-                            field.value?.includes(s.id),
-                          ) ?? []
-                        }
-                        getOptionLabel={(option) => formatServiceLabel(option)}
-                        isOptionEqualToValue={(option, value) =>
-                          option.id === value.id
-                        }
-                        onChange={(_, value) =>
-                          field.onChange(value.map((v) => v.id))
-                        }
-                        renderOption={(props, option, { selected }) => {
-                          const { ...rest } = props;
-                          return (
-                            <li
-                              {...rest}
-                              key={option.id}
-                              style={{
-                                display: "flex",
-                                alignItems: "center",
-                                justifyContent: "space-between",
-                                width: "100%",
-                              }}
-                            >
-                              <Box
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 8,
-                                }}
-                              >
-                                <Checkbox
-                                  checked={selected}
-                                  disableRipple
-                                  sx={{ color: "primary.main", py: 0 }}
-                                />
-                                <Box>
-                                  <Box style={{ fontWeight: 500 }}>
-                                    {formatServiceLabel(option)}
-                                  </Box>
-                                  {option.description && (
-                                    <div style={{ fontSize: 12, opacity: 0.6 }}>
-                                      {option.description}
-                                    </div>
-                                  )}
-                                </Box>
-                              </Box>
-                              <Box style={{ fontWeight: 600 }}>
-                                {formatPrice(option.price_cents)}
-                              </Box>
-                            </li>
-                          );
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder={
-                              currentPet
-                                ? "Selecionar serviços"
-                                : "Selecione um pet primeiro"
-                            }
-                            disabled={!currentPet}
-                            error={!!itemError?.service_ids}
-                            helperText={itemError?.service_ids?.message}
-                          />
-                        )}
-                      />
-                    );
-                  }}
-                />
-                <Button
-                  variant="outlined"
-                  sx={{ width: "150px", height: "40px", flexShrink: 0 }}
-                  startIcon={<Plus size={14} />}
-                  onClick={() => onCreateService?.(index)}
-                >
-                  Criar Serviço
-                </Button>
-              </Box>
-
-              <FormControlLabel
-                sx={{ width: "fit-content" }}
-                control={
-                  <Checkbox
-                    disableRipple
-                    size="small"
-                    sx={{ color: "primary.main", py: 0 }}
-                    checked={!!showAllBySection[index]}
-                    onChange={(e) =>
-                      setShowAllBySection((prev) => ({
-                        ...prev,
-                        [index]: e.target.checked,
-                      }))
-                    }
-                  />
-                }
-                label="Mostrar todos os serviços (ignorar porte e pelagem)"
-                slotProps={{ typography: { sx: { fontSize: 12 } } }}
-              />
-
-              {fields.length > 1 && (
-                <Button
-                  startIcon={<Trash size={15} />}
-                  variant="text"
-                  color="error"
-                  sx={{ width: "fit-content", mx: "auto" }}
-                  onClick={() => remove(index)}
-                >
-                  Remover Pet
-                </Button>
-              )}
-            </Box>
-          );
-        })}
+        {fields.map((item, index) => (
+          <AppointmentPetItem
+            key={item.id}
+            index={index}
+            control={control}
+            errors={errors}
+            setValue={setValue}
+            watchedClientId={watchedClientId}
+            pets={pets ?? []}
+            services={services ?? []}
+            items={items}
+            onCreatePet={onCreatePet}
+            onCreateService={onCreateService}
+            onRemove={() => remove(index)}
+            isOnlyPet={fields.length <= 1}
+          />
+        ))}
 
         <Button
           sx={{ display: "flex", mx: "auto" }}
