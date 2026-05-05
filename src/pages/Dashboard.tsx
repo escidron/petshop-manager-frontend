@@ -20,6 +20,7 @@ import { getAppointmentsByDay, getAppointmentsByTenant } from "../api/services/a
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";
+import { Button } from "../components/Button/Button";
 
 function CustomDay(props: PickersDayProps & { highlightedDays?: Set<string>, day: dayjs.Dayjs }) {
   const { highlightedDays = new Set(), day, outsideCurrentMonth, ...other } = props;
@@ -178,8 +179,25 @@ const Dashboard = () => {
                     <Typography variant="subtitle2" fontWeight={600} color="text.primary">
                       Calendário
                     </Typography>
-                    <Box sx={{ transform: isCalendarExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "0.2s" }}>
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      {!date.isSame(dayjs(), "day") && (
+                        <Button
+                          size="small"
+                          variant="outlined"
+                          sx={{ height: 24, fontSize: "0.7rem", py: 0, px: 1 }}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setDate(dayjs());
+                            setCalendarMonth(dayjs().startOf("month"));
+                            if (!isCalendarExpanded) setIsCalendarExpanded(true);
+                          }}
+                        >
+                          Hoje
+                        </Button>
+                      )}
+                      <Box sx={{ transform: isCalendarExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "0.2s" }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      </Box>
                     </Box>
                   </Box>
 
