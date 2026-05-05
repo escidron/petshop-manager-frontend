@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Badge } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
 import GroomingQueue from "../features/dashboard/GroomingQueue";
@@ -8,6 +8,7 @@ import OpenInvoices from "../features/dashboard/OpenInvoices";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
+import { PickersDay, type PickersDayProps } from "@mui/x-date-pickers/PickersDay";
 import "dayjs/locale/pt-br";
 import dayjs from "dayjs";
 import type {
@@ -15,10 +16,41 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAppointmentsByDay } from "../api/services/appointments";
+import { getAppointmentsByDay, getAppointmentsByTenant } from "../api/services/appointments";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";
+
+function CustomDay(props: PickersDayProps & { highlightedDays?: Set<string>, day: dayjs.Dayjs }) {
+  const { highlightedDays = new Set(), day, outsideCurrentMonth, ...other } = props;
+
+  const hasAppointment = !outsideCurrentMonth && highlightedDays.has(day.format("YYYY-MM-DD"));
+
+  if (!hasAppointment) {
+    return <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />;
+  }
+
+  return (
+    <Badge
+      key={day.toString()}
+      overlap="circular"
+      variant="dot"
+      sx={{
+        "& .MuiBadge-badge": {
+          backgroundColor: "#1976d2", // primary main
+          bottom: 4,
+          right: "50%",
+          transform: "translateX(50%)",
+          width: 14,
+          height: 3,
+          borderRadius: 2,
+        },
+      }}
+    >
+      <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
+    </Badge>
+  );
+}
 
 const Dashboard = () => {
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
@@ -28,6 +60,7 @@ const Dashboard = () => {
   const isOnboarding = tenant?.onboarding_step !== "completed";
 
   const [date, setDate] = useState<dayjs.Dayjs>(dayjs());
+  const [calendarMonth, setCalendarMonth] = useState<dayjs.Dayjs>(dayjs().startOf("month"));
   const formattedDate = date.format("YYYY-MM-DD");
 
   const { data: dailyAppointments = [], isFetching } = useQuery({
@@ -35,6 +68,24 @@ const Dashboard = () => {
     queryFn: () => getAppointmentsByDay(formattedDate),
     placeholderData: keepPreviousData,
   });
+
+  const { data: monthlyAppointments = [] } = useQuery({
+    queryKey: ["appointments", "month", calendarMonth.format("YYYY-MM")],
+    queryFn: () =>
+      getAppointmentsByTenant(
+        calendarMonth.startOf("month").format("YYYY-MM-DD"),
+        calendarMonth.endOf("month").format("YYYY-MM-DD")
+      ),
+    placeholderData: keepPreviousData,
+  });
+
+  const highlightedDays = useMemo(() => {
+    const days = new Set<string>();
+    monthlyAppointments.forEach((apt) => {
+      days.add(dayjs(apt.scheduled_at).format("YYYY-MM-DD"));
+    });
+    return days;
+  }, [monthlyAppointments]);
 
   const isFlowOpen = (
     flow: AppointmentFlowState,
@@ -139,9 +190,18 @@ const Dashboard = () => {
                         onChange={(newDate) => {
                           if (newDate) setDate(newDate);
                         }}
+                        onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
                         dayOfWeekFormatter={(day: dayjs.Dayjs) => {
                           const days = ['dom', 'seg', 'ter', 'qua', 'qui', 'sex', 'sab'];
                           return days[day.day()];
+                        }}
+                        slots={{
+                          day: CustomDay,
+                        }}
+                        slotProps={{
+                          day: {
+                            highlightedDays,
+                          } as any,
                         }}
                         sx={{
                           width: "100%",
@@ -178,6 +238,10 @@ const Dashboard = () => {
                             height: "36px",
                             color: "#3d4048 !important",
                             fontSize: "0.85rem",
+                            "&.MuiPickersDay-today:not(.Mui-selected)": {
+                              border: "none !important",
+                              backgroundColor: "#e0e0e0 !important",
+                            },
                             "&.Mui-selected": {
                               color: "white !important",
                               backgroundColor: "primary.main !important"
