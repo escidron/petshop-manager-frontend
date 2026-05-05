@@ -84,16 +84,19 @@ export default function FinancialPage() {
       0,
     );
 
+    const canceledAppointmentsCount = allAppointments.filter((a) => a.status === "canceled").length;
+    const canceledSalesCount = allSales.filter((s) => s.status === "canceled").length;
+
     return {
       totalRevenueCents,
       completedCount: revenueTransactions.length,
-      canceledCount: 0,
+      canceledCount: canceledAppointmentsCount + canceledSalesCount,
       averageTicketCents:
         revenueTransactions.length > 0
           ? totalRevenueCents / revenueTransactions.length
           : 0,
     };
-  }, [filteredTransactions]);
+  }, [filteredTransactions, allAppointments, allSales]);
 
   return (
     <Box sx={{ maxWidth: "1200px", mx: "auto", py: 4 }}>

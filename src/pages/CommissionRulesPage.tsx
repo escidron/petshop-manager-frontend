@@ -19,6 +19,7 @@ import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
 import { useServices } from "../hooks/useServices";
 import CommissionRuleFormModal from "../features/commissions/CommissionRuleFormModal";
+import CommissionRuleDeleteModal from "../features/commissions/CommissionRuleDeleteModal";
 import { deleteCommissionRule, getCommissionRules } from "../api/services/commissions";
 import { useToast } from "../hooks/useToast";
 import type { CommissionRule } from "../features/commissions/types";
@@ -39,6 +40,8 @@ export default function CommissionRulesPage() {
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [ruleToEdit, setRuleToEdit] = useState<CommissionRule | undefined>(undefined);
+  const [ruleToDelete, setRuleToDelete] = useState<CommissionRule | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   const { employees, getEmployees } = useEmployees();
   const { services, getServices } = useServices();
   const toast = useToast();
@@ -77,15 +80,22 @@ export default function CommissionRulesPage() {
     return rules.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
   }, [rules, search]);
 
-  const handleDelete = async (id: number) => {
-    if (confirm("Deseja excluir esta regra de comissão?")) {
-      try {
-        await deleteCommissionRule(id);
-        toast.success("Regra excluída!");
-        loadRules();
-      } catch {
-        toast.error("Erro ao excluir regra.");
-      }
+  const handleDeleteClick = (rule: CommissionRule) => {
+    setRuleToDelete(rule);
+  };
+
+  const handleConfirmDelete = async () => {
+    if (!ruleToDelete) return;
+    try {
+      setIsDeleting(true);
+      await deleteCommissionRule(ruleToDelete.id);
+      toast.success("Regra excluída!");
+      loadRules();
+      setRuleToDelete(null);
+    } catch {
+      toast.error("Erro ao excluir regra.");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -131,7 +141,13 @@ export default function CommissionRulesPage() {
           </TableHead>
           <TableBody>
             {filteredRows.map((row) => (
-              <TableRow key={row.id}>
+              <TableRow
+                key={row.id}
+                sx={{
+                  transition: "opacity 0.2s ease",
+                  opacity: row.is_active ? 1 : 0.5,
+                }}
+              >
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.employee_id ? (employeeMap[row.employee_id] ?? "-") : <em style={{ color: "gray" }}>Qualquer</em>}</TableCell>
                 <TableCell>
@@ -173,7 +189,7 @@ export default function CommissionRulesPage() {
                   >
                     <Edit2 size={16} />
                   </IconButton>
-                  <IconButton size="small" color="error" onClick={() => handleDelete(row.id)}>
+                  <IconButton size="small" color="error" onClick={() => handleDeleteClick(row)}>
                     <Trash2 size={16} />
                   </IconButton>
                 </TableCell>
@@ -188,7 +204,7 @@ export default function CommissionRulesPage() {
                 </TableCell>
               </TableRow>
             )}
-            {loading && (
+            {loading && filteredRows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                   <CircularProgress />
@@ -208,6 +224,16 @@ export default function CommissionRulesPage() {
         onClose={() => setModalOpen(false)}
         onSuccess={() => { setModalOpen(false); loadRules(); }}
       />
+
+      {ruleToDelete && (
+        <CommissionRuleDeleteModal
+          open={!!ruleToDelete}
+          rule={ruleToDelete}
+          loading={isDeleting}
+          onCancel={() => setRuleToDelete(null)}
+          onConfirm={handleConfirmDelete}
+        />
+      )}
     </Box>
   );
 }

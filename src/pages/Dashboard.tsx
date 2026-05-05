@@ -128,7 +128,7 @@ const Dashboard = () => {
                       Calendário
                     </Typography>
                     <Box sx={{ transform: isCalendarExpanded ? "rotate(0deg)" : "rotate(-90deg)", transition: "0.2s" }}>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m6 9 6 6 6-6"/></svg>
                     </Box>
                   </Box>
 
@@ -145,7 +145,7 @@ const Dashboard = () => {
                         }}
                         sx={{
                           width: "100%",
-                          height: "300px",
+                          height: "320px",
                           margin: 0,
                           backgroundColor: "#ffffff",
                           "& *": {

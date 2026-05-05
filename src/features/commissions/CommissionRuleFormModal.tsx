@@ -29,6 +29,13 @@ import type { CommissionRule, CommissionRuleFormData } from "./types";
 import type { Employee } from "../employees/types";
 import type { Service } from "../tenant_services/types";
 import { formatServiceLabel } from "../../utils/formatServiceLabel";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
+import theme from "../../theme";
+dayjs.locale("pt-br");
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
@@ -195,24 +202,46 @@ export default function CommissionRuleFormModal({
                 <Controller
                   name="value"
                   control={control}
-                  render={({ field, fieldState }) => (
-                    <CustomTextField
-                      {...field}
-                      type="number"
-                      fullWidth
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              {commissionType === "percentage" ? "%" : "R$"}
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                    />
-                  )}
+                  render={({ field, fieldState }) => {
+                    const numValue =
+                      field.value !== undefined && field.value !== null && String(field.value) !== ""
+                        ? Number(field.value)
+                        : undefined;
+
+                    const formattedValue =
+                      numValue !== undefined
+                        ? numValue.toLocaleString("pt-BR", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })
+                        : "";
+
+                    return (
+                      <TextField
+                        value={formattedValue}
+                        size="small"
+                        fullWidth
+                        error={!!fieldState.error}
+                        helperText={fieldState.error?.message}
+                        placeholder="0,00"
+                        slotProps={{
+                          input: {
+                            endAdornment: (
+                              <InputAdornment position="end">
+                                {commissionType === "percentage" ? "%" : "R$"}
+                              </InputAdornment>
+                            ),
+                          },
+                        }}
+                        onChange={(e) => {
+                          const digits = e.target.value.replace(/\D/g, "");
+                          field.onChange(
+                            digits === "" ? undefined : Number(digits) / 100,
+                          );
+                        }}
+                      />
+                    );
+                  }}
                 />
               </FormControl>
 
@@ -306,13 +335,32 @@ export default function CommissionRuleFormModal({
                   <Controller
                     name="valid_from"
                     control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        value={field.value ?? ""}
-                        type="date"
-                        fullWidth
-                      />
+                    render={({ field, fieldState }) => (
+                      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                        <DatePicker
+                          format="DD/MM/YYYY"
+                          value={field.value ? dayjs(field.value) : null}
+                          onChange={(newDate) => {
+                            if (newDate && newDate.isValid()) {
+                              field.onChange(newDate.format("YYYY-MM-DD"));
+                            } else {
+                              field.onChange("");
+                            }
+                          }}
+                          slotProps={{
+                            textField: {
+                              size: "small",
+                              fullWidth: true,
+                              error: !!fieldState.error,
+                              helperText: fieldState.error?.message,
+                              placeholder: "DD/MM/AAAA",
+                              inputMode: "numeric",
+                              sx: { backgroundColor: theme.palette.common.white },
+                            },
+                            actionBar: { actions: [] },
+                          }}
+                        />
+                      </LocalizationProvider>
                     )}
                   />
                 </FormControl>
@@ -324,13 +372,32 @@ export default function CommissionRuleFormModal({
                   <Controller
                     name="valid_until"
                     control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        value={field.value ?? ""}
-                        type="date"
-                        fullWidth
-                      />
+                    render={({ field, fieldState }) => (
+                      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                        <DatePicker
+                          format="DD/MM/YYYY"
+                          value={field.value ? dayjs(field.value) : null}
+                          onChange={(newDate) => {
+                            if (newDate && newDate.isValid()) {
+                              field.onChange(newDate.format("YYYY-MM-DD"));
+                            } else {
+                              field.onChange("");
+                            }
+                          }}
+                          slotProps={{
+                            textField: {
+                              size: "small",
+                              fullWidth: true,
+                              error: !!fieldState.error,
+                              helperText: fieldState.error?.message,
+                              placeholder: "DD/MM/AAAA",
+                              inputMode: "numeric",
+                              sx: { backgroundColor: theme.palette.common.white },
+                            },
+                            actionBar: { actions: [] },
+                          }}
+                        />
+                      </LocalizationProvider>
                     )}
                   />
                 </FormControl>

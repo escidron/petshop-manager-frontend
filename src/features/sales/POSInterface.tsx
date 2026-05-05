@@ -343,7 +343,7 @@ export default function POSInterface() {
                 "&:hover": { borderWidth: 2 },
               }}
             >
-              PUXAR AGENDAMENTO DE HOJE
+              PUXAR AGENDAMENTOS
             </Button>
           </Box>
 

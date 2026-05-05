@@ -77,8 +77,8 @@ const AppointmentDetailsModal = ({
   useEffect(() => {
     if (open && appointment) {
       const initial: Record<string, number | null> = {};
-      appointment.items.forEach(item => {
-        item.services.forEach(svc => {
+      appointment.items.forEach((item) => {
+        item.services.forEach((svc) => {
           const key = `${item.id}-${svc.id}`;
           initial[key] = svc.employee_id || null;
         });
@@ -89,7 +89,8 @@ const AppointmentDetailsModal = ({
   }, [open, appointment]);
 
   const assignMutation = useMutation({
-    mutationFn: (assignments: any) => assignAppointmentEmployees(appointment.id, assignments),
+    mutationFn: (assignments: any) =>
+      assignAppointmentEmployees(appointment.id, assignments),
     onSuccess: () => {
       toast.success("Profissionais salvos com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
@@ -97,7 +98,7 @@ const AppointmentDetailsModal = ({
     },
     onError: () => {
       toast.error("Erro ao salvar profissionais");
-    }
+    },
   });
 
   const handleSaveEmployees = () => {
@@ -382,26 +383,36 @@ const AppointmentDetailsModal = ({
                       </>
                     )}
                   </Box>
-                  <Chip
-                    label={item.pet.gender === "male" ? "Macho" : "Femea"}
-                    icon={
-                      item.pet.gender === "male" ? (
-                        <Mars color={theme.palette.text.primary} size={16} />
-                      ) : (
-                        <Venus color={theme.palette.text.primary} size={16} />
-                      )
-                    }
-                    sx={{
-                      bgcolor:
-                        item.pet.gender === "male"
-                          ? "rgba(33, 150, 243, 0.3)"
-                          : "rgba(233, 30, 99, 0.3)",
-                      color: "text.primary",
-                      px: 1,
-                      height: "25px",
-                      borderRadius: 2,
-                    }}
-                  />
+                  {item.pet.gender &&
+                    (item.pet.gender.includes("male") ||
+                      item.pet.gender.includes("female")) && (
+                      <Chip
+                        label={item.pet.gender === "male" ? "Macho" : "Femea"}
+                        icon={
+                          item.pet.gender === "male" ? (
+                            <Mars
+                              color={theme.palette.text.primary}
+                              size={16}
+                            />
+                          ) : (
+                            <Venus
+                              color={theme.palette.text.primary}
+                              size={16}
+                            />
+                          )
+                        }
+                        sx={{
+                          bgcolor:
+                            item.pet.gender === "male"
+                              ? "rgba(33, 150, 243, 0.3)"
+                              : "rgba(233, 30, 99, 0.3)",
+                          color: "text.primary",
+                          px: 1,
+                          height: "25px",
+                          borderRadius: 2,
+                        }}
+                      />
+                    )}
                 </Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
                   <Typography variant="body2">{item.pet.species}</Typography>
@@ -417,7 +428,8 @@ const AppointmentDetailsModal = ({
                     <>
                       <Dot color={theme.palette.text.disabled} size={16} />
                       <Typography variant="body2">
-                        Pelagem {getCoatTypeLabel(item.pet.coat_type as CoatType)}
+                        Pelagem{" "}
+                        {getCoatTypeLabel(item.pet.coat_type as CoatType)}
                       </Typography>
                     </>
                   )}
@@ -454,70 +466,113 @@ const AppointmentDetailsModal = ({
                     const currentEmpId = localAssignments[key];
 
                     return (
-                    <Box
-                      key={s.id}
-                      sx={{
-                        display: "flex",
-                        flexDirection: "column",
-                        py: 0.5,
-                      }}
-                    >
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                          <Dot color={theme.palette.text.disabled} size={16} />
-                          <Typography variant="body2">{s.name}</Typography>
-                          {s.is_package_covered && (
-                            <Chip
-                              label="pacote"
-                              size="small"
-                              color="success"
-                              variant="outlined"
-                              icon={<Package size={10} />}
-                              sx={{ height: 18, fontSize: 10, px: 0.5 }}
-                            />
-                          )}
-                        </Box>
-                        <Typography
-                          variant="body2"
+                      <Box
+                        key={s.id}
+                        sx={{
+                          display: "flex",
+                          flexDirection: "column",
+                          py: 0.5,
+                        }}
+                      >
+                        <Box
                           sx={{
-                            textDecoration: s.is_package_covered
-                              ? "line-through"
-                              : "none",
-                            color: s.is_package_covered
-                              ? "text.disabled"
-                              : "text.primary",
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
                           }}
                         >
-                          {(s.price_cents / 100).toLocaleString("pt-BR", {
-                            style: "currency",
-                            currency: "BRL",
-                          })}
-                        </Typography>
-                      </Box>
-
-                      {/* Employee Select */}
-                      {appointment.status !== "pending" && appointment.status !== "canceled" && appointment.status !== "no_show" && (
-                        <Box sx={{ display: "flex", alignItems: "center", pl: 2, pb: 1, pt: 1 }}>
-                          <Typography variant="caption" sx={{ width: 100, color: "text.primary" }}>Profissional:</Typography>
-                          <Autocomplete
-                            size="small"
-                            sx={{ flex: 1, ml: 1 }}
-                            options={activeEmployees}
-                            getOptionLabel={(option) => option.name}
-                            isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
-                            value={activeEmployees.find(e => String(e.id) === String(currentEmpId)) || null}
-                            onChange={(_, val) => {
-                              setLocalAssignments(prev => ({
-                                ...prev,
-                                [key]: val ? val.id : null
-                              }));
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.5,
                             }}
-                            renderInput={(params) => <TextField {...params} placeholder="Selecionar..." />}
-                          />
+                          >
+                            <Dot
+                              color={theme.palette.text.disabled}
+                              size={16}
+                            />
+                            <Typography variant="body2">{s.name}</Typography>
+                            {s.is_package_covered && (
+                              <Chip
+                                label="pacote"
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                icon={<Package size={10} />}
+                                sx={{ height: 18, fontSize: 10, px: 0.5 }}
+                              />
+                            )}
+                          </Box>
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              textDecoration: s.is_package_covered
+                                ? "line-through"
+                                : "none",
+                              color: s.is_package_covered
+                                ? "text.disabled"
+                                : "text.primary",
+                            }}
+                          >
+                            {(s.price_cents / 100).toLocaleString("pt-BR", {
+                              style: "currency",
+                              currency: "BRL",
+                            })}
+                          </Typography>
                         </Box>
-                      )}
-                    </Box>
-                  )})}
+
+                        {/* Employee Select */}
+                        {appointment.status !== "pending" &&
+                          appointment.status !== "canceled" &&
+                          appointment.status !== "no_show" && (
+                            <Box
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                pl: 2,
+                                pb: 1,
+                                pt: 1,
+                              }}
+                            >
+                              <Typography
+                                variant="caption"
+                                sx={{ width: 100, color: "text.primary" }}
+                              >
+                                Profissional:
+                              </Typography>
+                              <Autocomplete
+                                size="small"
+                                sx={{ flex: 1, ml: 1 }}
+                                options={activeEmployees}
+                                getOptionLabel={(option) => option.name}
+                                isOptionEqualToValue={(option, value) =>
+                                  String(option.id) === String(value.id)
+                                }
+                                value={
+                                  activeEmployees.find(
+                                    (e) =>
+                                      String(e.id) === String(currentEmpId),
+                                  ) || null
+                                }
+                                onChange={(_, val) => {
+                                  setLocalAssignments((prev) => ({
+                                    ...prev,
+                                    [key]: val ? val.id : null,
+                                  }));
+                                }}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    placeholder="Selecionar..."
+                                  />
+                                )}
+                              />
+                            </Box>
+                          )}
+                      </Box>
+                    );
+                  })}
                   <Divider sx={{ my: 1 }} />
                   <Box
                     sx={{
@@ -542,29 +597,44 @@ const AppointmentDetailsModal = ({
               </CustomCard>
             ))}
 
-            {appointment.status !== "pending" && appointment.status !== "canceled" && appointment.status !== "no_show" && activeEmployees.length > 0 && (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}>
-                <Button 
-                   variant="outlined" 
-                   size="small" 
-                   onClick={handleSaveEmployees}
-                   loading={assignMutation.isPending}
+            {appointment.status !== "pending" &&
+              appointment.status !== "canceled" &&
+              appointment.status !== "no_show" &&
+              activeEmployees.length > 0 && (
+                <Box
+                  sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}
                 >
-                   Salvar Profissionais
-                </Button>
-              </Box>
-            )}
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={handleSaveEmployees}
+                    loading={assignMutation.isPending}
+                  >
+                    Salvar Profissionais
+                  </Button>
+                </Box>
+              )}
           </Box>
         </Box>
       </DialogContent>
 
-      <Dialog open={cancelConfirmOpen} onClose={() => setCancelConfirmOpen(false)}>
+      <Dialog
+        open={cancelConfirmOpen}
+        onClose={() => setCancelConfirmOpen(false)}
+      >
         <DialogTitle>Cancelar Agendamento</DialogTitle>
         <DialogContent>
-          <Typography>Tem certeza que deseja cancelar este agendamento? Esta ação não pode ser desfeita.</Typography>
+          <Typography>
+            Tem certeza que deseja cancelar este agendamento? Esta ação não pode
+            ser desfeita.
+          </Typography>
         </DialogContent>
         <DialogActions>
-          <Button variant="text" onClick={() => setCancelConfirmOpen(false)} disabled={!!loadingAction}>
+          <Button
+            variant="text"
+            onClick={() => setCancelConfirmOpen(false)}
+            disabled={!!loadingAction}
+          >
             Voltar
           </Button>
           <Button

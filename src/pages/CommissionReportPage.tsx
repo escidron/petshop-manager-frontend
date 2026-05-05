@@ -30,6 +30,13 @@ import CustomCard from "../components/Card/CustomCard";
 import theme from "../theme";
 import type { CommissionEntry } from "../features/commissions/types";
 import SaleDetailsModal from "../features/sales/SaleDetailsModal";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
+import { Button } from "../components/Button/Button";
+dayjs.locale("pt-br");
 
 const headerCellSx = {
   backgroundColor: "secondary.main",
@@ -119,9 +126,13 @@ export default function CommissionReportPage() {
 
   useEffect(() => {
     getEmployees();
-    loadEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    loadEntries();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterEmployee, filterStatus, filterFrom, filterTo]);
 
   const employeeMap = useMemo(
     () => Object.fromEntries(employees.map((e) => [e.id, e.name])),
@@ -276,30 +287,66 @@ export default function CommissionReportPage() {
             <MenuItem value="paid">Pago</MenuItem>
           </Select>
 
-          <TextField
-            size="small"
-            label="De"
-            type="date"
-            value={filterFrom}
-            onChange={(e) => setFilterFrom(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <TextField
-            size="small"
-            label="Até"
-            type="date"
-            value={filterTo}
-            onChange={(e) => setFilterTo(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <DatePicker
+                format="DD/MM/YYYY"
+                value={filterFrom ? dayjs(filterFrom) : null}
+                onChange={(newDate) => {
+                  if (newDate && newDate.isValid()) {
+                    setFilterFrom(newDate.format("YYYY-MM-DD"));
+                  } else {
+                    setFilterFrom("");
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    size: "small",
+                    placeholder: "DD/MM/AAAA",
+                    inputMode: "numeric",
+                  },
+                  actionBar: { actions: [] },
+                }}
+              />
+            </LocalizationProvider>
+            
+            <Typography variant="body2" color="text.primary" fontWeight={500} sx={{ ml: 1 }}>Até:</Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <DatePicker
+                format="DD/MM/YYYY"
+                value={filterTo ? dayjs(filterTo) : null}
+                onChange={(newDate) => {
+                  if (newDate && newDate.isValid()) {
+                    setFilterTo(newDate.format("YYYY-MM-DD"));
+                  } else {
+                    setFilterTo("");
+                  }
+                }}
+                slotProps={{
+                  textField: {
+                    size: "small",
+                    placeholder: "DD/MM/AAAA",
+                    inputMode: "numeric",
+                  },
+                  actionBar: { actions: [] },
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
 
-          <MuiButton
-            variant="contained"
-            onClick={loadEntries}
+          <Button
+            variant="outlined"
+            onClick={() => {
+              setFilterEmployee("");
+              setFilterStatus("");
+              setFilterFrom("");
+              setFilterTo("");
+            }}
             disabled={loading}
           >
-            Filtrar
-          </MuiButton>
+            Limpar Filtros
+          </Button>
         </Box>
       </Paper>
 
@@ -309,7 +356,7 @@ export default function CommissionReportPage() {
           severity="info"
           sx={{ mb: 2 }}
           action={
-            <MuiButton
+            <Button
               color="success"
               variant="contained"
               size="small"
@@ -319,7 +366,7 @@ export default function CommissionReportPage() {
               {paying
                 ? "Processando..."
                 : `Marcar ${selectedPending.length} como pago`}
-            </MuiButton>
+            </Button>
           }
         >
           {selectedPending.length} entrada(s) selecionada(s) — total R${" "}
@@ -431,7 +478,7 @@ export default function CommissionReportPage() {
                 </TableCell>
               </TableRow>
             )}
-            {loading && (
+            {loading && entries.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
                   <CircularProgress />

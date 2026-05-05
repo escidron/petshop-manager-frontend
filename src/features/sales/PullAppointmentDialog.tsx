@@ -32,22 +32,9 @@ export default function PullAppointmentDialog({
     queryFn: () => getAppointmentsByTenant(),
   });
 
-  // Filter for confirmed, in-progress or completed appointments that are recent (today or yesterday)
+  // Filter for completed and unpaid appointments (for POS)
   const pullableAppointments = allAppointments
-    .filter((apt) => {
-      const scheduledDate = dayjs(apt.scheduled_at);
-      // Include appointments from today or yesterday to be more flexible with timezones/late work
-      const isRecent = scheduledDate.isAfter(
-        dayjs().subtract(1, "day").startOf("day"),
-      );
-
-      const isPullableStatus = [
-        "confirmed",
-        "in_progress",
-        "completed",
-      ].includes(apt.status);
-      return isRecent && isPullableStatus;
-    })
+    .filter((apt) => apt.status === "completed" && !apt.is_paid)
     .sort((a, b) => dayjs(b.scheduled_at).diff(dayjs(a.scheduled_at)));
 
   return (
@@ -66,7 +53,7 @@ export default function PullAppointmentDialog({
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Calendar size={20} />
           <Typography variant="h6" fontWeight={700}>
-            Puxar Agendamento do Dia
+            Puxar Agendamentos
           </Typography>
         </Box>
         <IconButton onClick={onClose} size="small" sx={{ color: "white" }}>
@@ -150,7 +137,6 @@ export default function PullAppointmentDialog({
                             height: 20,
                             fontSize: "0.65rem",
                             fontWeight: 900,
-                            animation: "pulse 2s infinite",
                           }}
                         />
                       )}
