@@ -174,7 +174,32 @@ export default function AppointmentForm({
                       field.onChange("");
                     }
                   }}
+                  dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                    return days[day.day()];
+                  }}
                   slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#3d4048 !important",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#3d4048 !important",
+                          "&.Mui-selected": {
+                            color: "white !important",
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#3d4048 !important",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#3d4048 !important",
+                        },
+                      },
+                    },
                     textField: {
                       size: "small",
                       fullWidth: true,

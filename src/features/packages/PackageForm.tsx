@@ -682,7 +682,7 @@ export default function PackageForm({
                   )}
                 />
 
-                <FormControl sx={{ width: 80 }}>
+                <FormControl sx={{ width: 100 }}>
                   <FormLabel
                     sx={{
                       fontSize: "12px",
@@ -702,7 +702,14 @@ export default function PackageForm({
                         type="number"
                         size="small"
                         error={!!fieldState.error}
-                        sx={{ backgroundColor: "#fff" }}
+                        sx={{
+                          backgroundColor: "#fff",
+                          "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button":
+                            {
+                              display: "block",
+                              opacity: 1,
+                            },
+                        }}
                       />
                     )}
                   />

@@ -115,7 +115,34 @@ export default function FinancialPage() {
               <DatePicker
                 value={startDate}
                 onChange={(newValue) => setStartDate(newValue)}
-                slotProps={{ textField: { size: "small" } }}
+                dayOfWeekFormatter={(day: Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": {
+                        color: "#3d4048 !important",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                      },
+                      "& .MuiPickersDay-root": {
+                        color: "#3d4048 !important",
+                        "&.Mui-selected": {
+                          color: "white !important",
+                        },
+                      },
+                      "& .MuiPickersCalendarHeader-label": {
+                        color: "#3d4048 !important",
+                      },
+                      "& .MuiPickersArrowSwitcher-button": {
+                        color: "#3d4048 !important",
+                      },
+                    },
+                  },
+                  textField: { size: "small" },
+                }}
               />
             </Box>
             <Box>
@@ -123,7 +150,34 @@ export default function FinancialPage() {
               <DatePicker
                 value={endDate}
                 onChange={(newValue) => setEndDate(newValue)}
-                slotProps={{ textField: { size: "small" } }}
+                dayOfWeekFormatter={(day: Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": {
+                        color: "#3d4048 !important",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                      },
+                      "& .MuiPickersDay-root": {
+                        color: "#3d4048 !important",
+                        "&.Mui-selected": {
+                          color: "white !important",
+                        },
+                      },
+                      "& .MuiPickersCalendarHeader-label": {
+                        color: "#3d4048 !important",
+                      },
+                      "& .MuiPickersArrowSwitcher-button": {
+                        color: "#3d4048 !important",
+                      },
+                    },
+                  },
+                  textField: { size: "small" },
+                }}
               />
             </Box>
           </Box>
