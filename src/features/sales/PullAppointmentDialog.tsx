@@ -70,7 +70,7 @@ export default function PullAppointmentDialog({
         ) : pullableAppointments.length === 0 ? (
           <Box sx={{ p: 4, textAlign: "center" }}>
             <Typography color="text.primary">
-              Nenhum agendamento pendente encontrado para hoje.
+              Nenhum agendamento pendente encontrado.
             </Typography>
           </Box>
         ) : (
