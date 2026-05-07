@@ -15,6 +15,7 @@ const LoginPage = () => {
     password: "",
   });
   const [loading, setLoading] = useState(false);
+  const [failedAttempts, setFailedAttempts] = useState(0);
   const navigate = useNavigate();
   const { setUser } = useAuth();
   const toast = useToast();
@@ -24,10 +25,35 @@ const LoginPage = () => {
     try {
       const response = await login(userForm);
       setUser(response);
+      setFailedAttempts(0); // Reset on success
       navigate("/dashboard");
     } catch (error) {
+      const newFailedAttempts = failedAttempts + 1;
+      setFailedAttempts(newFailedAttempts);
+
       let message = "Erro ao fazer login. Tente novamente.";
+      
       if (axios.isAxiosError(error)) {
+        // Se for 403 (provável WAF) ou 401 constante, e chegamos a 3 tentativas
+        if (newFailedAttempts >= 3) {
+          message = "Detectamos um problema na sua conexão. Reiniciando sessão...";
+          toast.info(message);
+          
+          // Silently trigger logout to clear cookies
+          try {
+            // Usamos fetch nativo com credentials para garantir a limpeza dos cookies
+            await fetch("https://petshop-manager-backend.vercel.app/api/v1/auth/logout", {
+              method: 'GET',
+              mode: 'no-cors', // Para evitar problemas de CORS em uma limpeza rápida
+              credentials: 'include'
+            });
+            setFailedAttempts(0);
+            return; // Interrompe para o usuário tentar de novo com cookies limpos
+          } catch (e) {
+            console.error("Erro ao limpar sessão automaticamente", e);
+          }
+        }
+
         if (error.response?.status === 401 || error.response?.status === 403) {
           message = "E-mail ou senha incorretos.";
         } else if (error.response?.status === 429) {
@@ -228,27 +254,8 @@ const LoginPage = () => {
             </CustomCard>
 
             <Box sx={{ mt: 4, textAlign: "center" }}>
-              <Typography variant="caption" color="text.disabled" sx={{ display: "block", mb: 1 }}>
+              <Typography variant="caption" color="text.disabled">
                 Protegido por criptografia de ponta a ponta.
-              </Typography>
-              <Typography variant="caption">
-                Está com problemas para entrar?{" "}
-                <Button
-                  component="a"
-                  href="https://petshop-manager-backend.vercel.app/api/v1/auth/logout"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  sx={{ 
-                    fontSize: "0.75rem", 
-                    p: 0, 
-                    minWidth: "auto", 
-                    verticalAlign: "baseline",
-                    textTransform: "none",
-                    fontWeight: 700
-                  }}
-                >
-                  Clique aqui para limpar sua sessão
-                </Button>
               </Typography>
             </Box>
           </Box>
