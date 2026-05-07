@@ -228,8 +228,27 @@ const LoginPage = () => {
             </CustomCard>
 
             <Box sx={{ mt: 4, textAlign: "center" }}>
-              <Typography variant="caption" color="text.disabled">
+              <Typography variant="caption" color="text.disabled" sx={{ display: "block", mb: 1 }}>
                 Protegido por criptografia de ponta a ponta.
+              </Typography>
+              <Typography variant="caption">
+                Está com problemas para entrar?{" "}
+                <Button
+                  component="a"
+                  href="https://petshop-manager-backend.vercel.app/api/v1/auth/logout"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  sx={{ 
+                    fontSize: "0.75rem", 
+                    p: 0, 
+                    minWidth: "auto", 
+                    verticalAlign: "baseline",
+                    textTransform: "none",
+                    fontWeight: 700
+                  }}
+                >
+                  Clique aqui para limpar sua sessão
+                </Button>
               </Typography>
             </Box>
           </Box>
