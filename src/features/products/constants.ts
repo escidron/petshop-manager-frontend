@@ -23,4 +23,5 @@ export const DEFAULT_PRODUCT_FORM: ProductFormData = {
   cost_cents: 0,
   quantity: 0,
   min_stock: 0,
-};
+  is_active: true,
+};
