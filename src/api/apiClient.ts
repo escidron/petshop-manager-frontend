@@ -36,9 +36,12 @@ interface FailedQueueItem {
 let failedQueue: FailedQueueItem[] = [];
 
 const processQueue = (error: AxiosError | null) => {
-  failedQueue.forEach(({ resolve, reject }) => {
+  failedQueue.forEach(({ resolve, reject }, index) => {
     if (error) reject(error);
-    else resolve();
+    else {
+      // Pequeno delay incremental para evitar picos de tráfego que ativem o WAF
+      setTimeout(() => resolve(), index * 50);
+    }
   });
   failedQueue = [];
 };
