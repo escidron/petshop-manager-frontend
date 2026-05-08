@@ -37,10 +37,7 @@ export const getAppointmentsByDay = async (
   date: string
 ): Promise<Appointment[]> => {
   const response = await apiClient.get<Appointment[]>(
-    `/api/v1/appointments/day/${date}`,
-    {
-      params: { date },
-    }
+    `/api/v1/appointments/day/${date}`
   );
 
   return response.data;
