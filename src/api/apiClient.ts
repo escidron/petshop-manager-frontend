@@ -81,6 +81,9 @@ apiClient.interceptors.response.use(
       return apiClient(originalRequest);
     } catch (refreshError) {
       // Refresh falhou → rejeita tudo e redireciona para login
+      if ((refreshError as AxiosError).response?.status === 403) {
+        console.error("WAF Block detected during refresh. Reset recommended.");
+      }
       processQueue(refreshError as AxiosError);
       return Promise.reject(refreshError);
     } finally {

@@ -17,7 +17,7 @@ const LoginPage = () => {
   const [loading, setLoading] = useState(false);
   const [failedAttempts, setFailedAttempts] = useState(0);
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { setUser, checkAuth } = useAuth();
   const toast = useToast();
 
   const handleAuth = async () => {
@@ -25,6 +25,7 @@ const LoginPage = () => {
     try {
       const response = await login(userForm);
       setUser(response);
+      await checkAuth(); // Carregar dados completos (incluindo tenant/onboarding)
       setFailedAttempts(0); // Reset on success
       navigate("/dashboard");
     } catch (error) {
@@ -34,23 +35,33 @@ const LoginPage = () => {
       let message = "Erro ao fazer login. Tente novamente.";
       
       if (axios.isAxiosError(error)) {
-        // Se for 403 (provável WAF) ou 401 constante, e chegamos a 3 tentativas
-        if (newFailedAttempts >= 3) {
-          message = "Detectamos um problema na sua conexão. Reiniciando sessão...";
+        const isWAFBlock = error.response?.status === 403;
+        
+        // Se for 403 (WAF) ou chegamos a 3 tentativas, forçamos um reset suave
+        if (isWAFBlock || newFailedAttempts >= 3) {
+          message = isWAFBlock 
+            ? "Problema de conexão detectado (WAF). Tentando recuperar sua sessão..."
+            : "Muitas tentativas falhas. Reiniciando sessão...";
+          
           toast.info(message);
           
-          // Silently trigger logout to clear cookies
           try {
-            // Usamos fetch nativo com credentials para garantir a limpeza dos cookies
-            await fetch("https://petshop-manager-backend.vercel.app/api/v1/auth/logout", {
+            const baseUrl = import.meta.env.VITE_API_BASE_URL;
+            // Tentativa de limpar cookies via fetch isolado
+            await fetch(`${baseUrl}/api/v1/auth/logout`, {
               method: 'GET',
-              mode: 'no-cors', // Para evitar problemas de CORS em uma limpeza rápida
+              mode: 'no-cors',
               credentials: 'include'
             });
+            
+            // Pequeno delay para garantir que o navegador processe a limpeza antes de recarregar
+            await new Promise(r => setTimeout(r, 800));
+            
             setFailedAttempts(0);
-            return; // Interrompe para o usuário tentar de novo com cookies limpos
+            window.location.reload(); // Recarregar para garantir estado limpo
+            return;
           } catch (e) {
-            console.error("Erro ao limpar sessão automaticamente", e);
+            console.error("Erro no recovery", e);
           }
         }
 

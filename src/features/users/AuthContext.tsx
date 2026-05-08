@@ -61,7 +61,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         axiosErr.isAuthError,
       );
 
-      if (axiosErr.isAuthError || axiosErr.response?.status === 401) {
+      if (axiosErr.isAuthError || axiosErr.response?.status === 401 || axiosErr.response?.status === 403) {
         setUser(null);
         setTenant(null);
       }
