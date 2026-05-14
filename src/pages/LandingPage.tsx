@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Box,
   Button,
@@ -26,12 +27,17 @@ import {
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import CustomCard from "../components/Card/CustomCard";
+import LegalDialog from "../components/LegalDialog";
 
 const LandingPage = () => {
   const navigate = useNavigate();
   const { user, checking } = useAuth();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const [legalModal, setLegalModal] = useState<{ open: boolean; type: "terms" | "privacy" }>({
+    open: false,
+    type: "terms",
+  });
 
   const plans = [
     {
@@ -654,12 +660,36 @@ const LandingPage = () => {
                   Preços
                 </Link>
                 <Link
-                  href="#"
+                  component="button"
+                  onClick={() => setLegalModal({ open: true, type: "terms" })}
                   underline="none"
-                  color="text.primary"
-                  sx={{ opacity: 0.6, "&:hover": { opacity: 1 } }}
+                  color="inherit"
+                  sx={{ 
+                    opacity: 0.6, 
+                    "&:hover": { opacity: 1 }, 
+                    textAlign: "left",
+                    fontSize: "inherit",
+                    fontFamily: "inherit",
+                    fontWeight: "inherit"
+                  }}
                 >
-                  Segurança
+                  Termos de Uso
+                </Link>
+                <Link
+                  component="button"
+                  onClick={() => setLegalModal({ open: true, type: "privacy" })}
+                  underline="none"
+                  color="inherit"
+                  sx={{ 
+                    opacity: 0.6, 
+                    "&:hover": { opacity: 1 }, 
+                    textAlign: "left",
+                    fontSize: "inherit",
+                    fontFamily: "inherit",
+                    fontWeight: "inherit"
+                  }}
+                >
+                  Privacidade
                 </Link>
               </Stack>
             </Box>
@@ -726,6 +756,11 @@ const LandingPage = () => {
           </Box>
         </Container>
       </Box>
+      <LegalDialog
+        open={legalModal.open}
+        onClose={() => setLegalModal((prev) => ({ ...prev, open: false }))}
+        type={legalModal.type}
+      />
     </Box>
   );
 };

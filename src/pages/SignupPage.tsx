@@ -14,6 +14,7 @@ import { useNavigate } from "react-router";
 
 import UserSignupForm from "../features/users/UserSignupForm";
 import TenantCreateForm from "../features/tenants/TenantForm";
+import LegalDialog from "../components/LegalDialog";
 
 import type { UserFormData } from "../features/users/types";
 import type { TenantFormData } from "../features/tenants/types";
@@ -37,6 +38,10 @@ const SignupPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const { checkAuth } = useAuth();
+  const [legalModal, setLegalModal] = useState<{ open: boolean; type: "terms" | "privacy" }>({
+    open: false,
+    type: "terms",
+  });
 
   // Sincronizar estado local com a URL caso mude externamente (ex: botão voltar do navegador)
   useEffect(() => {
@@ -316,18 +321,55 @@ const SignupPage = () => {
               {step === 2 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
                   <UserSignupForm onSubmit={handleSubmitUser} defaultValues={userData || {}} />
+                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.secondary" }}>
+                    Ao continuar, você concorda com nossos{" "}
+                    <Button 
+                      onClick={() => setLegalModal({ open: true, type: "terms" })}
+                      sx={{ p: 0, minWidth: 0, color: "inherit", fontWeight: 700, fontSize: "inherit", textTransform: "none", verticalAlign: "baseline" }}
+                    >
+                      Termos de Uso
+                    </Button>{" "}
+                    e{" "}
+                    <Button 
+                      onClick={() => setLegalModal({ open: true, type: "privacy" })}
+                      sx={{ p: 0, minWidth: 0, color: "inherit", fontWeight: 700, fontSize: "inherit", textTransform: "none", verticalAlign: "baseline" }}
+                    >
+                      Política de Privacidade
+                    </Button>.
+                  </Typography>
                 </CustomCard>
               )}
 
               {step === 3 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
                   <TenantCreateForm onSubmit={handleSubmitTenant} loading={loading} defaultValues={tenantData || {}} />
+                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.secondary" }}>
+                    Ao criar sua conta, você concorda com nossos{" "}
+                    <Button 
+                      onClick={() => setLegalModal({ open: true, type: "terms" })}
+                      sx={{ p: 0, minWidth: 0, color: "inherit", fontWeight: 700, fontSize: "inherit", textTransform: "none", verticalAlign: "baseline" }}
+                    >
+                      Termos de Uso
+                    </Button>{" "}
+                    e{" "}
+                    <Button 
+                      onClick={() => setLegalModal({ open: true, type: "privacy" })}
+                      sx={{ p: 0, minWidth: 0, color: "inherit", fontWeight: 700, fontSize: "inherit", textTransform: "none", verticalAlign: "baseline" }}
+                    >
+                      Política de Privacidade
+                    </Button>.
+                  </Typography>
                 </CustomCard>
               )}
             </Box>
           </Box>
         </Box>
       </Box>
+      <LegalDialog
+        open={legalModal.open}
+        onClose={() => setLegalModal((prev) => ({ ...prev, open: false }))}
+        type={legalModal.type}
+      />
     </Box>
   );
 };

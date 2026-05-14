@@ -25,6 +25,8 @@ import ReportsPage from "./pages/ReportsPage";
 import FinancialReportPage from "./pages/FinancialReportPage";
 import InventoryReportPage from "./pages/InventoryReportPage";
 import LoadingScreen from "./components/Loading/LoadingScreen";
+import TermsOfUse from "./pages/TermsOfUse";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 
 type Props = {
   children: JSX.Element;
@@ -63,6 +65,8 @@ export default function AppRoutes() {
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/signup" element={<SignupPage />} />
+      <Route path="/terms" element={<TermsOfUse />} />
+      <Route path="/privacy" element={<PrivacyPolicy />} />
       <Route
         element={
           <ProtectedRoute>

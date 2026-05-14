@@ -8,6 +8,7 @@ import UserLoginForm from "../features/users/UserLoginForm";
 import { useAuth } from "../hooks/useAuth";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
+import LegalDialog from "../components/LegalDialog";
 
 const LoginPage = () => {
   const [userForm, setUserForm] = useState<LoginPayload>({
@@ -19,6 +20,10 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const { setUser, checkAuth } = useAuth();
   const toast = useToast();
+  const [legalModal, setLegalModal] = useState<{ open: boolean; type: "terms" | "privacy" }>({
+    open: false,
+    type: "terms",
+  });
 
   const handleAuth = async () => {
     setLoading(true);
@@ -265,13 +270,32 @@ const LoginPage = () => {
             </CustomCard>
 
             <Box sx={{ mt: 4, textAlign: "center" }}>
-              <Typography variant="caption" color="text.disabled">
+              <Typography variant="caption" color="text.disabled" sx={{ display: "block", mb: 1 }}>
                 Protegido por criptografia de ponta a ponta.
               </Typography>
+              <Stack direction="row" spacing={2} justifyContent="center">
+                <Button 
+                  onClick={() => setLegalModal({ open: true, type: "terms" })} 
+                  sx={{ fontSize: "0.7rem", color: "text.disabled", minWidth: 0, p: 0, textTransform: "none", "&:hover": { color: "primary.main" } }}
+                >
+                  Termos de Uso
+                </Button>
+                <Button 
+                  onClick={() => setLegalModal({ open: true, type: "privacy" })} 
+                  sx={{ fontSize: "0.7rem", color: "text.disabled", minWidth: 0, p: 0, textTransform: "none", "&:hover": { color: "primary.main" } }}
+                >
+                  Privacidade
+                </Button>
+              </Stack>
             </Box>
           </Box>
         </Box>
       </Box>
+      <LegalDialog
+        open={legalModal.open}
+        onClose={() => setLegalModal((prev) => ({ ...prev, open: false }))}
+        type={legalModal.type}
+      />
     </Box>
   );
 };
