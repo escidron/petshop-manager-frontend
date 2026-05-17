@@ -101,6 +101,11 @@ export default function AppointmentModal({
     setAutoSelectClientId(client.id);
   };
 
+  const handleClientCreatedAndAddPet = async (client: Client) => {
+    await handleClientCreated(client);
+    setPetModal({ open: true, index: 0, clientId: client.id });
+  };
+
   const handlePetCreated = async (pet: Pet) => {
     await refetchPets();
     setAutoSelectPet({ index: petModal.index, id: pet.id });
@@ -154,6 +159,7 @@ export default function AppointmentModal({
         mode="create"
         onClose={() => setClientModalOpen(false)}
         onSuccess={handleClientCreated}
+        onSuccessAndAddPet={handleClientCreatedAndAddPet}
       />
 
       <PetFormModal
