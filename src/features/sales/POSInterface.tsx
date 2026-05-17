@@ -133,18 +133,22 @@ export default function POSInterface() {
   const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["products"],
     queryFn: fetchProducts,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
   const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["services"],
     queryFn: getTenantServices,
+    staleTime: 1000 * 60 * 5,
   });
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: fetchClients,
+    staleTime: 1000 * 60 * 10, // Clients change even less frequently
   });
   const { data: packages = [], isLoading: packagesLoading } = useQuery({
     queryKey: ["packages"],
     queryFn: listPackages,
+    staleTime: 1000 * 60 * 5,
   });
   const { data: clientPets = [] } = useQuery<Pet[]>({
     queryKey: ["pets", "client", selectedClientId],

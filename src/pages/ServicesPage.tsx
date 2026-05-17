@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useToast } from "../hooks/useToast";
 import { useServices } from "../hooks/useServices";
+import { useQueryClient } from "@tanstack/react-query";
 import ServiceDeleteModal from "../features/tenant_services/ServiceDeleteModal";
 import ServiceTable from "../features/tenant_services/ServiceTable";
 import ServiceFormModal from "../features/tenant_services/ServiceFormModal";
@@ -20,6 +21,7 @@ export default function ServicesPage() {
     mode: "create" | "edit";
     service?: Service;
   }>({ open: false, mode: "create" });
+  const queryClient = useQueryClient();
   const { services, loading, getServices } = useServices();
   const navigate = useNavigate();
 
@@ -39,6 +41,7 @@ export default function ServicesPage() {
       setDeleting(true);
       await deleteService(serviceToDelete.id);
       await getServices();
+      queryClient.invalidateQueries({ queryKey: ["services"] });
       setServiceToDelete(null);
       toast.success("Serviço removido com sucesso");
     } finally {
@@ -72,6 +75,7 @@ export default function ServicesPage() {
           onClose={() => setServiceModal({ open: false, mode: "create" })}
           onSuccess={async () => {
             await getServices();
+            queryClient.invalidateQueries({ queryKey: ["services"] });
             setServiceModal({ open: false, mode: "create" });
           }}
         />

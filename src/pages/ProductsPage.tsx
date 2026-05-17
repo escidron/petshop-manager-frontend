@@ -8,6 +8,7 @@ import ProductsToolbar from "../features/products/ProductsToolbar";
 import ProductsTable from "../features/products/ProductsTable";
 import { deleteProduct } from "../api/services/products";
 import { useToast } from "../hooks/useToast";
+import { useQueryClient } from "@tanstack/react-query";
 
 import type { Product } from "../features/products/types";
 
@@ -22,6 +23,7 @@ export default function ProductsPage() {
     product?: Product;
   }>({ open: false, mode: "create" });
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const queryClient = useQueryClient();
   const { products, loading, getProducts } = useProducts();
   const filteredRows = useMemo(() => {
     if (!search) return products;
@@ -39,6 +41,7 @@ export default function ProductsPage() {
       setDeleting(true);
       await deleteProduct(productToDelete.id);
       await getProducts();
+      queryClient.invalidateQueries({ queryKey: ["products"] });
       setProductToDelete(null);
       toast.success("Produto apagado com sucesso");
     } finally {
@@ -76,6 +79,7 @@ export default function ProductsPage() {
           onSuccess={() => {
             setProductModal({ open: false });
             getProducts();
+            queryClient.invalidateQueries({ queryKey: ["products"] });
           }}
         />
       )}
@@ -97,6 +101,7 @@ export default function ProductsPage() {
         onSuccess={() => {
           setImportModalOpen(false);
           getProducts();
+          queryClient.invalidateQueries({ queryKey: ["products"] });
         }}
       />
     </Box>

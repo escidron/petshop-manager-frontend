@@ -13,6 +13,7 @@ import type { Pet } from "../features/pets/types";
 import { usePets } from "../hooks/usePets";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
+import { useQueryClient } from "@tanstack/react-query";
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
@@ -30,6 +31,7 @@ export default function ClientsPage() {
     mode: "create" | "edit";
     pet?: Pet;
   }>({ open: false, mode: "create" });
+  const queryClient = useQueryClient();
 
   const { clients, loading, getClients } = useClients();
   const navigate = useNavigate();
@@ -66,6 +68,7 @@ export default function ClientsPage() {
       await deleteClient(clientToDelete.id);
       toast.success("Cliente excluído com sucesso");
       await getClients();
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
       setClientToDelete(null);
     } catch (error: unknown) {
       let message = "Erro ao excluir cliente";
@@ -110,10 +113,12 @@ export default function ClientsPage() {
         }
         onSuccess={async () => {
           await getClients();
+          queryClient.invalidateQueries({ queryKey: ["clients"] });
           setClientModal({ open: false, mode: "create" });
         }}
         onSuccessAndAddPet={async (client) => {
           await getClients();
+          queryClient.invalidateQueries({ queryKey: ["clients"] });
           setClientModal({ open: false, mode: "create", client });
           setPetModal({ open: true, mode: "create" });
         }}
