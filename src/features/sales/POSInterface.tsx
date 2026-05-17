@@ -344,9 +344,17 @@ export default function POSInterface() {
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
   return (
-    <Grid container spacing={3} sx={{ height: "100%", p: 1 }}>
+    <Grid container spacing={3} sx={{ height: "100%", p: 1, width: "100%" }}>
       {/* Sidebar: Digital Receipt */}
-      <Grid size={{ xs: 12, md: 4, lg: 3.5 }} sx={{ height: "80%",minHeight:"600px" }}>
+      <Grid 
+        size={{ xs: 12, md: 4, lg: 3.5 }} 
+        sx={{ 
+          height: "80%", 
+          minHeight: "600px",
+          flexShrink: 0,
+          flexGrow: 0
+        }}
+      >
         <Paper
           elevation={4}
           sx={{
@@ -602,6 +610,8 @@ export default function POSInterface() {
           display: "flex",
           flexDirection: "column",
           gap: 2,
+          flexGrow: 1,
+          minWidth: 0,
         }}
       >
         {/* Search & Tabs Header */}
