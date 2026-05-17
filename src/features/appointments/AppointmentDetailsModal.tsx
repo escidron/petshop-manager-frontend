@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient, useQueries } from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
 import { assignAppointmentEmployees } from "../../api/services/appointments";
+import { getCommissionRules } from "../../api/services/commissions";
 import { listClientPackagesByPet } from "../../api/services/client_packages";
 import { useToast } from "../../hooks/useToast";
 import {
@@ -29,6 +30,7 @@ import {
   ShoppingCart,
   Venus,
   X,
+  AlertTriangle,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -69,6 +71,28 @@ const AppointmentDetailsModal = ({
   });
 
   const activeEmployees = employees.filter((e) => e.is_active);
+
+  // Fetch commission rules
+  const { data: commissionRules = [] } = useQuery({
+    queryKey: ["commissionRules"],
+    queryFn: getCommissionRules,
+    enabled: open,
+  });
+
+  const checkHasCommission = (employeeId: number, serviceId: number) => {
+    return commissionRules.some((rule) => {
+      if (!rule.is_active) return false;
+      if (rule.applies_to === "product") return false;
+
+      // Check employee
+      const employeeMatch = !rule.employee_id || rule.employee_id === employeeId;
+      // Check service
+      const serviceMatch =
+        rule.service_ids.length === 0 || rule.service_ids.includes(serviceId);
+
+      return employeeMatch && serviceMatch;
+    });
+  };
 
   // Fetch Active Packages for all Pets in Appointment
   const packageQueries = useQueries({
@@ -144,29 +168,22 @@ const AppointmentDetailsModal = ({
   }, [open, appointment]);
 
   const assignMutation = useMutation({
-    mutationFn: (assignments: any) =>
-      assignAppointmentEmployees(appointment.id, assignments),
+    mutationFn: (
+      assignments: {
+        appointment_item_id: number;
+        service_id: number;
+        employee_id: number | null;
+      }[],
+    ) => assignAppointmentEmployees(appointment.id, assignments),
     onSuccess: () => {
-      toast.success("Profissionais salvos com sucesso!");
+      toast.success("Profissional salvo com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
     },
     onError: () => {
-      toast.error("Erro ao salvar profissionais");
+      toast.error("Erro ao salvar profissional");
     },
   });
-
-  const handleSaveEmployees = () => {
-    const payload = Object.entries(localAssignments).map(([key, empId]) => {
-      const [itemId, svcId] = key.split("-").map(Number);
-      return {
-        appointment_item_id: itemId,
-        service_id: svcId,
-        employee_id: empId,
-      };
-    });
-    assignMutation.mutate(payload);
-  };
 
   const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
     style: "currency",
@@ -587,45 +604,92 @@ const AppointmentDetailsModal = ({
                             <Box
                               sx={{
                                 display: "flex",
-                                alignItems: "center",
-                                pl: 2,
-                                pb: 1,
-                                pt: 1,
+                                alignItems: "flex-start",
+                                flex: 1,
+                                ml: 1,
+                                mt: 0.5,
                               }}
                             >
                               <Typography
                                 variant="caption"
-                                sx={{ width: 100, color: "text.primary" }}
+                                sx={{ minWidth: "80px", mt: 1 }}
                               >
                                 Profissional:
                               </Typography>
-                              <Autocomplete
-                                size="small"
-                                sx={{ flex: 1, ml: 1 }}
-                                options={activeEmployees}
-                                getOptionLabel={(option) => option.name}
-                                isOptionEqualToValue={(option, value) =>
-                                  String(option.id) === String(value.id)
-                                }
-                                value={
-                                  activeEmployees.find(
-                                    (e) =>
-                                      String(e.id) === String(currentEmpId),
-                                  ) || null
-                                }
-                                onChange={(_, val) => {
-                                  setLocalAssignments((prev) => ({
-                                    ...prev,
-                                    [key]: val ? val.id : null,
-                                  }));
-                                }}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    placeholder="Selecionar..."
-                                  />
+                              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                                <Autocomplete
+                                  size="small"
+                                  sx={{ width: "100%" }}
+                                  options={activeEmployees}
+                                  getOptionLabel={(option) => option.name}
+                                  isOptionEqualToValue={(option, value) =>
+                                    String(option.id) === String(value.id)
+                                  }
+                                  value={
+                                    activeEmployees.find(
+                                      (e) => String(e.id) === String(currentEmpId),
+                                    ) || null
+                                  }
+                                  onChange={(_: any, val: any) => {
+                                    const newAssignments = {
+                                      ...localAssignments,
+                                      [key]: val ? val.id : null,
+                                    };
+                                    setLocalAssignments(newAssignments);
+
+                                    const payload = Object.entries(newAssignments).map(
+                                      ([k, empId]) => {
+                                        const [itemId, svcId] = k.split("-").map(Number);
+                                        return {
+                                          appointment_item_id: itemId,
+                                          service_id: svcId,
+                                          employee_id: empId as number | null,
+                                        };
+                                      },
+                                    );
+
+                                    assignMutation.mutate(payload);
+                                  }}
+                                  renderOption={(props: any, option: any) => {
+                                    const hasComm = checkHasCommission(option.id, s.id);
+                                    const { key: optKey, ...otherProps } = props;
+                                    return (
+                                      <li key={optKey} {...otherProps}>
+                                        <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
+                                          <Typography variant="body2" fontWeight={500}>{option.name}</Typography>
+                                          {!hasComm && (
+                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: -0.25 }}>
+                                              <AlertTriangle size={12} color={theme.palette.warning.main} />
+                                              <Typography variant="caption" color="warning.main" sx={{ fontSize: "10px", fontStyle: "italic" }}>
+                                                Sem regra de comissão compatível cadastrada.
+                                              </Typography>
+                                            </Box>
+                                          )}
+                                        </Box>
+                                      </li>
+                                    );
+                                  }}
+                                  renderInput={(params: any) => (
+                                    <TextField
+                                      {...params}
+                                      placeholder="Selecionar..."
+                                      error={
+                                        currentEmpId
+                                          ? !checkHasCommission(Number(currentEmpId), s.id)
+                                          : false
+                                      }
+                                    />
+                                  )}
+                                />
+                                {currentEmpId && !checkHasCommission(Number(currentEmpId), s.id) && (
+                                  <Box sx={{ mt: 0.5, display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+                                    <AlertTriangle size={12} color={theme.palette.warning.main} style={{ marginTop: "2px" }} />
+                                    <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ lineHeight: 1.2 }}>
+                                      Aviso: Não há uma regra de comissão para este caso. Para gerar comissionamento, verifique as regras cadastradas.
+                                    </Typography>
+                                  </Box>
                                 )}
-                              />
+                              </Box>
                             </Box>
                           )}
                       </Box>
@@ -658,23 +722,6 @@ const AppointmentDetailsModal = ({
               </CustomCard>
             ))}
 
-            {appointment.status !== "pending" &&
-              appointment.status !== "canceled" &&
-              appointment.status !== "no_show" &&
-              activeEmployees.length > 0 && (
-                <Box
-                  sx={{ display: "flex", justifyContent: "flex-end", mt: 1 }}
-                >
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={handleSaveEmployees}
-                    loading={assignMutation.isPending}
-                  >
-                    Salvar Profissionais
-                  </Button>
-                </Box>
-              )}
           </Box>
         </Box>
       </DialogContent>
