@@ -1,11 +1,5 @@
-import {
-  Box,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Typography,
-} from "@mui/material";
-import { useState } from "react";
+import { Box, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { useMemo, useState } from "react";
 import axios from "axios";
 
 import { createProduct, updateProduct } from "../../api/services/products";
@@ -35,9 +29,9 @@ export default function ProductFormModal({
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const defaultValues = product
-    ? productToFormData(product)
-    : DEFAULT_PRODUCT_FORM;
+  const defaultValues = useMemo(() => {
+    return product ? productToFormData(product) : DEFAULT_PRODUCT_FORM;
+  }, [product]);
 
   const handleSubmit = async (data: ProductFormData) => {
     if (isSubmitting) return;
