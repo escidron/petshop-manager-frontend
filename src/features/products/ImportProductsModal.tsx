@@ -140,7 +140,7 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
                 <ListItem sx={{ px: 0 }}>
                   <ListItemText 
                     primary="nome *" 
-                    secondary="Nome do produto. (Obrigatório)" 
+                    secondary="Nome do produto. A coluna deve estar presente e preenchida. (Obrigatório)" 
                     primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
                     secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
                   />
@@ -148,7 +148,7 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
                 <ListItem sx={{ px: 0 }}>
                   <ListItemText 
                     primary="preco_venda *" 
-                    secondary="Valor em reais. Use ponto ou vírgula. Ex: 29.90 ou 29,90. (Obrigatório)" 
+                    secondary="Valor em reais. A coluna deve estar presente. Ex: 29.90 ou 29,90. (Obrigatório)" 
                     primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
                     secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
                   />
