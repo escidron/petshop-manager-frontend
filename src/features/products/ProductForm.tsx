@@ -116,77 +116,50 @@ const ProductForm = ({
               />
             </FormControl>
 
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <FormControl fullWidth>
-                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Preço de Venda
-                </FormLabel>
-                <Controller
-                  name="price_cents"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      size="small"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      placeholder="0,00"
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography
-                                sx={{
-                                  color: "text.disabled",
-                                  fontWeight: 500,
-                                  mt: "2px",
-                                }}
-                              >
-                                R$
-                              </Typography>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "");
-                        field.onChange(digits === "" ? "" : Number(digits));
-                      }}
-                      value={
-                        (field.value as any) !== "" && field.value !== undefined
-                          ? formatBRLFromCents(Number(field.value))
-                          : ""
-                      }
-                    />
-                  )}
-                />
-              </FormControl>
-
-              <FormControl fullWidth>
-                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Estoque Mínimo
-                </FormLabel>
-                <Controller
-                  name="min_stock"
-                  control={control}
-                  render={({ field, fieldState }) => (
-                    <TextField
-                      {...field}
-                      type="number"
-                      size="small"
-                      error={!!fieldState.error}
-                      helperText={fieldState.error?.message}
-                      placeholder="0"
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        field.onChange(val === "" ? "" : Number(val));
-                      }}
-                      value={field.value ?? ""}
-                    />
-                  )}
-                />
-              </FormControl>
-            </Box>
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                Preço de Venda
+              </FormLabel>
+              <Controller
+                name="price_cents"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <TextField
+                    {...field}
+                    size="small"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="0,00"
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Typography
+                              sx={{
+                                color: "text.disabled",
+                                fontWeight: 500,
+                                mt: "2px",
+                              }}
+                            >
+                              R$
+                            </Typography>
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      field.onChange(digits === "" ? "" : Number(digits));
+                    }}
+                    value={
+                      (field.value as any) !== "" && field.value !== undefined
+                        ? formatBRLFromCents(Number(field.value))
+                        : ""
+                    }
+                  />
+                )}
+              />
+            </FormControl>
 
             <FormControl fullWidth>
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
@@ -415,28 +388,55 @@ const ProductForm = ({
                 </FormControl>
               </Box>
 
-              <FormControl fullWidth>
-                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Quantidade em Estoque
-                </FormLabel>
-                <Controller
-                  name="quantity"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      type="number"
-                      size="small"
-                      placeholder="0"
-                      onChange={(e) => {
-                        const val = e.target.value;
-                        field.onChange(val === "" ? "" : Number(val));
-                      }}
-                      value={field.value ?? ""}
-                    />
-                  )}
-                />
-              </FormControl>
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Quantidade em Estoque
+                  </FormLabel>
+                  <Controller
+                    name="quantity"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        type="number"
+                        size="small"
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? "" : Number(val));
+                        }}
+                        value={field.value ?? ""}
+                      />
+                    )}
+                  />
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Estoque Mínimo
+                  </FormLabel>
+                  <Controller
+                    name="min_stock"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <TextField
+                        {...field}
+                        type="number"
+                        size="small"
+                        error={!!fieldState.error}
+                        helperText={fieldState.error?.message}
+                        placeholder="0"
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? "" : Number(val));
+                        }}
+                        value={field.value ?? ""}
+                      />
+                    )}
+                  />
+                </FormControl>
+              </Box>
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>

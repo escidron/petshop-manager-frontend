@@ -10,8 +10,8 @@ export const productSchema = z.object({
   quantity: z.coerce.number().int().min(0, "A quantidade deve ser maior ou igual a zero").default(0),
   min_stock: z.preprocess(
     (val) => (val === "" ? undefined : val),
-    z.coerce.number().int().min(1, "O estoque mínimo deve ser maior que zero").optional()
-  ).refine((val) => val !== undefined, "O estoque mínimo é obrigatório"),
+    z.coerce.number().int().min(0, "O estoque mínimo deve ser maior ou igual a zero").optional().default(0)
+  ),
   
   barcode: z.string().optional(),
   ncm: z.string().optional(),
