@@ -45,9 +45,19 @@ export default function SuppliersPage() {
 
   const filteredRows = useMemo(() => {
     if (!search) return suppliers;
-    return suppliers.filter((s) =>
-      s.name.toLowerCase().includes(search.toLowerCase()),
-    );
+    const term = search.toLowerCase();
+    const normalizedTerm = term.replace(/\D/g, "");
+
+    return suppliers.filter((s) => {
+      const nameMatch = s.name.toLowerCase().includes(term);
+
+      const normalizedCnpj = s.cnpj?.replace(/\D/g, "") || "";
+      const cnpjMatch = normalizedTerm
+        ? normalizedCnpj.includes(normalizedTerm)
+        : false;
+
+      return nameMatch || cnpjMatch || s.cnpj?.toLowerCase().includes(term);
+    });
   }, [suppliers, search]);
 
   const handleDeleteClick = (supplier: Supplier) => {

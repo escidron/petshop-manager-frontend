@@ -37,12 +37,24 @@ export default function ClientsPage() {
   const filteredRows = useMemo(() => {
     if (!search) return clients;
     const term = search.toLowerCase();
-    return clients.filter(
-      (c) =>
-        c.name.toLowerCase().includes(term) ||
-        c.email?.toLowerCase().includes(term) ||
-        c.phone?.toLowerCase().includes(term),
-    );
+    const normalizedTerm = term.replace(/\D/g, "");
+
+    return clients.filter((c) => {
+      const nameMatch = c.name.toLowerCase().includes(term);
+      const emailMatch = c.email?.toLowerCase().includes(term);
+
+      const normalizedPhone = c.phone?.replace(/\D/g, "") || "";
+      const phoneMatch = normalizedTerm
+        ? normalizedPhone.includes(normalizedTerm)
+        : false;
+
+      return (
+        nameMatch ||
+        emailMatch ||
+        phoneMatch ||
+        c.phone?.toLowerCase().includes(term)
+      );
+    });
   }, [search, clients]);
 
   const toast = useToast();

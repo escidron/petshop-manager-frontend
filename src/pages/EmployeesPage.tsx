@@ -48,9 +48,25 @@ export default function EmployeesPage() {
 
   const filteredRows = useMemo(() => {
     if (!search) return employees;
-    return employees.filter((e) =>
-      e.name.toLowerCase().includes(search.toLowerCase()),
-    );
+    const term = search.toLowerCase();
+    const normalizedTerm = term.replace(/\D/g, "");
+
+    return employees.filter((e) => {
+      const nameMatch = e.name.toLowerCase().includes(term);
+      const emailMatch = e.email?.toLowerCase().includes(term);
+
+      const normalizedPhone = e.phone?.replace(/\D/g, "") || "";
+      const phoneMatch = normalizedTerm
+        ? normalizedPhone.includes(normalizedTerm)
+        : false;
+
+      return (
+        nameMatch ||
+        emailMatch ||
+        phoneMatch ||
+        e.phone?.toLowerCase().includes(term)
+      );
+    });
   }, [employees, search]);
 
   const handleDeleteClick = (employee: Employee) => {
