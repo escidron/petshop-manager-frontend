@@ -21,6 +21,7 @@ import {
   DialogContent,
   Alert,
   Collapse,
+  Skeleton,
 } from "@mui/material";
 import {
   Search,
@@ -57,6 +58,56 @@ import type { Pet } from "../pets/types";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
 
+const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
+  <Grid container spacing={2}>
+    {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
+      <Grid
+        size={
+          viewMode === "grid" ? { xs: 12, sm: 6, md: 4, lg: 3 } : { xs: 12 }
+        }
+        key={i}
+      >
+        <Paper
+          elevation={0}
+          sx={{
+            p: 2,
+            borderRadius: 3,
+            border: "1px solid",
+            borderColor: "divider",
+            height: viewMode === "grid" ? 160 : 64,
+            display: "flex",
+            flexDirection: viewMode === "grid" ? "column" : "row",
+            gap: 1,
+          }}
+        >
+          <Skeleton
+            variant="rectangular"
+            width={viewMode === "grid" ? 40 : 32}
+            height={viewMode === "grid" ? 40 : 32}
+            sx={{ borderRadius: 1.5 }}
+          />
+          <Box sx={{ flex: 1, overflow: "hidden" }}>
+            <Skeleton width="80%" height={24} />
+            <Skeleton width="40%" height={20} />
+          </Box>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mt: viewMode === "grid" ? "auto" : 0,
+              minWidth: viewMode === "grid" ? "auto" : 80,
+            }}
+          >
+            <Skeleton width={60} height={28} />
+            <Skeleton variant="circular" width={28} height={28} />
+          </Box>
+        </Paper>
+      </Grid>
+    ))}
+  </Grid>
+);
+
 export default function POSInterface() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -79,31 +130,29 @@ export default function POSInterface() {
   } | null>(null);
 
   // Fetch Catalogs
-  const { data: products = [] } = useQuery({
+  const { data: products = [], isLoading: productsLoading } = useQuery({
     queryKey: ["products"],
     queryFn: fetchProducts,
   });
-
-  const { data: services = [] } = useQuery({
+  const { data: services = [], isLoading: servicesLoading } = useQuery({
     queryKey: ["services"],
     queryFn: getTenantServices,
   });
-
   const { data: clients = [] } = useQuery({
     queryKey: ["clients"],
     queryFn: fetchClients,
   });
-
-  const { data: packages = [] } = useQuery({
+  const { data: packages = [], isLoading: packagesLoading } = useQuery({
     queryKey: ["packages"],
     queryFn: listPackages,
   });
-
   const { data: clientPets = [] } = useQuery<Pet[]>({
     queryKey: ["pets", "client", selectedClientId],
     queryFn: () => fetchPetsByClient(selectedClientId!),
     enabled: !!selectedClientId,
   });
+
+  const isLoadingItems = productsLoading || servicesLoading || packagesLoading;
 
   // Calculate cart total
   const cartTotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
@@ -304,6 +353,7 @@ export default function POSInterface() {
             overflow: "hidden",
             border: "1px solid",
             borderColor: "divider",
+            maxWidth: "550px",
           }}
         >
           {/* Receipt Header */}
@@ -543,10 +593,15 @@ export default function POSInterface() {
       {/* Main Content: Catalog */}
       <Grid
         size={{ xs: 12, md: 8, lg: 8.5 }}
-        sx={{ height: "100%", display: "flex", flexDirection: "column" }}
+        sx={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+        }}
       >
         {/* Search & Tabs Header */}
-        <Box sx={{ mb: 3 }}>
+        <Box>
           <Grid container spacing={2} alignItems="center">
             <Grid size={{ xs: 12, sm: 5 }}>
               <TextField
@@ -655,15 +710,19 @@ export default function POSInterface() {
         </Box>
 
         {/* Catalog Grid */}
-        <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5 }}>
+        <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5, minHeight: 0 }}>
           {/* Low Stock Alert */}
           <Collapse in={lowStockProducts.length > 0}>
             <Alert
               severity="warning"
+              onClick={() => setLowStockExpanded((prev) => !prev)}
               action={
                 <IconButton
                   size="small"
-                  onClick={() => setLowStockExpanded((prev) => !prev)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLowStockExpanded((prev) => !prev);
+                  }}
                 >
                   {lowStockExpanded ? (
                     <ChevronUp size={22} />
@@ -672,7 +731,7 @@ export default function POSInterface() {
                   )}
                 </IconButton>
               }
-              sx={{ mb: 2, borderRadius: 2 }}
+              sx={{ mb: 2, borderRadius: 2, cursor: "pointer" }}
             >
               <Typography variant="body2" sx={{ fontWeight: 700 }}>
                 {lowStockProducts.length} produto
@@ -694,6 +753,10 @@ export default function POSInterface() {
             </Alert>
           </Collapse>
 
+        {isLoadingItems ? (
+          <POSSkeleton viewMode={viewMode} />
+        ) : (
+          <>
           {(categoryTab === 0 || categoryTab === 1) &&
             filteredProducts.length > 0 && (
               <Box sx={{ mb: 4 }}>
@@ -1339,6 +1402,8 @@ export default function POSInterface() {
                 </Typography>
               </Box>
             )}
+          </>
+        )}
         </Box>
       </Grid>
 

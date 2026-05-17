@@ -186,8 +186,10 @@ export default function MainLayout() {
     return "";
   };
 
+  const isPOS = location.pathname === "/pos";
+
   return (
-    <Box sx={{ display: "flex" }}>
+    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
       <CssBaseline />
 
       <AppBar
@@ -306,7 +308,14 @@ export default function MainLayout() {
         <Divider sx={{ borderColor: "rgba(255,255,255,0.2)" }} />
         <Sidebar collapsed={!open} />
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, p: 3 }}>
+      <Box component="main" sx={{ 
+        flexGrow: 1, 
+        p: isPOS ? 1 : 3, 
+        height: "100%", 
+        display: "flex", 
+        flexDirection: "column", 
+        overflow: "hidden" 
+      }}>
         <DrawerHeader />
         {subscriptionAlert && (
           <Box
@@ -364,7 +373,17 @@ export default function MainLayout() {
             )}
           </Box>
         )}
-        <Outlet />
+        <Box 
+          sx={{ 
+            flex: 1, 
+            minHeight: 0, 
+            overflow: isPOS ? "hidden" : "auto",
+            display: "flex",
+            flexDirection: "column"
+          }}
+        >
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );
