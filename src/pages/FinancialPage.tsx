@@ -99,7 +99,7 @@ export default function FinancialPage() {
   }, [filteredTransactions, allAppointments, allSales]);
 
   return (
-    <Box sx={{ maxWidth: "1200px", mx: "auto", py: 4 }}>
+    <Box sx={{ width: "100%", px: { xs: 2, md: 4 }, py: 4 }}>
       <Box
         sx={{
           display: "flex",
