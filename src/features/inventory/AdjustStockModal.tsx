@@ -3,7 +3,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Grid,
   TextField,
   MenuItem,
@@ -17,6 +16,7 @@ import { adjustStock, fetchProducts } from "../../api/services/products";
 import { toast } from "react-toastify";
 import { InventoryAdjustmentSchema, type InventoryAdjustment } from "./schemas";
 import { type Product } from "../products/types";
+import { Button } from "../../components/Button/Button";
 
 type AdjustStockModalProps = {
   open: boolean;
@@ -198,7 +198,7 @@ export default function AdjustStockModal({
           </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={onClose} disabled={adjustMutation.isPending}>
+          <Button onClick={onClose} disabled={adjustMutation.isPending} variant="text">
             Cancelar
           </Button>
           <Button

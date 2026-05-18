@@ -4,7 +4,6 @@ import {
   Paper,
   Tabs,
   Tab,
-  Button,
   Table,
   TableBody,
   TableCell,
@@ -27,6 +26,7 @@ import type { Product } from "../features/products/types";
 import type { InventoryLog } from "../features/inventory/schemas";
 import AdjustStockModal from "../features/inventory/AdjustStockModal";
 import dayjs from "dayjs";
+import { Button } from "../components/Button/Button";
 
 function TabPanel(props: {
   children?: React.ReactNode;

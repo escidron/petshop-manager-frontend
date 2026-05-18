@@ -3,7 +3,6 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   TextField,
   Box,
   Typography,
@@ -38,6 +37,7 @@ import { packageSchema, type PackageFormData } from "./schemas";
 import { formatBRLFromCents } from "../../utils/masks";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { useToast } from "../../hooks/useToast";
+import { Button } from "../../components/Button/Button";
 
 interface PackageFormProps {
   open: boolean;
@@ -741,7 +741,7 @@ export default function PackageForm({
         </DialogContent>
         <Divider />
         <DialogActions sx={{ p: 2, gap: 1 }}>
-          <Button onClick={onClose} variant="text" color="inherit">
+          <Button onClick={onClose} variant="text">
             Cancelar
           </Button>
           <Button

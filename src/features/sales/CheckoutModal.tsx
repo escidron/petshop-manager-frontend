@@ -13,7 +13,6 @@ import {
   IconButton,
   alpha,
   Alert,
-  Button as MuiButton,
   Autocomplete,
   TextField,
 } from "@mui/material";
@@ -324,13 +323,13 @@ export default function CheckoutModal({
           </Typography>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
-          <MuiButton
+          <Button
             variant="outlined"
             onClick={() => setShowNoEmployeeWarning(false)}
           >
             Voltar e corrigir
-          </MuiButton>
-          <MuiButton
+          </Button>
+          <Button
             variant="contained"
             onClick={() => {
               setShowNoEmployeeWarning(false);
@@ -338,7 +337,7 @@ export default function CheckoutModal({
             }}
           >
             Finalizar mesmo assim
-          </MuiButton>
+          </Button>
         </DialogActions>
       </Dialog>
     </>

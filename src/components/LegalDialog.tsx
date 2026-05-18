@@ -3,12 +3,12 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   IconButton,
   Typography,
 } from "@mui/material";
 import { X } from "lucide-react";
 import { LEGAL_CONTENT } from "../constants/legal";
+import { Button } from "./Button/Button";
 
 interface LegalDialogProps {
   open: boolean;

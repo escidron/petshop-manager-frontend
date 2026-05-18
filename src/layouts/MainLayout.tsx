@@ -23,10 +23,11 @@ import {
 } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import { Button, Typography } from "@mui/material";
+import { Typography } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
 import UserMenu from "../features/users/UserMenu";
 import { AlertTriangle, Zap } from "lucide-react";
+import { Button } from "../components/Button/Button";
 
 const drawerWidth = 240;
 
