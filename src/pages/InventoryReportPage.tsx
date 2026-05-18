@@ -173,22 +173,24 @@ export default function InventoryReportPage() {
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-          <TextField
-            size="small"
-            label="De"
-            type="date"
-            value={filterFrom}
-            onChange={(e) => setFilterFrom(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
-          <TextField
-            size="small"
-            label="Até"
-            type="date"
-            value={filterTo}
-            onChange={(e) => setFilterTo(e.target.value)}
-            slotProps={{ inputLabel: { shrink: true } }}
-          />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
+            <TextField
+              size="small"
+              type="date"
+              value={filterFrom}
+              onChange={(e) => setFilterFrom(e.target.value)}
+            />
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography variant="body2" color="text.primary" fontWeight={500}>Até:</Typography>
+            <TextField
+              size="small"
+              type="date"
+              value={filterTo}
+              onChange={(e) => setFilterTo(e.target.value)}
+            />
+          </Box>
           <Select
             size="small"
             displayEmpty

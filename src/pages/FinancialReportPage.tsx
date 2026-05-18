@@ -314,72 +314,77 @@ export default function FinancialReportPage() {
       <Paper sx={{ p: 2, mb: 2 }}>
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-            <DatePicker
-              label="De"
-              value={startDate}
-              onChange={setStartDate}
-              dayOfWeekFormatter={(day: Dayjs) => {
-                const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                return days[day.day()];
-              }}
-              slotProps={{
-                popper: {
-                  sx: {
-                    "& .MuiDayCalendar-weekDayLabel": {
-                      color: "#3d4048 !important",
-                      fontWeight: 700,
-                      fontSize: "0.75rem",
-                    },
-                    "& .MuiPickersDay-root": {
-                      color: "#3d4048 !important",
-                      "&.Mui-selected": {
-                        color: "white !important",
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
+              <DatePicker
+                value={startDate}
+                onChange={setStartDate}
+                dayOfWeekFormatter={(day: Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": {
+                        color: "#3d4048 !important",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                      },
+                      "& .MuiPickersDay-root": {
+                        color: "#3d4048 !important",
+                        "&.Mui-selected": {
+                          color: "white !important",
+                        },
+                      },
+                      "& .MuiPickersCalendarHeader-label": {
+                        color: "#3d4048 !important",
+                      },
+                      "& .MuiPickersArrowSwitcher-button": {
+                        color: "#3d4048 !important",
                       },
                     },
-                    "& .MuiPickersCalendarHeader-label": {
-                      color: "#3d4048 !important",
-                    },
-                    "& .MuiPickersArrowSwitcher-button": {
-                      color: "#3d4048 !important",
-                    },
                   },
-                },
-                textField: { size: "small" },
-              }}
-            />
-            <DatePicker
-              label="Até"
-              value={endDate}
-              onChange={setEndDate}
-              dayOfWeekFormatter={(day: Dayjs) => {
-                const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                return days[day.day()];
-              }}
-              slotProps={{
-                popper: {
-                  sx: {
-                    "& .MuiDayCalendar-weekDayLabel": {
-                      color: "#3d4048 !important",
-                      fontWeight: 700,
-                      fontSize: "0.75rem",
-                    },
-                    "& .MuiPickersDay-root": {
-                      color: "#3d4048 !important",
-                      "&.Mui-selected": {
-                        color: "white !important",
+                  textField: { size: "small" },
+                }}
+              />
+            </Box>
+
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2" color="text.primary" fontWeight={500}>Até:</Typography>
+              <DatePicker
+                value={endDate}
+                onChange={setEndDate}
+                dayOfWeekFormatter={(day: Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": {
+                        color: "#3d4048 !important",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                      },
+                      "& .MuiPickersDay-root": {
+                        color: "#3d4048 !important",
+                        "&.Mui-selected": {
+                          color: "white !important",
+                        },
+                      },
+                      "& .MuiPickersCalendarHeader-label": {
+                        color: "#3d4048 !important",
+                      },
+                      "& .MuiPickersArrowSwitcher-button": {
+                        color: "#3d4048 !important",
                       },
                     },
-                    "& .MuiPickersCalendarHeader-label": {
-                      color: "#3d4048 !important",
-                    },
-                    "& .MuiPickersArrowSwitcher-button": {
-                      color: "#3d4048 !important",
-                    },
                   },
-                },
-                textField: { size: "small" },
-              }}
-            />
+                  textField: { size: "small" },
+                }}
+              />
+            </Box>
             <Select
               size="small"
               displayEmpty
