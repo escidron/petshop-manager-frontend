@@ -81,3 +81,19 @@ export const changePassword = async (payload: {
 }): Promise<void> => {
   await apiClient.patch("/api/v1/users/me/password", payload);
 };
+
+export const forgotPassword = async (email: string) => {
+  await apiClient.post("/api/v1/auth/forgot-password", { email });
+};
+
+export const verifyOtp = async (email: string, otp_code: string) => {
+  await apiClient.post("/api/v1/auth/verify-otp", { email, otp_code });
+};
+
+export const resetPassword = async (payload: {
+  email: string;
+  otp_code: string;
+  new_password: string;
+}) => {
+  await apiClient.post("/api/v1/auth/reset-password", payload);
+};

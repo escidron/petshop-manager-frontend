@@ -90,6 +90,7 @@ const UserLoginForm = ({ user, onChange, handleSubmit, loading }: Props) => {
       <Box sx={{ display: "flex", justifyContent: "center", mt: 1 }}>
         <Typography>Esqueceu sua senha?</Typography>
         <Typography
+          onClick={() => navigate("/forgot-password")}
           sx={{
             color: "primary.main",
             cursor: "pointer",
