@@ -100,7 +100,7 @@ export default function CommissionRulesPage() {
   };
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
+    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1400px" }}>
       <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
         <TextField
           size="small"

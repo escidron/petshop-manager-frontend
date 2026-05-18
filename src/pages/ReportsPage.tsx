@@ -46,7 +46,7 @@ export default function ReportsPage() {
   const navigate = useNavigate();
 
   return (
-    <Box sx={{ p: 3, maxWidth: 1200, mx: "auto" }}>
+    <Box sx={{ width: "100%", maxWidth: "1400px", mx: "auto", p: 3 }}>
       <Typography variant="h5" fontWeight={700} mb={3}>
         Relatórios
       </Typography>
@@ -54,7 +54,11 @@ export default function ReportsPage() {
       <Box
         sx={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+          gridTemplateColumns: {
+            xs: "1fr",
+            sm: "repeat(2, 1fr)",
+            md: "repeat(3, 1fr)",
+          },
           gap: 2,
         }}
       >
