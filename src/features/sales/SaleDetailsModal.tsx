@@ -17,7 +17,8 @@ import {
   Chip,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { X, Receipt, ShoppingCart, User, Calendar } from "lucide-react";
+import { useMemo } from "react";
+import { X, Receipt, ShoppingCart, User, Calendar, Package } from "lucide-react";
 import { getSale } from "../../api/services/sales";
 import { Button } from "../../components/Button/Button";
 import { formatPaymentMethod } from "../../utils/formatPaymentMethod";
@@ -38,6 +39,18 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
   const formattedDate = sale
     ? new Date(sale.created_at).toLocaleString("pt-BR")
     : "";
+
+  // Mapa serviceId → price_cents vindo do agendamento linkado (para vendas de pacote)
+  const appointmentServicePriceMap = useMemo<Record<number, number>>(() => {
+    if (!sale?.appointment?.items) return {};
+    const map: Record<number, number> = {};
+    for (const apptItem of sale.appointment.items) {
+      for (const svc of apptItem.services) {
+        map[svc.id] = svc.price_cents;
+      }
+    }
+    return map;
+  }, [sale]);
 
   const formatCurrency = (cents: number) =>
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -127,18 +140,51 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {sale.items.map((item) => (
-                    <TableRow key={item.id} hover>
-                      <TableCell>
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={600}>{item.name}</Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell align="center">{item.quantity}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.unit_price * 100)}</TableCell>
-                      <TableCell align="right">{formatCurrency(item.subtotal * 100)}</TableCell>
-                    </TableRow>
-                  ))}
+                  {sale.items.map((item) => {
+                    const isPackageSale = sale.payment_method === "package";
+                    // Preço real: do unit_price (novos) ou do agendamento (dados antigos)
+                    const realPriceCents = isPackageSale
+                      ? (item.unit_price > 0 ? item.unit_price * 100 : (appointmentServicePriceMap[item.item_id] ?? 0))
+                      : null;
+                    return (
+                      <TableRow key={item.id} hover>
+                        <TableCell>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="subtitle2" fontWeight={600}>{item.name}</Typography>
+                            {isPackageSale && (
+                              <Chip
+                                label="Pacote"
+                                size="small"
+                                color="success"
+                                variant="outlined"
+                                icon={<Package size={10} />}
+                                sx={{ height: 18, fontSize: 10 }}
+                              />
+                            )}
+                          </Box>
+                        </TableCell>
+                        <TableCell align="center">{item.quantity}</TableCell>
+                        <TableCell align="right">
+                          {isPackageSale && realPriceCents ? (
+                            <Typography variant="body2" sx={{ textDecoration: "line-through", color: "text.disabled" }}>
+                              {formatCurrency(realPriceCents)}
+                            </Typography>
+                          ) : (
+                            formatCurrency(item.unit_price * 100)
+                          )}
+                        </TableCell>
+                        <TableCell align="right">
+                          {isPackageSale ? (
+                            <Typography variant="body2" color="success.main" fontWeight={600}>
+                              R$ 0,00
+                            </Typography>
+                          ) : (
+                            formatCurrency(item.subtotal * 100)
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                   <TableRow sx={{ bgcolor: "background.default" }}>
                     <TableCell colSpan={3} align="right">
                       <Typography variant="h6" fontWeight={700}>Total Pago</Typography>

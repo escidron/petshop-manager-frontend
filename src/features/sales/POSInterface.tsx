@@ -57,6 +57,7 @@ import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
+import type { ClientPackage } from "../client_packages/types";
 
 const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
   <Grid container spacing={2}>
@@ -330,16 +331,46 @@ export default function POSInterface() {
     toast.success(`Agendamento de ${appointment.client.name} carregado.`);
   };
 
-  // Auto-pull appointment if coming from Agenda
-  useEffect(() => {
-    const state = location.state as { pullAppointment?: Appointment } | null;
-    if (state?.pullAppointment && !hasPulled.current) {
-      handlePullAppointment(state.pullAppointment);
-      hasPulled.current = true;
-      // Clear state to avoid re-pulling on refresh
-      navigate(location.pathname, { replace: true, state: {} });
+  const handlePullPackage = (pkg: ClientPackage) => {
+    const packageDef = packages.find((p) => p.id === pkg.package_id);
+    if (!packageDef) {
+      toast.error("Pacote não encontrado no catálogo.");
+      return;
     }
-  }, [location, navigate]);
+
+    const price = packageDef.price_cents / 100;
+    const item: SaleItem = {
+      item_id: packageDef.id,
+      item_type: "package",
+      name: pkg.package_name,
+      quantity: 1,
+      unit_price: price,
+      subtotal: price,
+      pet_id: pkg.pet_id,
+      client_package_id_to_pay: pkg.id,
+    };
+
+    setSelectedClientId(pkg.client_id);
+    setCart([item]);
+    setIsPullDialogOpen(false);
+    toast.success("Venda de pacote pendente carregada.");
+  };
+
+  // Auto-pull appointment or package if coming from outside
+  useEffect(() => {
+    const state = location.state as { pullAppointment?: Appointment; pullPackage?: ClientPackage } | null;
+    if (state && !hasPulled.current) {
+      if (state.pullAppointment) {
+        handlePullAppointment(state.pullAppointment);
+        hasPulled.current = true;
+        navigate(location.pathname, { replace: true, state: {} });
+      } else if (state.pullPackage) {
+        handlePullPackage(state.pullPackage);
+        hasPulled.current = true;
+        navigate(location.pathname, { replace: true, state: {} });
+      }
+    }
+  }, [location, navigate, packages]);
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
@@ -1433,13 +1464,17 @@ export default function POSInterface() {
         />
       )}
 
-      <PullAppointmentDialog
-        open={isPullDialogOpen}
-        onClose={() => setIsPullDialogOpen(false)}
-        onSelect={handlePullAppointment}
-      />
+      {isPullDialogOpen && (
+        <PullAppointmentDialog
+          open={isPullDialogOpen}
+          onClose={() => setIsPullDialogOpen(false)}
+          onSelect={(item, type) => {
+            if (type === "appointment") handlePullAppointment(item);
+            else handlePullPackage(item);
+          }}
+        />
+      )}
 
-      {/* Pet selection dialog for package sales */}
       <Dialog
         open={!!pendingPackageItem}
         onClose={handlePetSelectionSkip}

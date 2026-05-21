@@ -1,6 +1,11 @@
 import {
   Box,
   Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   Divider,
   IconButton,
   Tooltip,
@@ -12,6 +17,7 @@ import { deactivateClientPackage } from "../../api/services/client_packages";
 import type { ClientPackage } from "./types";
 import theme from "../../theme";
 import { formatServiceLabel } from "../../utils/formatServiceLabel";
+import { Button } from "../../components/Button/Button";
 
 type Props = {
   packages: ClientPackage[];
@@ -20,11 +26,16 @@ type Props = {
 
 export default function PetPackageCredits({ packages, onRefresh }: Props) {
   const [removing, setRemoving] = useState<number | null>(null);
+  const [confirmId, setConfirmId] = useState<number | null>(null);
 
-  const handleDeactivate = async (id: number) => {
+  const confirmPackage = packages.find((p) => p.id === confirmId);
+
+  const handleDeactivate = async () => {
+    if (!confirmId) return;
     try {
-      setRemoving(id);
-      await deactivateClientPackage(id);
+      setRemoving(confirmId);
+      setConfirmId(null);
+      await deactivateClientPackage(confirmId);
       onRefresh();
     } finally {
       setRemoving(null);
@@ -40,6 +51,24 @@ export default function PetPackageCredits({ packages, onRefresh }: Props) {
   }
 
   return (
+    <>
+    <Dialog open={!!confirmId} onClose={() => setConfirmId(null)} maxWidth="xs" fullWidth>
+      <DialogTitle>Cancelar pacote</DialogTitle>
+      <DialogContent>
+        <DialogContentText sx={{ color: "text.primary" }}>
+          Tem certeza que deseja cancelar o pacote <strong>{confirmPackage?.package_name}</strong>? Os créditos restantes serão perdidos.
+        </DialogContentText>
+      </DialogContent>
+      <DialogActions sx={{ px: 3, pb: 2 }}>
+        <Button variant="outlined" onClick={() => setConfirmId(null)}>
+          Voltar
+        </Button>
+        <Button variant="contained" color="error" onClick={handleDeactivate}>
+          Cancelar pacote
+        </Button>
+      </DialogActions>
+    </Dialog>
+
     <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
       {packages.map((pkg) => (
         <Box
@@ -83,7 +112,7 @@ export default function PetPackageCredits({ packages, onRefresh }: Props) {
                 size="small"
                 color="error"
                 disabled={removing === pkg.id}
-                onClick={() => handleDeactivate(pkg.id)}
+                onClick={() => setConfirmId(pkg.id)}
               >
                 <Trash2 size={14} />
               </IconButton>
@@ -131,5 +160,6 @@ export default function PetPackageCredits({ packages, onRefresh }: Props) {
         </Box>
       ))}
     </Box>
+    </>
   );
 }

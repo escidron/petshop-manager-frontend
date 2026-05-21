@@ -32,8 +32,9 @@ export type CommissionRuleFormData = {
 export type CommissionEntry = {
   id: number;
   tenant_id: number;
-  sale_id: number;
-  sale_item_id: number;
+  sale_id?: number | null;
+  sale_item_id?: number | null;
+  appointment_item_id?: number | null;
   employee_id: number;
   rule_id?: number | null;
   commission_type: string;

@@ -83,6 +83,7 @@ export type Appointment = {
   items: AppointmentItem[];
   is_paid: boolean;
   is_fully_package_covered: boolean;
+  warnings?: string[];
 
   created_at: string;
 };

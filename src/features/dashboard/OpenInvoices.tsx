@@ -1,6 +1,6 @@
 import { Box, Typography, Skeleton, Chip } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Receipt, ShoppingCart, Clock } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
@@ -9,6 +9,9 @@ import AppointmentDetailsModal from "../appointments/AppointmentDetailsModal";
 import { applyAppointmentAction } from "../../api/services/appointments";
 import type { Appointment, AppointmentAction } from "../appointments/types";
 import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
+import { listUnpaidPackages } from "../../api/services/client_packages";
+import { listPackages } from "../../api/services/packages";
+import type { ClientPackage } from "../client_packages/types";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/pt-br";
@@ -21,17 +24,37 @@ export default function OpenInvoices() {
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
 
-  const { data: appointments = [], isLoading, refetch } = useQuery({
+  const { data: appointments = [], isLoading: isLoadingApts, refetch: refetchApts } = useQuery({
     queryKey: ["open-invoices"],
     queryFn: getOpenInvoices,
     refetchInterval: 60_000, // refresh every minute
   });
 
+  const { data: unpaidPkgs = [], isLoading: isLoadingPkgs, refetch: refetchPkgs } = useQuery({
+    queryKey: ["unpaid-packages"],
+    queryFn: listUnpaidPackages,
+    refetchInterval: 60_000,
+  });
+
+  const { data: allPackages = [], isLoading: isLoadingAllPkgs } = useQuery({
+    queryKey: ["packages"],
+    queryFn: listPackages,
+  });
+
+  const isLoading = isLoadingApts || isLoadingPkgs || isLoadingAllPkgs;
+
+  const invoices = useMemo(() => {
+    const arr: Array<{ type: "appointment" | "package", data: Appointment | ClientPackage, date: string }> = [];
+    appointments.forEach((apt) => arr.push({ type: "appointment", data: apt, date: apt.scheduled_at }));
+    unpaidPkgs.forEach((pkg) => arr.push({ type: "package", data: pkg, date: pkg.created_at }));
+    return arr.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+  }, [appointments, unpaidPkgs]);
+
   const handleAction = async (appointment: Appointment, action: AppointmentAction) => {
     try {
       setLoadingAction(action);
       await applyAppointmentAction(appointment.id, action);
-      refetch();
+      refetchApts();
       setSelectedAppointment(null);
     } finally {
       setLoadingAction(null);
@@ -48,9 +71,9 @@ export default function OpenInvoices() {
             Comandas em Aberto
           </Typography>
         </Box>
-        {!isLoading && appointments.length > 0 && (
+        {!isLoading && invoices.length > 0 && (
           <Chip
-            label={appointments.length}
+            label={invoices.length}
             color="warning"
             size="small"
             sx={{ fontWeight: 700, minWidth: 28 }}
@@ -66,32 +89,54 @@ export default function OpenInvoices() {
               <Skeleton variant="text" width="40%" />
             </CustomCard>
           ))
-        ) : appointments.length === 0 ? (
+        ) : invoices.length === 0 ? (
           <CustomCard sx={{ p: 3, textAlign: "center" }}>
             <Typography variant="body2" color="text.disabled">
               🎉 Nenhuma comanda em aberto!
             </Typography>
           </CustomCard>
         ) : (
-          appointments.map((apt) => {
-            const totalFormatted = (getAppointmentTotal(apt) / 100).toLocaleString("pt-BR", {
-              style: "currency",
-              currency: "BRL",
-            });
-            const petNames = apt.items.map((i) => i.pet.name).join(", ");
-            const serviceNames = apt.items
-              .flatMap((i) => i.services.filter((s) => !s.is_package_covered).map((s) => s.name))
-              .filter((v, i, a) => a.indexOf(v) === i)
-              .join(" · ");
-            const when = dayjs(apt.scheduled_at).fromNow();
+          invoices.map(({ type, data, date }) => {
+            const isApt = type === "appointment";
+            let totalFormatted = "";
+            let clientName = "";
+            let description = "";
+            let subDescription = "";
+
+            if (isApt) {
+              const apt = data as Appointment;
+              totalFormatted = (getAppointmentTotal(apt) / 100).toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              });
+              clientName = apt.client.name;
+              description = apt.items.map((i) => i.pet.name).join(", ");
+              subDescription = apt.items
+                .flatMap((i) => i.services.filter((s) => !s.is_package_covered).map((s) => s.name))
+                .filter((v, i, a) => a.indexOf(v) === i)
+                .join(" · ");
+            } else {
+              const pkg = data as ClientPackage;
+              const packageDef = allPackages.find((p) => p.id === pkg.package_id);
+              const price = packageDef ? packageDef.price_cents / 100 : 0;
+              totalFormatted = price.toLocaleString("pt-BR", {
+                style: "currency",
+                currency: "BRL",
+              });
+              clientName = `Pacote (Pet: ${pkg.pet.name})`;
+              description = pkg.package_name;
+              subDescription = "Venda Pendente";
+            }
+
+            const when = dayjs(date).fromNow();
 
             return (
               <CustomCard
-                key={apt.id}
-                onClick={() => setSelectedAppointment(apt)}
+                key={`${type}-${data.id}`}
+                onClick={() => { if (isApt) setSelectedAppointment(data as Appointment) }}
                 sx={{
                   p: 1.5,
-                  cursor: "pointer",
+                  cursor: isApt ? "pointer" : "default",
                   transition: "all 0.15s ease",
                   "&:hover": {
                     transform: "translateY(-1px)",
@@ -103,10 +148,10 @@ export default function OpenInvoices() {
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                   <Box>
                     <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.3 }}>
-                      {apt.client.name}
+                      {clientName}
                     </Typography>
                     <Typography variant="caption" color="text.disabled">
-                      {petNames}
+                      {description}
                     </Typography>
                   </Box>
                   <Typography variant="body2" fontWeight={800} color="primary.main" sx={{ whiteSpace: "nowrap", ml: 1 }}>
@@ -116,9 +161,9 @@ export default function OpenInvoices() {
 
                 {/* Bottom row: services + time */}
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.75 }}>
-                  {serviceNames && (
+                  {subDescription && (
                     <Typography variant="caption" color="text.primary" noWrap sx={{ maxWidth: "65%" }}>
-                      {serviceNames}
+                      {subDescription}
                     </Typography>
                   )}
                   <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.disabled", ml: "auto" }}>
@@ -137,7 +182,10 @@ export default function OpenInvoices() {
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Box
-                    onClick={() => navigate("/pos", { state: { pullAppointment: apt } })}
+                    onClick={() => {
+                        if (isApt) navigate("/pos", { state: { pullAppointment: data } });
+                        else navigate("/pos", { state: { pullPackage: data } });
+                    }}
                     sx={{
                       display: "flex",
                       alignItems: "center",

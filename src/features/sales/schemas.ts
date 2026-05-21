@@ -9,6 +9,7 @@ export const SaleItemSchema = z.object({
   subtotal: z.number().min(0),
   pet_id: z.number().optional(),
   employee_id: z.number().nullable().optional(),
+  client_package_id_to_pay: z.number().nullable().optional(),
 });
 
 export const SaleCreateSchema = z.object({
@@ -32,5 +33,9 @@ export interface SaleResponse extends SaleCreate {
   client?: { id: number; name: string };
   pet?: { id: number; name: string };
   appointment_id?: number | null;
-  appointment?: { id: number; client: { id: number; name: string } } | null;
+  appointment?: {
+    id: number;
+    client: { id: number; name: string };
+    items: { services: { id: number; price_cents: number }[] }[];
+  } | null;
 }

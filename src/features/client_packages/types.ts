@@ -18,8 +18,11 @@ export type ClientPackage = {
   package_id: number | null;
   package_name: string;
   is_active: boolean;
+  is_paid: boolean;
   created_at: string;
   expires_at: string | null;
+  client: { id: number; name: string };
+  pet: { id: number; name: string };
   credits: ClientPackageCredit[];
 };
 

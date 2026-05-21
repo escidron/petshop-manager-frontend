@@ -20,7 +20,7 @@ type Transaction = {
   id: string;
   date: string;
   client: string;
-  type: "Agendamento" | "Venda PDV" | "Pago via Pacote";
+  type: "Agendamento" | "Venda PDV" | "Venda Pacote" | "Pago via Pacote";
   amount_cents: number;
   payment_method: string;
   original: Appointment | SaleResponse;
@@ -108,7 +108,9 @@ export default function FinancialTable({ transactions, isLoading = false }: Prop
                             ? "success"
                             : t.type === "Agendamento"
                               ? "primary"
-                              : "info"
+                              : t.type === "Venda Pacote"
+                                ? "warning"
+                                : "info"
                         }
                         variant="outlined"
                       />

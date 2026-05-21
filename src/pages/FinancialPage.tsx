@@ -57,17 +57,22 @@ export default function FinancialPage() {
 
     const saleRows = allSales
       .filter((s) => s.status === "completed")
-      .map((s) => ({
-        id: `sale-${s.id}`,
-        date: s.created_at,
-        client: s.client?.name || "Consumidor",
-        type: s.appointment_id
-          ? ("Agendamento" as const)
-          : ("Venda PDV" as const),
-        payment_method: s.payment_method,
-        amount_cents: Math.round(s.total_amount * 100),
-        original: s,
-      }));
+      .map((s) => {
+        const isPackageSale = s.items?.some((i) => i.item_type === "package");
+        return {
+          id: `sale-${s.id}`,
+          date: s.created_at,
+          client: s.client?.name || "Consumidor",
+          type: s.appointment_id
+            ? ("Agendamento" as const)
+            : isPackageSale
+              ? ("Venda Pacote" as const)
+              : ("Venda PDV" as const),
+          payment_method: s.payment_method,
+          amount_cents: Math.round(s.total_amount * 100),
+          original: s,
+        };
+      });
 
     return [...appointmentRows, ...saleRows].sort((a, b) =>
       dayjs(b.date).diff(dayjs(a.date)),

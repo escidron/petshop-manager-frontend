@@ -32,6 +32,11 @@ export const listClientPackagesByClient = async (
   return response.data;
 };
 
+export const listUnpaidPackages = async (): Promise<ClientPackage[]> => {
+  const response = await apiClient.get<ClientPackage[]>("/api/v1/client-packages/unpaid");
+  return response.data;
+};
+
 export const deactivateClientPackage = async (
   clientPackageId: number,
 ): Promise<void> => {

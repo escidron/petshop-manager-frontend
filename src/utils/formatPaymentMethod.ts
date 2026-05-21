@@ -4,6 +4,7 @@ const PAYMENT_METHOD_LABEL: Record<string, string> = {
   debit_card: "Cartão de Débito",
   money: "Dinheiro",
   other: "Outro",
+  package: "Pacote",
 };
 
 export function formatPaymentMethod(method: string): string {

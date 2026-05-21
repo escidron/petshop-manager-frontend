@@ -445,7 +445,7 @@ export default function CommissionReportPage() {
                 />
               </TableCell>
               <TableCell sx={headerCellSx}>Funcionário</TableCell>
-              <TableCell sx={headerCellSx}>Venda #</TableCell>
+              <TableCell sx={headerCellSx}>Origem</TableCell>
               <TableCell sx={headerCellSx}>Tipo</TableCell>
               <TableCell sx={headerCellSx}>Base</TableCell>
               <TableCell sx={headerCellSx}>Taxa</TableCell>
@@ -473,20 +473,26 @@ export default function CommissionReportPage() {
                     {employeeMap[entry.employee_id] ?? `#${entry.employee_id}`}
                   </TableCell>
                   <TableCell>
-                    <Typography
-                      variant="body2"
-                      color="primary"
-                      fontWeight={600}
-                      sx={{
-                        cursor: "pointer",
-                        textDecoration: "underline",
-                        textUnderlineOffset: 3,
-                        "&:hover": { opacity: 0.75 },
-                      }}
-                      onClick={() => handleOpenSaleDetails(entry.sale_id)}
-                    >
-                      #{entry.sale_id}
-                    </Typography>
+                    {entry.sale_id ? (
+                      <Typography
+                        variant="body2"
+                        color="primary"
+                        fontWeight={600}
+                        sx={{
+                          cursor: "pointer",
+                          textDecoration: "underline",
+                          textUnderlineOffset: 3,
+                          "&:hover": { opacity: 0.75 },
+                        }}
+                        onClick={() => handleOpenSaleDetails(entry.sale_id!)}
+                      >
+                        #{entry.sale_id}
+                      </Typography>
+                    ) : (
+                      <Typography variant="body2" color="text.disabled" fontStyle="italic">
+                        —
+                      </Typography>
+                    )}
                   </TableCell>
                   <TableCell>
                     {entry.commission_type === "percentage"

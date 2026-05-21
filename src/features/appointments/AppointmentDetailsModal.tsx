@@ -1,4 +1,5 @@
 import {
+  Alert,
   Box,
   Chip,
   Dialog,
@@ -249,6 +250,15 @@ const AppointmentDetailsModal = ({
                   <Typography variant="body2" sx={{ ml: 3 }}>
                     {appointment.notes}
                   </Typography>
+                </Box>
+              )}
+              {appointment.warnings && appointment.warnings.length > 0 && (
+                <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  {appointment.warnings.map((w, i) => (
+                    <Alert key={i} severity="warning" icon={<AlertTriangle size={16} />} sx={{ py: 0.25, fontSize: "0.75rem" }}>
+                      {w}
+                    </Alert>
+                  ))}
                 </Box>
               )}
 
@@ -686,6 +696,14 @@ const AppointmentDetailsModal = ({
                                     <AlertTriangle size={12} color={theme.palette.warning.main} style={{ marginTop: "2px" }} />
                                     <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ lineHeight: 1.2 }}>
                                       Aviso: Não há uma regra de comissão para este caso. Para gerar comissionamento, verifique as regras cadastradas.
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {!currentEmpId && coveredServiceKeys.has(key) && (
+                                  <Box sx={{ mt: 0.5, display: "flex", alignItems: "flex-start", gap: 0.5 }}>
+                                    <AlertTriangle size={12} color={theme.palette.warning.main} style={{ marginTop: "2px" }} />
+                                    <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ lineHeight: 1.2 }}>
+                                      Serviço coberto por pacote sem funcionário vinculado. Comissão não será gerada.
                                     </Typography>
                                   </Box>
                                 )}
