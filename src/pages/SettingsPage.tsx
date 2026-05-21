@@ -65,6 +65,7 @@ import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import PixQrCode from "../features/billing/PixQrCode";
 import type { PaymentMethod, CheckoutPixResponse } from "../features/billing/types";
 import { Button } from "../components/Button/Button";
+import WorkingHoursSettings from "../features/tenants/WorkingHoursSettings";
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -499,56 +500,57 @@ const SettingsPage = () => {
 
         {/* --- ABA GERAL --- */}
         <CustomTabPanel value={value} index={getTabIndex("general")}>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12, md: 8 }}>
+          <Grid container spacing={3} alignItems="flex-start">
+            <Grid size={{ xs: 12, md: isOwner ? 4 : 6 }}>
               <Paper sx={{ p: 3, borderRadius: 3 }}>
-                <Stack spacing={3}>
-                  <Box>
-                    <Typography variant="h6" fontWeight={700} gutterBottom>
-                      Informações da Empresa
-                    </Typography>
-                    <Typography variant="body2" color="text.primary">
-                      Essas informações aparecerão nos seus recibos e
-                      agendamentos.
-                    </Typography>
-                  </Box>
+                <Stack spacing={2}>
+                  <Typography variant="h6" fontWeight={700}>
+                    Informações da Empresa
+                  </Typography>
                   <Divider />
-                  <Stack spacing={2}>
+                  <Stack spacing={1.5}>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight={700}>
-                        Nome do Petshop
+                      <Typography variant="caption" color="text.primary" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Nome
                       </Typography>
-                      <Typography variant="body1">{tenant?.name}</Typography>
+                      <Typography variant="body2" fontWeight={500} mt={0.25}>
+                        {tenant?.name}
+                      </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight={700}>
-                        Telefone de Contato
+                      <Typography variant="caption" color="text.primary" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        Telefone
                       </Typography>
-                      <Typography variant="body1">
+                      <Typography variant="body2" fontWeight={500} mt={0.25}>
                         {maskPhone(tenant?.phone) || "Não informado"}
                       </Typography>
                     </Box>
                     <Box>
-                      <Typography variant="subtitle2" fontWeight={700}>
-                        CPF ou CNPJ
+                      <Typography variant="caption" color="text.primary" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                        CPF / CNPJ
                       </Typography>
-                      <Typography variant="body1">
+                      <Typography variant="body2" fontWeight={500} mt={0.25}>
                         {tenant?.document ? maskDocument(tenant.document) : "Não informado"}
                       </Typography>
                     </Box>
-                    <Box>
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setOpenTenantEdit(true)}
-                      >
-                        Editar Informações
-                      </Button>
-                    </Box>
                   </Stack>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setOpenTenantEdit(true)}
+                    fullWidth
+                  >
+                    Editar Informações
+                  </Button>
                 </Stack>
               </Paper>
             </Grid>
+
+            {isOwner && (
+              <Grid size={{ xs: 12, md: 8 }}>
+                <WorkingHoursSettings />
+              </Grid>
+            )}
           </Grid>
         </CustomTabPanel>
 

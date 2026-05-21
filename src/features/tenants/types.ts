@@ -16,6 +16,14 @@ export type Subscription = {
   };
 };
 
+export type DaySchedule = {
+  is_open: boolean;
+  open: string;  // "HH:MM"
+  close: string; // "HH:MM"
+};
+
+export type WorkingHours = Record<string, DaySchedule>; // "0"=Dom … "6"=Sáb (dayjs convention)
+
 export type Tenant = {
   id: number;
   name: string;
@@ -30,6 +38,7 @@ export type Tenant = {
     name: string;
   };
   subscription?: Subscription;
+  working_hours?: WorkingHours | null;
 };
 
 export type TenantFormData = z.infer<typeof tenantSchema>;

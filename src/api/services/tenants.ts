@@ -1,5 +1,5 @@
 import type { OnboardingStep } from "../../features/onboarding/types";
-import type { TenantFormData } from "../../features/tenants/types";
+import type { TenantFormData, WorkingHours } from "../../features/tenants/types";
 import apiClient from "../apiClient";
 
 export const createTenant = async (
@@ -29,6 +29,13 @@ export const updateTenantOnboardingStep = async ( step: OnboardingStep) => {
         `/api/v1/onboarding/step`,
         { step },
     );
+    return response.data;
+};
+
+export const updateWorkingHours = async (tenantId: number, workingHours: WorkingHours) => {
+    const response = await apiClient.patch(`/api/v1/tenants/${tenantId}`, {
+        working_hours: workingHours,
+    });
     return response.data;
 };
 

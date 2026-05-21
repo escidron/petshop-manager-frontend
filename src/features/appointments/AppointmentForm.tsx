@@ -26,6 +26,7 @@ import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
 import theme from "../../theme";
 import AppointmentPetItem from "./AppointmentPetItem";
+import { useAuth } from "../../hooks/useAuth";
 dayjs.locale("pt-br");
 
 type Props = {
@@ -65,6 +66,9 @@ export default function AppointmentForm({
   autoSelectPet,
   autoSelectService,
 }: Props) {
+  const { tenant } = useAuth();
+  const workingHours = tenant?.working_hours ?? null;
+
   const [scheduledDate, setScheduledDate] = useState<dayjs.Dayjs | null>(
     defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null,
   );
@@ -174,6 +178,10 @@ export default function AppointmentForm({
                       field.onChange("");
                     }
                   }}
+                  shouldDisableDate={(date) => {
+                    if (!workingHours) return false;
+                    return workingHours[String(date.day())]?.is_open === false;
+                  }}
                   dayOfWeekFormatter={(day: dayjs.Dayjs) => {
                     const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
                     return days[day.day()];
@@ -217,6 +225,20 @@ export default function AppointmentForm({
                   ampm={false}
                   referenceDate={dayjs().hour(8).minute(0)}
                   minutesStep={5}
+                  minTime={(() => {
+                    if (!workingHours || !scheduledDate?.isValid()) return undefined;
+                    const s = workingHours[String(scheduledDate.day())];
+                    if (!s?.is_open) return undefined;
+                    const [h, m] = s.open.split(":").map(Number);
+                    return dayjs().hour(h).minute(m).second(0);
+                  })()}
+                  maxTime={(() => {
+                    if (!workingHours || !scheduledDate?.isValid()) return undefined;
+                    const s = workingHours[String(scheduledDate.day())];
+                    if (!s?.is_open) return undefined;
+                    const [h, m] = s.close.split(":").map(Number);
+                    return dayjs().hour(h).minute(m).second(0);
+                  })()}
                   open={timePickerOpen}
                   onOpen={() => {
                     pendingTimeCloseRef.current = false;
