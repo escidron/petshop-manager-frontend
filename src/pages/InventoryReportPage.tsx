@@ -15,8 +15,13 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { useMemo, useState } from "react";
 import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
+dayjs.locale("pt-br");
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, BarChart2, Package, TrendingUp, Search } from "lucide-react";
 import { fetchGlobalInventoryLogs, fetchProducts } from "../api/services/products";
@@ -38,6 +43,7 @@ const LOG_TYPE_LABELS: Record<string, string> = {
   out: "Saída",
   sale: "Venda",
   adjustment: "Ajuste",
+  manual_adjustment: "Ajuste Manual",
 };
 
 const LOG_TYPE_COLORS: Record<
@@ -48,6 +54,7 @@ const LOG_TYPE_COLORS: Record<
   out: "error",
   sale: "warning",
   adjustment: "default",
+  manual_adjustment: "default",
 };
 
 const fmtBRL = (cents: number) =>
@@ -175,21 +182,61 @@ export default function InventoryReportPage() {
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
-            <TextField
-              size="small"
-              type="date"
-              value={filterFrom}
-              onChange={(e) => setFilterFrom(e.target.value)}
-            />
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <DatePicker
+                format="DD/MM/YYYY"
+                value={filterFrom ? dayjs(filterFrom) : null}
+                onChange={(newDate) => {
+                  if (newDate && newDate.isValid()) setFilterFrom(newDate.format("YYYY-MM-DD"));
+                  else setFilterFrom("");
+                }}
+                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": { color: "#3d4048 !important", fontWeight: 700, fontSize: "0.75rem" },
+                      "& .MuiPickersDay-root": { color: "#3d4048 !important", "&.Mui-selected": { color: "white !important" } },
+                      "& .MuiPickersCalendarHeader-label": { color: "#3d4048 !important" },
+                      "& .MuiPickersArrowSwitcher-button": { color: "#3d4048 !important" },
+                    },
+                  },
+                  textField: { size: "small", placeholder: "DD/MM/AAAA", inputMode: "numeric" },
+                  actionBar: { actions: [] },
+                }}
+              />
+            </LocalizationProvider>
           </Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2" color="text.primary" fontWeight={500}>Até:</Typography>
-            <TextField
-              size="small"
-              type="date"
-              value={filterTo}
-              onChange={(e) => setFilterTo(e.target.value)}
-            />
+            <Typography variant="body2" color="text.primary" fontWeight={500} sx={{ ml: 1 }}>Até:</Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <DatePicker
+                format="DD/MM/YYYY"
+                value={filterTo ? dayjs(filterTo) : null}
+                onChange={(newDate) => {
+                  if (newDate && newDate.isValid()) setFilterTo(newDate.format("YYYY-MM-DD"));
+                  else setFilterTo("");
+                }}
+                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": { color: "#3d4048 !important", fontWeight: 700, fontSize: "0.75rem" },
+                      "& .MuiPickersDay-root": { color: "#3d4048 !important", "&.Mui-selected": { color: "white !important" } },
+                      "& .MuiPickersCalendarHeader-label": { color: "#3d4048 !important" },
+                      "& .MuiPickersArrowSwitcher-button": { color: "#3d4048 !important" },
+                    },
+                  },
+                  textField: { size: "small", placeholder: "DD/MM/AAAA", inputMode: "numeric" },
+                  actionBar: { actions: [] },
+                }}
+              />
+            </LocalizationProvider>
           </Box>
           <Select
             size="small"
@@ -203,6 +250,7 @@ export default function InventoryReportPage() {
             <MenuItem value="out">Saída</MenuItem>
             <MenuItem value="sale">Venda</MenuItem>
             <MenuItem value="adjustment">Ajuste</MenuItem>
+            <MenuItem value="manual_adjustment">Ajuste Manual</MenuItem>
           </Select>
           <TextField
             size="small"
