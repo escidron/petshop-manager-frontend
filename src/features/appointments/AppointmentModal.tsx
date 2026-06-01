@@ -29,6 +29,7 @@ type Props = {
   selectedPet?: Pet;
   onClose: () => void;
   onSuccess: () => void;
+  initialDate?: string;
 };
 
 export default function AppointmentModal({
@@ -39,6 +40,7 @@ export default function AppointmentModal({
   selectedPet,
   onClose,
   onSuccess,
+  initialDate,
 }: Props) {
   const toast = useToast();
   const defaultValues: AppointmentFormData = appointment
@@ -150,6 +152,7 @@ export default function AppointmentModal({
             autoSelectClientId={autoSelectClientId}
             autoSelectPet={autoSelectPet}
             autoSelectService={autoSelectService}
+            initialDate={initialDate}
           />
         </DialogContent>
       </Dialog>

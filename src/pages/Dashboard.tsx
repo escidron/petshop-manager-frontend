@@ -149,6 +149,7 @@ const Dashboard = () => {
                       open: true,
                       step: "appointment",
                       mode: "create",
+                      initialDate: date.toISOString(),
                     })
                   }
                 />
@@ -289,6 +290,7 @@ const Dashboard = () => {
           selectedClient={flow.selectedClient}
           selectedPet={flow.selectedPet}
           appointment={flow.appointment}
+          initialDate={flow.initialDate}
           onSuccess={() => {
             queryClient.invalidateQueries({
               queryKey: ["appointments"],

@@ -46,6 +46,7 @@ type Props = {
   autoSelectClientId?: number;
   autoSelectPet?: { index: number; id: number };
   autoSelectService?: { index: number; id: number };
+  initialDate?: string;
 };
 
 export default function AppointmentForm({
@@ -65,12 +66,17 @@ export default function AppointmentForm({
   autoSelectClientId,
   autoSelectPet,
   autoSelectService,
+  initialDate,
 }: Props) {
   const { tenant } = useAuth();
   const workingHours = tenant?.working_hours ?? null;
 
   const [scheduledDate, setScheduledDate] = useState<dayjs.Dayjs | null>(
-    defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null,
+    defaultValues?.scheduled_at
+      ? dayjs(defaultValues.scheduled_at)
+      : initialDate
+        ? dayjs(initialDate)
+        : null,
   );
   const [scheduledTime, setScheduledTime] = useState<dayjs.Dayjs | null>(
     defaultValues?.scheduled_at ? dayjs(defaultValues.scheduled_at) : null,
@@ -80,7 +86,10 @@ export default function AppointmentForm({
 
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
-    defaultValues,
+    defaultValues: {
+      ...defaultValues,
+      scheduled_at: defaultValues?.scheduled_at || "",
+    },
   });
 
   const {
@@ -250,7 +259,9 @@ export default function AppointmentForm({
                     // Marcamos pendingClose=true aqui para que o PRÓXIMO
                     // onChange (clique explícito do usuário nos minutos) feche.
                     if (view === "minutes") {
-                      pendingTimeCloseRef.current = true;
+                      setTimeout(() => {
+                        pendingTimeCloseRef.current = true;
+                      }, 10);
                     }
                   }}
                   onChange={(newTime) => {
@@ -267,9 +278,15 @@ export default function AppointmentForm({
                     } else {
                       field.onChange("");
                     }
+                    // Mudança: Se ja estamos em minutos (pendingTimeCloseRef), fechamos
                     if (pendingTimeCloseRef.current) {
                       setTimePickerOpen(false);
                     }
+                  }}
+                  onAccept={() => {
+                    // onAccept costuma ser disparado no clique final no desktop
+                    setTimePickerOpen(false);
+                    pendingTimeCloseRef.current = false;
                   }}
                   slotProps={{
                     textField: {
@@ -283,6 +300,12 @@ export default function AppointmentForm({
                     },
                     actionBar: { actions: [] },
                     popper: {
+                      onClick: () => {
+                        if (pendingTimeCloseRef.current) {
+                          setTimePickerOpen(false);
+                          pendingTimeCloseRef.current = false;
+                        }
+                      },
                       sx: {
                         "& .MuiMultiSectionDigitalClock-root": {
                           maxHeight: 260,

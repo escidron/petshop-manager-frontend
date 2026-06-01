@@ -65,6 +65,7 @@ export type AppointmentFlowState =
     selectedClient?: Client;
     selectedPet?: Pet;
     appointment?: Appointment;
+    initialDate?: string;
   };
 
 export type AppointmentItem = {
