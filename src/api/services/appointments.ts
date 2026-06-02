@@ -84,3 +84,12 @@ export const getOpenInvoices = async (): Promise<Appointment[]> => {
   const response = await apiClient.get<Appointment[]>("/api/v1/appointments/open-invoices");
   return response.data;
 };
+
+export const listAppointmentsByClient = async (
+  clientId: number
+): Promise<Appointment[]> => {
+  const response = await apiClient.get<Appointment[]>(
+    `/api/v1/appointments/client/${clientId}`
+  );
+  return response.data;
+};

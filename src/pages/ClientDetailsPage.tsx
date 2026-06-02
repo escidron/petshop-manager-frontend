@@ -20,6 +20,7 @@ import PetPackageCredits from "../features/client_packages/PetPackageCredits";
 import ClientPackageSellModal from "../features/client_packages/ClientPackageSellModal";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
+import ClientHistory from "../features/clients/ClientHistory";
 
 export default function ClientDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -99,8 +100,8 @@ export default function ClientDetailsPage() {
   return (
     <Box
       sx={{
-        width: "60%",
-        maxWidth: "1200px",
+        width: "100%",
+        maxWidth: "1400px",
         mx: "auto",
         p: 3,
         display: "flex",
@@ -109,9 +110,8 @@ export default function ClientDetailsPage() {
       }}
     >
       <ClientePersonalInfo client={client} />
-      <Divider />
 
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start">
+      <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ gap: 4 }}>
         <Box sx={{ width: "60%", minWidth: "550px" }}>
           <Box
             sx={{
@@ -190,7 +190,9 @@ export default function ClientDetailsPage() {
           ))}
         </Box>
 
-        <Box sx={{ width: "40%" }} />
+        <Box sx={{ width: "40%" }}>
+          <ClientHistory clientId={parseInt(id!)} />
+        </Box>
       </Box>
 
       <PetFormModal
