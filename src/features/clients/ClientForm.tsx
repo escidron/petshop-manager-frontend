@@ -53,7 +53,6 @@ export default function ClientForm({
   isSubmitting = false,
   setShowAdditionalInfo,
 }: Props) {
-  const [addPhone, setAddPhone] = useState(false);
   const [loadingCep, setLoadingCep] = useState(false);
   const toast = useToast();
   const form = useForm<ClientFormData>({
@@ -182,7 +181,7 @@ export default function ClientForm({
 
             <FormControl fullWidth>
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Telefone
+                Telefone Principal
               </FormLabel>
               <Controller
                 name="phone"
@@ -198,10 +197,62 @@ export default function ClientForm({
                 )}
               />
             </FormControl>
+
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="overline" color="text.disabled" fontWeight={600}>
+                Contatos Adicionais (Opcional)
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mt: 1 }}>
+                <Box sx={{ display: "flex", gap: 1.5 }}>
+                  <Controller
+                    name="phone_secondary"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        placeholder="(00) 00000-0000"
+                        sx={{ flex: 1.5 }}
+                        onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="phone_secondary_name"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField {...field} placeholder="Nome/Tipo" sx={{ flex: 1 }} />
+                    )}
+                  />
+                </Box>
+                <Box sx={{ display: "flex", gap: 1.5 }}>
+                  <Controller
+                    name="phone_tertiary"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField
+                        {...field}
+                        placeholder="(00) 00000-0000"
+                        sx={{ flex: 1.5 }}
+                        onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="phone_tertiary_name"
+                    control={control}
+                    render={({ field }) => (
+                      <CustomTextField {...field} placeholder="Nome/Tipo" sx={{ flex: 1 }} />
+                    )}
+                  />
+                </Box>
+              </Box>
+            </Box>
+
             <Button
               variant="text"
               startIcon={showAdditionalInfo ? <Minus /> : <Plus />}
               onClick={() => setShowAdditionalInfo(!showAdditionalInfo)}
+              sx={{ alignSelf: "center", mt: 1 }}
             >
               {showAdditionalInfo ? "Ocultar" : "Mostrar"} Cadastro Completo
             </Button>
@@ -365,96 +416,8 @@ export default function ClientForm({
                       />
                     )}
                   />
-                  <Controller
-                    name="x"
-                    control={control}
-                    render={({ field }) => (
-                      <CustomTextField
-                        {...field}
-                        placeholder="X(twitter)"
-                        slotProps={{
-                          input: {
-                            startAdornment: (
-                              <InputAdornment position="start">
-                                <Box
-                                  component="img"
-                                  src="/x.png"
-                                  sx={{ width: 24 }}
-                                />
-                              </InputAdornment>
-                            ),
-                          },
-                        }}
-                      />
-                    )}
-                  />
                 </Box>
               </FormControl>
-
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                <Button
-                  variant="text"
-                  startIcon={addPhone ? <Minus /> : <Plus />}
-                  onClick={() => setAddPhone((v) => !v)}
-                  sx={{ marginRight: "auto" }}
-                >
-                  {addPhone
-                    ? "Ocultar telefones adicionais"
-                    : "Adicionar telefone de contato"}
-                </Button>
-
-                {addPhone && (
-                  <Box
-                    sx={{ display: "flex", flexDirection: "column", gap: 2 }}
-                  >
-                    <Box sx={{ display: "flex", gap: 2 }}>
-                      <Controller
-                        name="phone_secondary"
-                        control={control}
-                        render={({ field }) => (
-                          <CustomTextField
-                            {...field}
-                            placeholder="(00) 00000-0000"
-                            onChange={(e) =>
-                              field.onChange(maskPhone(e.target.value))
-                            }
-                          />
-                        )}
-                      />
-                      <Controller
-                        name="phone_secondary_name"
-                        control={control}
-                        render={({ field }) => (
-                          <CustomTextField {...field} placeholder="Contato 2" />
-                        )}
-                      />
-                    </Box>
-
-                    <Box sx={{ display: "flex", gap: 2 }}>
-                      <Controller
-                        name="phone_tertiary"
-                        control={control}
-                        render={({ field }) => (
-                          <CustomTextField
-                            {...field}
-                            placeholder="(00) 00000-0000"
-                            onChange={(e) =>
-                              field.onChange(maskPhone(e.target.value))
-                            }
-                          />
-                        )}
-                      />
-                      <Controller
-                        name="phone_tertiary_name"
-                        control={control}
-                        render={({ field }) => (
-                          <CustomTextField {...field} placeholder="Contato 3" />
-                        )}
-                      />
-                    </Box>
-                  </Box>
-                )}
-              </Box>
             </Box>
           )}
 

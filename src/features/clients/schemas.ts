@@ -39,7 +39,6 @@ export const clientSchema = z.object({
   state: z.string().optional(),
   instagram: z.string().optional(),
   facebook: z.string().optional(),
-  x: z.string().optional(),
   phone_secondary_name: z.string().optional(),
   phone_secondary: z
     .string()

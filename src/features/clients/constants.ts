@@ -17,7 +17,6 @@ export const DEFAULT_CLIENT_FORM: ClientFormData = {
   state: "",
   instagram: "",
   facebook: "",
-  x: "",
   phone_secondary_name: "",
   phone_secondary:undefined,
   phone_tertiary_name: "",

@@ -35,7 +35,6 @@ export type Client = {
   // Redes sociais
   instagram?: string | null;
   facebook?: string | null;
-  x?: string | null;
 };
 
 export type ClientFormData = z.infer<typeof clientSchema>;

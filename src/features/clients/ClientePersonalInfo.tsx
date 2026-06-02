@@ -6,7 +6,6 @@ import {
   CreditCard,
   Instagram,
   Facebook,
-  Twitter,
   User,
   Pencil,
 } from "lucide-react";
@@ -248,13 +247,7 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
                 <Typography variant="body2" fontWeight={500}>{client.facebook}</Typography>
               </Box>
             )}
-            {client.x && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1, borderRadius: 2, bgcolor: "grey.50" }}>
-                <Twitter size={20} color="#000000" />
-                <Typography variant="body2" fontWeight={500}>{client.x}</Typography>
-              </Box>
-            )}
-            {!client.instagram && !client.facebook && !client.x && (
+            {!client.instagram && !client.facebook && (
               <Typography variant="body2" color="text.disabled" fontStyle="italic">
                 Nenhuma rede cadastrada
               </Typography>

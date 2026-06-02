@@ -34,6 +34,5 @@ export function clientToFormData(
 
     instagram: client.instagram ?? undefined,
     facebook: client.facebook ?? undefined,
-    x: client.x ?? undefined,
   };
 }
