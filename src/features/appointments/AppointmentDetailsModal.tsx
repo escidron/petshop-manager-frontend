@@ -422,7 +422,7 @@ const AppointmentDetailsModal = ({
             <Typography variant="h5" fontWeight={600}>
               Tutor
             </Typography>
-            <Box sx={{ mt: 1 }}>
+            <Box sx={{ mt: 1, minWidth: "580px" }}>
               <ClientePersonalInfo client={appointment.client} />
             </Box>
           </Box>

@@ -9,7 +9,7 @@ import {
   Twitter,
   User,
 } from "lucide-react";
-import { Chip, Typography, Box, Grid, Divider, Paper } from "@mui/material";
+import { Chip, Typography, Box, Grid, Divider, Paper, Button } from "@mui/material";
 import type { Client } from "./types";
 import { maskPhone, maskCpf, maskCnpj, maskBirthDate, maskCep } from "../../utils/masks";
 
@@ -134,6 +134,32 @@ const ClientePersonalInfo = ({ client }: Props) => {
             </Box>
           </Box>
         </Box>
+        {client.phone && (
+          <Button
+            variant="outlined"
+            size="small"
+            color="success"
+            startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 20, height: 20 }} />}
+            onClick={() => {
+              const cleanPhone = client.phone!.replace(/\D/g, "");
+              const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+              window.open(`https://wa.me/${phoneWithCountry}`, "_blank");
+            }}
+            sx={{ 
+              borderRadius: 2, 
+              textTransform: "none",
+              fontWeight: 600,
+              borderColor: "success.light",
+              color: "success.main",
+              height: "fit-content",
+              "&:hover": {
+                borderColor: "success.dark"
+              }
+            }}
+          >
+            WhatsApp
+          </Button>
+        )}
       </Box>
 
       <Grid container spacing={4}>
