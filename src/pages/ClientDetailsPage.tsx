@@ -21,18 +21,21 @@ import ClientPackageSellModal from "../features/client_packages/ClientPackageSel
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
 import ClientHistory from "../features/clients/ClientHistory";
+import ClientFormModal from "../features/clients/ClientFormModal";
 
 export default function ClientDetailsPage() {
   const { id } = useParams<{ id: string }>();
   const [petToDelete, setPetToDelete] = useState<Pet | null>(null);
   const [deleting, setDeleting] = useState(false);
-  const { client, pets, loading, refetchPets } = useClient(parseInt(id!));
+  const { client, pets, loading, refetchPets, refetchClient } = useClient(parseInt(id!));
 
   const [petModal, setPetModal] = useState<{
     open: boolean;
     mode: "create" | "edit";
     pet?: Pet;
   }>({ open: false, mode: "create" });
+
+  const [clientModal, setClientModal] = useState({ open: false });
 
   const [packageTemplates, setPackageTemplates] = useState<PkgTemplate[]>([]);
   const [petPackages, setPetPackages] = useState<Record<number, ClientPackage[]>>({});
@@ -104,20 +107,20 @@ export default function ClientDetailsPage() {
         maxWidth: "1400px",
         mx: "auto",
         p: 3,
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
       }}
     >
-      <ClientePersonalInfo client={client} />
-
       <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ gap: 4 }}>
         <Box sx={{ width: "60%", minWidth: "550px" }}>
+          <ClientePersonalInfo 
+            client={client} 
+            onEdit={() => setClientModal({ open: true })}
+          />
           <Box
             sx={{
               display: "flex",
               justifyContent: "space-between",
               alignItems: "center",
+              mt: 4,
             }}
           >
             <Typography variant="h6" fontWeight={600}>
@@ -224,6 +227,17 @@ export default function ClientDetailsPage() {
         pets={pets}
         packages={packageTemplates}
         defaultPetId={sellModal.petId}
+      />
+
+      <ClientFormModal
+        open={clientModal.open}
+        mode="edit"
+        client={client}
+        onClose={() => setClientModal({ open: false })}
+        onSuccess={async () => {
+          await refetchClient();
+          setClientModal({ open: false });
+        }}
       />
     </Box>
   );

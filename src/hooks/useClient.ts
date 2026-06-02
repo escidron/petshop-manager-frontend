@@ -48,5 +48,6 @@ export function useClient(initialClientId?: number) {
     setPets,
     setClientId,   // 🔑 isso é o gatilho
     refetchPets: fetchPets,
+    refetchClient: fetchClient,
   };
 }

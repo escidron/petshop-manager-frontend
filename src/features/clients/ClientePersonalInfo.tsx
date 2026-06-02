@@ -8,13 +8,15 @@ import {
   Facebook,
   Twitter,
   User,
+  Pencil,
 } from "lucide-react";
-import { Chip, Typography, Box, Grid, Divider, Paper, Button } from "@mui/material";
+import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip } from "@mui/material";
 import type { Client } from "./types";
 import { maskPhone, maskCpf, maskCnpj, maskBirthDate, maskCep } from "../../utils/masks";
 
 type Props = {
   client: Client;
+  onEdit?: () => void;
 };
 
 const InfoItem = ({
@@ -23,7 +25,7 @@ const InfoItem = ({
   value,
   secondaryValue,
 }: {
-  icon: any;
+  icon: React.ComponentType<{ size?: number | string }>;
   label: string;
   value?: string | null;
   secondaryValue?: string | null;
@@ -51,7 +53,7 @@ const InfoItem = ({
   );
 };
 
-const ClientePersonalInfo = ({ client }: Props) => {
+const ClientePersonalInfo = ({ client, onEdit }: Props) => {
   const formatDocument = (doc?: string | null, type?: string | null) => {
     if (!doc) return null;
     return type === "CPF" ? maskCpf(doc) : maskCnpj(doc);
@@ -71,17 +73,24 @@ const ClientePersonalInfo = ({ client }: Props) => {
     if (filtered.length === 0) return null;
     
     return (
-      <Box>
-        <Typography variant="body2" color="text.primary">
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+        <Typography variant="body2" color="text.primary" fontWeight={600}>
           {client.street}{client.number ? `, ${client.number}` : ""}
-          {client.complement ? ` - ${client.complement}` : ""}
         </Typography>
+        
+        {client.complement && (
+          <Typography variant="body2" color="text.primary">
+            {client.complement}
+          </Typography>
+        )}
+
         <Typography variant="body2" color="text.primary">
           {client.neighborhood ? `${client.neighborhood}, ` : ""}
           {client.city}{client.state ? ` - ${client.state}` : ""}
         </Typography>
+
         {client.cep && (
-          <Typography variant="caption" color="text.disabled">
+          <Typography variant="caption" color="text.primary" sx={{ mt: 0.25, fontWeight: 500 }}>
             CEP: {maskCep(client.cep)}
           </Typography>
         )}
@@ -134,32 +143,55 @@ const ClientePersonalInfo = ({ client }: Props) => {
             </Box>
           </Box>
         </Box>
-        {client.phone && (
-          <Button
-            variant="outlined"
-            size="small"
-            color="success"
-            startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 20, height: 20 }} />}
-            onClick={() => {
-              const cleanPhone = client.phone!.replace(/\D/g, "");
-              const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
-              window.open(`https://wa.me/${phoneWithCountry}`, "_blank");
-            }}
-            sx={{ 
-              borderRadius: 2, 
-              textTransform: "none",
-              fontWeight: 600,
-              borderColor: "success.light",
-              color: "success.main",
-              height: "fit-content",
-              "&:hover": {
-                borderColor: "success.dark"
-              }
-            }}
-          >
-            WhatsApp
-          </Button>
-        )}
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          {onEdit && (
+            <Tooltip title="Editar Cliente">
+              <IconButton 
+                onClick={onEdit}
+                size="small"
+                sx={{ 
+                  bgcolor: "grey.50",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  borderRadius: 2,
+                  "&:hover": {
+                    bgcolor: "grey.100",
+                    color: "primary.main",
+                  }
+                }}
+              >
+                <Pencil size={18} />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {client.phone && (
+            <Button
+              variant="outlined"
+              size="small"
+              color="success"
+              startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 20, height: 20 }} />}
+              onClick={() => {
+                const cleanPhone = client.phone!.replace(/\D/g, "");
+                const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+                window.open(`https://wa.me/${phoneWithCountry}`, "_blank");
+              }}
+              sx={{ 
+                borderRadius: 2, 
+                textTransform: "none",
+                fontWeight: 600,
+                borderColor: "success.light",
+                color: "success.main",
+                height: "fit-content",
+                "&:hover": {
+                  borderColor: "success.dark"
+                }
+              }}
+            >
+              WhatsApp
+            </Button>
+          )}
+        </Box>
       </Box>
 
       <Grid container spacing={4}>
@@ -170,7 +202,7 @@ const ClientePersonalInfo = ({ client }: Props) => {
           </Typography>
           <InfoItem icon={Mail} label="E-mail" value={client.email} />
           <InfoItem icon={Phone} label="Principal" value={client.phone ? maskPhone(client.phone) : null} />
-          <Divider sx={{ my: 2 }} />
+
           <InfoItem 
             icon={Phone} 
             label={client.phone_secondary_name || "Contato 2"} 
@@ -199,7 +231,6 @@ const ClientePersonalInfo = ({ client }: Props) => {
             value={client.birth_date ? maskBirthDate(client.birth_date) : null} 
           />
           
-          <Divider sx={{ my: 2 }} />
           
           <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 1, color: "text.disabled" }}>
             Redes Sociais
