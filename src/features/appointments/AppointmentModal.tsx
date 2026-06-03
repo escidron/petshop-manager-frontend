@@ -30,6 +30,7 @@ type Props = {
   onClose: () => void;
   onSuccess: () => void;
   initialDate?: string;
+  prefill?: Partial<AppointmentFormData>;
 };
 
 export default function AppointmentModal({
@@ -41,11 +42,12 @@ export default function AppointmentModal({
   onClose,
   onSuccess,
   initialDate,
+  prefill,
 }: Props) {
   const toast = useToast();
   const defaultValues: AppointmentFormData = appointment
     ? appointmentToFormData(appointment)!
-    : DEFAULT_APPOINTMENT_FORM;
+    : { ...DEFAULT_APPOINTMENT_FORM, ...prefill };
   const initialClientId =
     selectedClient?.id ||
     (typeof defaultValues.client_id === "number" && defaultValues.client_id > 0

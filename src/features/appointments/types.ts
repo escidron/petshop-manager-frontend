@@ -66,6 +66,8 @@ export type AppointmentFlowState =
     selectedPet?: Pet;
     appointment?: Appointment;
     initialDate?: string;
+    prefill?: Partial<AppointmentFormData>;
+    waitingListEntryId?: number;
   };
 
 export type AppointmentItem = {

@@ -5,6 +5,9 @@ import AppointmentsDailyList from "../features/appointments/AppointmentsDailyLis
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
 import GroomingQueue from "../features/dashboard/GroomingQueue";
 import OpenInvoices from "../features/dashboard/OpenInvoices";
+import WaitingListCard from "../features/dashboard/WaitingListCard";
+import type { WaitingListEntry } from "../features/appointments/waiting-list/types";
+import { useWaitingList } from "../hooks/useWaitingList";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
@@ -58,6 +61,7 @@ const Dashboard = () => {
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const queryClient = useQueryClient();
   const { tenant, checkAuth } = useAuth();
+  const { deleteEntry: deleteWaitingListEntry } = useWaitingList();
   const isOnboarding = tenant?.onboarding_step !== "completed";
 
   const [date, setDate] = useState<dayjs.Dayjs>(dayjs());
@@ -272,6 +276,26 @@ const Dashboard = () => {
                   )}
                 </Box>
                 <GroomingQueue appointments={dailyAppointments} isFetching={isFetching} />
+                <WaitingListCard 
+                  onScheduleEntry={(entry: WaitingListEntry) => {
+                    setFlow({
+                      open: true,
+                      mode: "create",
+                      step: "appointment",
+                      selectedClient: entry.client,
+                      waitingListEntryId: entry.id,
+                      initialDate: entry.preferred_date ?? undefined,
+                      prefill: {
+                        client_id: entry.client_id,
+                        notes: entry.notes || "",
+                        items: entry.items.map(item => ({
+                          pet_id: item.pet_id,
+                          service_ids: item.services.map(s => s.id)
+                        }))
+                      }
+                    });
+                  }} 
+                />
               </Box>
 
               {/* Coluna 3: Comandas em Aberto */}
@@ -291,10 +315,14 @@ const Dashboard = () => {
           selectedPet={flow.selectedPet}
           appointment={flow.appointment}
           initialDate={flow.initialDate}
+          prefill={flow.prefill}
           onSuccess={() => {
             queryClient.invalidateQueries({
               queryKey: ["appointments"],
             });
+            if (flow.waitingListEntryId) {
+              deleteWaitingListEntry(flow.waitingListEntryId);
+            }
             if (isOnboarding) checkAuth();
             setFlow({ open: false });
           }}
