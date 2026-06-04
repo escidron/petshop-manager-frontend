@@ -64,7 +64,7 @@ const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
     {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
       <Grid
         size={
-          viewMode === "grid" ? { xs: 12, sm: 6, md: 4, lg: 3 } : { xs: 12 }
+          viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }
         }
         key={i}
       >
@@ -375,13 +375,14 @@ export default function POSInterface() {
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
   return (
-    <Grid container spacing={3} sx={{ height: "100%", p: 1, width: "100%" }}>
+    <Grid container spacing={3} sx={{ height: "100%", p: 1, width: "100%", flexWrap: { md: "nowrap", xs: "wrap" } }}>
       {/* Sidebar: Digital Receipt */}
       <Grid 
-        size={{ xs: 12, md: 4, lg: 3.5 }} 
+        size={{ xs: 12, md: "auto" }} 
         sx={{ 
-          height: "80%", 
-          minHeight: "600px",
+          maxHeight: "800px",
+          width: { md: "430px", xs: "100%" },
+          minWidth: { md: "410px", xs: "100%" },
           flexShrink: 0,
           flexGrow: 0
         }}
@@ -635,7 +636,7 @@ export default function POSInterface() {
 
       {/* Main Content: Catalog */}
       <Grid
-        size={{ xs: 12, md: 8, lg: 8.5 }}
+        size={{ xs: 12, md: "grow" }}
         sx={{
           height: "100%",
           display: "flex",
@@ -821,7 +822,7 @@ export default function POSInterface() {
                     <Grid
                       size={
                         viewMode === "grid"
-                          ? { xs: 12, sm: 6, md: 4, lg: 3 }
+                          ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 }
                           : { xs: 12 }
                       }
                       key={`prod-${product.id}`}
@@ -1031,7 +1032,7 @@ export default function POSInterface() {
                     <Grid
                       size={
                         viewMode === "grid"
-                          ? { xs: 12, sm: 6, md: 4, lg: 3 }
+                          ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 }
                           : { xs: 12 }
                       }
                       key={`serv-${service.id}`}
@@ -1252,7 +1253,7 @@ export default function POSInterface() {
                     <Grid
                       size={
                         viewMode === "grid"
-                          ? { xs: 12, sm: 6, md: 4, lg: 3 }
+                          ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 }
                           : { xs: 12 }
                       }
                       key={`pkg-${pkg.id}`}
