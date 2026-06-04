@@ -27,6 +27,13 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
   );
   const hasAnyNotes = hasPetNotes || (appointment.notes && appointment.notes.trim() !== "");
   const icons = getServiceIcons(allServiceNames);
+  const totalDurationMinutes = appointment.items
+    .flatMap((item) => item.services)
+    .reduce((acc, s) => acc + (s.duration_minutes ?? 0), 0);
+  const endTime =
+    totalDurationMinutes > 0
+      ? dayjs(appointment.scheduled_at).add(totalDurationMinutes, "minute")
+      : null;
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const handleClick = (
@@ -74,10 +81,26 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           gap: 6,
         }}
       >
-        <Box>
-          <Typography fontWeight={600} fontSize={"16px"}>
+        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40 }}>
+          <Typography fontWeight={700} fontSize={"15px"} lineHeight={1}>
             {dayjs(appointment.scheduled_at).format("HH:mm")}
           </Typography>
+          {endTime && (
+            <>
+              <Box
+                sx={{
+                  width: "1.5px",
+                  height: "10px",
+                  bgcolor: "divider",
+                  my: "3px",
+                  borderRadius: 1,
+                }}
+              />
+              <Typography fontSize={"13px"} color="text.primary" fontWeight={500} lineHeight={1}>
+                {endTime.format("HH:mm")}
+              </Typography>
+            </>
+          )}
         </Box>
         <Box sx={{ flex: 1 }}>
           <Typography fontSize={"16px"} fontWeight={600}>
