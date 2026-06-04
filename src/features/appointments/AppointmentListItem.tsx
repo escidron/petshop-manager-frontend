@@ -58,14 +58,14 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
   };
   return (
     <>
-      <CustomCard
-        key={appointment.id}
+    <CustomCard
+      key={appointment.id}
       sx={{
-        px: 2,
+        px: { xs: 1.5, sm: 2 },
         py: 1,
         borderLeft: "5px solid",
         borderLeftColor: p.main,
-        minWidth: 700,
+        width: "100%",
         opacity: appointment.status == "canceled" ? 0.5 : 1,
         cursor: "pointer",
       }}
@@ -77,12 +77,22 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
       <Box
         sx={{
           display: "flex",
-          alignItems: "start",
-          gap: 6,
+          alignItems: "center",
+          gap: { xs: 1.5, sm: 2, md: 3, lg: 3, xl: 6 },
+          flexWrap: { xs: "wrap", sm: "nowrap" },
         }}
       >
-        <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", minWidth: 40 }}>
-          <Typography fontWeight={700} fontSize={"15px"} lineHeight={1}>
+        {/* Time Column */}
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            minWidth: { xs: 45, sm: 50 },
+            order: 1,
+          }}
+        >
+          <Typography fontWeight={700} fontSize={{ xs: "14px", sm: "15px" }} lineHeight={1}>
             {dayjs(appointment.scheduled_at).format("HH:mm")}
           </Typography>
           {endTime && (
@@ -90,81 +100,100 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               <Box
                 sx={{
                   width: "1.5px",
-                  height: "10px",
+                  height: "8px",
                   bgcolor: "divider",
-                  my: "3px",
+                  my: "2px",
                   borderRadius: 1,
                 }}
               />
-              <Typography fontSize={"13px"} color="text.primary" fontWeight={500} lineHeight={1}>
+              <Typography
+                fontSize={{ xs: "12px", sm: "13px" }}
+                color="text.secondary"
+                fontWeight={500}
+                lineHeight={1}
+              >
                 {endTime.format("HH:mm")}
               </Typography>
             </>
           )}
         </Box>
-        <Box sx={{ flex: 1 }}>
-          <Typography fontSize={"16px"} fontWeight={600}>
+
+        {/* Client & Pet Info */}
+        <Box sx={{ flex: 1, minWidth: { xs: "calc(100% - 70px)", sm: 0 }, order: { xs: 2, sm: 2 } }}>
+          <Typography fontSize={{ xs: "15px", sm: "16px" }} fontWeight={600} noWrap>
             {appointment.client.name}
           </Typography>
 
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
             {appointment.items.map((item, index) => (
-              <Box key={item.id} sx={{ display: "flex", gap: 1,alignItems: "center"  }}>
-                <Typography key={item.id} variant="body2" color="text.primary">
+              <Box key={item.id} sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                <Typography variant="body2" color="text.primary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
                   {item.pet.name}
                 </Typography>
-                {index < appointment.items.length - 1 && "•"}
+                {index < appointment.items.length - 1 && (
+                  <Typography variant="body2" color="text.disabled">
+                    •
+                  </Typography>
+                )}
               </Box>
             ))}
             {hasAnyNotes && (
               <Box
                 sx={{
                   display: "flex",
-                  gap: 1,
+                  gap: 0.5,
                   alignItems: "center",
                   cursor: "pointer",
-                  p: 0.5,
+                  p: 0.25,
                   borderRadius: 1,
-                  "&:hover": { bgcolor: "rgba(233, 30, 99, 0.1)" },
+                  "&:hover": { bgcolor: "rgba(233, 30, 99, 0.05)" },
                 }}
                 onClick={handleObsClick}
               >
-                <Info size={14} color={theme.palette.error.main} />
-                <Typography variant="body2" color="error.main">
-                  Possui observações
+                <Info size={12} color={theme.palette.error.main} />
+                <Typography variant="caption" color="error.main" fontWeight={600}>
+                  Obs
                 </Typography>
               </Box>
             )}
           </Box>
         </Box>
-        <AppointmentStatusChip status={appointment.status} />
+
+        {/* Status and Icons */}
         <Box
           sx={{
             display: "flex",
-            gap: 1,
-            width: 96,
-            flexShrink: 0,
-            justifyContent: "flex-end",
             alignItems: "center",
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            handleClick(e);
+            gap: 2,
+            order: { xs: 3, sm: 3 },
+            width: { xs: "100%", sm: "auto" },
+            justifyContent: { xs: "space-between", sm: "flex-end" },
+            mt: { xs: 1, sm: 0 },
+            pt: { xs: 1, sm: 0 },
+            borderTop: { xs: "1px solid", sm: "none" },
+            borderColor: "divider",
           }}
         >
+          <AppointmentStatusChip status={appointment.status} size="small" />
           <Box
             sx={{
               display: "flex",
+              gap: 0.5,
               alignItems: "center",
               cursor: "pointer",
               borderRadius: 1,
               px: 1,
               py: 0.5,
               "&:hover": { backgroundColor: "secondary.main" },
+              ml: { sm: 1 },
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClick(e);
             }}
           >
             {icons.map((icon, index) => (
-              <Box sx={{ display: "flex", alignItems: "center" }} key={index}>
+              <Box sx={{ display: "flex", alignItems: "center", opacity: 0.7 }} key={index}>
                 {icon}
               </Box>
             ))}

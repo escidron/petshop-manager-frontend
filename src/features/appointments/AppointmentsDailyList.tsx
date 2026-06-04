@@ -93,13 +93,14 @@ const AppointmentsDailyList = ({
       <Box
         sx={{
           display: "flex",
+          flexDirection: { xs: "column", sm: "row", lg: "column", xl: "row" },
           justifyContent: "space-between",
-          alignItems: "center",
+          alignItems: { xs: "stretch", sm: "center", lg: "stretch", xl: "center" },
           gap: 2,
         }}
       >
         <Box>
-          <Typography variant="h5" fontWeight={600} color="text.primary">
+          <Typography variant="h5" fontWeight={600} color="text.primary" sx={{ fontSize: { xs: "1.25rem", lg: "1.1rem", xl: "1.5rem" } }}>
             Agendas do dia
           </Typography>
           <Typography 
@@ -110,6 +111,7 @@ const AppointmentsDailyList = ({
               display: "block",
               mt: 0.2,
               textTransform: "capitalize",
+              fontSize: { xs: "0.8rem", lg: "0.75rem", xl: "0.875rem" }
             }}
           >
             {date.format("dddd, DD [de] MMMM")}
@@ -118,18 +120,22 @@ const AppointmentsDailyList = ({
         <Box
           sx={{
             display: "flex",
-            gap: 2,
+            gap: 1.5,
             alignItems: "center",
-            flex: 1,
-            justifyContent: "flex-end",
+            flex: { xs: "1 1 100%", sm: "0 1 auto", lg: "1 1 100%", xl: "0 1 auto" },
           }}
         >
           <TextField
             size="small"
-            placeholder="Buscar por tutor ou pet"
+            placeholder="Buscar tutor ou pet"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ width: 260, backgroundColor: "white", borderRadius: 1 }}
+            sx={{ 
+              flex: 1,
+              width: { xs: "100%", sm: 200, md: 260 }, 
+              backgroundColor: "white", 
+              borderRadius: 1 
+            }}
             slotProps={{
               input: {
                 startAdornment: (
@@ -146,7 +152,7 @@ const AppointmentsDailyList = ({
               minWidth: "40px", 
               height: "40px", 
               p: 1, 
-              borderRadius: 1, // Mesma largura do rounding do search field
+              borderRadius: 1, 
               backgroundColor: "primary.main",
               color: "white"
             }}

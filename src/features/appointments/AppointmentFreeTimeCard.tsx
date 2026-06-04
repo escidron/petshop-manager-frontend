@@ -18,7 +18,7 @@ const AppointmentFreeTimeCard = ({ block, openFlow }: Props) => {
         backgroundColor: "#d6fff0e2",
         border: `1px solid #B7E4C7`,
         cursor: "pointer",
-        minWidth: 700,
+        width: "100%",
       }}
       onClick={() => openFlow()}
     >
