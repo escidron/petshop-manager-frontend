@@ -38,6 +38,7 @@ import {
   Plus,
   Trash2,
   AlertTriangle,
+  Info,
 } from "lucide-react";
 import Skeleton from "@mui/material/Skeleton";
 import { useAuth } from "../hooks/useAuth";
@@ -1346,6 +1347,13 @@ const SettingsPage = () => {
                     </Select>
                   )}
                 />
+                <Stack direction="row" alignItems="flex-start" spacing={0.75} sx={{ mt: 0.75 }}>
+                  <Info size={14} style={{ marginTop: 1, flexShrink: 0, color: "inherit" }} />
+                  <Typography variant="caption" color="text.primary" sx={{ opacity: 0.7, lineHeight: 1.5 }}>
+                    <strong>Funcionário</strong> tem acesso limitado às operações do dia a dia como: caixa, clientes, pets e estoque.{" "}
+                    <strong>Proprietário</strong> tem acesso administrativo completo, incluindo financeiro, relatórios, comissões e configurações do sistema.
+                  </Typography>
+                </Stack>
               </FormControl>
 
               <Box
