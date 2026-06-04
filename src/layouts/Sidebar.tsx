@@ -77,6 +77,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Funcionários",
         icon: <UserCheck size={20} />,
         path: "/registration/employees",
+        ownerOnly: true,
       },
     ],
   },
@@ -100,6 +101,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Financeiro",
         icon: <Wallet size={20} />,
         path: "/financial",
+        ownerOnly: true,
       },
       {
         id: "commission-rules",
@@ -125,6 +127,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Configurações",
         icon: <Settings size={20} />,
         path: "/settings",
+        ownerOnly: true,
       },
       {
         id: "support",

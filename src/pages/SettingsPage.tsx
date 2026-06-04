@@ -487,7 +487,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <Box sx={{ maxWidth: 1000, margin: "0 auto" }}>
+    <Box sx={{ width: "100%", maxWidth: 1000, margin: "0 auto" }}>
       <Stack spacing={4}>
         <Box>
           <Typography variant="h4" fontWeight={800} color="primary.main">
@@ -1095,7 +1095,7 @@ const SettingsPage = () => {
 
         {/* --- ABA PERFIL --- */}
         <CustomTabPanel value={value} index={getTabIndex("profile")}>
-          <Paper sx={{ p: 3, borderRadius: 3, maxWidth: 600 }}>
+          <Paper sx={{ p: 3, borderRadius: 3 }}>
             <Stack spacing={3}>
               <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
                 <Box

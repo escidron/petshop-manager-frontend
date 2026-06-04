@@ -79,7 +79,7 @@ export default function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<Home />} />
-        <Route path="/financial" element={<FinancialPage />} />
+        <Route path="/financial" element={<OwnerRoute><FinancialPage /></OwnerRoute>} />
         <Route path="/pos" element={<POSPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="registration" element={<RegistrationLayout />}>
@@ -104,7 +104,7 @@ export default function AppRoutes() {
             <Route index element={<PackagesPage />} />
           </Route>
           <Route path="employees">
-            <Route index element={<EmployeesPage />} />
+            <Route index element={<OwnerRoute><EmployeesPage /></OwnerRoute>} />
           </Route>
         </Route>
         <Route path="/commissions">
@@ -114,7 +114,7 @@ export default function AppRoutes() {
         <Route path="/reports" element={<OwnerRoute><ReportsPage /></OwnerRoute>} />
         <Route path="/reports/financial" element={<OwnerRoute><FinancialReportPage /></OwnerRoute>} />
         <Route path="/reports/inventory" element={<OwnerRoute><InventoryReportPage /></OwnerRoute>} />
-        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/settings" element={<OwnerRoute><SettingsPage /></OwnerRoute>} />
       </Route>
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
       <Route path="*" element={<Navigate to="/" replace />} />
