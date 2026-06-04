@@ -108,7 +108,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               />
               <Typography
                 fontSize={{ xs: "12px", sm: "13px" }}
-                color="text.secondary"
+                color="text.primary"
                 fontWeight={500}
                 lineHeight={1}
               >
