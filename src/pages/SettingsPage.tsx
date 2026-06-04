@@ -37,6 +37,7 @@ import {
   Users,
   Plus,
   Trash2,
+  AlertTriangle,
 } from "lucide-react";
 import Skeleton from "@mui/material/Skeleton";
 import { useAuth } from "../hooks/useAuth";
@@ -48,7 +49,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { tenantSchema } from "../features/tenants/schemas";
 import type { TenantFormData } from "../features/tenants/types";
-import { updateTenant, updateSubscription } from "../api/services/tenants";
+import { updateTenant, updateSubscription, deleteAccount } from "../api/services/tenants";
 import {
   listTenantUsers,
   createTenantUser,
@@ -138,6 +139,11 @@ const SettingsPage = () => {
   const [deletingUser, setDeletingUser] = useState(false);
   const [openChangePassword, setOpenChangePassword] = useState(false);
   const [changingPassword, setChangingPassword] = useState(false);
+
+  const [openDeleteAccount, setOpenDeleteAccount] = useState(false);
+  const [deleteAccountStep, setDeleteAccountStep] = useState<1 | 2>(1);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
 
   const {
     control: controlPassword,
@@ -447,6 +453,21 @@ const SettingsPage = () => {
       toast.error(message || "Erro ao criar usuário. Verifique os dados e tente novamente.");
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount(deleteAccountPassword);
+      toast.success("Conta encerrada. Até mais!");
+      setTimeout(() => {
+        window.location.href = "/";
+      }, 1500);
+    } catch (error) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao encerrar a conta.";
+      toast.error(message || "Erro ao encerrar a conta. Tente novamente.");
+      setDeletingAccount(false);
     }
   };
 
@@ -974,6 +995,41 @@ const SettingsPage = () => {
                       </Box>
                     )}
                   </Stack>
+                </Paper>
+
+                {/* Encerrar conta — card simples no fim da coluna de cobrança */}
+                <Paper sx={{ p: 2.5, borderRadius: 3 }}>
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      gap: 2,
+                      flexWrap: "wrap",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        Encerrar conta
+                      </Typography>
+                      <Typography variant="caption" color="text.primary">
+                        Remove permanentemente todos os seus dados.
+                      </Typography>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      color="error"
+                      size="small"
+                      onClick={() => {
+                        setDeleteAccountPassword("");
+                        setDeleteAccountStep(1);
+                        setOpenDeleteAccount(true);
+                      }}
+                      sx={{ borderRadius: 2, whiteSpace: "nowrap" }}
+                    >
+                      Encerrar Conta
+                    </Button>
+                  </Box>
                 </Paper>
               </Stack>
             </Grid>
@@ -1766,6 +1822,91 @@ const SettingsPage = () => {
               )}
             </Button>
           </Box>
+        </DialogContent>
+      </Dialog>
+
+      {/* --- DIALOG ENCERRAR CONTA --- */}
+      <Dialog
+        open={openDeleteAccount}
+        onClose={() => !deletingAccount && setOpenDeleteAccount(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <AlertTriangle size={20} color="#d32f2f" />
+          <Typography variant="h6" fontWeight={700} component="span">
+            {deleteAccountStep === 1 ? "Encerrar Conta" : "Confirmar encerramento"}
+          </Typography>
+        </DialogTitle>
+        <DialogContent>
+          {deleteAccountStep === 1 ? (
+            <Stack spacing={2}>
+              <Typography variant="body2" color="text.primary">
+                Ao encerrar sua conta, as seguintes ações serão realizadas de forma <strong>permanente e irreversível</strong>:
+              </Typography>
+              <Stack spacing={1} sx={{ pl: 1 }}>
+                {[
+                  "Todos os clientes, pets e histórico de atendimentos serão deletados",
+                  "Agendamentos, vendas e registros financeiros serão removidos",
+                  "Sua assinatura será cancelada imediatamente",
+                  "Não será possível recuperar os dados após a exclusão",
+                ].map((item, i) => (
+                  <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
+                    <Typography variant="body2" color="error" sx={{ mt: 0.1 }}>•</Typography>
+                    <Typography variant="body2" color="text.primary">{item}</Typography>
+                  </Box>
+                ))}
+              </Stack>
+              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 1 }}>
+                <Button variant="text" onClick={() => setOpenDeleteAccount(false)}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={() => setDeleteAccountStep(2)}
+                >
+                  Entendo, continuar
+                </Button>
+              </Box>
+            </Stack>
+          ) : (
+            <Stack spacing={2}>
+              <Typography variant="body2" color="text.primary">
+                Esta ação é <strong>irreversível</strong>. Digite sua senha para confirmar o encerramento da conta.
+              </Typography>
+              <TextField
+                type="password"
+                size="small"
+                fullWidth
+                autoFocus
+                value={deleteAccountPassword}
+                onChange={(e) => setDeleteAccountPassword(e.target.value)}
+                disabled={deletingAccount}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && deleteAccountPassword) handleDeleteAccount();
+                }}
+              />
+              <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 1 }}>
+                <Button
+                  variant="text"
+                  onClick={() => setDeleteAccountStep(1)}
+                  disabled={deletingAccount}
+                >
+                  Voltar
+                </Button>
+                <Button
+                  variant="contained"
+                  color="error"
+                  onClick={handleDeleteAccount}
+                  disabled={deletingAccount || !deleteAccountPassword}
+                  startIcon={!deletingAccount ? <Trash2 size={16} /> : undefined}
+                >
+                  {deletingAccount ? <CircularProgress size={20} color="inherit" /> : "Encerrar minha conta"}
+                </Button>
+              </Box>
+            </Stack>
+          )}
         </DialogContent>
       </Dialog>
     </Box>

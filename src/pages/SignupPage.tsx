@@ -298,7 +298,7 @@ const SignupPage = () => {
                 {step === 2 && "Sua conta pessoal"}
                 {step === 3 && "Detalhes da empresa"}
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body1" color="text.primary">
                 {step === 1 &&
                   "Comece selecionando o plano que faz sentido para você."}
                 {step === 2 && "Preencha seus dados de acesso."}
@@ -321,7 +321,7 @@ const SignupPage = () => {
               {step === 2 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
                   <UserSignupForm onSubmit={handleSubmitUser} defaultValues={userData || {}} />
-                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.secondary" }}>
+                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.primary" }}>
                     Ao continuar, você concorda com nossos{" "}
                     <Button 
                       onClick={() => setLegalModal({ open: true, type: "terms" })}
@@ -343,7 +343,7 @@ const SignupPage = () => {
               {step === 3 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
                   <TenantCreateForm onSubmit={handleSubmitTenant} loading={loading} defaultValues={tenantData || {}} />
-                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.secondary" }}>
+                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.primary" }}>
                     Ao criar sua conta, você concorda com nossos{" "}
                     <Button 
                       onClick={() => setLegalModal({ open: true, type: "terms" })}

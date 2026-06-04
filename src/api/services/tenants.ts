@@ -46,3 +46,7 @@ export const updateSubscription = async (tenantId: number, paymentMethod: "card"
     );
     return response.data;
 };
+
+export const deleteAccount = async (password: string): Promise<void> => {
+    await apiClient.delete("/api/v1/tenants/me", { data: { password } });
+};
