@@ -1,4 +1,5 @@
 import type { User, UserFormData as UserForm } from "../../features/users/types";
+import type { TenantOption } from "../../features/tenants/types";
 import apiClient from "../apiClient";
 
 export type LoginPayload = {
@@ -24,17 +25,20 @@ export const createUser = async (
   return response.data;
 };
 
-export const login = async (
-  payload: LoginPayload
-) => {
-  const response = await apiClient.post<{
-    user: AuthUser;
-  }>(
-    "/api/v1/auth/login",
-    payload
-  );
+export type LoginResponse =
+  | { needs_tenant_selection: false; user: AuthUser }
+  | { needs_tenant_selection: true; selection_token: string; tenants: TenantOption[] };
 
-  return response.data.user;
+export const login = async (payload: LoginPayload): Promise<LoginResponse> => {
+  const response = await apiClient.post<
+    { user: AuthUser } | { needs_tenant_selection: true; selection_token: string; tenants: TenantOption[] }
+  >("/api/v1/auth/login", payload);
+
+  const data = response.data;
+  if ("needs_tenant_selection" in data && data.needs_tenant_selection) {
+    return data as { needs_tenant_selection: true; selection_token: string; tenants: TenantOption[] };
+  }
+  return { needs_tenant_selection: false, user: (data as { user: AuthUser }).user };
 };
 
 export const logout = async () => {

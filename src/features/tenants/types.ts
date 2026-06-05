@@ -27,6 +27,7 @@ export type WorkingHours = Record<string, DaySchedule>; // "0"=Dom … "6"=Sáb 
 export type Tenant = {
   id: number;
   name: string;
+  email?: string | null;
   phone: string;
   is_active: boolean;
   document?: string | null;
@@ -39,6 +40,11 @@ export type Tenant = {
   };
   subscription?: Subscription;
   working_hours?: WorkingHours | null;
+};
+
+export type TenantOption = {
+  id: number;
+  name: string;
 };
 
 export type TenantFormData = z.infer<typeof tenantSchema>;

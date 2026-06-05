@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Box, Typography, Button, Stack } from "@mui/material";
+import { Alert, Box, Typography, Button, Stack } from "@mui/material";
 import CustomCard from "../components/Card/CustomCard";
 import {
   Settings,
@@ -34,6 +34,7 @@ const SignupPage = () => {
   const [userData, setUserData] = useState<UserFormData | null>(null);
   const [tenantData, setTenantData] = useState<TenantFormData | null>(null);
   const [loading, setLoading] = useState(false);
+  const [emailExists, setEmailExists] = useState(false);
 
   const toast = useToast();
   const navigate = useNavigate();
@@ -83,6 +84,7 @@ const SignupPage = () => {
         },
         {
           name: data.name,
+          email: data.email || undefined,
           phone: data.phone,
           document: data.document,
         },
@@ -93,11 +95,16 @@ const SignupPage = () => {
       await checkAuth();
       navigate("/dashboard");
     } catch (error: unknown) {
-      let message = "Erro ao criar conta";
       if (axios.isAxiosError(error)) {
-        message = error.response?.data?.detail ?? message;
+        const detail = error.response?.data?.detail ?? "";
+        if (detail === "E-mail já cadastrado") {
+          setEmailExists(true);
+          return;
+        }
+        toast.error(detail || "Erro ao criar conta");
+      } else {
+        toast.error("Erro ao criar conta");
       }
-      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -342,6 +349,23 @@ const SignupPage = () => {
 
               {step === 3 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
+                  {!emailExists && (
+                    <Alert
+                      severity="info"
+                      sx={{ mb: 2, borderRadius: 2 }}
+                      action={
+                        <Button
+                          size="small"
+                          sx={{ fontWeight: 700, width: "100px" }}
+                          onClick={() => navigate("/login")}
+                        >
+                          Fazer Login
+                        </Button>
+                      }
+                    >
+                      Este e-mail já tem uma conta. Faça login e adicione o novo estabelecimento pelo menu do usuário.
+                    </Alert>
+                  )}
                   <TenantCreateForm onSubmit={handleSubmitTenant} loading={loading} defaultValues={tenantData || {}} />
                   <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.primary" }}>
                     Ao criar sua conta, você concorda com nossos{" "}

@@ -7,11 +7,18 @@ export const tenantSchema = z.object({
     .min(3, "Nome deve ter no mínimo 3 caracteres")
     .max(100, "Nome pode ter no máximo 100 caracteres"),
 
+  email: z
+    .string()
+    .email("E-mail inválido")
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v === "" ? undefined : v)),
+
   phone: z
     .string()
     .min(1, "Telefone é obrigatório")
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v.length === 10 || v.length === 11, "Telefone inválido"),
-    
+
   document: z.string().nullable().optional(),
 });

@@ -29,6 +29,7 @@ import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import SelectTenantPage from "./pages/SelectTenantPage";
 
 type Props = {
   children: JSX.Element;
@@ -66,6 +67,7 @@ export default function AppRoutes() {
     <Routes>
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/select-tenant" element={<SelectTenantPage />} />
       <Route path="/signup" element={<SignupPage />} />
       <Route path="/forgot-password" element={<ForgotPasswordPage />} />
       <Route path="/reset-password" element={<ResetPasswordPage />} />

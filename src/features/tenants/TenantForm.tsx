@@ -1,7 +1,7 @@
 import { Box, FormControl, FormLabel, Stack, Typography } from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
-import { Phone, Store } from "lucide-react";
+import { Mail, Phone, Store } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { TenantFormData } from "./types";
@@ -46,6 +46,30 @@ const TenantCreateForm = ({ onSubmit, defaultValues, loading }: Props) => {
               placeholder="ex: Meu Petshop"
               error={!!errors.name}
               helperText={errors.name?.message}
+            />
+          )}
+        />
+      </FormControl>
+
+      {/* E-mail da petshop */}
+      <FormControl error={!!errors.email}>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Mail size={16} />
+            <Typography>E-mail do estabelecimento (Opcional)</Typography>
+          </Stack>
+        </FormLabel>
+
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <CustomTextField
+              {...field}
+              value={field.value || ""}
+              placeholder="ex: contato@meupetshop.com.br"
+              error={!!errors.email}
+              helperText={errors.email?.message}
             />
           )}
         />

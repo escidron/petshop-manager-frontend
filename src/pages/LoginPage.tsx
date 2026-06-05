@@ -29,9 +29,20 @@ const LoginPage = () => {
     setLoading(true);
     try {
       const response = await login(userForm);
-      setUser(response);
-      await checkAuth(); // Carregar dados completos (incluindo tenant/onboarding)
-      setFailedAttempts(0); // Reset on success
+      setFailedAttempts(0);
+
+      if (response.needs_tenant_selection) {
+        navigate("/select-tenant", {
+          state: {
+            selection_token: response.selection_token,
+            tenants: response.tenants,
+          },
+        });
+        return;
+      }
+
+      setUser(response.user);
+      await checkAuth();
       navigate("/dashboard");
     } catch (error) {
       const newFailedAttempts = failedAttempts + 1;
