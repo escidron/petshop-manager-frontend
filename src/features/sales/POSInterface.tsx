@@ -717,22 +717,35 @@ export default function POSInterface() {
                 value={categoryTab}
                 onChange={(_, newValue) => setCategoryTab(newValue)}
                 sx={{
-                  minHeight: 36,
+                  minHeight: 38,
                   "& .MuiTab-root": {
                     color: "text.primary",
-                    fontWeight: 600,
-                    fontSize: 12,
+                    fontWeight: 700,
+                    fontSize: 13.5,
                     minWidth: 0,
-                    px: 1.5,
-                    minHeight: 36,
+                    px: 2.5,
+                    minHeight: 38,
+                    height: 38,
+                    borderRadius: "20px",
+                    border: "2px solid",
+                    borderColor: "divider",
+                    mx: 0.5,
+                    transition: "all 0.2s ease",
+                    textTransform: "none",
+                    "&:hover": {
+                      borderColor: "text.primary",
+                      color: "text.primary",
+                    },
                   },
-                  "& .Mui-selected": { color: "primary.main" },
+                  "& .Mui-selected": {
+                    color: "primary.main !important",
+                    borderColor: "primary.main",
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                  },
                   "& .MuiTabs-indicator": {
-                    height: 3,
-                    borderRadius: "3px 3px 0 0",
+                    display: "none",
                   },
                 }}
-                indicatorColor="primary"
               >
                 <Tab label="Todos" />
                 <Tab label="Produtos" />
