@@ -204,12 +204,12 @@ export default function WaitingListPetItem({
       {!isOnlyPet && (
         <Button
           startIcon={<Trash size={15} />}
-          variant="text"
+          variant="outlined"
           color="error"
           sx={{ width: "fit-content", mx: "auto" }}
           onClick={onRemove}
         >
-          Remover Pet
+          Remover Pet da Lista
         </Button>
       )}
     </Box>
