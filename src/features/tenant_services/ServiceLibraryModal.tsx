@@ -6,14 +6,11 @@ import {
   Box,
   Typography,
   IconButton,
-  Grid,
   Checkbox,
   FormControlLabel,
   TextField,
   InputAdornment,
   Divider,
-  List,
-  ListItem,
   CircularProgress,
   Alert,
 } from "@mui/material";
@@ -36,7 +33,7 @@ interface GeneratedServiceItem {
   key: string;
   name: string;
   description: string;
-  species: "Canino" | "Felino" | "Exoticos";
+  species: "Canino" | "Felino" | "Exotico";
   size: "PP" | "P" | "M" | "G" | "GG";
   coat_type: string;
   price_cents: number;
@@ -165,7 +162,7 @@ export default function ServiceLibraryModal({ open, onClose, onSuccess }: Props)
                 key: `${serviceKey}-${species}-${size}-${coatValue}`,
                 name: displayName,
                 description: generatedDesc,
-                species: species as "Canino" | "Felino" | "Exoticos",
+                species: species as "Canino" | "Felino" | "Exotico",
                 size: size as "PP" | "P" | "M" | "G" | "GG",
                 coat_type: coatValue,
                 price_cents,
@@ -183,7 +180,7 @@ export default function ServiceLibraryModal({ open, onClose, onSuccess }: Props)
               key: `${serviceKey}-${species}-${size}-none`,
               name: displayName,
               description: generatedDesc,
-              species: species as "Canino" | "Felino" | "Exoticos",
+              species: species as "Canino" | "Felino" | "Exotico",
               size: size as "PP" | "P" | "M" | "G" | "GG",
               coat_type: "",
               price_cents: 0,

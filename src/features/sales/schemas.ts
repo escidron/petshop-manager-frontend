@@ -18,7 +18,7 @@ export const SaleCreateSchema = z.object({
   pet_id: z.number().nullable().optional(),
   appointment_id: z.number().nullable().optional(),
   total_amount: z.number().min(0),
-  payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other"]),
+  payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package"]),
   status: z.enum(["completed", "canceled"]).default("completed"),
   items: z.array(SaleItemSchema).min(1, "Adicione pelo menos um item"),
 });

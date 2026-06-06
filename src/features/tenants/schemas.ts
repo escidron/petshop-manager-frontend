@@ -11,8 +11,7 @@ export const tenantSchema = z.object({
     .string()
     .email("E-mail inválido")
     .optional()
-    .or(z.literal(""))
-    .transform((v) => (v === "" ? undefined : v)),
+    .or(z.literal("")),
 
   phone: z
     .string()

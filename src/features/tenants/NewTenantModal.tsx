@@ -31,7 +31,7 @@ const PLANS: { code: PlanCode; label: string; description: string }[] = [
 const NewTenantModal = ({ open, onClose }: Props) => {
   const [planCode, setPlanCode] = useState<PlanCode>("FREE_TRIAL");
   const [loading, setLoading] = useState(false);
-  const { setUser, checkAuth } = useAuth();
+  const { checkAuth } = useAuth();
   const toast = useToast();
   const navigate = useNavigate();
 

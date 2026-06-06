@@ -1,4 +1,4 @@
-export type EmployeeRole = "groomer" | "bather" | "salesperson" | "receptionist" | "driver" | "other";
+export type EmployeeRole = "groomer" | "bather" | "vet" | "salesperson" | "receptionist" | "driver" | "other";
 
 export type Employee = {
   id: number;

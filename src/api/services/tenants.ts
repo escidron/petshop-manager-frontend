@@ -7,9 +7,16 @@ export const createTenant = async (
     user_id: number,
     planCode: "MONTHLY" | "FREE_TRIAL"
 ) => {
+    const data = {
+        ...payload,
+        email: payload.email || null,
+        document: payload.document || null,
+        is_active: true,
+        plan_code: planCode,
+    };
     const response = await apiClient.post<TenantFormData>(
         "/api/v1/tenants/",
-        { ...payload, is_active: true, plan_code: planCode },
+        data,
         { params: { user_id: user_id } }
     );
     return response.data;
@@ -19,17 +26,29 @@ export const createMyNewTenant = async (
     payload: TenantFormData,
     planCode: "MONTHLY" | "FREE_TRIAL"
 ): Promise<Tenant> => {
+    const data = {
+        ...payload,
+        email: payload.email || null,
+        document: payload.document || null,
+        is_active: true,
+        plan_code: planCode,
+    };
     const response = await apiClient.post<Tenant>(
         "/api/v1/tenants/me/new",
-        { ...payload, is_active: true, plan_code: planCode }
+        data
     );
     return response.data;
 };
 
 export const updateTenant = async (tenantId: number, payload: Partial<TenantFormData>) => {
+    const data = {
+        ...payload,
+        email: payload.email === "" ? null : payload.email,
+        document: payload.document === "" ? null : payload.document,
+    };
     const response = await apiClient.patch(
         `/api/v1/tenants/${tenantId}`,
-        payload,
+        data,
     );
     return response.data;
 };

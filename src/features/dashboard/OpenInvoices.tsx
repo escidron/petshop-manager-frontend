@@ -30,7 +30,7 @@ export default function OpenInvoices() {
     refetchInterval: 60_000, // refresh every minute
   });
 
-  const { data: unpaidPkgs = [], isLoading: isLoadingPkgs, refetch: refetchPkgs } = useQuery({
+  const { data: unpaidPkgs = [], isLoading: isLoadingPkgs } = useQuery({
     queryKey: ["unpaid-packages"],
     queryFn: listUnpaidPackages,
     refetchInterval: 60_000,

@@ -1,6 +1,5 @@
 import type { AuthResponse, SignupPayload } from "../../features/auth/types";
 import type { AuthUser } from "./users";
-import type { TenantOption } from "../../features/tenants/types";
 import apiClient from "../apiClient";
 
 export const signup = async (
