@@ -274,7 +274,8 @@ const AppointmentDetailsModal = ({
                       }}
                     >
                       <Button
-                        variant="text"
+                        variant="contained"
+                        color="error"
                         size="small"
                         startIcon={<X size={16} />}
                         disabled={!!loadingAction}
@@ -317,7 +318,8 @@ const AppointmentDetailsModal = ({
                       }}
                     >
                       <Button
-                        variant="text"
+                        variant="contained"
+                        color="error"
                         size="small"
                         startIcon={<X size={16} />}
                         disabled={!!loadingAction}

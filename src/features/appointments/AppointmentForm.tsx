@@ -410,7 +410,7 @@ export default function AppointmentForm({
         <Button
           sx={{ display: "flex", mx: "auto" }}
           startIcon={<Plus size={18} />}
-          variant="text"
+          variant="outlined"
           onClick={() => append({ pet_id: 0, service_ids: [] })}
         >
           Adicionar outro Pet ao agendamento

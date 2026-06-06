@@ -67,7 +67,7 @@ export const PET_SIZES = [
   { value: "P", label: "Pequeno (P)" },
   { value: "M", label: "Médio (M)" },
   { value: "G", label: "Grande (G)" },
-  { value: "GG", label: "Muito grande (GG)" },
+  { value: "GG", label: "Gigante (GG)" },
 ] as const;
 
 export const PET_GENDERS = [

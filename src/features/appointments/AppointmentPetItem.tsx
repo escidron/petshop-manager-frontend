@@ -284,12 +284,12 @@ export default function AppointmentPetItem({
       {!isOnlyPet && (
         <Button
           startIcon={<Trash size={15} />}
-          variant="text"
+          variant="outlined"
           color="error"
           sx={{ width: "fit-content", mx: "auto" }}
           onClick={onRemove}
         >
-          Remover Pet
+          Remover Pet do Agendamento
         </Button>
       )}
     </Box>
