@@ -213,7 +213,7 @@ export default function POSInterface() {
   };
 
   const addItemToCart = (
-    item: { id: number; name: string; price_cents?: number; quantity?: number },
+    item: { id: number; name: string; price_cents?: number; quantity?: number; unit?: string },
     type: "product" | "service" | "package",
     petId?: number,
     petName?: string,
@@ -251,6 +251,7 @@ export default function POSInterface() {
           unit_price: price,
           subtotal: price,
           pet_id: petId,
+          unit: type === "product" ? item.unit || "UN" : "UN",
         },
       ]);
     }
@@ -288,6 +289,25 @@ export default function POSInterface() {
     }
 
     item.quantity = newQuantity;
+    item.subtotal = item.quantity * item.unit_price;
+    setCart(newCart);
+  };
+
+  const handleSetQuantity = (index: number, value: number) => {
+    if (value <= 0) return;
+    const newCart = [...cart];
+    const item = newCart[index];
+
+    // If product, check stock
+    if (item.item_type === "product") {
+      const product = products.find((p) => p.id === item.item_id);
+      if (product && value > product.quantity) {
+        toast.warning("Limite de estoque atingido.");
+        return;
+      }
+    }
+
+    item.quantity = value;
     item.subtotal = item.quantity * item.unit_price;
     setCart(newCart);
   };
@@ -537,6 +557,7 @@ export default function POSInterface() {
                             alignItems: "center",
                             bgcolor: "action.hover",
                             borderRadius: 1.5,
+                            px: 1,
                           }}
                         >
                           <IconButton
@@ -545,11 +566,28 @@ export default function POSInterface() {
                           >
                             <Minus size={18} />
                           </IconButton>
-                          <Typography
-                            variant="body2"
-                            sx={{ px: 1.5, fontWeight: 700 }}
-                          >
-                            {item.quantity}
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val)) {
+                                handleSetQuantity(index, val);
+                              }
+                            }}
+                            min={1}
+                            style={{
+                              width: "55px",
+                              textAlign: "center",
+                              border: "none",
+                              background: "transparent",
+                              fontWeight: 700,
+                              outline: "none",
+                              fontSize: "0.875rem",
+                            }}
+                          />
+                          <Typography variant="body2" sx={{ fontWeight: 700, mr: 0.5, opacity: 0.8 }}>
+                            {item.unit || "UN"}
                           </Typography>
                           <IconButton
                             size="small"
@@ -877,7 +915,7 @@ export default function POSInterface() {
                               <Tag size={18} />
                             </Box>
                             <Chip
-                              label={`${product.quantity} un`}
+                              label={`${product.quantity} ${product.unit || "UN"}`}
                               size="small"
                               sx={{
                                 fontSize: "0.65rem",
@@ -978,7 +1016,7 @@ export default function POSInterface() {
                             {product.name}
                           </Typography>
                           <Chip
-                            label={`${product.quantity} un`}
+                            label={`${product.quantity} ${product.unit || "UN"}`}
                             size="small"
                             sx={{
                               fontSize: "0.65rem",

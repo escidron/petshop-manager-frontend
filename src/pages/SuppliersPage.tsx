@@ -56,7 +56,11 @@ export default function SuppliersPage() {
         ? normalizedCnpj.includes(normalizedTerm)
         : false;
 
-      return nameMatch || cnpjMatch || s.cnpj?.toLowerCase().includes(term);
+      const phone1Match = s.phone_1?.toLowerCase().includes(term) || false;
+      const phone2Match = s.phone_2?.toLowerCase().includes(term) || false;
+      const emailMatch = s.email?.toLowerCase().includes(term) || false;
+
+      return nameMatch || cnpjMatch || s.cnpj?.toLowerCase().includes(term) || phone1Match || phone2Match || emailMatch;
     });
   }, [suppliers, search]);
 
@@ -158,6 +162,42 @@ export default function SuppliersPage() {
                 CNPJ
               </TableCell>
               <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Telefone 1
+              </TableCell>
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Telefone 2
+              </TableCell>
+              <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                E-mail
+              </TableCell>
+              <TableCell
                 align="right"
                 sx={{
                   backgroundColor: "secondary.main",
@@ -176,6 +216,9 @@ export default function SuppliersPage() {
               <TableRow key={row.id}>
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.cnpj || "-"}</TableCell>
+                <TableCell>{row.phone_1 || "-"}</TableCell>
+                <TableCell>{row.phone_2 || "-"}</TableCell>
+                <TableCell>{row.email || "-"}</TableCell>
                 <TableCell align="right">
                   <IconButton
                     size="small"
@@ -196,7 +239,7 @@ export default function SuppliersPage() {
             ))}
             {filteredRows.length === 0 && !loading && (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <Typography color="text.disabled" variant="body1">
                     Nenhum fornecedor cadastrado ainda.
                   </Typography>
@@ -205,7 +248,7 @@ export default function SuppliersPage() {
             )}
             {loading && filteredRows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={3} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <CircularProgress />
                 </TableCell>
               </TableRow>

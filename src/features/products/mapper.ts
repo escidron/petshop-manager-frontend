@@ -19,5 +19,6 @@ export const productToFormData = (product: Product): ProductFormData => {
     cst_cofins: product.cst_cofins || "",
     supplier_id: product.supplier_id ?? null,
     is_active: product.is_active,
+    unit: product.unit || "UN",
   };
 };

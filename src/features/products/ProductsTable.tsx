@@ -247,7 +247,7 @@ export default function ProductsTable({
                 <TableCell align="left">{row.category ?? "-"}</TableCell>
                 <TableCell align="left">
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    {row.quantity ?? "-"}
+                    {row.quantity !== undefined && row.quantity !== null ? `${row.quantity} ${row.unit || "UN"}` : "-"}
                     {row.quantity === 0 ? (
                       <Chip
                         label="Sem estoque"

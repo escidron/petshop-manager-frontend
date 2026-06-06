@@ -19,7 +19,7 @@ import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
 import { createSupplier, updateSupplier } from "../../api/services/suppliers";
 import type { SupplierFormData, Supplier } from "./types";
-import { maskCnpj } from "../../utils/masks";
+import { maskCnpj, maskPhone } from "../../utils/masks";
 
 const supplierSchema = z.object({
   name: z.string().min(1, "O nome é obrigatório"),
@@ -29,6 +29,15 @@ const supplierSchema = z.object({
     .optional()
     .refine((val) => !val || val.replace(/\D/g, "").length === 14, {
       message: "CNPJ deve ter 14 dígitos",
+    }),
+  phone_1: z.string().nullable().optional(),
+  phone_2: z.string().nullable().optional(),
+  email: z
+    .string()
+    .nullable()
+    .optional()
+    .refine((val) => !val || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val), {
+      message: "E-mail inválido",
     }),
 });
 
@@ -57,6 +66,9 @@ export default function SupplierFormModal({
     defaultValues: {
       name: supplier?.name || initialName,
       cnpj: supplier?.cnpj || "",
+      phone_1: supplier?.phone_1 || "",
+      phone_2: supplier?.phone_2 || "",
+      email: supplier?.email || "",
     },
   });
 
@@ -65,6 +77,9 @@ export default function SupplierFormModal({
       reset({
         name: supplier?.name || initialName,
         cnpj: supplier?.cnpj || "",
+        phone_1: supplier?.phone_1 || "",
+        phone_2: supplier?.phone_2 || "",
+        email: supplier?.email || "",
       });
     }
   }, [open, supplier, initialName, reset]);
@@ -103,8 +118,8 @@ export default function SupplierFormModal({
       slotProps={{
         paper: {
           sx: {
-            width: "500px",
-            maxWidth: "500px",
+            width: "550px",
+            maxWidth: "550px",
           },
         },
       }}
@@ -157,6 +172,67 @@ export default function SupplierFormModal({
                     helperText={fieldState.error?.message}
                     placeholder="00.000.000/0000-00"
                     onChange={(e) => field.onChange(maskCnpj(e.target.value))}
+                  />
+                )}
+              />
+            </FormControl>
+
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Telefone Contato 1
+                </FormLabel>
+                <Controller
+                  name="phone_1"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <CustomTextField
+                      {...field}
+                      fullWidth
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder="(00) 00000-0000"
+                      onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Telefone Contato 2
+                </FormLabel>
+                <Controller
+                  name="phone_2"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <CustomTextField
+                      {...field}
+                      fullWidth
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder="(00) 00000-0000"
+                      onChange={(e) => field.onChange(maskPhone(e.target.value))}
+                    />
+                  )}
+                />
+              </FormControl>
+            </Box>
+
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                E-mail
+              </FormLabel>
+              <Controller
+                name="email"
+                control={control}
+                render={({ field, fieldState }) => (
+                  <CustomTextField
+                    {...field}
+                    fullWidth
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                    placeholder="email@fornecedor.com"
                   />
                 )}
               />

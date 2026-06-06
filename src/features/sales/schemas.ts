@@ -10,6 +10,7 @@ export const SaleItemSchema = z.object({
   pet_id: z.number().optional(),
   employee_id: z.number().nullable().optional(),
   client_package_id_to_pay: z.number().nullable().optional(),
+  unit: z.string().optional(),
 });
 
 export const SaleCreateSchema = z.object({

@@ -8,6 +8,7 @@ export type Product = {
   cost_cents?: number;
   quantity: number;
   min_stock: number;
+  unit?: string;
   
   barcode?: string;
   ncm?: string;

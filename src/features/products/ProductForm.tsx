@@ -20,7 +20,7 @@ import { Button } from "../../components/Button/Button";
 import { Minus, Plus } from "lucide-react";
 import { productSchema } from "./schemas";
 import { useEffect } from "react";
-import { PRODUCT_CATEGORIES } from "./constants";
+import { PRODUCT_CATEGORIES, PRODUCT_UNITS } from "./constants";
 import { formatBRLFromCents } from "../../utils/masks";
 import { useSuppliers } from "../../hooks/useSuppliers";
 
@@ -116,50 +116,82 @@ const ProductForm = ({
               />
             </FormControl>
 
-            <FormControl fullWidth>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Preço de Venda
-              </FormLabel>
-              <Controller
-                name="price_cents"
-                control={control}
-                render={({ field, fieldState }) => (
-                  <TextField
-                    {...field}
-                    size="small"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                    placeholder="0,00"
-                    slotProps={{
-                      input: {
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <Typography
-                              sx={{
-                                color: "text.disabled",
-                                fontWeight: 500,
-                                mt: "2px",
-                              }}
-                            >
-                              R$
-                            </Typography>
-                          </InputAdornment>
-                        ),
-                      },
-                    }}
-                    onChange={(e) => {
-                      const digits = e.target.value.replace(/\D/g, "");
-                      field.onChange(digits === "" ? "" : Number(digits));
-                    }}
-                    value={
-                      (field.value as any) !== "" && field.value !== undefined
-                        ? formatBRLFromCents(Number(field.value))
-                        : ""
-                    }
-                  />
-                )}
-              />
-            </FormControl>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Preço de Venda
+                </FormLabel>
+                <Controller
+                  name="price_cents"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder="0,00"
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography
+                                sx={{
+                                  color: "text.disabled",
+                                  fontWeight: 500,
+                                  mt: "2px",
+                                }}
+                              >
+                                R$
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                      }}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        field.onChange(digits === "" ? "" : Number(digits));
+                      }}
+                      value={
+                        (field.value as any) !== "" && field.value !== undefined
+                          ? formatBRLFromCents(Number(field.value))
+                          : ""
+                      }
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Unidade de Medida
+                </FormLabel>
+                <Controller
+                  name="unit"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={PRODUCT_UNITS}
+                      size="small"
+                      value={
+                        PRODUCT_UNITS.find((u) => u.value === field.value) ||
+                        PRODUCT_UNITS.find((u) => u.value === "UN") ||
+                        null
+                      }
+                      isOptionEqualToValue={(option, value) => option.value === value.value}
+                      getOptionLabel={(option) => option.label}
+                      onChange={(_, value) => field.onChange(value?.value || "UN")}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Selecionar unidade"
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </FormControl>
+            </Box>
 
             <FormControl fullWidth>
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
