@@ -1,4 +1,4 @@
-import { Box, CircularProgress, Divider, Typography } from "@mui/material";
+import { Box, CircularProgress, Typography } from "@mui/material";
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "../components/Button/Button";

@@ -83,7 +83,15 @@ const CommissionCard = ({
   </CustomCard>
 );
 
-export default function CommissionReportPage() {
+export default function CommissionReportPage({
+  startDate: propStartDate,
+  endDate: propEndDate,
+  hideFilters = false,
+}: {
+  startDate?: dayjs.Dayjs | null;
+  endDate?: dayjs.Dayjs | null;
+  hideFilters?: boolean;
+} = {}) {
   const { employees, getEmployees } = useEmployees();
   const toast = useToast();
 
@@ -111,8 +119,8 @@ export default function CommissionReportPage() {
       const data = await getCommissionEntries({
         employee_id: filterEmployee ? Number(filterEmployee) : undefined,
         status: filterStatus || undefined,
-        from_date: filterFrom || undefined,
-        to_date: filterTo || undefined,
+        from_date: propStartDate ? propStartDate.format("YYYY-MM-DD") : (filterFrom || undefined),
+        to_date: propEndDate ? propEndDate.format("YYYY-MM-DD") : (filterTo || undefined),
       });
       setEntries(data);
       setSelectedIds(new Set());
@@ -131,7 +139,7 @@ export default function CommissionReportPage() {
   useEffect(() => {
     loadEntries();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filterEmployee, filterStatus, filterFrom, filterTo]);
+  }, [filterEmployee, filterStatus, filterFrom, filterTo, propStartDate, propEndDate]);
 
   const employeeMap = useMemo(
     () => Object.fromEntries(employees.map((e) => [e.id, e.name])),
@@ -286,103 +294,105 @@ export default function CommissionReportPage() {
             <MenuItem value="paid">Pago</MenuItem>
           </Select>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
-            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-              <DatePicker
-                format="DD/MM/YYYY"
-                value={filterFrom ? dayjs(filterFrom) : null}
-                onChange={(newDate) => {
-                  if (newDate && newDate.isValid()) {
-                    setFilterFrom(newDate.format("YYYY-MM-DD"));
-                  } else {
-                    setFilterFrom("");
-                  }
-                }}
-                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": {
-                        color: "#3d4048 !important",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      },
-                      "& .MuiPickersDay-root": {
-                        color: "#3d4048 !important",
-                        "&.Mui-selected": {
-                          color: "white !important",
+          {!hideFilters && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={filterFrom ? dayjs(filterFrom) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setFilterFrom(newDate.format("YYYY-MM-DD"));
+                    } else {
+                      setFilterFrom("");
+                    }
+                  }}
+                  dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                    return days[day.day()];
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#3d4048 !important",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#3d4048 !important",
+                          "&.Mui-selected": {
+                            color: "white !important",
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#3d4048 !important",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#3d4048 !important",
                         },
                       },
-                      "& .MuiPickersCalendarHeader-label": {
-                        color: "#3d4048 !important",
-                      },
-                      "& .MuiPickersArrowSwitcher-button": {
-                        color: "#3d4048 !important",
-                      },
                     },
-                  },
-                  textField: {
-                    size: "small",
-                    placeholder: "DD/MM/AAAA",
-                    inputMode: "numeric",
-                  },
-                  actionBar: { actions: [] },
-                }}
-              />
-            </LocalizationProvider>
-            
-            <Typography variant="body2" color="text.primary" fontWeight={500} sx={{ ml: 1 }}>Até:</Typography>
-            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-              <DatePicker
-                format="DD/MM/YYYY"
-                value={filterTo ? dayjs(filterTo) : null}
-                onChange={(newDate) => {
-                  if (newDate && newDate.isValid()) {
-                    setFilterTo(newDate.format("YYYY-MM-DD"));
-                  } else {
-                    setFilterTo("");
-                  }
-                }}
-                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": {
-                        color: "#3d4048 !important",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      },
-                      "& .MuiPickersDay-root": {
-                        color: "#3d4048 !important",
-                        "&.Mui-selected": {
-                          color: "white !important",
+                    textField: {
+                      size: "small",
+                      placeholder: "DD/MM/AAAA",
+                      inputMode: "numeric",
+                    },
+                    actionBar: { actions: [] },
+                  }}
+                />
+              </LocalizationProvider>
+              
+              <Typography variant="body2" color="text.primary" fontWeight={500} sx={{ ml: 1 }}>Até:</Typography>
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={filterTo ? dayjs(filterTo) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setFilterTo(newDate.format("YYYY-MM-DD"));
+                    } else {
+                      setFilterTo("");
+                    }
+                  }}
+                  dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                    return days[day.day()];
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#3d4048 !important",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#3d4048 !important",
+                          "&.Mui-selected": {
+                            color: "white !important",
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#3d4048 !important",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#3d4048 !important",
                         },
                       },
-                      "& .MuiPickersCalendarHeader-label": {
-                        color: "#3d4048 !important",
-                      },
-                      "& .MuiPickersArrowSwitcher-button": {
-                        color: "#3d4048 !important",
-                      },
                     },
-                  },
-                  textField: {
-                    size: "small",
-                    placeholder: "DD/MM/AAAA",
-                    inputMode: "numeric",
-                  },
-                  actionBar: { actions: [] },
-                }}
-              />
-            </LocalizationProvider>
-          </Box>
+                    textField: {
+                      size: "small",
+                      placeholder: "DD/MM/AAAA",
+                      inputMode: "numeric",
+                    },
+                    actionBar: { actions: [] },
+                  }}
+                />
+              </LocalizationProvider>
+            </Box>
+          )}
 
           <Button
             variant="outlined"

@@ -10,7 +10,6 @@ import {
   PawPrint,
   ClipboardList,
   Barcode,
-  Wallet,
   Settings,
   Package,
   ShoppingCart,
@@ -95,13 +94,6 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Estoque",
         icon: <Package size={20} />,
         path: "/inventory",
-      },
-      {
-        id: "financial",
-        label: "Financeiro",
-        icon: <Wallet size={20} />,
-        path: "/financial",
-        ownerOnly: true,
       },
       {
         id: "commission-rules",

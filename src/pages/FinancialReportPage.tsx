@@ -41,8 +41,10 @@ const PAYMENT_LABELS: Record<string, string> = {
   debit_card: "Débito",
   money: "Dinheiro",
   other: "Outro",
+  package: "Pacote",
   Pacote: "Pacote",
-  Pendente: "Pendente",
+  pending: "Pendente (A Receber)",
+  Pendente: "Pendente (A Receber)",
 };
 
 const headerCellSx = {
@@ -109,11 +111,28 @@ const paymentColors: Record<string, string> = {
   other: theme.palette.text.disabled,
 };
 
-export default function FinancialReportPage() {
-  const [startDate, setStartDate] = useState<Dayjs | null>(dayjs().startOf("month"));
-  const [endDate, setEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
+export default function FinancialReportPage({
+  startDate: propStartDate,
+  endDate: propEndDate,
+  setStartDate: propSetStartDate,
+  setEndDate: propSetEndDate,
+  hideFilters = false,
+}: {
+  startDate?: Dayjs | null;
+  endDate?: Dayjs | null;
+  setStartDate?: (d: Dayjs | null) => void;
+  setEndDate?: (d: Dayjs | null) => void;
+  hideFilters?: boolean;
+} = {}) {
+  const [localStartDate, setLocalStartDate] = useState<Dayjs | null>(dayjs().startOf("month"));
+  const [localEndDate, setLocalEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
   const [filterPayment, setFilterPayment] = useState("");
   const [filterType, setFilterType] = useState("");
+
+  const startDate = propStartDate !== undefined ? propStartDate : localStartDate;
+  const endDate = propEndDate !== undefined ? propEndDate : localEndDate;
+  const setStartDate = propSetStartDate || setLocalStartDate;
+  const setEndDate = propSetEndDate || setLocalEndDate;
 
   const { data: allSales = [], isLoading: loadingSales } = useQuery<SaleResponse[]>({
     queryKey: ["sales", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
@@ -314,77 +333,81 @@ export default function FinancialReportPage() {
       <Paper sx={{ p: 2, mb: 2 }}>
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
           <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
-              <DatePicker
-                value={startDate}
-                onChange={setStartDate}
-                dayOfWeekFormatter={(day: Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": {
-                        color: "#3d4048 !important",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      },
-                      "& .MuiPickersDay-root": {
-                        color: "#3d4048 !important",
-                        "&.Mui-selected": {
-                          color: "white !important",
+            {!hideFilters && (
+              <>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
+                  <DatePicker
+                    value={startDate}
+                    onChange={setStartDate}
+                    dayOfWeekFormatter={(day: Dayjs) => {
+                      const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                      return days[day.day()];
+                    }}
+                    slotProps={{
+                      popper: {
+                        sx: {
+                          "& .MuiDayCalendar-weekDayLabel": {
+                            color: "#3d4048 !important",
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                          },
+                          "& .MuiPickersDay-root": {
+                            color: "#3d4048 !important",
+                            "&.Mui-selected": {
+                              color: "white !important",
+                            },
+                          },
+                          "& .MuiPickersCalendarHeader-label": {
+                            color: "#3d4048 !important",
+                          },
+                          "& .MuiPickersArrowSwitcher-button": {
+                            color: "#3d4048 !important",
+                          },
                         },
                       },
-                      "& .MuiPickersCalendarHeader-label": {
-                        color: "#3d4048 !important",
-                      },
-                      "& .MuiPickersArrowSwitcher-button": {
-                        color: "#3d4048 !important",
-                      },
-                    },
-                  },
-                  textField: { size: "small" },
-                }}
-              />
-            </Box>
+                      textField: { size: "small" },
+                    }}
+                  />
+                </Box>
 
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              <Typography variant="body2" color="text.primary" fontWeight={500}>Até:</Typography>
-              <DatePicker
-                value={endDate}
-                onChange={setEndDate}
-                dayOfWeekFormatter={(day: Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": {
-                        color: "#3d4048 !important",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      },
-                      "& .MuiPickersDay-root": {
-                        color: "#3d4048 !important",
-                        "&.Mui-selected": {
-                          color: "white !important",
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="body2" color="text.primary" fontWeight={500}>Até:</Typography>
+                  <DatePicker
+                    value={endDate}
+                    onChange={setEndDate}
+                    dayOfWeekFormatter={(day: Dayjs) => {
+                      const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                      return days[day.day()];
+                    }}
+                    slotProps={{
+                      popper: {
+                        sx: {
+                          "& .MuiDayCalendar-weekDayLabel": {
+                            color: "#3d4048 !important",
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
+                          },
+                          "& .MuiPickersDay-root": {
+                            color: "#3d4048 !important",
+                            "&.Mui-selected": {
+                              color: "white !important",
+                            },
+                          },
+                          "& .MuiPickersCalendarHeader-label": {
+                            color: "#3d4048 !important",
+                          },
+                          "& .MuiPickersArrowSwitcher-button": {
+                            color: "#3d4048 !important",
+                          },
                         },
                       },
-                      "& .MuiPickersCalendarHeader-label": {
-                        color: "#3d4048 !important",
-                      },
-                      "& .MuiPickersArrowSwitcher-button": {
-                        color: "#3d4048 !important",
-                      },
-                    },
-                  },
-                  textField: { size: "small" },
-                }}
-              />
-            </Box>
+                      textField: { size: "small" },
+                    }}
+                  />
+                </Box>
+              </>
+            )}
             <Select
               size="small"
               displayEmpty
@@ -449,12 +472,15 @@ export default function FinancialReportPage() {
                     label={t.type}
                     size="small"
                     variant="outlined"
-                    color={
-                      t.type === "Venda PDV"
-                        ? "primary"
-                        : t.type === "Pago via Pacote"
-                          ? "secondary"
-                          : "default"
+                    color={t.type === "Venda PDV" ? "primary" : "default"}
+                    sx={
+                      t.type === "Pago via Pacote"
+                        ? {
+                            color: "#8b5cf6",
+                            borderColor: "#c084fc",
+                            fontWeight: 600,
+                          }
+                        : undefined
                     }
                   />
                 </TableCell>

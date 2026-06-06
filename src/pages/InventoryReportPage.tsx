@@ -92,7 +92,15 @@ const ReportCard = ({
   </CustomCard>
 );
 
-export default function InventoryReportPage() {
+export default function InventoryReportPage({
+  startDate: propStartDate,
+  endDate: propEndDate,
+  hideFilters = false,
+}: {
+  startDate?: dayjs.Dayjs | null;
+  endDate?: dayjs.Dayjs | null;
+  hideFilters?: boolean;
+} = {}) {
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -119,21 +127,25 @@ export default function InventoryReportPage() {
     );
 
     const filteredByDate = logs.filter((l) => {
-      if (filterFrom && dayjs(l.created_at).isBefore(dayjs(filterFrom).startOf("day")))
+      const from = propStartDate ? propStartDate : (filterFrom ? dayjs(filterFrom) : null);
+      const to = propEndDate ? propEndDate : (filterTo ? dayjs(filterTo) : null);
+      if (from && dayjs(l.created_at).isBefore(from.startOf("day")))
         return false;
-      if (filterTo && dayjs(l.created_at).isAfter(dayjs(filterTo).endOf("day")))
+      if (to && dayjs(l.created_at).isAfter(to.endOf("day")))
         return false;
       return true;
     });
 
     return { totalProducts, lowStock, stockValue, movementsInPeriod: filteredByDate.length };
-  }, [products, logs, filterFrom, filterTo]);
+  }, [products, logs, filterFrom, filterTo, propStartDate, propEndDate]);
 
   const filtered = useMemo(() => {
     return logs.filter((l) => {
-      if (filterFrom && dayjs(l.created_at).isBefore(dayjs(filterFrom).startOf("day")))
+      const from = propStartDate ? propStartDate : (filterFrom ? dayjs(filterFrom) : null);
+      const to = propEndDate ? propEndDate : (filterTo ? dayjs(filterTo) : null);
+      if (from && dayjs(l.created_at).isBefore(from.startOf("day")))
         return false;
-      if (filterTo && dayjs(l.created_at).isAfter(dayjs(filterTo).endOf("day")))
+      if (to && dayjs(l.created_at).isAfter(to.endOf("day")))
         return false;
       if (filterType && l.log_type !== filterType) return false;
       if (
@@ -143,13 +155,15 @@ export default function InventoryReportPage() {
         return false;
       return true;
     });
-  }, [logs, filterFrom, filterTo, filterType, filterProduct]);
+  }, [logs, filterFrom, filterTo, filterType, filterProduct, propStartDate, propEndDate]);
 
   return (
     <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1400px" }}>
-      <Typography variant="h5" fontWeight={700} mb={3}>
-        Relatório de Estoque
-      </Typography>
+      {!hideFilters && (
+        <Typography variant="h5" fontWeight={700} mb={3}>
+          Relatório de Estoque
+        </Typography>
+      )}
 
       <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
         <ReportCard
@@ -180,64 +194,68 @@ export default function InventoryReportPage() {
 
       <Paper sx={{ p: 2, mb: 2 }}>
         <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
-            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-              <DatePicker
-                format="DD/MM/YYYY"
-                value={filterFrom ? dayjs(filterFrom) : null}
-                onChange={(newDate) => {
-                  if (newDate && newDate.isValid()) setFilterFrom(newDate.format("YYYY-MM-DD"));
-                  else setFilterFrom("");
-                }}
-                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": { color: "#3d4048 !important", fontWeight: 700, fontSize: "0.75rem" },
-                      "& .MuiPickersDay-root": { color: "#3d4048 !important", "&.Mui-selected": { color: "white !important" } },
-                      "& .MuiPickersCalendarHeader-label": { color: "#3d4048 !important" },
-                      "& .MuiPickersArrowSwitcher-button": { color: "#3d4048 !important" },
-                    },
-                  },
-                  textField: { size: "small", placeholder: "DD/MM/AAAA", inputMode: "numeric" },
-                  actionBar: { actions: [] },
-                }}
-              />
-            </LocalizationProvider>
-          </Box>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Typography variant="body2" color="text.primary" fontWeight={500} sx={{ ml: 1 }}>Até:</Typography>
-            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-              <DatePicker
-                format="DD/MM/YYYY"
-                value={filterTo ? dayjs(filterTo) : null}
-                onChange={(newDate) => {
-                  if (newDate && newDate.isValid()) setFilterTo(newDate.format("YYYY-MM-DD"));
-                  else setFilterTo("");
-                }}
-                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": { color: "#3d4048 !important", fontWeight: 700, fontSize: "0.75rem" },
-                      "& .MuiPickersDay-root": { color: "#3d4048 !important", "&.Mui-selected": { color: "white !important" } },
-                      "& .MuiPickersCalendarHeader-label": { color: "#3d4048 !important" },
-                      "& .MuiPickersArrowSwitcher-button": { color: "#3d4048 !important" },
-                    },
-                  },
-                  textField: { size: "small", placeholder: "DD/MM/AAAA", inputMode: "numeric" },
-                  actionBar: { actions: [] },
-                }}
-              />
-            </LocalizationProvider>
-          </Box>
+          {!hideFilters && (
+            <>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                  <DatePicker
+                    format="DD/MM/YYYY"
+                    value={filterFrom ? dayjs(filterFrom) : null}
+                    onChange={(newDate) => {
+                      if (newDate && newDate.isValid()) setFilterFrom(newDate.format("YYYY-MM-DD"));
+                      else setFilterFrom("");
+                    }}
+                    dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                      const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                      return days[day.day()];
+                    }}
+                    slotProps={{
+                      popper: {
+                        sx: {
+                          "& .MuiDayCalendar-weekDayLabel": { color: "#3d4048 !important", fontWeight: 700, fontSize: "0.75rem" },
+                          "& .MuiPickersDay-root": { color: "#3d4048 !important", "&.Mui-selected": { color: "white !important" } },
+                          "& .MuiPickersCalendarHeader-label": { color: "#3d4048 !important" },
+                          "& .MuiPickersArrowSwitcher-button": { color: "#3d4048 !important" },
+                        },
+                      },
+                      textField: { size: "small", placeholder: "DD/MM/AAAA", inputMode: "numeric" },
+                      actionBar: { actions: [] },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="body2" color="text.primary" fontWeight={500} sx={{ ml: 1 }}>Até:</Typography>
+                <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                  <DatePicker
+                    format="DD/MM/YYYY"
+                    value={filterTo ? dayjs(filterTo) : null}
+                    onChange={(newDate) => {
+                      if (newDate && newDate.isValid()) setFilterTo(newDate.format("YYYY-MM-DD"));
+                      else setFilterTo("");
+                    }}
+                    dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                      const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                      return days[day.day()];
+                    }}
+                    slotProps={{
+                      popper: {
+                        sx: {
+                          "& .MuiDayCalendar-weekDayLabel": { color: "#3d4048 !important", fontWeight: 700, fontSize: "0.75rem" },
+                          "& .MuiPickersDay-root": { color: "#3d4048 !important", "&.Mui-selected": { color: "white !important" } },
+                          "& .MuiPickersCalendarHeader-label": { color: "#3d4048 !important" },
+                          "& .MuiPickersArrowSwitcher-button": { color: "#3d4048 !important" },
+                        },
+                      },
+                      textField: { size: "small", placeholder: "DD/MM/AAAA", inputMode: "numeric" },
+                      actionBar: { actions: [] },
+                    }}
+                  />
+                </LocalizationProvider>
+              </Box>
+            </>
+          )}
           <Select
             size="small"
             displayEmpty

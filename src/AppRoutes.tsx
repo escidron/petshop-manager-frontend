@@ -11,7 +11,6 @@ import LoginPage from "./pages/LoginPage";
 import { useAuth } from "./hooks/useAuth";
 import type { JSX } from "react";
 import Home from "./pages/Home";
-import FinancialPage from "./pages/FinancialPage";
 import LandingPage from "./pages/LandingPage";
 import SettingsPage from "./pages/SettingsPage";
 import PackagesPage from "./pages/PackagesPage";
@@ -20,10 +19,7 @@ import InventoryPage from "./pages/InventoryPage";
 import SuppliersPage from "./pages/SuppliersPage";
 import EmployeesPage from "./pages/EmployeesPage";
 import CommissionRulesPage from "./pages/CommissionRulesPage";
-import CommissionReportPage from "./pages/CommissionReportPage";
 import ReportsPage from "./pages/ReportsPage";
-import FinancialReportPage from "./pages/FinancialReportPage";
-import InventoryReportPage from "./pages/InventoryReportPage";
 import LoadingScreen from "./components/Loading/LoadingScreen";
 import TermsOfUse from "./pages/TermsOfUse";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -81,7 +77,7 @@ export default function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<Home />} />
-        <Route path="/financial" element={<OwnerRoute><FinancialPage /></OwnerRoute>} />
+        <Route path="/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
         <Route path="/pos" element={<POSPage />} />
         <Route path="/inventory" element={<InventoryPage />} />
         <Route path="registration" element={<RegistrationLayout />}>
@@ -111,11 +107,11 @@ export default function AppRoutes() {
         </Route>
         <Route path="/commissions">
           <Route path="rules" element={<OwnerRoute><CommissionRulesPage /></OwnerRoute>} />
-          <Route path="report" element={<OwnerRoute><CommissionReportPage /></OwnerRoute>} />
+          <Route path="report" element={<Navigate to="/reports?category=vendas&subtab=comissoes" replace />} />
         </Route>
         <Route path="/reports" element={<OwnerRoute><ReportsPage /></OwnerRoute>} />
-        <Route path="/reports/financial" element={<OwnerRoute><FinancialReportPage /></OwnerRoute>} />
-        <Route path="/reports/inventory" element={<OwnerRoute><InventoryReportPage /></OwnerRoute>} />
+        <Route path="/reports/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
+        <Route path="/reports/inventory" element={<Navigate to="/reports?category=estoque" replace />} />
         <Route path="/settings" element={<OwnerRoute><SettingsPage /></OwnerRoute>} />
       </Route>
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
