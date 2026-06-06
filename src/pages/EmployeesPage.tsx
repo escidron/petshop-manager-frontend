@@ -27,8 +27,11 @@ import { Button } from "../components/Button/Button";
 
 const ROLE_LABELS: Record<string, string> = {
   groomer: "Tosador(a)",
+  bather: "Banhista",
   vet: "Veterinário(a)",
   salesperson: "Vendedor(a)",
+  receptionist: "Recepcionista",
+  driver: "Entregador/Motorista",
   other: "Outro",
 };
 

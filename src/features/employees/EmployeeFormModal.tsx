@@ -28,13 +28,16 @@ import { maskPhone } from "../../utils/masks";
 const ROLE_LABELS: Record<string, string> = {
   groomer: "Tosador(a)",
   bather: "Banhista",
+  vet: "Veterinário(a)",
   salesperson: "Vendedor(a)",
+  receptionist: "Recepcionista",
+  driver: "Entregador/Motorista",
   other: "Outro",
 };
 
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
-  role: z.enum(["groomer", "bather", "salesperson", "other"]),
+  role: z.enum(["groomer", "bather", "vet", "salesperson", "receptionist", "driver", "other"]),
   phone: z.string().nullable().optional(),
   email: z.string().email("E-mail inválido").nullable().optional().or(z.literal("")),
   is_active: z.boolean(),
