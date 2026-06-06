@@ -32,6 +32,11 @@ export const petSchema = z
       .enum(["male", "female", "other"])
       .optional(),
 
+    is_neutered: z
+      .boolean()
+      .nullable()
+      .optional(),
+
     /* =========================
      * Porte
      * ========================= */

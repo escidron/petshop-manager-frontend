@@ -18,6 +18,7 @@ export type Pet = {
   species: string;
   breed?: string | null;
   gender?: PetGender | null;
+  is_neutered?: boolean | null;
   is_active: boolean;
 
   // Porte e pelagem

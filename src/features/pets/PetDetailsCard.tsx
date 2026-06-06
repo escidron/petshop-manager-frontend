@@ -97,6 +97,14 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
                 <Typography color="text.disabled">{pet.breed}</Typography>
               </Box>
             )}
+            {pet.is_neutered !== undefined && pet.is_neutered !== null && (
+              <Box>
+                <Typography color="text.primary">Castrado</Typography>
+                <Typography color="text.disabled">
+                  {pet.is_neutered ? "Sim" : "Não"}
+                </Typography>
+              </Box>
+            )}
           </Box>
           <Box
             sx={{

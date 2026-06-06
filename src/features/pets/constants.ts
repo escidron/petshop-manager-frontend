@@ -22,6 +22,7 @@ export const DEFAULT_PET_FORM: PetFormData = {
 
   // Observações
   notes: "",
+  is_neutered: undefined,
 };
 
 

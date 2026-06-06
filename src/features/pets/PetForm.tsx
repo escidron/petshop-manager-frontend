@@ -369,7 +369,81 @@ const PetForm = ({
               </Box>
 
               <Box sx={{ display: "flex", gap: 2 }}>
-                <Box sx={{ width: "100%" }}>
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Gênero
+                  </FormLabel>
+
+                  <Controller
+                    name="gender"
+                    control={control}
+                    render={({ field, fieldState }) => (
+                      <Autocomplete
+                        options={PET_GENDERS}
+                        size="small"
+                        value={
+                          PET_GENDERS.find((g) => g.value === field.value) ??
+                          null
+                        }
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
+                        getOptionLabel={(option) => option.label}
+                        onChange={(_, value) => field.onChange(value?.value)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Selecionar gênero"
+                            error={!!fieldState.error}
+                            helperText={fieldState.error?.message}
+                          />
+                        )}
+                      />
+                    )}
+                  />
+                </FormControl>
+
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                    Castrado?
+                  </FormLabel>
+
+                  <Controller
+                    name="is_neutered"
+                    control={control}
+                    render={({ field }) => (
+                      <Autocomplete
+                        options={[
+                          { value: true, label: "Sim" },
+                          { value: false, label: "Não" },
+                        ]}
+                        size="small"
+                        value={
+                          field.value === true
+                            ? { value: true, label: "Sim" }
+                            : field.value === false
+                              ? { value: false, label: "Não" }
+                              : null
+                        }
+                        isOptionEqualToValue={(option, value) =>
+                          option.value === value.value
+                        }
+                        getOptionLabel={(option) => option.label}
+                        onChange={(_, value) => field.onChange(value ? value.value : null)}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            placeholder="Selecionar..."
+                          />
+                        )}
+                      />
+                    )}
+                  />
+                </FormControl>
+              </Box>
+
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <Box sx={{ width: "50%" }}>
                   <FormControl fullWidth>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                       Data de nascimento
@@ -417,40 +491,6 @@ const PetForm = ({
                     />
                   </Box>
                 </Box>
-
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Gênero
-                  </FormLabel>
-
-                  <Controller
-                    name="gender"
-                    control={control}
-                    render={({ field, fieldState }) => (
-                      <Autocomplete
-                        options={PET_GENDERS}
-                        size="small"
-                        value={
-                          PET_GENDERS.find((g) => g.value === field.value) ??
-                          null
-                        }
-                        isOptionEqualToValue={(option, value) =>
-                          option.value === value.value
-                        }
-                        getOptionLabel={(option) => option.label}
-                        onChange={(_, value) => field.onChange(value?.value)}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            placeholder="Selecionar gênero"
-                            error={!!fieldState.error}
-                            helperText={fieldState.error?.message}
-                          />
-                        )}
-                      />
-                    )}
-                  />
-                </FormControl>
               </Box>
 
               {showAgeField && (

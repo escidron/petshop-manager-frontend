@@ -28,5 +28,6 @@ export function petToFormData(
 
     // Observações
     notes: pet.notes ?? undefined,
+    is_neutered: pet.is_neutered ?? null,
   };
 }
