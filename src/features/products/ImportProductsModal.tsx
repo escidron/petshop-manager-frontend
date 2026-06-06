@@ -61,11 +61,11 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
     setIsDragging(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const droppedFile = e.dataTransfer.files[0];
-      if (droppedFile.name.endsWith(".csv")) {
+      if (droppedFile.name.endsWith(".xlsx")) {
         setFile(droppedFile);
         setResult(null);
       } else {
-        toast.error("Por favor, envie apenas arquivos .csv");
+        toast.error("Por favor, envie apenas arquivos .xlsx");
       }
     }
   };
@@ -113,7 +113,7 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
       <DialogContent dividers>
         <Box sx={{ mb: 3 }}>
           <Typography variant="body2" color="text.primary" gutterBottom>
-            Importe seus produtos em massa usando um arquivo CSV. 
+            Importe seus produtos em massa usando uma planilha Excel (XLSX). 
             Recomendamos o uso do nosso modelo padrão para evitar erros de formatação.
           </Typography>
           
@@ -124,7 +124,7 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
               startIcon={<Download size={16} />}
               onClick={() => downloadImportTemplate()}
             >
-              Baixar Modelo (CSV)
+              Baixar Modelo (Excel)
             </Button>
           </Box>
 
@@ -149,6 +149,14 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
                   <ListItemText 
                     primary="preco_venda *" 
                     secondary="Valor em reais. A coluna deve estar presente. Ex: 29.90 ou 29,90. (Obrigatório)" 
+                    primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
+                    secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText 
+                    primary="unidade" 
+                    secondary="Unidade de medida. Opções: UN, g, kg, ml, L, PAQ, CX. Padrão: UN. (Opcional)" 
                     primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
                     secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
                   />
@@ -195,12 +203,12 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
-            onClick={() => document.getElementById("csv-upload")?.click()}
+            onClick={() => document.getElementById("excel-upload")?.click()}
           >
             <input
               type="file"
-              id="csv-upload"
-              accept=".csv"
+              id="excel-upload"
+              accept=".xlsx, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
               style={{ display: "none" }}
               onChange={handleFileChange}
             />
@@ -221,7 +229,7 @@ export default function ImportProductsModal({ open, onClose, onSuccess }: Props)
                   Clique ou arraste o arquivo aqui
                 </Typography>
                 <Typography variant="caption" color="text.primary">
-                  Apenas arquivos .csv são suportados
+                  Apenas arquivos .xlsx são suportados
                 </Typography>
               </Box>
             )}

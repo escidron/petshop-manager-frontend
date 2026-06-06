@@ -954,6 +954,9 @@ export default function POSInterface() {
                                   (product as any).price ||
                                   0) / 100
                               ).toFixed(2)}
+                              <Typography component="span" variant="caption" color="text.primary" sx={{ fontWeight: 600, ml: 0.25 }}>
+                                /{product.unit?.toLowerCase() || "un"}
+                              </Typography>
                             </Typography>
                             <Box
                               className="add-btn"
@@ -1039,6 +1042,9 @@ export default function POSInterface() {
                                 (product as any).price ||
                                 0) / 100
                             ).toFixed(2)}
+                            <Typography component="span" variant="caption" color="text.secondary" sx={{ fontWeight: 600, ml: 0.25 }}>
+                              /{product.unit?.toLowerCase() || "un"}
+                            </Typography>
                           </Typography>
                           <IconButton size="small" color="primary">
                             <Plus size={18} />
