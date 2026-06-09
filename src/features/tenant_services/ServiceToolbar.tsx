@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { Search, Plus, Library } from "lucide-react";
+import { Search, Plus, Upload } from "lucide-react";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
 
@@ -26,7 +26,7 @@ export default function ServiceToolbar({
       />
 
       <Box display="flex" gap={1.5}>
-        <Button variant="outlined" startIcon={<Library size={18} />} onClick={onImportLibrary}>
+        <Button variant="outlined" startIcon={<Upload size={18} />} onClick={onImportLibrary}>
           Cadastro em Massa
         </Button>
         <Button startIcon={<Plus size={18} />} onClick={onCreate}>

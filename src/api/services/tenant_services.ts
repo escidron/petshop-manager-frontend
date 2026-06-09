@@ -39,3 +39,27 @@ export const updateService = async (serviceId: number, payload: Partial<Service>
 export const deleteService = async (serviceId: number) => {
   await apiClient.delete(`/api/v1/services/${serviceId}`);
 };
+
+export const importServices = async (file: File) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await apiClient.post("/api/v1/services/import", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
+export const downloadImportTemplate = async () => {
+  const response = await apiClient.get("/api/v1/services/import/template", {
+    responseType: "blob",
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "template_servicos.xlsx");
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+};

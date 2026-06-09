@@ -125,7 +125,7 @@ export default function AppointmentModal({
       <Dialog
         open={open}
         maxWidth={false}
-        slotProps={{ paper: { sx: { width: "600px", maxWidth: "1400px" } } }}
+        slotProps={{ paper: { sx: { width: "720px", maxWidth: "1400px" } } }}
       >
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h5">

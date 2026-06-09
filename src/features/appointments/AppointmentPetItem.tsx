@@ -183,6 +183,7 @@ export default function AppointmentPetItem({
               }
               getOptionLabel={(option) => formatServiceLabel(option)}
               isOptionEqualToValue={(option, value) => option.id === value.id}
+              slotProps={{ paper: { sx: { width: "635px", maxWidth: "90vw" } } }}
               onChange={(_, value) => field.onChange(value.map((v) => v.id))}
               renderOption={(props, option, { selected }) => {
                 const { ...rest } = props;

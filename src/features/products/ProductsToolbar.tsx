@@ -27,7 +27,7 @@ export default function ProductsToolbar({
 
       <Box display="flex" gap={2}>
         <Button variant="outlined" startIcon={<Upload size={18} />} onClick={onImport}>
-          Importar
+          Cadastro em Massa
         </Button>
         <Button startIcon={<Plus size={18} />} onClick={onCreate}>
           Novo Produto
