@@ -349,7 +349,7 @@ const SignupPage = () => {
 
               {step === 3 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
-                  {!emailExists && (
+                  {emailExists && (
                     <Alert
                       severity="info"
                       sx={{ mb: 2, borderRadius: 2 }}

@@ -61,11 +61,23 @@ import {
 import CustomTextField from "../components/Textfield/CustomTextfield";
 import { useToast } from "../hooks/useToast";
 import { maskPhone, maskDocument } from "../utils/masks";
-import { addPaymentMethod, createCheckout, listPaymentMethods, removePaymentMethod, setDefaultPaymentMethod, cancelSubscription } from "../api/services/subscriptions";
+import {
+  addPaymentMethod,
+  createCheckout,
+  listPaymentMethods,
+  removePaymentMethod,
+  setDefaultPaymentMethod,
+  cancelSubscription,
+  listCharges,
+  updateChargeCard,
+  retryCharge,
+  captureCharge,
+  cancelCharge,
+} from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
 import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import PixQrCode from "../features/billing/PixQrCode";
-import type { PaymentMethod, CheckoutPixResponse } from "../features/billing/types";
+import type { PaymentMethod, CheckoutPixResponse, SubscriptionCharge } from "../features/billing/types";
 import { Button } from "../components/Button/Button";
 import WorkingHoursSettings from "../features/tenants/WorkingHoursSettings";
 
@@ -121,6 +133,8 @@ const SettingsPage = () => {
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
   const [checkoutLoading, setCheckoutLoading] = useState(false);
   const [checkoutError, setCheckoutError] = useState<string | null>(null);
+  const [selectedCardId, setSelectedCardId] = useState<string>("");
+  const [useNewCard, setUseNewCard] = useState<boolean>(false);
   const [savingTenant, setSavingTenant] = useState(false);
   const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
   const [loadingCards, setLoadingCards] = useState(false);
@@ -131,6 +145,14 @@ const SettingsPage = () => {
   const { tenant, user, setTenant, checkAuth } = useAuth();
   const { isOwner } = usePermission();
   const toast = useToast();
+
+  const [charges, setCharges] = useState<SubscriptionCharge[]>([]);
+  const [loadingCharges, setLoadingCharges] = useState(false);
+  const [chargeToUpdateCard, setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
+  const [openUpdateCardDialog, setOpenUpdateCardDialog] = useState(false);
+  const [updateCardLoading, setUpdateCardLoading] = useState(false);
+  const [selectedPixCharge, setSelectedPixCharge] = useState<SubscriptionCharge | null>(null);
+  const [openPixModal, setOpenPixModal] = useState(false);
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -290,6 +312,62 @@ const SettingsPage = () => {
     }
   }, []);
 
+  const fetchCharges = useCallback(async () => {
+    setLoadingCharges(true);
+    try {
+      const history = await listCharges();
+      setCharges(history);
+    } catch (err) {
+      console.error("Failed to fetch charges:", err);
+    } finally {
+      setLoadingCharges(false);
+    }
+  }, []);
+
+  const handleRetryCharge = async (chargeId: string) => {
+    toast.info("Retentando cobrança...");
+    try {
+      const res = await retryCharge(chargeId);
+      if (res.status === "paid" || res.status === "captured") {
+        toast.success("Cobrança paga com sucesso!");
+        await checkAuth();
+      } else {
+        toast.warning(`Cobrança não autorizada. Status: ${res.status}`);
+      }
+      await fetchCharges();
+    } catch (err) {
+      toast.error("Erro ao retentar cobrança.");
+    }
+  };
+
+  const handleCaptureCharge = async (chargeId: string) => {
+    toast.info("Capturando cobrança...");
+    try {
+      const res = await captureCharge(chargeId);
+      if (res.status === "paid" || res.status === "captured") {
+        toast.success("Cobrança capturada com sucesso!");
+        await checkAuth();
+      } else {
+        toast.warning(`Status após captura: ${res.status}`);
+      }
+      await fetchCharges();
+    } catch (err) {
+      toast.error("Erro ao capturar cobrança.");
+    }
+  };
+
+  const handleCancelCharge = async (chargeId: string) => {
+    toast.info("Cancelando cobrança...");
+    try {
+      await cancelCharge(chargeId);
+      toast.success("Cobrança cancelada com sucesso.");
+      await fetchCharges();
+      await checkAuth();
+    } catch (err) {
+      toast.error("Erro ao cancelar cobrança.");
+    }
+  };
+
   const handleSetDefault = async (pmId: string) => {
     await setDefaultPaymentMethod(pmId);
     setSavedCards((prev) =>
@@ -304,14 +382,23 @@ const SettingsPage = () => {
     toast.success("Cartão removido.");
   };
 
-  // Busca cartões ao abrir a aba de cobrança
+  // Limpa os dados sensíveis imediatamente ao trocar de tenant,
+  // evitando que cartões/cobranças de um tenant apareçam em outro.
+  useEffect(() => {
+    setSavedCards([]);
+    setCharges([]);
+    setSelectedCardId("");
+  }, [tenant?.id]);
+
+  // Busca cartões e cobranças ao abrir a aba de cobrança (ou ao trocar de tenant)
   useEffect(() => {
     if (!isOwner) return;
     const billingIdx = tabConfig.findIndex((t) => t.id === "billing");
     if (value === billingIdx) {
       fetchCards();
+      fetchCharges();
     }
-  }, [value, isOwner, tabConfig, fetchCards]);
+  }, [value, isOwner, tabConfig, fetchCards, fetchCharges, tenant?.id]);
 
   // Polling após pagamento: verifica status a cada 2s até ficar active
   useEffect(() => {
@@ -350,6 +437,24 @@ const SettingsPage = () => {
   };
 
   const trialDays = getTrialDays();
+  const isTrialing = tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing";
+  const showPaymentMethodSection = !!tenant?.subscription && tenant.subscription.plan?.code !== "FREE_TRIAL" && tenant.subscription.status !== "trialing";
+
+  const getChargeStatusChip = (status: string) => {
+    const mapping: Record<string, { label: string; color: "success" | "warning" | "error" | "default" | "info" }> = {
+      paid: { label: "Paga", color: "success" },
+      captured: { label: "Paga", color: "success" },
+      pending: { label: "Pendente", color: "warning" },
+      waiting_capture: { label: "Aguardando Captura", color: "info" },
+      authorized_pending_capture: { label: "Autorizada (Pendente Captura)", color: "info" },
+      not_authorized: { label: "Não Autorizada", color: "error" },
+      failed: { label: "Falhou", color: "error" },
+      refunded: { label: "Estornada", color: "default" },
+      voided: { label: "Cancelada", color: "default" },
+    };
+    const conf = mapping[status] || { label: status, color: "default" };
+    return <Chip label={conf.label} color={conf.color} size="small" sx={{ fontWeight: 700 }} />;
+  };
 
   const handleOpenCheckout = () => {
     setCheckoutMode("payment");
@@ -363,6 +468,14 @@ const SettingsPage = () => {
       handleGeneratePix(doc);
     } else {
       setPixDocument(tenant?.document ? maskDocument(tenant.document) : "");
+      if (savedCards.length > 0) {
+        const defaultCard = savedCards.find((c) => c.is_default) || savedCards[0];
+        setSelectedCardId(defaultCard.id);
+        setUseNewCard(false);
+      } else {
+        setSelectedCardId("");
+        setUseNewCard(true);
+      }
     }
   };
 
@@ -380,6 +493,38 @@ const SettingsPage = () => {
       }
     } catch {
       setCheckoutError("Erro ao gerar PIX. Tente novamente.");
+    } finally {
+      setCheckoutLoading(false);
+    }
+  };
+
+  const handleCheckoutWithSavedCard = async () => {
+    if (!selectedCardId) {
+      toast.error("Por favor, selecione um cartão.");
+      return;
+    }
+    setCheckoutLoading(true);
+    setCheckoutError(null);
+    try {
+      await createCheckout(
+        "MONTHLY",
+        "credit_card",
+        undefined,
+        undefined,
+        undefined,
+        checkoutStartAt ?? undefined,
+        selectedCardId
+      );
+      setCheckoutStartAt(null);
+      toast.success("Pagamento enviado! Aguardando confirmação...");
+      await checkAuth();
+      setAwaitingConfirmation(true);
+      setPollCount(0);
+      setOpenCheckout(false);
+    } catch (err: any) {
+      console.error(err);
+      const detail = err.response?.data?.detail || "Erro ao processar o pagamento com o cartão salvo.";
+      setCheckoutError(typeof detail === "string" ? detail : JSON.stringify(detail));
     } finally {
       setCheckoutLoading(false);
     }
@@ -626,12 +771,12 @@ const SettingsPage = () => {
                           fontWeight={800}
                           sx={{ mt: 0.5 }}
                         >
-                          {tenant?.subscription?.plan?.name || "Teste Gratuito"}
+                          {tenant?.subscription?.plan?.name || "Sem Assinatura"}
                         </Typography>
                       </Box>
                       <Chip
                         label={
-                          tenant?.subscription?.status === "trialing" ? "PERÍODO DE TESTE" :
+                          isTrialing ? "PERÍODO DE TESTE" :
                           tenant?.subscription?.status === "active"
                             ? (tenant.subscription.current_period_end && new Date(tenant.subscription.current_period_end) < new Date() ? "EXPIRADO" : "ATIVO")
                             :
@@ -644,7 +789,7 @@ const SettingsPage = () => {
                         }
                         color={
                           tenant?.subscription?.status === "active" ? "success" :
-                          tenant?.subscription?.status === "trialing" ? "secondary" :
+                          isTrialing ? "secondary" :
                           "error"
                         }
                         size="small"
@@ -652,7 +797,7 @@ const SettingsPage = () => {
                       />
                     </Box>
 
-                    {tenant?.subscription?.status === "trialing" && (
+                    {isTrialing && (
                       <Box
                         sx={{
                           bgcolor: "rgba(111,66,193,0.03)",
@@ -671,9 +816,9 @@ const SettingsPage = () => {
                           >
                             <Typography variant="body2" fontWeight={700} color={trialDays === 0 ? "error" : "inherit"}>
                               {trialDays === 0
-                                ? dayjs(tenant.subscription.trial_ends_at).isBefore(dayjs())
+                                ? dayjs(tenant?.subscription?.trial_ends_at).isBefore(dayjs())
                                   ? "Seu período de teste expirou"
-                                  : `Seu teste grátis acaba hoje às ${dayjs(tenant.subscription.trial_ends_at).format("HH:mm")}`
+                                  : `Seu teste grátis acaba hoje às ${dayjs(tenant?.subscription?.trial_ends_at).format("HH:mm")}`
                                 : `Faltam ${trialDays} ${trialDays === 1 ? "dia" : "dias"} para o fim do teste`}
                             </Typography>
                             {trialDays > 0 && (
@@ -681,7 +826,7 @@ const SettingsPage = () => {
                                 variant="caption"
                                 color="text.secondary"
                               >
-                                {dayjs(tenant.subscription.trial_ends_at).format(
+                                {dayjs(tenant?.subscription?.trial_ends_at).format(
                                   "DD/MM/YYYY",
                                 )}
                               </Typography>
@@ -696,7 +841,7 @@ const SettingsPage = () => {
                               bgcolor: "rgba(0,0,0,0.05)",
                             }}
                           />
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.primary">
                             Ao final desse período, você precisará escolher um
                             plano para continuar usando o PetControle.
                           </Typography>
@@ -723,7 +868,7 @@ const SettingsPage = () => {
                           <Typography variant="subtitle2" fontWeight={700}>
                             Aguardando confirmação do pagamento
                           </Typography>
-                          <Typography variant="caption" color="text.secondary">
+                          <Typography variant="caption" color="text.primary">
                             Isso pode levar alguns segundos...
                           </Typography>
                         </Box>
@@ -838,165 +983,167 @@ const SettingsPage = () => {
                   </Stack>
                 </Paper>
 
-                <Paper sx={{ p: 3, borderRadius: 3 }}>
-                  <Stack spacing={3}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                      }}
-                    >
-                      <Typography variant="h6" fontWeight={700}>
-                        Método de Pagamento
-                      </Typography>
-                      <Stack direction="row" spacing={1}>
-                        <Button
-                          size="small"
-                          variant={
-                            paymentMethod === "card" ? "contained" : "text"
-                          }
-                          onClick={() => handlePaymentMethodChange("card")}
-                          startIcon={<CreditCard size={16} />}
-                          disabled={savingPaymentMethod}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          Cartão
-                        </Button>
-                        <Button
-                          size="small"
-                          variant={
-                            paymentMethod === "pix" ? "contained" : "text"
-                          }
-                          onClick={() => handlePaymentMethodChange("pix")}
-                          startIcon={<QrCode size={16} />}
-                          disabled={savingPaymentMethod}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          PIX
-                        </Button>
-                      </Stack>
-                    </Box>
+                {showPaymentMethodSection && (
+                  <Paper sx={{ p: 3, borderRadius: 3 }}>
+                    <Stack spacing={3}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                        }}
+                      >
+                        <Typography variant="h6" fontWeight={700}>
+                          Método de Pagamento
+                        </Typography>
+                        <Stack direction="row" spacing={1}>
+                          <Button
+                            size="small"
+                            variant={
+                              paymentMethod === "card" ? "contained" : "text"
+                            }
+                            onClick={() => handlePaymentMethodChange("card")}
+                            startIcon={<CreditCard size={16} />}
+                            disabled={savingPaymentMethod}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            Cartão
+                          </Button>
+                          <Button
+                            size="small"
+                            variant={
+                              paymentMethod === "pix" ? "contained" : "text"
+                            }
+                            onClick={() => handlePaymentMethodChange("pix")}
+                            startIcon={<QrCode size={16} />}
+                            disabled={savingPaymentMethod}
+                            sx={{ borderRadius: 2 }}
+                          >
+                            PIX
+                          </Button>
+                        </Stack>
+                      </Box>
 
-                    {paymentMethod === "card" ? (
-                      <Box>
-                        {loadingCards ? (
-                          <Stack spacing={1.5} sx={{ mb: 2 }}>
-                            {[0, 1].map((i) => (
-                              <Box
-                                key={i}
-                                sx={{
+                      {paymentMethod === "card" ? (
+                        <Box>
+                          {loadingCards ? (
+                            <Stack spacing={1.5} sx={{ mb: 2 }}>
+                              {[0, 1].map((i) => (
+                                <Box
+                                  key={i}
+                                  sx={{
+                                    display: "flex",
+                                    alignItems: "center",
+                                    gap: 2,
+                                    p: "12px 16px",
+                                    borderRadius: 3,
+                                    border: "1px solid #E0E0E0",
+                                  }}
+                                >
+                                  <Skeleton variant="rounded" width={54} height={34} sx={{ flexShrink: 0 }} />
+                                  <Box sx={{ flex: 1 }}>
+                                    <Skeleton variant="text" width={160} height={18} />
+                                    <Skeleton variant="text" width={90} height={14} />
+                                  </Box>
+                                  <Skeleton variant="circular" width={30} height={30} sx={{ flexShrink: 0 }} />
+                                </Box>
+                              ))}
+                            </Stack>
+                          ) : savedCards.length > 0 ? (
+                            <Stack spacing={1.5} sx={{ mb: 2 }}>
+                              {savedCards.map((card) => (
+                                <PaymentMethodCard
+                                  key={card.id}
+                                  card={card}
+                                  onSetDefault={handleSetDefault}
+                                  onRemove={handleRemoveCard}
+                                />
+                              ))}
+                            </Stack>
+                          ) : (
+                            <Box
+                              sx={{
                                   display: "flex",
                                   alignItems: "center",
                                   gap: 2,
-                                  p: "12px 16px",
-                                  borderRadius: 3,
-                                  border: "1px solid #E0E0E0",
+                                  p: 2.5,
+                                  borderRadius: 2,
+                                  bgcolor: "rgba(0,0,0,0.02)",
+                                  border: "1px dashed rgba(0,0,0,0.12)",
+                                  mb: 2,
                                 }}
                               >
-                                <Skeleton variant="rounded" width={54} height={34} sx={{ flexShrink: 0 }} />
-                                <Box sx={{ flex: 1 }}>
-                                  <Skeleton variant="text" width={160} height={18} />
-                                  <Skeleton variant="text" width={90} height={14} />
-                                </Box>
-                                <Skeleton variant="circular" width={30} height={30} sx={{ flexShrink: 0 }} />
+                                <CreditCard size={22} color="#bbb" />
+                                <Typography variant="body2" color="text.primary">
+                                  Nenhum cartão cadastrado.
+                                </Typography>
                               </Box>
-                            ))}
-                          </Stack>
-                        ) : savedCards.length > 0 ? (
-                          <Stack spacing={1.5} sx={{ mb: 2 }}>
-                            {savedCards.map((card) => (
-                              <PaymentMethodCard
-                                key={card.id}
-                                card={card}
-                                onSetDefault={handleSetDefault}
-                                onRemove={handleRemoveCard}
-                              />
-                            ))}
-                          </Stack>
-                        ) : (
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 2,
-                              p: 2.5,
-                              borderRadius: 2,
-                              bgcolor: "rgba(0,0,0,0.02)",
-                              border: "1px dashed rgba(0,0,0,0.12)",
-                              mb: 2,
-                            }}
+                          )}
+                          <Button
+                            variant="outlined"
+                            fullWidth
+                            startIcon={<Plus size={16} />}
+                            onClick={
+                              tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
+                                ? handleOpenCheckout
+                                : handleOpenSetupCard
+                            }
+                            disabled={checkoutLoading}
+                            sx={{ borderRadius: 2 }}
                           >
-                            <CreditCard size={22} color="#bbb" />
-                            <Typography variant="body2" color="text.primary">
-                              Nenhum cartão cadastrado.
-                            </Typography>
-                          </Box>
-                        )}
-                        <Button
-                          variant="outlined"
-                          fullWidth
-                          startIcon={<Plus size={16} />}
-                          onClick={
-                            tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
-                              ? handleOpenCheckout
-                              : handleOpenSetupCard
-                          }
-                          disabled={checkoutLoading}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
-                            ? "Ativar assinatura com cartão"
-                            : "Adicionar Cartão"}
-                        </Button>
-                      </Box>
-                    ) : (
-                      <Box>
-                        <Stack
-                          spacing={2}
-                          sx={{
-                            p: 2,
-                            borderRadius: 2,
-                            bgcolor: "rgba(111,66,193,0.03)",
-                            border: "1px solid rgba(111,66,193,0.1)",
-                          }}
-                        >
-                          <Box
+                            {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
+                              ? "Ativar assinatura com cartão"
+                              : "Adicionar Cartão"}
+                          </Button>
+                        </Box>
+                      ) : (
+                        <Box>
+                          <Stack
+                            spacing={2}
                             sx={{
-                              display: "flex",
-                              gap: 2,
-                              alignItems: "center",
+                              p: 2,
+                              borderRadius: 2,
+                              bgcolor: "rgba(111,66,193,0.03)",
+                              border: "1px solid rgba(111,66,193,0.1)",
                             }}
                           >
                             <Box
                               sx={{
-                                p: 1,
-                                bgcolor: "primary.main",
-                                borderRadius: 1.5,
-                                color: "white",
                                 display: "flex",
+                                gap: 2,
+                                alignItems: "center",
                               }}
                             >
-                              <QrCode size={24} />
-                            </Box>
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight={800}>
-                                Pagamento via PIX selecionado
-                              </Typography>
-                              <Typography
-                                variant="caption"
-                                color="text.primary"
+                              <Box
+                                sx={{
+                                  p: 1,
+                                  bgcolor: "primary.main",
+                                  borderRadius: 1.5,
+                                  color: "white",
+                                  display: "flex",
+                                }}
                               >
-                                As faturas serão geradas mensalmente com QR Code
-                                para pagamento.
-                              </Typography>
+                                <QrCode size={24} />
+                              </Box>
+                              <Box>
+                                <Typography variant="subtitle2" fontWeight={800}>
+                                  Pagamento via PIX selecionado
+                                </Typography>
+                                <Typography
+                                  variant="caption"
+                                  color="text.primary"
+                                >
+                                  As faturas serão geradas mensalmente com QR Code
+                                  para pagamento.
+                                </Typography>
+                              </Box>
                             </Box>
-                          </Box>
-                        </Stack>
-                      </Box>
-                    )}
-                  </Stack>
-                </Paper>
+                          </Stack>
+                        </Box>
+                      )}
+                    </Stack>
+                  </Paper>
+                )}
 
                 {/* Encerrar conta — card simples no fim da coluna de cobrança */}
                 <Paper sx={{ p: 2.5, borderRadius: 3 }}>
@@ -1092,6 +1239,159 @@ const SettingsPage = () => {
               </Paper>
             </Grid>
           </Grid>
+
+          {/* --- HISTÓRICO DE FATURAS --- */}
+          <Paper sx={{ mt: 4, p: 4, borderRadius: 4 }}>
+            <Stack spacing={3}>
+              <Typography variant="h6" fontWeight={800}>
+                Histórico de Faturas
+              </Typography>
+              <Divider />
+              
+              {loadingCharges ? (
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                  <CircularProgress />
+                </Box>
+              ) : charges.length === 0 ? (
+                <Box sx={{ p: 4, textAlign: "center" }}>
+                  <Typography color="text.primary">
+                    Nenhuma fatura encontrada.
+                  </Typography>
+                </Box>
+              ) : (
+                <Stack spacing={2}>
+                  {charges.map((charge) => (
+                    <Box
+                      key={charge.id}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        p: 2.5,
+                        borderRadius: 3,
+                        border: "1px solid #E0E0E0",
+                        bgcolor: "rgba(0,0,0,0.01)",
+                        flexWrap: "wrap",
+                        gap: 2,
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Data
+                          </Typography>
+                          <Typography variant="body2" fontWeight={700}>
+                            {dayjs(charge.created_at).format("DD/MM/YYYY")}
+                          </Typography>
+                        </Box>
+                        
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            ID da Cobrança
+                          </Typography>
+                          <Typography variant="body2" sx={{ fontFamily: "monospace", opacity: 0.8 }}>
+                            {charge.id}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Método
+                          </Typography>
+                          <Typography variant="body2" sx={{ textTransform: "uppercase", fontWeight: 600 }}>
+                            {charge.payment_method === "card" ? "Cartão de Crédito" : "PIX"}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block">
+                            Valor
+                          </Typography>
+                          <Typography variant="body2" fontWeight={800}>
+                            {(charge.amount / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                          </Typography>
+                        </Box>
+
+                        <Box>
+                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                            Status
+                          </Typography>
+                          {getChargeStatusChip(charge.status)}
+                        </Box>
+                      </Box>
+
+                      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
+                        {/* PIX Pending QR Code */}
+                        {charge.payment_method === "pix" && charge.status === "pending" && (
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<QrCode size={14} />}
+                            onClick={() => {
+                              setSelectedPixCharge(charge);
+                              setOpenPixModal(true);
+                            }}
+                            sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
+                          >
+                            Ver QR Code
+                          </Button>
+                        )}
+
+                        {/* Card payment failure / not authorized update */}
+                        {charge.payment_method === "card" && (charge.status === "not_authorized" || charge.status === "failed") && (
+                          <>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={() => {
+                                setChargeToUpdateCard(charge);
+                                setOpenUpdateCardDialog(true);
+                              }}
+                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
+                            >
+                              Pagar com outro cartão
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              onClick={() => handleRetryCharge(charge.id)}
+                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
+                            >
+                              Retentar
+                            </Button>
+                          </>
+                        )}
+
+                        {/* Pre-authorized captures/cancels */}
+                        {charge.status === "authorized_pending_capture" && (
+                          <>
+                            <Button
+                              variant="contained"
+                              color="success"
+                              size="small"
+                              onClick={() => handleCaptureCharge(charge.id)}
+                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
+                            >
+                              Capturar
+                            </Button>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              size="small"
+                              onClick={() => handleCancelCharge(charge.id)}
+                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
+                            >
+                              Cancelar
+                            </Button>
+                          </>
+                        )}
+                      </Stack>
+                    </Box>
+                  ))}
+                </Stack>
+              )}
+            </Stack>
+          </Paper>
         </CustomTabPanel>}
 
         {/* --- ABA PERFIL --- */}
@@ -1569,79 +1869,279 @@ const SettingsPage = () => {
             <Box sx={{ p: 4 }}>
               {checkoutError ? (
                 <Box>
-                  <Typography color="error" variant="body2" sx={{ mb: 2 }}>
+                  <Typography color="error" variant="body2" sx={{ mb: 3 }}>
                     {checkoutError}
                   </Typography>
-                  <Button variant="outlined" onClick={() => setOpenCheckout(false)} sx={{ width: "100%" }}>
-                    Fechar
-                  </Button>
+                  <Stack direction="row" spacing={2}>
+                    <Button variant="outlined" onClick={() => setOpenCheckout(false)} sx={{ flex: 1 }}>
+                      Fechar
+                    </Button>
+                    <Button variant="contained" onClick={() => setCheckoutError(null)} sx={{ flex: 1 }}>
+                      Tentar Novamente
+                    </Button>
+                  </Stack>
                 </Box>
               ) : checkoutLoading ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress />
                 </Box>
-              ) : !checkoutLoading && checkoutMode === "payment" && paymentMethod === "pix" && !checkoutStartAt ? (
-                pixData ? (
-                  <PixQrCode
-                    qrCode={pixData.pix_qr_code}
-                    qrCodeUrl={pixData.pix_qr_code_url}
-                    expiresAt={pixData.expires_at}
-                    onClose={() => setOpenCheckout(false)}
-                  />
-                ) : (
-                  <Box>
-                    <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
-                      Informe seu CPF ou CNPJ para gerar o QR Code PIX.
-                    </Typography>
-                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                      <TextField
-                        fullWidth
-                        value={pixDocument}
-                        onChange={(e) => {
-                          setPixDocument(maskDocument(e.target.value));
-                        }}
-                        placeholder="000.000.000-00"
-                        size="small"
+              ) : (
+                <>
+                  {/* Selector of payment method inside the modal */}
+                  {checkoutMode === "payment" && !pixData && (
+                    <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+                      <Stack direction="row" spacing={1} sx={{ bgcolor: "rgba(0,0,0,0.03)", p: 0.5, borderRadius: 2.5 }}>
+                        <Button
+                          size="small"
+                          variant={paymentMethod === "card" ? "contained" : "text"}
+                          onClick={() => setPaymentMethod("card")}
+                          startIcon={<CreditCard size={14} />}
+                          sx={{
+                            borderRadius: 2,
+                            px: 3,
+                            py: 0.75,
+                            textTransform: "none",
+                            fontWeight: 700,
+                            bgcolor: paymentMethod === "card" ? "primary.main" : "transparent",
+                            color: paymentMethod === "card" ? "white" : "text.primary",
+                            "&:hover": {
+                              bgcolor: paymentMethod === "card" ? "primary.dark" : "rgba(0,0,0,0.05)",
+                            }
+                          }}
+                        >
+                          Cartão de Crédito
+                        </Button>
+                        <Button
+                          size="small"
+                          variant={paymentMethod === "pix" ? "contained" : "text"}
+                          onClick={() => setPaymentMethod("pix")}
+                          startIcon={<QrCode size={14} />}
+                          sx={{
+                            borderRadius: 2,
+                            px: 3,
+                            py: 0.75,
+                            textTransform: "none",
+                            fontWeight: 700,
+                            bgcolor: paymentMethod === "pix" ? "primary.main" : "transparent",
+                            color: paymentMethod === "pix" ? "white" : "text.primary",
+                            "&:hover": {
+                              bgcolor: paymentMethod === "pix" ? "primary.dark" : "rgba(0,0,0,0.05)",
+                            }
+                          }}
+                        >
+                          PIX
+                        </Button>
+                      </Stack>
+                    </Box>
+                  )}
+
+                  {checkoutMode === "payment" && paymentMethod === "pix" && !checkoutStartAt ? (
+                    pixData ? (
+                      <PixQrCode
+                        qrCode={pixData.pix_qr_code}
+                        qrCodeUrl={pixData.pix_qr_code_url}
+                        expiresAt={pixData.expires_at}
+                        onClose={() => setOpenCheckout(false)}
                       />
+                    ) : (
+                      <Box>
+                        <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                          Informe seu CPF ou CNPJ para gerar o QR Code PIX.
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                          <TextField
+                            fullWidth
+                            value={pixDocument}
+                            onChange={(e) => {
+                              setPixDocument(maskDocument(e.target.value));
+                            }}
+                            placeholder="000.000.000-00"
+                            size="small"
+                          />
+                          <Button
+                            variant="contained"
+                            disabled={pixDocument.replace(/\D/g, "").length < 11}
+                            onClick={() => handleGeneratePix()}
+                            sx={{ whiteSpace: "nowrap" }}
+                          >
+                            Gerar PIX
+                          </Button>
+                        </Box>
+                      </Box>
+                    )
+                  ) : checkoutMode === "payment" && paymentMethod === "card" && savedCards.length > 0 && !useNewCard ? (
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
+                        Selecione um cartão salvo para assinar:
+                      </Typography>
+                      <Stack spacing={1.5} sx={{ mb: 3 }}>
+                        {savedCards.map((card) => {
+                          const isSelected = selectedCardId === card.id;
+                          const brand = card.brand.toLowerCase();
+                          const brandLabel = brand === "visa" ? "VISA" : brand === "mastercard" ? "MASTER" : brand.toUpperCase();
+                          const brandColor = brand === "visa" ? "#1A1F71" : brand === "mastercard" ? "#A50808" : "#313485";
+                          const brandBg = brand === "visa" ? "#DDE1F5" : brand === "mastercard" ? "#FAD7D7" : "#E0E0F0";
+
+                          return (
+                            <Box
+                              key={card.id}
+                              onClick={() => setSelectedCardId(card.id)}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 2,
+                                p: 2,
+                                borderRadius: 3,
+                                border: isSelected
+                                  ? "2.5px solid #313485"
+                                  : "1px solid #C5C7D4",
+                                bgcolor: isSelected ? "#F0F0FA" : "#FAFAFA",
+                                cursor: "pointer",
+                                transition: "all 0.2s ease-in-out",
+                                "&:hover": {
+                                  borderColor: "#313485",
+                                  bgcolor: "#F5F5FC",
+                                },
+                              }}
+                            >
+                              {/* Custom Radio Button */}
+                              <Box
+                                sx={{
+                                  width: 20,
+                                  height: 20,
+                                  borderRadius: "50%",
+                                  border: isSelected ? "6px solid #313485" : "2px solid #C5C7D4",
+                                  bgcolor: "white",
+                                  flexShrink: 0,
+                                  transition: "all 0.1s ease-in-out",
+                                }}
+                              />
+
+                              {/* Brand badge */}
+                              <Box
+                                sx={{
+                                  minWidth: 54,
+                                  height: 34,
+                                  borderRadius: 1.5,
+                                  bgcolor: brandBg,
+                                  border: `1px solid ${brandColor}22`,
+                                  display: "flex",
+                                  alignItems: "center",
+                                  justifyContent: "center",
+                                  px: 1,
+                                  flexShrink: 0,
+                                }}
+                              >
+                                <Typography
+                                  sx={{
+                                    fontWeight: 900,
+                                    color: brandColor,
+                                    letterSpacing: 0.5,
+                                    fontSize: "0.62rem",
+                                    lineHeight: 1,
+                                  }}
+                                >
+                                  {brandLabel}
+                                </Typography>
+                              </Box>
+
+                              {/* Card details */}
+                              <Box sx={{ flex: 1, minWidth: 0 }}>
+                                <Stack direction="row" alignItems="center" spacing={1}>
+                                  <Typography
+                                    variant="body2"
+                                    fontWeight={700}
+                                    noWrap
+                                    sx={{ color: "#1A1A2E" }}
+                                  >
+                                    •••• •••• •••• {card.last4}
+                                  </Typography>
+                                  {card.is_default && (
+                                    <Chip
+                                      label="Padrão"
+                                      size="small"
+                                      sx={{
+                                        height: 18,
+                                        fontSize: "0.62rem",
+                                        fontWeight: 700,
+                                        bgcolor: "#313485",
+                                        color: "#fff",
+                                        "& .MuiChip-label": { px: 0.8 },
+                                      }}
+                                    />
+                                  )}
+                                </Stack>
+                                <Typography sx={{ fontSize: "0.72rem", color: "#555570", mt: 0.2 }}>
+                                  Expira {String(card.exp_month).padStart(2, "0")}/{card.exp_year}
+                                </Typography>
+                              </Box>
+                            </Box>
+                          );
+                        })}
+                      </Stack>
+
                       <Button
                         variant="contained"
-                        disabled={pixDocument.replace(/\D/g, "").length < 11}
-                        onClick={() => handleGeneratePix()}
-                        sx={{ whiteSpace: "nowrap" }}
+                        fullWidth
+                        onClick={handleCheckoutWithSavedCard}
+                        sx={{ py: 1.5, fontSize: "1rem", fontWeight: 700, borderRadius: 2, mb: 2 }}
                       >
-                        Gerar PIX
+                        Confirmar Assinatura
+                      </Button>
+
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                        onClick={() => setUseNewCard(true)}
+                        sx={{ py: 1, fontSize: "0.875rem", borderRadius: 2 }}
+                      >
+                        Usar outro cartão de crédito
                       </Button>
                     </Box>
-                  </Box>
-                )
-              ) : !checkoutLoading ? (
-                <CheckoutForm
-                  buttonLabel={checkoutMode === "setup" ? "Adicionar Cartão" : "Confirmar Assinatura"}
-                  defaultDocument={tenant?.document}
-                  onSuccess={async (cardToken, document, billingAddress) => {
-                    setCheckoutLoading(true);
-                    try {
-                      if (checkoutMode === "setup") {
-                        await addPaymentMethod(cardToken, billingAddress, document);
-                        toast.success("Cartão salvo com sucesso!");
-                        await fetchCards();
-                      } else {
-                        await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress, checkoutStartAt ?? undefined);
-                        setCheckoutStartAt(null);
-                        toast.success("Pagamento enviado! Aguardando confirmação...");
-                        await checkAuth();
-                        setAwaitingConfirmation(true);
-                        setPollCount(0);
-                      }
-                      setOpenCheckout(false);
-                    } catch {
-                      setCheckoutError("Erro ao processar pagamento. Tente novamente.");
-                    } finally {
-                      setCheckoutLoading(false);
-                    }
-                  }}
-                />
-              ) : null}
+                  ) : (
+                    <Box>
+                      <CheckoutForm
+                        buttonLabel={checkoutMode === "setup" ? "Adicionar Cartão" : "Confirmar Assinatura"}
+                        defaultDocument={tenant?.document}
+                        onSuccess={async (cardToken, document, billingAddress) => {
+                          setCheckoutLoading(true);
+                          try {
+                            if (checkoutMode === "setup") {
+                              await addPaymentMethod(cardToken, billingAddress, document);
+                              toast.success("Cartão salvo com sucesso!");
+                              await fetchCards();
+                            } else {
+                              await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress, checkoutStartAt ?? undefined);
+                              setCheckoutStartAt(null);
+                              toast.success("Pagamento enviado! Aguardando confirmação...");
+                              await checkAuth();
+                              setAwaitingConfirmation(true);
+                              setPollCount(0);
+                            }
+                            setOpenCheckout(false);
+                          } catch (err: any) {
+                            console.error(err);
+                            const detail = err.response?.data?.detail || "Erro ao processar pagamento. Tente novamente.";
+                            setCheckoutError(typeof detail === "string" ? detail : JSON.stringify(detail));
+                          } finally {
+                            setCheckoutLoading(false);
+                          }
+                        }}
+                      />
+                      {checkoutMode === "payment" && paymentMethod === "card" && savedCards.length > 0 && (
+                        <Button
+                          variant="text"
+                          fullWidth
+                          onClick={() => setUseNewCard(false)}
+                          sx={{ mt: 1.5, fontSize: "0.875rem", textTransform: "none" }}
+                        >
+                          Voltar para cartões salvos
+                        </Button>
+                      )}
+                    </Box>
+                  )}
+                </>
+              )}
             </Box>
           </Box>
         </Fade>
@@ -1914,6 +2414,77 @@ const SettingsPage = () => {
                 </Button>
               </Box>
             </Stack>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- DIALOG ALTERAR CARTÃO DE COBRANÇA FALHA --- */}
+      <Dialog
+        open={openUpdateCardDialog}
+        onClose={() => !updateCardLoading && setOpenUpdateCardDialog(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
+          <Typography variant="h5">Pagar com outro cartão</Typography>
+          <Box sx={{ cursor: "pointer" }}>
+            <X onClick={() => !updateCardLoading && setOpenUpdateCardDialog(false)} size={24} />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {updateCardLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+              <CircularProgress />
+            </Box>
+          ) : (
+            <CheckoutForm
+              buttonLabel="Pagar Fatura"
+              defaultDocument={tenant?.document}
+              onSuccess={async (cardToken, document, billingAddress) => {
+                if (!chargeToUpdateCard) return;
+                setUpdateCardLoading(true);
+                try {
+                  const res = await updateChargeCard(chargeToUpdateCard.id, cardToken, billingAddress, document);
+                  if (res.status === "paid" || res.status === "captured") {
+                    toast.success("Pagamento realizado com sucesso!");
+                    await checkAuth();
+                  } else {
+                    toast.warning(`Nova tentativa falhou. Status da fatura: ${res.status}`);
+                  }
+                  setOpenUpdateCardDialog(false);
+                  await fetchCharges();
+                } catch (err) {
+                  toast.error("Erro ao atualizar cartão e cobrar. Verifique os dados.");
+                } finally {
+                  setUpdateCardLoading(false);
+                }
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* --- DIALOG VER QR CODE PIX DA FATURA --- */}
+      <Dialog
+        open={openPixModal}
+        onClose={() => setOpenPixModal(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
+          <Typography variant="h6">QR Code PIX da Fatura</Typography>
+          <Box sx={{ cursor: "pointer" }}>
+            <X onClick={() => setOpenPixModal(false)} size={24} />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedPixCharge && (
+            <PixQrCode
+              qrCode={selectedPixCharge.pix_qr_code || ""}
+              qrCodeUrl={selectedPixCharge.pix_qr_code_url || ""}
+              expiresAt={selectedPixCharge.expires_at || ""}
+              onClose={() => setOpenPixModal(false)}
+            />
           )}
         </DialogContent>
       </Dialog>

@@ -116,7 +116,13 @@ const Drawer = styled(MuiDrawer, {
 export default function MainLayout() {
   const theme = useTheme();
   const [open, setOpen] = React.useState(true);
-  const { user, isSubscriptionActive, subscriptionStatus } = useAuth();
+  const {
+    user,
+    isSubscriptionActive,
+    subscriptionStatus,
+    isSubscriptionInGracePeriod,
+    gracePeriodDaysLeft,
+  } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -138,6 +144,14 @@ export default function MainLayout() {
   };
 
   const getSubscriptionAlert = (): { severity: "warning" | "error"; message: string; actionLabel?: string } | null => {
+    if (isSubscriptionInGracePeriod) {
+      return {
+        severity: "warning",
+        message: `Atenção: Houve um problema com o pagamento da sua mensalidade. Restam ${gracePeriodDaysLeft} dia(s) para regularizar antes do bloqueio do sistema.`,
+        actionLabel: "Regularizar Agora",
+      };
+    }
+
     if (isSubscriptionActive) return null;
     if (!subscriptionStatus) return null;
 

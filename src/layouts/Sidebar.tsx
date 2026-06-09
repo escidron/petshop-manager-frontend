@@ -138,11 +138,11 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
 
   const getTrialInfo = () => {
     const subscription = tenant?.subscription;
-    if (
-      !subscription ||
-      subscription.status !== "trialing" ||
-      !subscription.trial_ends_at
-    ) {
+    if (!subscription) {
+      return null;
+    }
+    const isTrial = subscription.plan?.code === "FREE_TRIAL" || subscription.status === "trialing";
+    if (!isTrial || !subscription.trial_ends_at) {
       return null;
     }
     const expiryDate = dayjs(subscription.trial_ends_at);

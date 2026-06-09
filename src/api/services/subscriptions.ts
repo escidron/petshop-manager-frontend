@@ -4,6 +4,7 @@ import type {
   FreeTrialResponse,
   PaymentMethod,
   SubscriptionResponse,
+  SubscriptionCharge,
 } from "../../features/billing/types";
 import type { BillingAddress } from "../../features/billing/CheckoutForm";
 
@@ -14,6 +15,7 @@ export const createCheckout = async (
   document?: string,
   billingAddress?: BillingAddress,
   startAt?: string,
+  cardId?: string,
 ) => {
   const response = await apiClient.post<CheckoutResponse | FreeTrialResponse>(
     "/api/v1/subscriptions/checkout",
@@ -21,6 +23,7 @@ export const createCheckout = async (
       plan_code: planCode,
       payment_method: paymentMethod,
       ...(cardToken ? { card_token: cardToken } : {}),
+      ...(cardId ? { card_id: cardId } : {}),
       ...(document ? { document } : {}),
       ...(billingAddress ? { billing_address: billingAddress } : {}),
       ...(startAt ? { start_at: startAt } : {}),
@@ -73,3 +76,49 @@ export const removePaymentMethod = async (pmId: string) => {
 export const setDefaultPaymentMethod = async (pmId: string) => {
   await apiClient.post(`/api/v1/subscriptions/payment-methods/${pmId}/default`);
 };
+
+export const listCharges = async () => {
+  const response = await apiClient.get<SubscriptionCharge[]>(
+    "/api/v1/subscriptions/charges"
+  );
+  return response.data;
+};
+
+export const updateChargeCard = async (
+  chargeId: string,
+  cardToken: string,
+  billingAddress?: BillingAddress,
+  document?: string
+) => {
+  const response = await apiClient.patch<{ status: string }>(
+    `/api/v1/subscriptions/charges/${chargeId}/card`,
+    {
+      card_token: cardToken,
+      ...(billingAddress ? { billing_address: billingAddress } : {}),
+      ...(document ? { document } : {}),
+    }
+  );
+  return response.data;
+};
+
+export const retryCharge = async (chargeId: string) => {
+  const response = await apiClient.post<{ status: string }>(
+    `/api/v1/subscriptions/charges/${chargeId}/retry`
+  );
+  return response.data;
+};
+
+export const captureCharge = async (chargeId: string) => {
+  const response = await apiClient.post<{ status: string }>(
+    `/api/v1/subscriptions/charges/${chargeId}/capture`
+  );
+  return response.data;
+};
+
+export const cancelCharge = async (chargeId: string) => {
+  const response = await apiClient.post<{ status: string }>(
+    `/api/v1/subscriptions/charges/${chargeId}/cancel`
+  );
+  return response.data;
+};
+

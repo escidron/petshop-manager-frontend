@@ -62,3 +62,15 @@ export interface PaymentMethod {
   exp_year: number;
   is_default: boolean;
 }
+
+export interface SubscriptionCharge {
+  id: string;
+  amount: number;
+  status: string;
+  payment_method: string;
+  pix_qr_code: string | null;
+  pix_qr_code_url: string | null;
+  expires_at: string | null;
+  created_at: string;
+}
+
