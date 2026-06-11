@@ -28,6 +28,8 @@ import { useAuth } from "../hooks/useAuth";
 import UserMenu from "../features/users/UserMenu";
 import { AlertTriangle, Zap } from "lucide-react";
 import { Button } from "../components/Button/Button";
+import EmailVerificationBanner from "../components/EmailVerificationBanner";
+
 
 const drawerWidth = 240;
 
@@ -332,6 +334,7 @@ export default function MainLayout() {
         overflow: "hidden" 
       }}>
         <DrawerHeader />
+        <EmailVerificationBanner />
         {subscriptionAlert && (
           <Box
             sx={{

@@ -13,6 +13,7 @@ export type AuthUser = {
   tenant_id: string;
   name: string;
   email: string;
+  email_verified: boolean;
 };
 
 export const createUser = async (
@@ -101,3 +102,21 @@ export const resetPassword = async (payload: {
 }) => {
   await apiClient.post("/api/v1/auth/reset-password", payload);
 };
+
+export const verifyEmail = async (otp_code: string): Promise<void> => {
+  await apiClient.post("/api/v1/auth/verify-email", { otp_code });
+};
+
+export const resendVerificationEmail = async (): Promise<void> => {
+  await apiClient.post("/api/v1/auth/resend-verification");
+};
+
+export const updateProfile = async (payload: {
+  name?: string;
+  email?: string;
+  phone?: string;
+}): Promise<AuthUser> => {
+  const response = await apiClient.patch<AuthUser>("/api/v1/users/me", payload);
+  return response.data;
+};
+
