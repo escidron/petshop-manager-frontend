@@ -68,6 +68,8 @@ export interface SubscriptionCharge {
   amount: number;
   status: string;
   payment_method: string;
+  card_brand?: string;
+  card_last_four?: string;
   pix_qr_code: string | null;
   pix_qr_code_url: string | null;
   expires_at: string | null;

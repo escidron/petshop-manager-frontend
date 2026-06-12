@@ -19,7 +19,7 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAppointmentsByDay, getAppointmentsByTenant } from "../api/services/appointments";
+import { getAppointmentsByDay, getAppointmentsByTenant, getHighlightedDays } from "../api/services/appointments";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";
@@ -74,23 +74,20 @@ const Dashboard = () => {
     placeholderData: keepPreviousData,
   });
 
-  const { data: monthlyAppointments = [] } = useQuery({
-    queryKey: ["appointments", "month", calendarMonth.format("YYYY-MM")],
+  const { data: monthlyHighlights = [] } = useQuery({
+    queryKey: ["appointments", "highlights", calendarMonth.format("YYYY-MM")],
     queryFn: () =>
-      getAppointmentsByTenant(
-        calendarMonth.startOf("month").format("YYYY-MM-DD"),
-        calendarMonth.endOf("month").format("YYYY-MM-DD")
+      getHighlightedDays(
+        calendarMonth.subtract(1, "month").startOf("month").format("YYYY-MM-DD"),
+        calendarMonth.add(1, "month").endOf("month").format("YYYY-MM-DD")
       ),
     placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 5, // Keep cached data fresh for 5 minutes
   });
 
   const highlightedDays = useMemo(() => {
-    const days = new Set<string>();
-    monthlyAppointments.forEach((apt) => {
-      days.add(dayjs(apt.scheduled_at).format("YYYY-MM-DD"));
-    });
-    return days;
-  }, [monthlyAppointments]);
+    return new Set<string>(monthlyHighlights);
+  }, [monthlyHighlights]);
 
   const isFlowOpen = (
     flow: AppointmentFlowState,

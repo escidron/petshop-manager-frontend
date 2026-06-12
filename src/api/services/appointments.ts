@@ -92,4 +92,18 @@ export const listAppointmentsByClient = async (
     `/api/v1/appointments/client/${clientId}`
   );
   return response.data;
-};
+};
+
+export const getHighlightedDays = async (
+  startDate?: string,
+  endDate?: string,
+): Promise<string[]> => {
+  const response = await apiClient.get<string[]>("/api/v1/appointments/highlighted-days", {
+    params: {
+      ...(startDate && { start_date: startDate }),
+      ...(endDate && { end_date: endDate }),
+    },
+  });
+  return response.data;
+};
+

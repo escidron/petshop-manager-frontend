@@ -332,7 +332,14 @@ const SettingsPage = () => {
         toast.success("Cobrança paga com sucesso!");
         await checkAuth();
       } else {
-        toast.warning(`Cobrança não autorizada. Status: ${res.status}`);
+        const statusTranslations: Record<string, string> = {
+          failed: "Falhou",
+          unpaid: "Não paga",
+          pending: "Pendente",
+          not_authorized: "Não autorizada",
+        };
+        const translatedStatus = statusTranslations[res.status] || res.status;
+        toast.warning(`Cobrança não autorizada. Status: ${translatedStatus}`);
       }
       await fetchCharges();
     } catch (err) {
@@ -348,7 +355,14 @@ const SettingsPage = () => {
         toast.success("Cobrança capturada com sucesso!");
         await checkAuth();
       } else {
-        toast.warning(`Status após captura: ${res.status}`);
+        const statusTranslations: Record<string, string> = {
+          failed: "Falhou",
+          unpaid: "Não paga",
+          pending: "Pendente",
+          not_authorized: "Não autorizada",
+        };
+        const translatedStatus = statusTranslations[res.status] || res.status;
+        toast.warning(`Status após captura: ${translatedStatus}`);
       }
       await fetchCharges();
     } catch (err) {
@@ -1247,7 +1261,6 @@ const SettingsPage = () => {
                 Histórico de Faturas
               </Typography>
               <Divider />
-              
               {loadingCharges ? (
                 <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
                   <CircularProgress />
@@ -1267,125 +1280,56 @@ const SettingsPage = () => {
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "space-between",
-                        p: 2.5,
+                        p: 2,
                         borderRadius: 3,
                         border: "1px solid #E0E0E0",
                         bgcolor: "rgba(0,0,0,0.01)",
                         flexWrap: "wrap",
                         gap: 2,
+                        width: "100%",
                       }}
                     >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 3, flexWrap: "wrap" }}>
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
+                      <Grid container spacing={2} alignItems="center" sx={{ flex: 1, minWidth: "280px" }}>
+                        <Grid size={{ xs: 6, sm: 2.5 }}>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">
                             Data
                           </Typography>
-                          <Typography variant="body2" fontWeight={700}>
+                          <Typography variant="body2" fontWeight={600} mt={0.5}>
                             {dayjs(charge.created_at).format("DD/MM/YYYY")}
                           </Typography>
-                        </Box>
-                        
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            ID da Cobrança
-                          </Typography>
-                          <Typography variant="body2" sx={{ fontFamily: "monospace", opacity: 0.8 }}>
-                            {charge.id}
-                          </Typography>
-                        </Box>
+                        </Grid>
 
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
-                            Método
+                        <Grid size={{ xs: 12, sm: 4.5 }}>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">
+                            Método de Pagamento
                           </Typography>
-                          <Typography variant="body2" sx={{ textTransform: "uppercase", fontWeight: 600 }}>
-                            {charge.payment_method === "card" ? "Cartão de Crédito" : "PIX"}
+                          <Typography variant="body2" sx={{ textTransform: "uppercase", fontWeight: 600 }} mt={0.5}>
+                            {charge.payment_method === "card"
+                              ? `Cartão de Crédito ${
+                                  charge.card_brand
+                                    ? `(${charge.card_brand.toUpperCase()} •••• ${charge.card_last_four})`
+                                    : ""
+                                }`
+                              : "PIX"}
                           </Typography>
-                        </Box>
+                        </Grid>
 
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block">
+                        <Grid size={{ xs: 6, sm: 2.5 }}>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">
                             Valor
                           </Typography>
-                          <Typography variant="body2" fontWeight={800}>
+                          <Typography variant="body2" fontWeight={800} color="primary.main" mt={0.5}>
                             {(charge.amount / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </Typography>
-                        </Box>
+                        </Grid>
 
-                        <Box>
-                          <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 0.5 }}>
+                        <Grid size={{ xs: 6, sm: 2.5 }}>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
                             Status
                           </Typography>
                           {getChargeStatusChip(charge.status)}
-                        </Box>
-                      </Box>
-
-                      <Stack direction="row" spacing={1} sx={{ flexWrap: "wrap", gap: 1 }}>
-                        {/* PIX Pending QR Code */}
-                        {charge.payment_method === "pix" && charge.status === "pending" && (
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<QrCode size={14} />}
-                            onClick={() => {
-                              setSelectedPixCharge(charge);
-                              setOpenPixModal(true);
-                            }}
-                            sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
-                          >
-                            Ver QR Code
-                          </Button>
-                        )}
-
-                        {/* Card payment failure / not authorized update */}
-                        {charge.payment_method === "card" && (charge.status === "not_authorized" || charge.status === "failed") && (
-                          <>
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={() => {
-                                setChargeToUpdateCard(charge);
-                                setOpenUpdateCardDialog(true);
-                              }}
-                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
-                            >
-                              Pagar com outro cartão
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              onClick={() => handleRetryCharge(charge.id)}
-                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
-                            >
-                              Retentar
-                            </Button>
-                          </>
-                        )}
-
-                        {/* Pre-authorized captures/cancels */}
-                        {charge.status === "authorized_pending_capture" && (
-                          <>
-                            <Button
-                              variant="contained"
-                              color="success"
-                              size="small"
-                              onClick={() => handleCaptureCharge(charge.id)}
-                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
-                            >
-                              Capturar
-                            </Button>
-                            <Button
-                              variant="outlined"
-                              color="error"
-                              size="small"
-                              onClick={() => handleCancelCharge(charge.id)}
-                              sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem", borderRadius: 2 }}
-                            >
-                              Cancelar
-                            </Button>
-                          </>
-                        )}
-                      </Stack>
+                        </Grid>
+                      </Grid>
                     </Box>
                   ))}
                 </Stack>
