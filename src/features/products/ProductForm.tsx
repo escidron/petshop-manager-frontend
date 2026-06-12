@@ -1,7 +1,6 @@
 import {
   Autocomplete,
   Box,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -494,8 +493,7 @@ const ProductForm = ({
         <Divider />
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
           <Button
-            disabled={isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            loading={isSubmitting}
             onClick={handleSubmit(onSubmitHandler)}
           >
             Salvar

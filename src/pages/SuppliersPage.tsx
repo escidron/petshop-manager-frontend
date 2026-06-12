@@ -11,8 +11,8 @@ import {
   TextField,
   InputAdornment,
   Typography,
-  CircularProgress,
   LinearProgress,
+  Skeleton,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
@@ -247,11 +247,16 @@ export default function SuppliersPage() {
               </TableRow>
             )}
             {loading && filteredRows.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell align="right"><Skeleton variant="rectangular" width={60} height={24} sx={{ display: "inline-block" }} /></TableCell>
+                </TableRow>
+              ))
             )}
           </TableBody>
         </Table>

@@ -2,7 +2,6 @@ import {
   Autocomplete,
   Box,
   Checkbox,
-  CircularProgress,
   Divider,
   FormControl,
   FormControlLabel,
@@ -647,8 +646,7 @@ const PetForm = ({
         <Divider />
         <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
           <Button
-            disabled={isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            loading={isSubmitting}
             onClick={handleSubmit((data: PetFormData) => onSubmit(data))}
             data-action="save"
           >

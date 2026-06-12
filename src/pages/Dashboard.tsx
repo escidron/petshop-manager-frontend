@@ -19,7 +19,7 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAppointmentsByDay, getAppointmentsByTenant, getHighlightedDays } from "../api/services/appointments";
+import { getAppointmentsByDay, getHighlightedDays } from "../api/services/appointments";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";

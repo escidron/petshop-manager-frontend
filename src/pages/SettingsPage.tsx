@@ -70,9 +70,6 @@ import {
   cancelSubscription,
   listCharges,
   updateChargeCard,
-  retryCharge,
-  captureCharge,
-  cancelCharge,
 } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
 import PaymentMethodCard from "../features/billing/PaymentMethodCard";
@@ -148,10 +145,10 @@ const SettingsPage = () => {
 
   const [charges, setCharges] = useState<SubscriptionCharge[]>([]);
   const [loadingCharges, setLoadingCharges] = useState(false);
-  const [chargeToUpdateCard, setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
+  const [chargeToUpdateCard, _setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
   const [openUpdateCardDialog, setOpenUpdateCardDialog] = useState(false);
   const [updateCardLoading, setUpdateCardLoading] = useState(false);
-  const [selectedPixCharge, setSelectedPixCharge] = useState<SubscriptionCharge | null>(null);
+  const [selectedPixCharge, _setSelectedPixCharge] = useState<SubscriptionCharge | null>(null);
   const [openPixModal, setOpenPixModal] = useState(false);
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
@@ -324,63 +321,7 @@ const SettingsPage = () => {
     }
   }, []);
 
-  const handleRetryCharge = async (chargeId: string) => {
-    toast.info("Retentando cobrança...");
-    try {
-      const res = await retryCharge(chargeId);
-      if (res.status === "paid" || res.status === "captured") {
-        toast.success("Cobrança paga com sucesso!");
-        await checkAuth();
-      } else {
-        const statusTranslations: Record<string, string> = {
-          failed: "Falhou",
-          unpaid: "Não paga",
-          pending: "Pendente",
-          not_authorized: "Não autorizada",
-        };
-        const translatedStatus = statusTranslations[res.status] || res.status;
-        toast.warning(`Cobrança não autorizada. Status: ${translatedStatus}`);
-      }
-      await fetchCharges();
-    } catch (err) {
-      toast.error("Erro ao retentar cobrança.");
-    }
-  };
-
-  const handleCaptureCharge = async (chargeId: string) => {
-    toast.info("Capturando cobrança...");
-    try {
-      const res = await captureCharge(chargeId);
-      if (res.status === "paid" || res.status === "captured") {
-        toast.success("Cobrança capturada com sucesso!");
-        await checkAuth();
-      } else {
-        const statusTranslations: Record<string, string> = {
-          failed: "Falhou",
-          unpaid: "Não paga",
-          pending: "Pendente",
-          not_authorized: "Não autorizada",
-        };
-        const translatedStatus = statusTranslations[res.status] || res.status;
-        toast.warning(`Status após captura: ${translatedStatus}`);
-      }
-      await fetchCharges();
-    } catch (err) {
-      toast.error("Erro ao capturar cobrança.");
-    }
-  };
-
-  const handleCancelCharge = async (chargeId: string) => {
-    toast.info("Cancelando cobrança...");
-    try {
-      await cancelCharge(chargeId);
-      toast.success("Cobrança cancelada com sucesso.");
-      await fetchCharges();
-      await checkAuth();
-    } catch (err) {
-      toast.error("Erro ao cancelar cobrança.");
-    }
-  };
+  
 
   const handleSetDefault = async (pmId: string) => {
     await setDefaultPaymentMethod(pmId);

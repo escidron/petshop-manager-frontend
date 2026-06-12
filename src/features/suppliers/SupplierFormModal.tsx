@@ -240,7 +240,7 @@ export default function SupplierFormModal({
           </Box>
           <Divider sx={{ mt: 1 }} />
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-            <Button disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+            <Button loading={isSubmitting} onClick={handleSubmit(onSubmit)}>
               Salvar
             </Button>
           </Box>

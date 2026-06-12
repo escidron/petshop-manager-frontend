@@ -200,7 +200,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
             <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+            <Button loading={isSubmitting} onClick={handleSubmit(onSubmit)}>
               Salvar
             </Button>
           </Box>

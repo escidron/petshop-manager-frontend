@@ -11,8 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import CircularProgress from "@mui/material/CircularProgress";
-import { Chip, Typography } from "@mui/material";
+import { Chip, Typography, Skeleton } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -131,11 +130,6 @@ export default function ClientsTable({
       component={Paper}
       sx={{ borderRadius: 2, overflow: "hidden" }}
     >
-      {loading ? (
-        <Box display="flex" justifyContent="center" p={2}>
-          <CircularProgress />
-        </Box>
-      ) : (
         <Table sx={{ minWidth: 500 }} aria-label="clients table">
           <TableHead>
             <TableRow>
@@ -190,10 +184,20 @@ export default function ClientsTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {(rowsPerPage > 0
-              ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              : rows
-            ).map((row) => (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell align="right"><Skeleton variant="rectangular" width={60} height={20} sx={{ borderRadius: 1, display: "inline-block" }} /></TableCell>
+                  <TableCell align="right"><Skeleton variant="rectangular" width={60} height={24} sx={{ display: "inline-block" }} /></TableCell>
+                </TableRow>
+              ))
+            ) : (
+              (rowsPerPage > 0
+                ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                : rows
+              ).map((row) => (
               <TableRow
                 key={row.id}
                 onClick={() => onRowClick?.(row.id)}
@@ -257,13 +261,13 @@ export default function ClientsTable({
                   </Box>
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
                 <TableCell colSpan={4} />
               </TableRow>
             )}
-            {rows.length === 0 && (
+            {!loading && rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
                   <Typography color="text.disabled" variant="body1">
@@ -294,7 +298,6 @@ export default function ClientsTable({
             </TableRow>
           </TableFooter>
         </Table>
-      )}
     </TableContainer>
   );
 }

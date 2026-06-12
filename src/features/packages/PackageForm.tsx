@@ -747,7 +747,7 @@ export default function PackageForm({
           <Button
             type="submit"
             variant="contained"
-            disabled={mutation.isPending}
+            loading={mutation.isPending}
             sx={{ px: 4 }}
           >
             {editingPackage ? "Atualizar" : "Salvar"}

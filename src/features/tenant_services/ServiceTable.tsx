@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import { CircularProgress, Typography } from "@mui/material";
+import { Typography, Skeleton } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -131,11 +131,6 @@ export default function ServiceTable({
       component={Paper}
       sx={{ borderRadius: 2, overflow: "hidden" }}
     >
-      {loading ? (
-        <Box display="flex" justifyContent="center" p={2}>
-          <CircularProgress />
-        </Box>
-      ) : (
         <Table sx={{ minWidth: 500 }} aria-label="services table">
           <TableHead>
             <TableRow>
@@ -219,10 +214,22 @@ export default function ServiceTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {(rowsPerPage > 0
-              ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              : rows
-            ).map((row) => (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell align="right"><Skeleton variant="rectangular" width={60} height={24} sx={{ display: "inline-block" }} /></TableCell>
+                </TableRow>
+              ))
+            ) : (
+              (rowsPerPage > 0
+                ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                : rows
+              ).map((row) => (
               <TableRow
                 key={row.id}
                 sx={{
@@ -282,13 +289,13 @@ export default function ServiceTable({
                   </Box>
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
                 <TableCell colSpan={6} />
               </TableRow>
             )}
-            {rows.length === 0 && (
+            {!loading && rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
                   <Typography color="text.disabled" variant="body1">
@@ -319,7 +326,7 @@ export default function ServiceTable({
             </TableRow>
           </TableFooter>
         </Table>
-      )}
+
     </TableContainer>
   );
 }

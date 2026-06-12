@@ -1,7 +1,6 @@
 import {
   Autocomplete,
   Box,
-  CircularProgress,
   Divider,
   FormControl,
   FormLabel,
@@ -445,12 +444,7 @@ export default function AppointmentForm({
       <Divider />
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
-          disabled={isSubmitting}
-          startIcon={
-            isSubmitting ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : undefined
-          }
+          loading={isSubmitting}
           onClick={handleSubmit((data: AppointmentFormData) => onSubmit(data))}
         >
           {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}

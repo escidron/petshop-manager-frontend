@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import CircularProgress from "@mui/material/CircularProgress";
+import { Typography, Skeleton } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -22,7 +22,6 @@ import {
 } from "lucide-react";
 import type { Package } from "./types";
 import { formatBRLFromCents } from "../../utils/masks";
-import { Typography } from "@mui/material";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -130,11 +129,6 @@ export default function PackageTable({
       component={Paper}
       sx={{ borderRadius: 2, overflow: "hidden" }}
     >
-      {loading ? (
-        <Box display="flex" justifyContent="center" p={4}>
-          <CircularProgress />
-        </Box>
-      ) : (
         <Table sx={{ minWidth: 500 }} aria-label="packages table">
           <TableHead>
             <TableRow>
@@ -205,10 +199,21 @@ export default function PackageTable({
             </TableRow>
           </TableHead>
           <TableBody>
-            {(rowsPerPage > 0
-              ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              : rows
-            ).map((row) => (
+            {loading ? (
+              Array.from({ length: 5 }).map((_, i) => (
+                <TableRow key={`skeleton-${i}`}>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell align="right"><Skeleton variant="rectangular" width={60} height={24} sx={{ display: "inline-block" }} /></TableCell>
+                </TableRow>
+              ))
+            ) : (
+              (rowsPerPage > 0
+                ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                : rows
+              ).map((row) => (
               <TableRow
                 key={row.id}
                 sx={{
@@ -268,13 +273,13 @@ export default function PackageTable({
                   </Box>
                 </TableCell>
               </TableRow>
-            ))}
+            )))}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
                 <TableCell colSpan={5} />
               </TableRow>
             )}
-            {rows.length === 0 && (
+            {!loading && rows.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
                   <Typography color="text.disabled" variant="body1">
@@ -300,7 +305,7 @@ export default function PackageTable({
             </TableRow>
           </TableFooter>
         </Table>
-      )}
+
     </TableContainer>
   );
 }
