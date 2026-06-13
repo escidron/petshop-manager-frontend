@@ -14,19 +14,19 @@ export const petSchema = z
       .string()
       .min(1, "Nome é obrigatório")
       .min(2, "Nome deve ter no mínimo 2 caracteres")
-      .max(100, "Nome pode ter no máximo 100 caracteres"),
+      .max(50, "Nome pode ter no máximo 50 caracteres"),
     client_id: z.number().min(1, "Cliente é obrigatório"),
     species: z
       .string()
       .min(1, "Espécie é obrigatória")
-      .max(50, "Espécie pode ter no máximo 50 caracteres"),
+      .max(30, "Espécie pode ter no máximo 30 caracteres"),
 
     is_active: z.boolean(),
 
     /* =========================
      * Básicos
      * ========================= */
-    breed: z.string().max(100).optional(),
+    breed: z.string().max(50, "Raça pode ter no máximo 50 caracteres").optional(),
 
     gender: z
       .enum(["male", "female", "other"])

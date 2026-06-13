@@ -174,6 +174,7 @@ export default function ClientForm({
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     placeholder="ex: Pedro da Silva"
+                    inputProps={{ maxLength: 80 }}
                   />
                 )}
               />
@@ -220,7 +221,7 @@ export default function ClientForm({
                     name="phone_secondary_name"
                     control={control}
                     render={({ field }) => (
-                      <CustomTextField {...field} placeholder="Nome/Tipo" sx={{ flex: 1 }} />
+                      <CustomTextField {...field} placeholder="Nome/Tipo" sx={{ flex: 1 }} inputProps={{ maxLength: 30 }} />
                     )}
                   />
                 </Box>
@@ -241,7 +242,7 @@ export default function ClientForm({
                     name="phone_tertiary_name"
                     control={control}
                     render={({ field }) => (
-                      <CustomTextField {...field} placeholder="Nome/Tipo" sx={{ flex: 1 }} />
+                      <CustomTextField {...field} placeholder="Nome/Tipo" sx={{ flex: 1 }} inputProps={{ maxLength: 30 }} />
                     )}
                   />
                 </Box>
@@ -287,6 +288,7 @@ export default function ClientForm({
                     <CustomTextField
                       {...field}
                       placeholder="email@exemplo.com"
+                      inputProps={{ maxLength: 80 }}
                     />
                   )}
                 />
@@ -377,6 +379,7 @@ export default function ClientForm({
                       <CustomTextField
                         {...field}
                         placeholder="Instagram"
+                        inputProps={{ maxLength: 50 }}
                         slotProps={{
                           input: {
                             startAdornment: (
@@ -400,6 +403,7 @@ export default function ClientForm({
                       <CustomTextField
                         {...field}
                         placeholder="Facebook"
+                        inputProps={{ maxLength: 50 }}
                         slotProps={{
                           input: {
                             startAdornment: (
@@ -481,7 +485,7 @@ export default function ClientForm({
                       <Controller
                         name="street"
                         control={control}
-                        render={({ field }) => <CustomTextField {...field} />}
+                        render={({ field }) => <CustomTextField {...field} inputProps={{ maxLength: 100 }} />}
                       />
                     )}
                   </FormControl>
@@ -500,6 +504,7 @@ export default function ClientForm({
                         <CustomTextField
                           {...field}
                           placeholder="Ex: 123"
+                          inputProps={{ maxLength: 10 }}
                           onChange={(e) =>
                             field.onChange(maskOnlyNumbers(e.target.value))
                           }
@@ -515,7 +520,7 @@ export default function ClientForm({
                     <Controller
                       name="complement"
                       control={control}
-                      render={({ field }) => <CustomTextField {...field} />}
+                      render={({ field }) => <CustomTextField {...field} inputProps={{ maxLength: 50 }} />}
                     />
                   </FormControl>
                 </Box>
@@ -537,7 +542,7 @@ export default function ClientForm({
                         name="neighborhood"
                         control={control}
                         render={({ field }) => (
-                          <CustomTextField {...field} placeholder="" />
+                          <CustomTextField {...field} placeholder="" inputProps={{ maxLength: 50 }} />
                         )}
                       />
                     )}
@@ -553,7 +558,7 @@ export default function ClientForm({
                         name="city"
                         control={control}
                         render={({ field }) => (
-                          <CustomTextField {...field} placeholder="" />
+                          <CustomTextField {...field} placeholder="" inputProps={{ maxLength: 50 }} />
                         )}
                       />
                     )}

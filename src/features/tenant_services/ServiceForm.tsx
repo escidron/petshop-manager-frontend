@@ -91,6 +91,7 @@ const ServiceForm = ({
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     placeholder="ex: Banho e tosa"
+                    inputProps={{ maxLength: 80 }}
                   />
                 )}
               />
@@ -368,6 +369,7 @@ const ServiceForm = ({
                       multiline
                       rows={4}
                       placeholder="Descrição do serviço ou informações Adicionais."
+                      inputProps={{ maxLength: 255 }}
                     />
                   )}
                 />

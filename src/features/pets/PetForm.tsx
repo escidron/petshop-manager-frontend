@@ -172,6 +172,7 @@ const PetForm = ({
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     placeholder="ex: Thor"
+                    inputProps={{ maxLength: 50 }}
                   />
                 )}
               />
@@ -604,6 +605,7 @@ const PetForm = ({
                       multiline
                       rows={4}
                       placeholder="ex: Adicionais, comportamento, alergias, etc."
+                      inputProps={{ maxLength: 1000 }}
                     />
                   )}
                 />

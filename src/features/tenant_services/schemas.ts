@@ -18,7 +18,7 @@ export const serviceSchema = z
       .string()
       .min(1, "Nome é obrigatório")
       .min(2, "Nome deve ter no mínimo 2 caracteres")
-      .max(120, "Nome pode ter no máximo 120 caracteres"),
+      .max(80, "Nome pode ter no máximo 80 caracteres"),
     is_active: z.boolean(),
     price_cents: z
       .number()
@@ -29,10 +29,10 @@ export const serviceSchema = z
         message: "Preço é obrigatório",
       }),
 
-    description: z.string().max(255).optional(),
+    description: z.string().max(255, "Descrição pode ter no máximo 255 caracteres").optional(),
     species: z.enum(petSpeciesValues).optional(),
     size: z.enum(petSizeValues).optional(),
-    coat_type: z.string().max(50).optional(),
+    coat_type: z.string().max(30, "Tipo de pelagem pode ter no máximo 30 caracteres").optional(),
     duration_minutes: z
       .number()
       .int("Duração deve ser um número inteiro")
