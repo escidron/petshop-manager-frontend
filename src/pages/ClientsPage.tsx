@@ -14,10 +14,12 @@ import { usePets } from "../hooks/usePets";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
+import ImportClientsModal from "../features/clients/ImportClientsModal";
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { getPets } = usePets();
   const [clientModal, setClientModal] = useState<{
@@ -87,6 +89,7 @@ export default function ClientsPage() {
         search={search}
         onSearchChange={setSearch}
         onCreate={() => setClientModal({ open: true, mode: "create" })}
+        onImport={() => setImportOpen(true)}
       />
 
       <ClientsTable
@@ -146,6 +149,15 @@ export default function ClientsPage() {
           onConfirm={handleConfirmDelete}
         />
       )}
+
+      <ImportClientsModal
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={async () => {
+          await getClients();
+          queryClient.invalidateQueries({ queryKey: ["clients"] });
+        }}
+      />
     </Box>
   );
 }

@@ -12,6 +12,7 @@ import {
 import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip } from "@mui/material";
 import type { Client } from "./types";
 import { maskPhone, maskCpf, maskCnpj, maskBirthDate, maskCep } from "../../utils/masks";
+import { isoToBrDate } from "../../utils/formatDates";
 
 type Props = {
   client: Client;
@@ -227,7 +228,7 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
           <InfoItem 
             icon={Calendar} 
             label="Nascimento" 
-            value={client.birth_date ? maskBirthDate(client.birth_date) : null} 
+            value={client.birth_date ? isoToBrDate(client.birth_date) : null} 
           />
           
           

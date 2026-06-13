@@ -39,3 +39,28 @@ export const updateClient = async (
 export const deleteClient = async (clientId: number) => {
   await apiClient.delete(`/api/v1/clients/${clientId}`);
 };
+
+export const importClients = async (file: File): Promise<{ imported: number; errors: string[] }> => {
+  const formData = new FormData();
+  formData.append("file", file);
+  const response = await apiClient.post("/api/v1/clients/import", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+  return response.data;
+};
+
+export const downloadImportTemplate = async () => {
+  const response = await apiClient.get("/api/v1/clients/import/template", {
+    responseType: "blob",
+  });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "template_clientes_pets.xlsx");
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+};
+
