@@ -7,6 +7,7 @@ export type Employee = {
   role: EmployeeRole;
   phone?: string | null;
   email?: string | null;
+  schedule_token?: string | null;
   is_active: boolean;
   created_at: string;
 };

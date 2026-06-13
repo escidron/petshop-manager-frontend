@@ -610,8 +610,7 @@ const AppointmentDetailsModal = ({
                         </Box>
 
                         {/* Employee Select */}
-                        {appointment.status !== "pending" &&
-                          appointment.status !== "canceled" &&
+                        {appointment.status !== "canceled" &&
                           appointment.status !== "no_show" && (
                             <Box
                               sx={{

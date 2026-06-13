@@ -16,7 +16,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Calendar } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
 import EmployeeFormModal from "../features/employees/EmployeeFormModal";
 import EmployeeDeleteModal from "../features/employees/EmployeeDeleteModal";
@@ -43,6 +43,16 @@ export default function EmployeesPage() {
   const [employeeToEdit, setEmployeeToEdit] = useState<Employee | undefined>(undefined);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | undefined>(undefined);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleCopyLink = (employee: Employee) => {
+    if (!employee.schedule_token) {
+      toast.error("Funcionário sem token de agenda.");
+      return;
+    }
+    const url = `${window.location.origin}/shared-schedule/${employee.schedule_token}`;
+    navigator.clipboard.writeText(url);
+    toast.success(`Link da agenda de ${employee.name} copiado!`);
+  };
 
   useEffect(() => {
     getEmployees();
@@ -176,6 +186,11 @@ export default function EmployeesPage() {
                   />
                 </TableCell>
                 <TableCell align="right">
+                  {row.is_active && (
+                    <IconButton size="small" onClick={() => handleCopyLink(row)} color="info" title="Copiar link da agenda">
+                      <Calendar size={16} />
+                    </IconButton>
+                  )}
                   <IconButton size="small" onClick={() => handleEdit(row)} color="primary">
                     <Edit2 size={16} />
                   </IconButton>

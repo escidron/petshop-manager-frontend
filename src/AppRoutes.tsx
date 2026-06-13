@@ -26,6 +26,7 @@ import PrivacyPolicy from "./pages/PrivacyPolicy";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SelectTenantPage from "./pages/SelectTenantPage";
+import SharedSchedulePage from "./pages/SharedSchedulePage";
 
 type Props = {
   children: JSX.Element;
@@ -114,6 +115,7 @@ export default function AppRoutes() {
         <Route path="/reports/inventory" element={<Navigate to="/reports?category=estoque" replace />} />
         <Route path="/settings" element={<OwnerRoute><SettingsPage /></OwnerRoute>} />
       </Route>
+      <Route path="/shared-schedule/:token" element={<SharedSchedulePage />} />
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
