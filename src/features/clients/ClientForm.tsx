@@ -35,7 +35,7 @@ import { BRAZIL_STATES } from "../../utils/countryStatesList";
 import { getAddressByCep } from "../../api/services/address";
 
 type Props = {
-  open: boolean;
+  open?: boolean;
   mode: "create" | "edit";
   defaultValues?: Partial<ClientFormData>;
   showAdditionalInfo: boolean;
@@ -115,7 +115,7 @@ export default function ClientForm({
   };
 
   useEffect(() => {
-    if (!open || !defaultValues) return;
+    if (open === false || !defaultValues) return;
 
     reset({
       is_active: true,

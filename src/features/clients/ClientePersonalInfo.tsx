@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip } from "@mui/material";
 import type { Client } from "./types";
-import { maskPhone, maskCpf, maskCnpj, maskBirthDate, maskCep } from "../../utils/masks";
+import { maskPhone, maskCpf, maskCnpj, maskCep } from "../../utils/masks";
 import { isoToBrDate } from "../../utils/formatDates";
 
 type Props = {

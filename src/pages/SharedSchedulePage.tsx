@@ -10,17 +10,13 @@ import {
   Divider,
   IconButton,
   Typography,
-  useTheme,
 } from "@mui/material";
 import {
   Calendar,
   Clock,
-  Dog,
   MessageSquare,
-  Phone,
   RefreshCw,
   AlertCircle,
-  FileText,
 } from "lucide-react";
 import { getPublicSchedule, type PublicFreelancerSchedule } from "../api/services/employees";
 import dayjs from "dayjs";
