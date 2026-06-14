@@ -51,7 +51,7 @@ export default function PetsPage() {
       <PetsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setPetModal({ open: true, mode: "create" })}
+        onCreate={() => setPetModal({ open: true, mode: "create", pet: undefined })}
       />
 
       <PetsTable
@@ -67,10 +67,10 @@ export default function PetsPage() {
           open={petModal.open}
           mode={petModal.mode}
           pet={petModal.pet}
-          onClose={() => setPetModal({ open: false, mode: "create" })}
+          onClose={() => setPetModal((prev) => ({ ...prev, open: false }))}
           onSuccess={async () => {
             await getPets();
-            setPetModal({ open: false, mode: "create" });
+            setPetModal((prev) => ({ ...prev, open: false }));
           }}
         />
       )}

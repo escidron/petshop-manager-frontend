@@ -99,7 +99,6 @@ export default function SupplierFormModal({
           : "Fornecedor atualizado com sucesso",
       );
 
-      reset();
       onSuccess(saved);
       onClose();
     } catch {

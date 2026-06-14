@@ -54,7 +54,7 @@ export default function ProductsPage() {
       <ProductsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setProductModal({ open: true, mode: "create" })}
+        onCreate={() => setProductModal({ open: true, mode: "create", product: undefined })}
         onImport={() => setImportModalOpen(true)}
       />
 
@@ -75,9 +75,9 @@ export default function ProductsPage() {
           product={
             productModal.mode === "edit" ? productModal.product : undefined
           }
-          onClose={() => setProductModal({ open: false })}
+          onClose={() => setProductModal((prev) => ({ ...prev, open: false }))}
           onSuccess={() => {
-            setProductModal({ open: false });
+            setProductModal((prev) => ({ ...prev, open: false }));
             getProducts();
             queryClient.invalidateQueries({ queryKey: ["products"] });
           }}

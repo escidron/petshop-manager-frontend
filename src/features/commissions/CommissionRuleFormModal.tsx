@@ -114,7 +114,6 @@ export default function CommissionRuleFormModal({
         await updateCommissionRule(rule!.id, payload);
         toast.success("Regra atualizada com sucesso");
       }
-      reset();
       onSuccess();
       onClose();
     } catch {

@@ -35,6 +35,7 @@ import { BRAZIL_STATES } from "../../utils/countryStatesList";
 import { getAddressByCep } from "../../api/services/address";
 
 type Props = {
+  open: boolean;
   mode: "create" | "edit";
   defaultValues?: Partial<ClientFormData>;
   showAdditionalInfo: boolean;
@@ -45,6 +46,7 @@ type Props = {
 };
 
 export default function ClientForm({
+  open,
   mode,
   defaultValues,
   showAdditionalInfo,
@@ -113,13 +115,13 @@ export default function ClientForm({
   };
 
   useEffect(() => {
-    if (!defaultValues) return;
+    if (!open || !defaultValues) return;
 
     reset({
       is_active: true,
       ...applyMasksOnEdit(defaultValues),
     });
-  }, [defaultValues, reset]);
+  }, [open, defaultValues, reset]);
 
   useEffect(() => {
     const cleanCep = cepValue?.replace(/\D/g, "");

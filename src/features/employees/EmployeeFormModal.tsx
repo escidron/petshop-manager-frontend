@@ -90,7 +90,6 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
         await updateEmployee(employee!.id, payload);
         toast.success("Funcionário atualizado com sucesso");
       }
-      reset();
       onSuccess();
       onClose();
     } catch {

@@ -56,7 +56,7 @@ export default function ServicesPage() {
       <ServiceToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setServiceModal({ open: true, mode: "create" })}
+        onCreate={() => setServiceModal({ open: true, mode: "create", service: undefined })}
         onImportLibrary={() => setIsLibraryOpen(true)}
       />
 
@@ -75,11 +75,11 @@ export default function ServicesPage() {
           open={serviceModal.open}
           mode={serviceModal.mode}
           service={serviceModal.service}
-          onClose={() => setServiceModal({ open: false, mode: "create" })}
+          onClose={() => setServiceModal((prev) => ({ ...prev, open: false }))}
           onSuccess={async () => {
             await getServices();
             queryClient.invalidateQueries({ queryKey: ["services"] });
-            setServiceModal({ open: false, mode: "create" });
+            setServiceModal((prev) => ({ ...prev, open: false }));
           }}
         />
       )}

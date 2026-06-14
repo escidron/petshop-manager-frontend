@@ -13,7 +13,7 @@ import ClientForm from "./ClientForm";
 import { clientToFormData } from "./mapper";
 import { DEFAULT_CLIENT_FORM } from "./constants";
 import { X } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { brDateToISO } from "../../utils/formatDates";
 
 type Props = {
@@ -36,7 +36,9 @@ export default function ClientFormModal({
   onSuccessAndAddPet,
 }: Props) {
   const toast = useToast();
-  const defaultValues = client ? clientToFormData(client) : DEFAULT_CLIENT_FORM;
+  const defaultValues = useMemo(() => {
+    return client ? clientToFormData(client) : DEFAULT_CLIENT_FORM;
+  }, [client]);
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -106,6 +108,7 @@ export default function ClientFormModal({
 
       <DialogContent>
         <ClientForm
+          open={open}
           mode={mode}
           defaultValues={defaultValues}
           showAdditionalInfo={showAdditionalInfo}

@@ -5,7 +5,7 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import axios from "axios";
 
 import PetForm from "./PetForm";
@@ -42,7 +42,9 @@ export default function PetFormModal({
   client
 }: Props) {
   const toast = useToast();
-  const defaultValues = pet ? petToFormData(pet) : DEFAULT_PET_FORM;
+  const defaultValues = useMemo(() => {
+    return pet ? petToFormData(pet) : DEFAULT_PET_FORM;
+  }, [pet]);
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { clients } = useClients();
@@ -107,6 +109,7 @@ export default function PetFormModal({
 
       <DialogContent>
         <PetForm
+          open={open}
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}

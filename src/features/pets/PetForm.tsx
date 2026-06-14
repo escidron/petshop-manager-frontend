@@ -31,6 +31,7 @@ import {
 } from "./constants";
 
 type Props = {
+  open: boolean;
   defaultValues?: Partial<PetFormData>;
   onSubmit: (data: PetFormData) => void;
   isSubmitting?: boolean;
@@ -41,6 +42,7 @@ type Props = {
 };
 
 const PetForm = ({
+  open,
   defaultValues,
   onSubmit,
   isSubmitting = false,
@@ -75,7 +77,7 @@ const PetForm = ({
   };
 
   useEffect(() => {
-    if (!defaultValues) return;
+    if (!open || !defaultValues) return;
     if(defaultValues.age && defaultValues.age_unit) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setShowAgeField(true)
@@ -84,7 +86,7 @@ const PetForm = ({
       is_active: true,
       ...applyMasksOnEdit(defaultValues),
     });
-  }, [defaultValues, reset, selectedClient]);
+  }, [open, defaultValues, reset, selectedClient]);
 
   useEffect(() => {
     if (selectedClient) {

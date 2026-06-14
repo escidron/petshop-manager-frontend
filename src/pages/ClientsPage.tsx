@@ -88,7 +88,7 @@ export default function ClientsPage() {
       <ClientsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setClientModal({ open: true, mode: "create" })}
+        onCreate={() => setClientModal({ open: true, mode: "create", client: undefined })}
         onImport={() => setImportOpen(true)}
       />
 
@@ -111,13 +111,15 @@ export default function ClientsPage() {
           setClientModal((prev) => ({
             ...prev,
             open: false,
-            mode: "create",
           }))
         }
         onSuccess={async () => {
           await getClients();
           queryClient.invalidateQueries({ queryKey: ["clients"] });
-          setClientModal({ open: false, mode: "create" });
+          setClientModal((prev) => ({
+            ...prev,
+            open: false,
+          }));
         }}
         onSuccessAndAddPet={async (client) => {
           await getClients();
