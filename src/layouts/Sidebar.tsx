@@ -133,7 +133,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
 
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const navigate = useNavigate();
-  const { tenant } = useAuth();
+  const { tenant, user } = useAuth();
   const { isOwner } = usePermission();
 
   const getTrialInfo = () => {
@@ -154,6 +154,24 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   };
 
   const trialInfo = getTrialInfo();
+  
+  const sections = [...menuSections];
+  if (user?.role === "admin") {
+    // Import dynamically or use a fallback icon from lucide-react.
+    // Since we imported Shield or can use UserCheck:
+    sections.push({
+      title: "ADMINISTRADOR",
+      items: [
+        {
+          id: "admin-dashboard",
+          label: "Painel Admin",
+          icon: <UserCheck size={20} />,
+          path: "/admin/dashboard",
+        },
+      ],
+    });
+  }
+
   return (
     <Box
       sx={{
@@ -179,12 +197,13 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
           },
           "&::-webkit-scrollbar-thumb:hover": {
             background: "rgba(255,255,255,0.3)",
+            borderRadius: 4,
           },
           scrollbarWidth: "thin",
           scrollbarColor: "rgba(255,255,255,0.15) transparent",
         }}
       >
-        {menuSections.map((section, index) => (
+        {sections.map((section, index) => (
           <Box key={section.title} sx={{ mt: index === 0 ? 0.5 : 1, mb: 0 }}>
             {!collapsed && (
               <Typography

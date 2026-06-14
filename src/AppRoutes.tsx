@@ -27,6 +27,7 @@ import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SelectTenantPage from "./pages/SelectTenantPage";
 import SharedSchedulePage from "./pages/SharedSchedulePage";
+import AdminDashboardPage from "./pages/AdminDashboardPage";
 
 type Props = {
   children: JSX.Element;
@@ -55,6 +56,16 @@ export const OwnerRoute = ({ children }: Props) => {
   if (checking && !user) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
   if (user.role !== "owner") return <Navigate to="/dashboard" replace />;
+
+  return children;
+};
+
+export const AdminRoute = ({ children }: Props) => {
+  const { user, checking } = useAuth();
+
+  if (checking && !user) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== "admin") return <Navigate to="/dashboard" replace />;
 
   return children;
 };
@@ -114,6 +125,7 @@ export default function AppRoutes() {
         <Route path="/reports/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
         <Route path="/reports/inventory" element={<Navigate to="/reports?category=estoque" replace />} />
         <Route path="/settings" element={<OwnerRoute><SettingsPage /></OwnerRoute>} />
+        <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       </Route>
       <Route path="/shared-schedule/:token" element={<SharedSchedulePage />} />
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
