@@ -2,7 +2,7 @@ import { useAuth } from "./useAuth";
 
 export const usePermission = () => {
   const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const isOwner = user?.role === "owner" || user?.role === "admin";
 
   return {
     isOwner,

@@ -5,6 +5,7 @@ import {
   Stack,
   Switch,
   Typography,
+  Grid,
 } from "@mui/material";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -107,83 +108,157 @@ export default function WorkingHoursSettings() {
       </Typography>
       <Divider sx={{ mb: 2 }} />
 
-      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-        <Stack divider={<Divider />} spacing={0}>
-          {(["0", "1", "2", "3", "4", "5", "6"] as const).map((day) => {
-            const schedule = hours[day] ?? DEFAULT_WORKING_HOURS[day];
-            const closed = !schedule.is_open;
-            return (
-              <Box
-                key={day}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 2,
-                  py: 1.25,
-                  opacity: closed ? 0.45 : 1,
-                  transition: "opacity 0.15s",
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  fontWeight={600}
-                  sx={{ minWidth: 72 }}
-                >
-                  {DAY_NAMES[parseInt(day)]}
+      <Grid container spacing={4}>
+        {/* Left Column: Vertical Stack of Days */}
+        <Grid size={{ xs: 12, md: 7 }}>
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+            <Stack divider={<Divider />} spacing={0}>
+              {(["0", "1", "2", "3", "4", "5", "6"] as const).map((day) => {
+                const schedule = hours[day] ?? DEFAULT_WORKING_HOURS[day];
+                const closed = !schedule.is_open;
+                return (
+                  <Box
+                    key={day}
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 2,
+                      py: 1.25,
+                      opacity: closed ? 0.45 : 1,
+                      transition: "opacity 0.15s",
+                    }}
+                  >
+                    <Typography
+                      variant="body2"
+                      fontWeight={600}
+                      sx={{ minWidth: 80 }}
+                    >
+                      {DAY_NAMES[parseInt(day)]}
+                    </Typography>
+
+                    <Switch
+                      size="small"
+                      checked={schedule.is_open}
+                      onChange={() => handleToggle(day)}
+                      color="success"
+                    />
+
+                    <Typography
+                      variant="caption"
+                      sx={{ minWidth: 50, color: closed ? "text.primary" : "success.main", fontWeight: 600 }}
+                    >
+                      {schedule.is_open ? "Aberto" : "Fechado"}
+                    </Typography>
+
+                    <Box sx={{ flexGrow: 1 }} />
+
+                    <TimePicker
+                      value={parseTime(schedule.open)}
+                      onChange={(v) => handleTimeChange(day, "open", v)}
+                      ampm={false}
+                      minutesStep={5}
+                      disabled={closed}
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 120 } },
+                        actionBar: { actions: [] },
+                        popper: { sx: popperSx },
+                      }}
+                    />
+
+                    <Typography variant="body2" color="text.disabled">–</Typography>
+
+                    <TimePicker
+                      value={parseTime(schedule.close)}
+                      onChange={(v) => handleTimeChange(day, "close", v)}
+                      ampm={false}
+                      minutesStep={5}
+                      disabled={closed}
+                      slotProps={{
+                        textField: { size: "small", sx: { width: 120 } },
+                        actionBar: { actions: [] },
+                        popper: { sx: popperSx },
+                      }}
+                    />
+                  </Box>
+                );
+              })}
+            </Stack>
+          </LocalizationProvider>
+
+          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
+            <Button variant="contained" onClick={handleSave} disabled={saving}>
+              {saving ? "Salvando..." : "Salvar Horários"}
+            </Button>
+          </Box>
+        </Grid>
+
+        {/* Right Column: Weekly Summary & Guidelines */}
+        <Grid size={{ xs: 12, md: 5 }}>
+          <Stack spacing={2} sx={{ height: "100%" }}>
+            <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
+              Resumo da Semana
+            </Typography>
+            
+            <Stack spacing={2.5} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider", flexGrow: 1, justifyContent: "space-between" }}>
+              <Stack spacing={2.5}>
+                <Box>
+                  <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                    Dias Ativos
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} mt={0.5} color="success.main">
+                    {Object.entries(hours)
+                      .filter(([_, h]) => h.is_open)
+                      .map(([d]) => DAY_NAMES[parseInt(d)].substring(0, 3))
+                      .join(", ") || "Nenhum dia aberto"}
+                  </Typography>
+                </Box>
+
+                <Box>
+                  <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                    Carga Horária Semanal
+                  </Typography>
+                  <Typography variant="body2" fontWeight={700} mt={0.5} color="text.primary">
+                    {(() => {
+                      let totalMinutes = 0;
+                      Object.values(hours).forEach((h) => {
+                        if (h.is_open && h.open && h.close) {
+                          const [oh, om] = h.open.split(":").map(Number);
+                          const [ch, cm] = h.close.split(":").map(Number);
+                          totalMinutes += (ch * 60 + cm) - (oh * 60 + om);
+                        }
+                      });
+                      const hoursCount = Math.floor(totalMinutes / 60);
+                      const minsCount = totalMinutes % 60;
+                      return `${hoursCount}h${minsCount > 0 ? ` ${minsCount}min` : ""} de atendimento por semana`;
+                    })()}
+                  </Typography>
+                </Box>
+
+                <Divider sx={{ borderStyle: "dashed" }} />
+
+                <Box>
+                  <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block", mb: 0.5 }}>
+                    Regras de Funcionamento
+                  </Typography>
+                  <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
+                    • Os clientes só poderão selecionar horários de agendamento online que estejam dentro do intervalo configurado como <strong>Aberto</strong>.
+                  </Typography>
+                  <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500, mt: 1 }}>
+                    • Horários fora desse período ou marcados como <strong>Fechado</strong> ficarão indisponíveis no agendamento online.
+                  </Typography>
+                </Box>
+              </Stack>
+
+              <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+                <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500, fontStyle: "italic" }}>
+                  * Lembre-se de clicar no botão "Salvar Horários" para aplicar as alterações nos agendamentos online.
                 </Typography>
-
-                <Switch
-                  size="small"
-                  checked={schedule.is_open}
-                  onChange={() => handleToggle(day)}
-                  color="success"
-                />
-
-                <Typography
-                  variant="caption"
-                  sx={{ minWidth: 44, color: closed ? "text.secondary" : "success.main", fontWeight: 600 }}
-                >
-                  {schedule.is_open ? "Aberto" : "Fechado"}
-                </Typography>
-
-                <TimePicker
-                  value={parseTime(schedule.open)}
-                  onChange={(v) => handleTimeChange(day, "open", v)}
-                  ampm={false}
-                  minutesStep={5}
-                  disabled={closed}
-                  slotProps={{
-                    textField: { size: "small", sx: { width: 120 } },
-                    actionBar: { actions: [] },
-                    popper: { sx: popperSx },
-                  }}
-                />
-
-                <Typography variant="body2" color="text.disabled">–</Typography>
-
-                <TimePicker
-                  value={parseTime(schedule.close)}
-                  onChange={(v) => handleTimeChange(day, "close", v)}
-                  ampm={false}
-                  minutesStep={5}
-                  disabled={closed}
-                  slotProps={{
-                    textField: { size: "small", sx: { width: 120 } },
-                    actionBar: { actions: [] },
-                    popper: { sx: popperSx },
-                  }}
-                />
               </Box>
-            );
-          })}
-        </Stack>
-      </LocalizationProvider>
-
-      <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
-        <Button variant="contained" onClick={handleSave} disabled={saving}>
-          {saving ? "Salvando..." : "Salvar Horários"}
-        </Button>
-      </Box>
+            </Stack>
+          </Stack>
+        </Grid>
+      </Grid>
     </Paper>
   );
 }

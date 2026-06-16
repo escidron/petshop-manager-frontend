@@ -28,6 +28,8 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import SelectTenantPage from "./pages/SelectTenantPage";
 import SharedSchedulePage from "./pages/SharedSchedulePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
+import PublicBookingPage from "./pages/PublicBookingPage";
+
 
 type Props = {
   children: JSX.Element;
@@ -55,7 +57,7 @@ export const OwnerRoute = ({ children }: Props) => {
 
   if (checking && !user) return <LoadingScreen />;
   if (!user) return <Navigate to="/login" replace />;
-  if (user.role !== "owner") return <Navigate to="/dashboard" replace />;
+  if (user.role !== "owner" && user.role !== "admin") return <Navigate to="/dashboard" replace />;
 
   return children;
 };
@@ -128,6 +130,7 @@ export default function AppRoutes() {
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       </Route>
       <Route path="/shared-schedule/:token" element={<SharedSchedulePage />} />
+      <Route path="/book/:token" element={<PublicBookingPage />} />
       {/* Fallback para evitar 404 em rotas não encontradas ou redirecionar para a landing */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

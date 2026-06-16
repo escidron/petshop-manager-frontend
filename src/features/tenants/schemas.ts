@@ -20,4 +20,5 @@ export const tenantSchema = z.object({
     .refine((v) => v.length === 10 || v.length === 11, "Telefone inválido"),
 
   document: z.string().nullable().optional(),
+  max_simultaneous_appointments: z.number().nullable().optional(),
 });

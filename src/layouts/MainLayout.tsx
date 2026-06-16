@@ -26,9 +26,10 @@ import Sidebar from "./Sidebar";
 import { Typography } from "@mui/material";
 import { useAuth } from "../hooks/useAuth";
 import UserMenu from "../features/users/UserMenu";
-import { AlertTriangle, Zap } from "lucide-react";
+import { AlertTriangle, Zap, MessageCircle } from "lucide-react";
 import { Button } from "../components/Button/Button";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
+import WhatsappSimulator from "../features/whatsapp-simulator/WhatsappSimulator";
 
 
 const drawerWidth = 240;
@@ -129,6 +130,7 @@ export default function MainLayout() {
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
+  const [whatsappSimulatorOpen, setWhatsappSimulatorOpen] = React.useState(false);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -403,6 +405,35 @@ export default function MainLayout() {
           <Outlet />
         </Box>
       </Box>
+
+      {/* WhatsApp Sandbox Simulator (Exclusivo para Devs e Administradores) */}
+      {(import.meta.env.DEV || user?.role === "admin") && (
+        <>
+          <IconButton
+            onClick={() => setWhatsappSimulatorOpen(true)}
+            sx={{
+              position: "fixed",
+              bottom: 24,
+              right: 24,
+              width: 56,
+              height: 56,
+              bgcolor: "#25D366",
+              color: "white",
+              boxShadow: "0px 4px 10px rgba(0,0,0,0.3)",
+              zIndex: 1000,
+              "&:hover": {
+                bgcolor: "#128C7E",
+              },
+            }}
+          >
+            <MessageCircle size={28} />
+          </IconButton>
+          <WhatsappSimulator
+            open={whatsappSimulatorOpen}
+            onClose={() => setWhatsappSimulatorOpen(false)}
+          />
+        </>
+      )}
     </Box>
   );
 }

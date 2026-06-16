@@ -40,6 +40,7 @@ export type Tenant = {
   };
   subscription?: Subscription;
   working_hours?: WorkingHours | null;
+  max_simultaneous_appointments?: number | null;
 };
 
 export type TenantOption = {
