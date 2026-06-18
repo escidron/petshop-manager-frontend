@@ -30,6 +30,7 @@ import { AlertTriangle, Zap, MessageCircle } from "lucide-react";
 import { Button } from "../components/Button/Button";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import WhatsappSimulator from "../features/whatsapp-simulator/WhatsappSimulator";
+import { ErrorBoundary } from "../components/ErrorBoundary/ErrorBoundary";
 
 
 const drawerWidth = 240;
@@ -402,7 +403,9 @@ export default function MainLayout() {
             flexDirection: "column"
           }}
         >
-          <Outlet />
+          <ErrorBoundary>
+            <Outlet />
+          </ErrorBoundary>
         </Box>
       </Box>
 
