@@ -24,9 +24,20 @@ export type ClientPackage = {
   client: { id: number; name: string };
   pet: { id: number; name: string };
   credits: ClientPackageCredit[];
+  usages: ClientPackageUsage[];
 };
 
 export type ClientPackageSellData = {
   pet_id: number;
   package_id: number;
+};
+
+export type ClientPackageUsage = {
+  id: number;
+  client_package_id: number;
+  credit_id: number;
+  change_qty: number;
+  notes: string | null;
+  created_at: string;
+  service_name: string;
 };

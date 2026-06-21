@@ -15,12 +15,17 @@ import {
 import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package } from "lucide-react";
 import { listAppointmentsByClient } from "../../api/services/appointments";
 import { listSales } from "../../api/services/sales";
+import { listClientPackagesByClient } from "../../api/services/client_packages";
 import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../sales/schemas";
+import type { ClientPackage } from "../client_packages/types";
 import { APPOINTMENT_STATUS_LABEL } from "../../api/services/appointments";
+import { Button } from "../../components/Button/Button";
 
 type Props = {
   clientId: number;
+  refreshTrigger?: number;
+  onSellPackage?: (petId: number, packageId: number) => void;
 };
 
 interface TabPanelProps {
@@ -45,22 +50,25 @@ function CustomTabPanel(props: TabPanelProps) {
   );
 }
 
-export default function ClientHistory({ clientId }: Props) {
+export default function ClientHistory({ clientId, refreshTrigger, onSellPackage }: Props) {
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [sales, setSales] = useState<SaleResponse[]>([]);
+  const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [appts, sls] = await Promise.all([
+        const [appts, sls, pkgs] = await Promise.all([
           listAppointmentsByClient(clientId),
           listSales(undefined, undefined, clientId),
+          listClientPackagesByClient(clientId),
         ]);
         setAppointments(appts);
         setSales(sls);
+        setClientPackages(pkgs);
       } catch (error) {
         console.error("Error fetching client history:", error);
       } finally {
@@ -69,7 +77,7 @@ export default function ClientHistory({ clientId }: Props) {
     };
 
     fetchData();
-  }, [clientId]);
+  }, [clientId, refreshTrigger]);
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -118,6 +126,18 @@ export default function ClientHistory({ clientId }: Props) {
             icon={<ShoppingBag size={18} />} 
             iconPosition="start" 
             label="Produtos" 
+            sx={{ 
+              minHeight: "48px", 
+              textTransform: "none", 
+              fontWeight: 600,
+              color: "text.disabled",
+              "&.Mui-selected": { color: "primary.main" }
+            }}
+          />
+          <Tab 
+            icon={<Package size={18} />} 
+            iconPosition="start" 
+            label="Pacotes" 
             sx={{ 
               minHeight: "48px", 
               textTransform: "none", 
@@ -220,6 +240,99 @@ export default function ClientHistory({ clientId }: Props) {
                 {idx < productSales.length - 1 && <Divider component="li" />}
               </Box>
             ))}
+          </List>
+        )}
+      </CustomTabPanel>
+
+      <CustomTabPanel value={tabValue} index={2}>
+        {clientPackages.length === 0 ? (
+          <Typography variant="body2" color="text.disabled" sx={{ textAlign: "center", py: 4 }}>
+            Nenhum pacote contratado ainda.
+          </Typography>
+        ) : (
+          <List disablePadding sx={{ maxHeight: 650, overflowY: "auto" }}>
+            {clientPackages.map((pkg, idx) => {
+              const isExpired = pkg.expires_at ? new Date(pkg.expires_at) < new Date() : false;
+              
+              // Determine status label and color
+              let statusLabel = "Ativo";
+              let statusColor: "success" | "default" | "error" | "info" = "success";
+              
+              if (!pkg.is_active) {
+                const totalCredits = pkg.credits.reduce((acc, c) => acc + c.total_qty, 0);
+                const usedCredits = pkg.credits.reduce((acc, c) => acc + c.used_qty, 0);
+                if (usedCredits >= totalCredits) {
+                  statusLabel = "Finalizado";
+                  statusColor = "default";
+                } else {
+                  statusLabel = "Cancelado";
+                  statusColor = "error";
+                }
+              } else if (isExpired) {
+                statusLabel = "Expirado";
+                statusColor = "error";
+              }
+
+              return (
+                <Box key={pkg.id}>
+                  <ListItem alignItems="flex-start" sx={{ px: 0, py: 1.5 }}>
+                    <ListItemText
+                      primary={
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                          <Typography variant="body2" fontWeight={700}>
+                            {pkg.package_name}
+                          </Typography>
+                          <Chip 
+                            label={statusLabel} 
+                            size="small"
+                            color={statusColor}
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: "0.65rem" }}
+                          />
+                        </Box>
+                      }
+                      secondary={
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.5 }}>
+                          <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
+                            Pet: <strong>{pkg.pet?.name || "N/A"}</strong>
+                          </Typography>
+                          <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
+                            Comprado em: {new Date(pkg.created_at).toLocaleDateString("pt-BR")}
+                          </Typography>
+                          {pkg.expires_at && (
+                            <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
+                              Vence em: {new Date(pkg.expires_at).toLocaleDateString("pt-BR")}
+                            </Typography>
+                          )}
+                          <Box sx={{ mt: 1, pl: 1, borderLeft: "2px solid", borderColor: "grey.300" }}>
+                            {pkg.credits.map((credit, cIdx) => (
+                              <Typography key={cIdx} variant="caption" display="block" color="text.primary">
+                                • {credit.service_name}: {credit.used_qty}/{credit.total_qty} consumidos
+                              </Typography>
+                            ))}
+                          </Box>
+
+                          {onSellPackage && pkg.package_id && (
+                            <Box sx={{ display: "flex", justifyContent: "flex-start", mt: 1 }}>
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="primary"
+                                onClick={() => onSellPackage(pkg.pet_id, pkg.package_id!)}
+                                sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.25, px: 1 }}
+                              >
+                                Vender de novo
+                              </Button>
+                            </Box>
+                          )}
+                        </Box>
+                      }
+                    />
+                  </ListItem>
+                  {idx < clientPackages.length - 1 && <Divider component="li" />}
+                </Box>
+              );
+            })}
           </List>
         )}
       </CustomTabPanel>

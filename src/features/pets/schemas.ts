@@ -29,7 +29,7 @@ export const petSchema = z
     breed: z.string().max(50, "Raça pode ter no máximo 50 caracteres").optional(),
 
     gender: z
-      .enum(["male", "female", "other"])
+      .enum(["male", "female", "other", "unknown"])
       .optional(),
 
     is_neutered: z

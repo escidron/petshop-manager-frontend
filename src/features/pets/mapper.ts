@@ -5,16 +5,29 @@ export function petToFormData(
   pet?: Pet
 ): PetFormData | undefined {
   if (!pet) return undefined;
+
+  let mappedSpecies = pet.species;
+  if (pet.species === "dog") {
+    mappedSpecies = "Canino";
+  } else if (pet.species === "cat") {
+    mappedSpecies = "Felino";
+  }
+
+  let mappedGender = pet.gender;
+  if (pet.gender === "unknown") {
+    mappedGender = "other";
+  }
+
   return {
     // Obrigatórios
     name: pet.name,
     client_id: pet.client_id,
-    species: pet.species,
+    species: mappedSpecies,
     is_active: pet.is_active ?? true,
 
     // Básicos
     breed: pet.breed ?? undefined,
-    gender: pet.gender ?? undefined,
+    gender: (mappedGender as any) ?? undefined,
 
     // Porte e pelagem
     size: pet.size ?? undefined,
