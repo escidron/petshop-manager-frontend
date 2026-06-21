@@ -61,6 +61,7 @@ import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
 import type { ClientPackage } from "../client_packages/types";
 import { isServiceCompatibleWithPet } from "../../utils/serviceMatcher";
+import type { Service } from "../tenant_services/types";
 
 const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
   <Grid container spacing={2}>

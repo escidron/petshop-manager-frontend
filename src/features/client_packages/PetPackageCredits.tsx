@@ -18,7 +18,7 @@ import {
   consumeClientPackageCredit,
   revertClientPackageCredit,
 } from "../../api/services/client_packages";
-import type { ClientPackage, ClientPackageUsage } from "./types";
+import type { ClientPackage } from "./types";
 import theme from "../../theme";
 import { formatServiceLabel } from "../../utils/formatServiceLabel";
 import { Button } from "../../components/Button/Button";

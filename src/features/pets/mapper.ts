@@ -14,7 +14,7 @@ export function petToFormData(
   }
 
   let mappedGender = pet.gender;
-  if (pet.gender === "unknown") {
+  if ((pet.gender as any) === "unknown") {
     mappedGender = "other";
   }
 
