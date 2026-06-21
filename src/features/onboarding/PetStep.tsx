@@ -23,6 +23,7 @@ export default function PetStep({ onNext }: Props) {
     const payload = {
       ...data,
       birth_date: brDateToISO(data.birth_date),
+      gender: data.gender === "unknown" ? "other" : data.gender,
     };
     await createPet(payload);
 

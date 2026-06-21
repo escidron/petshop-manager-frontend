@@ -56,6 +56,7 @@ export default function PetFormModal({
       const payload = {
         ...data,
         birth_date: brDateToISO(data.birth_date),
+        gender: data.gender === "unknown" ? "other" : data.gender,
       };
       const saved =
         mode === "create"

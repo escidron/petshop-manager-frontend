@@ -54,12 +54,14 @@ import PullAppointmentDialog from "./PullAppointmentDialog";
 import { useAuth } from "../../hooks/useAuth";
 import { formatBRLFromCents } from "../../utils/masks";
 import type { SaleItem } from "./schemas";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
 import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
 import type { ClientPackage } from "../client_packages/types";
+import { isServiceCompatibleWithPet } from "../../utils/serviceMatcher";
+import type { Service } from "../tenant_services/types";
 
 const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
   <Grid container spacing={2}>
@@ -113,6 +115,7 @@ const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
 
 export default function POSInterface() {
   const { tenant } = useAuth();
+  const toast = useToast();
   const location = useLocation();
   const navigate = useNavigate();
   const hasPulled = useRef(false);
@@ -121,6 +124,7 @@ export default function POSInterface() {
   const [discountCents, setDiscountCents] = useState<number>(0);
   const discountAmount = discountCents / 100;
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
+  const [showClientWarning, setShowClientWarning] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<
     number | null
   >(null);
@@ -172,6 +176,19 @@ export default function POSInterface() {
     ? discountAmount > 0
     : discountPercentage > (tenant?.max_discount_percentage ?? 100);
 
+  const getIncompatibleServicesForPet = (pet: Pet) => {
+    if (!pendingPackageItem) return [];
+    const pkgDef = packages.find((p) => p.id === pendingPackageItem.id);
+    if (!pkgDef) return [];
+
+    const pkgServices = pkgDef.items
+      .filter((item) => item.service_id)
+      .map((item) => services.find((s) => s.id === item.service_id))
+      .filter(Boolean) as Service[];
+
+    return pkgServices.filter((s) => !isServiceCompatibleWithPet(s, pet));
+  };
+
   // Filter items
   const lowStockProducts = useMemo(() => {
     return products.filter(
@@ -213,8 +230,13 @@ export default function POSInterface() {
     },
     type: "product" | "service" | "package",
   ) => {
-    // Pacotes com cliente selecionado pedem o pet antes de adicionar ao carrinho
-    if (type === "package" && selectedClientId) {
+    // Pacotes pedem obrigatoriamente a seleção de cliente e pet
+    if (type === "package") {
+      if (!selectedClientId) {
+        setShowClientWarning(true);
+        toast.warning("Por favor, selecione um cliente antes de adicionar um pacote.");
+        return;
+      }
       setPendingPackageItem(item);
       return;
     }
@@ -273,9 +295,7 @@ export default function POSInterface() {
     setPendingPackageItem(null);
   };
 
-  const handlePetSelectionSkip = () => {
-    if (!pendingPackageItem) return;
-    addItemToCart(pendingPackageItem, "package");
+  const handlePetSelectionCancel = () => {
     setPendingPackageItem(null);
   };
 
@@ -480,20 +500,25 @@ export default function POSInterface() {
               options={clients}
               getOptionLabel={(option) => option.name}
               value={selectedClient || null}
-              onChange={(_, newValue) =>
-                setSelectedClientId(newValue?.id || null)
-              }
+              onChange={(_, newValue) => {
+                setSelectedClientId(newValue?.id || null);
+                if (newValue) {
+                  setShowClientWarning(false);
+                }
+              }}
               renderInput={(params) => (
                 <TextField
                   {...params}
                   placeholder="Vincular Cliente"
                   variant="outlined"
                   size="small"
+                  error={showClientWarning}
+                  helperText={showClientWarning ? "Selecione um cliente para poder vender pacotes" : ""}
                   InputProps={{
                     ...params.InputProps,
                     startAdornment: (
                       <InputAdornment position="start">
-                        <User size={20} color="gray" />
+                        <User size={20} color={showClientWarning ? "error" : "gray"} />
                       </InputAdornment>
                     ),
                   }}
@@ -1132,7 +1157,7 @@ export default function POSInterface() {
                                 (product as any).price ||
                                 0) / 100
                             ).toFixed(2)}
-                            <Typography component="span" variant="caption" color="text.secondary" sx={{ fontWeight: 600, ml: 0.25 }}>
+                            <Typography component="span" variant="caption" color="text.primary" sx={{ fontWeight: 600, ml: 0.25 }}>
                               /{product.unit?.toLowerCase() || "un"}
                             </Typography>
                           </Typography>
@@ -1613,7 +1638,7 @@ export default function POSInterface() {
 
       <Dialog
         open={!!pendingPackageItem}
-        onClose={handlePetSelectionSkip}
+        onClose={handlePetSelectionCancel}
         maxWidth="xs"
         fullWidth
       >
@@ -1636,7 +1661,7 @@ export default function POSInterface() {
           </Box>
           <IconButton
             size="small"
-            onClick={handlePetSelectionSkip}
+            onClick={handlePetSelectionCancel}
             sx={{ color: "white" }}
           >
             <X size={18} />
@@ -1646,56 +1671,53 @@ export default function POSInterface() {
           {clientPets.length === 0 ? (
             <Box sx={{ p: 3, textAlign: "center" }}>
               <Typography color="text.primary" variant="body2">
-                Nenhum pet encontrado para este cliente.
+                Nenhum pet encontrado para este cliente. Por favor, cadastre um pet antes de vender o pacote.
               </Typography>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={handlePetSelectionSkip}
-                sx={{ mt: 2 }}
-              >
-                Adicionar sem pet
-              </Button>
             </Box>
           ) : (
             <List sx={{ pt: 0 }}>
-              {clientPets.map((pet) => (
-                <ListItem
-                  key={pet.id}
-                  onClick={() => handlePetSelected(pet)}
-                  sx={{
-                    cursor: "pointer",
-                    borderBottom: "1px solid",
-                    borderColor: "divider",
-                    "&:hover": { bgcolor: "action.hover" },
-                    gap: 1.5,
-                  }}
-                >
-                  <Dog size={16} color="gray" />
-                  <Box>
-                    <Typography variant="body2" fontWeight={700}>
-                      {pet.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.primary">
-                      {pet.species}
-                      {pet.breed ? ` · ${pet.breed}` : ""}
-                    </Typography>
-                  </Box>
-                </ListItem>
-              ))}
-              <ListItem
-                onClick={handlePetSelectionSkip}
-                sx={{
-                  cursor: "pointer",
-                  "&:hover": { bgcolor: "action.hover" },
-                  gap: 1.5,
-                  color: "text.primary",
-                }}
-              >
-                <Typography variant="body2">
-                  Adicionar sem vincular pet
-                </Typography>
-              </ListItem>
+              {clientPets.map((pet) => {
+                const incompatible = getIncompatibleServicesForPet(pet);
+                const hasIncompatible = incompatible.length > 0;
+
+                return (
+                  <ListItem
+                    key={pet.id}
+                    onClick={() => {
+                      if (hasIncompatible) {
+                        toast.error(
+                          `Este pacote contém serviços incompatíveis com ${pet.name} (ex: ${incompatible.map(s => `${s.name}${s.size ? ` ${s.size}` : ""}`).join(", ")}).`
+                        );
+                        return;
+                      }
+                      handlePetSelected(pet);
+                    }}
+                    sx={{
+                      cursor: hasIncompatible ? "not-allowed" : "pointer",
+                      borderBottom: "1px solid",
+                      borderColor: "divider",
+                      opacity: hasIncompatible ? 0.6 : 1,
+                      "&:hover": { bgcolor: hasIncompatible ? "transparent" : "action.hover" },
+                      gap: 1.5,
+                    }}
+                  >
+                    <Dog size={16} color={hasIncompatible ? "red" : "gray"} />
+                    <Box sx={{ flex: 1 }}>
+                      <Typography variant="body2" fontWeight={700} color={hasIncompatible ? "text.disabled" : "text.primary"}>
+                        {pet.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.primary" display="block">
+                        {pet.species} {pet.breed ? `· ${pet.breed}` : ""} {pet.size ? `· ${pet.size}` : ""} {pet.coat_type ? `· ${pet.coat_type}` : ""}
+                      </Typography>
+                      {hasIncompatible && (
+                        <Typography variant="caption" color="error.main" sx={{ display: "block", fontWeight: 600 }}>
+                          Incompatível: {incompatible.map((s) => `${s.name}${s.size ? ` (${s.size})` : ""}`).join(", ")}
+                        </Typography>
+                      )}
+                    </Box>
+                  </ListItem>
+                );
+              })}
             </List>
           )}
         </DialogContent>

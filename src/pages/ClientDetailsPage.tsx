@@ -39,7 +39,8 @@ export default function ClientDetailsPage() {
 
   const [packageTemplates, setPackageTemplates] = useState<PkgTemplate[]>([]);
   const [petPackages, setPetPackages] = useState<Record<number, ClientPackage[]>>({});
-  const [sellModal, setSellModal] = useState<{ open: boolean; petId?: number }>({
+  const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
+  const [sellModal, setSellModal] = useState<{ open: boolean; petId?: number; packageId?: number }>({
     open: false,
   });
 
@@ -90,6 +91,7 @@ export default function ClientDetailsPage() {
         )
         .catch(() => {});
     }
+    setRefreshHistoryTrigger((prev) => prev + 1);
   };
 
   if (loading || !client) {
@@ -180,6 +182,7 @@ export default function ClientDetailsPage() {
 
                 <PetPackageCredits
                   packages={petPackages[pet.id] ?? []}
+                  clientPhone={client.phone}
                   onRefresh={() =>
                     listClientPackagesByPet(pet.id)
                       .then((pkgs) =>
@@ -194,7 +197,11 @@ export default function ClientDetailsPage() {
         </Box>
 
         <Box sx={{ width: "40%" }}>
-          <ClientHistory clientId={parseInt(id!)} />
+          <ClientHistory
+            clientId={parseInt(id!)}
+            refreshTrigger={refreshHistoryTrigger}
+            onSellPackage={(petId, packageId) => setSellModal({ open: true, petId, packageId })}
+          />
         </Box>
       </Box>
 
@@ -227,6 +234,7 @@ export default function ClientDetailsPage() {
         pets={pets}
         packages={packageTemplates}
         defaultPetId={sellModal.petId}
+        defaultPackageId={sellModal.packageId}
       />
 
       <ClientFormModal

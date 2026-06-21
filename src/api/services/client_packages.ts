@@ -2,6 +2,7 @@ import apiClient from "../apiClient";
 import type {
   ClientPackage,
   ClientPackageSellData,
+  ClientPackageUsage,
 } from "../../features/client_packages/types";
 
 export const sellPackageToPet = async (
@@ -41,4 +42,25 @@ export const deactivateClientPackage = async (
   clientPackageId: number,
 ): Promise<void> => {
   await apiClient.delete(`/api/v1/client-packages/${clientPackageId}`);
+};
+
+export const consumeClientPackageCredit = async (
+  creditId: number,
+): Promise<void> => {
+  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`);
+};
+
+export const revertClientPackageCredit = async (
+  creditId: number,
+): Promise<void> => {
+  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/revert`);
+};
+
+export const getClientPackageUsages = async (
+  clientPackageId: number,
+): Promise<ClientPackageUsage[]> => {
+  const response = await apiClient.get<ClientPackageUsage[]>(
+    `/api/v1/client-packages/${clientPackageId}/usages`,
+  );
+  return response.data;
 };

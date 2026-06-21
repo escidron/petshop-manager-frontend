@@ -21,6 +21,7 @@ type Props = {
   pets: Pet[];
   packages: Package[];
   defaultPetId?: number;
+  defaultPackageId?: number;
 };
 
 export default function ClientPackageSellModal({
@@ -30,6 +31,7 @@ export default function ClientPackageSellModal({
   pets,
   packages,
   defaultPetId,
+  defaultPackageId,
 }: Props) {
   const [loading, setLoading] = useState(false);
 
@@ -60,6 +62,7 @@ export default function ClientPackageSellModal({
           pets={pets}
           packages={packages}
           defaultPetId={defaultPetId}
+          defaultPackageId={defaultPackageId}
           onSubmit={handleSubmit}
           loading={loading}
         />
