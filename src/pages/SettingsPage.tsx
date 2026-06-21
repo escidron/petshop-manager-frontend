@@ -149,6 +149,10 @@ const SettingsPage = () => {
   const [limitValue, setLimitValue] = useState<number>(2);
   const [savingLimit, setSavingLimit] = useState(false);
 
+  const [discountEnabled, setDiscountEnabled] = useState(true);
+  const [discountValue, setDiscountValue] = useState<number>(100);
+  const [savingDiscount, setSavingDiscount] = useState(false);
+
   const handleToggleLimit = async (enabled: boolean) => {
     if (!tenant) return;
     setLimitEnabled(enabled);
@@ -184,12 +188,58 @@ const SettingsPage = () => {
       };
       const updatedTenant = await updateTenant(tenant.id, payload);
       setTenant({ ...tenant, ...updatedTenant });
-      toast.success("Limite de agendamentos atualizado!");
+      toast.success("Limite de agendamentos updated!");
     } catch (error) {
       console.error("Failed to save limit value:", error);
       toast.error("Erro ao atualizar o limite de agendamentos.");
     } finally {
       setSavingLimit(false);
+    }
+  };
+
+  const handleToggleDiscount = async (enabled: boolean) => {
+    if (!tenant) return;
+    setDiscountEnabled(enabled);
+    setSavingDiscount(true);
+    try {
+      const payload = {
+        name: tenant.name,
+        phone: tenant.phone,
+        document: tenant.document || null,
+        allow_discount: enabled,
+        max_discount_percentage: enabled ? Number(discountValue) : 0,
+      };
+      const updatedTenant = await updateTenant(tenant.id, payload);
+      setTenant({ ...tenant, ...updatedTenant });
+      toast.success(enabled ? "Descontos no caixa ativados!" : "Descontos no caixa desativados!");
+    } catch (error) {
+      console.error("Failed to toggle discount:", error);
+      toast.error("Erro ao alterar configuração de desconto.");
+      setDiscountEnabled(!enabled);
+    } finally {
+      setSavingDiscount(false);
+    }
+  };
+
+  const handleSaveDiscountValue = async () => {
+    if (!tenant) return;
+    setSavingDiscount(true);
+    try {
+      const payload = {
+        name: tenant.name,
+        phone: tenant.phone,
+        document: tenant.document || null,
+        allow_discount: discountEnabled,
+        max_discount_percentage: discountEnabled ? Number(discountValue) : 0,
+      };
+      const updatedTenant = await updateTenant(tenant.id, payload);
+      setTenant({ ...tenant, ...updatedTenant });
+      toast.success("Limite de desconto atualizado!");
+    } catch (error) {
+      console.error("Failed to save discount value:", error);
+      toast.error("Erro ao atualizar o limite de desconto.");
+    } finally {
+      setSavingDiscount(false);
     }
   };
 
@@ -331,6 +381,8 @@ const SettingsPage = () => {
       });
       setLimitEnabled(tenant.max_simultaneous_appointments !== null && tenant.max_simultaneous_appointments !== undefined);
       setLimitValue(tenant.max_simultaneous_appointments ?? 2);
+      setDiscountEnabled(tenant.allow_discount ?? true);
+      setDiscountValue(tenant.max_discount_percentage ?? 100);
     }
   }, [tenant, reset]);
 
@@ -678,149 +730,226 @@ const SettingsPage = () => {
 
         {/* --- ABA GERAL --- */}
         <CustomTabPanel value={value} index={getTabIndex("general")}>
-          <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
+          <Stack spacing={3}>
+            
+            {/* CARD 1: Dados Gerais */}
+            <Paper sx={{ p: 3, borderRadius: 3 }}>
+              <Stack spacing={2}>
+                <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
+                  Dados Gerais
+                </Typography>
+                <Typography variant="body2" color="text.primary" mb={1}>
+                  Dados cadastrais do seu estabelecimento.
+                </Typography>
+                <Divider sx={{ mb: 1 }} />
+                
+                <Grid container spacing={3} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                        Nome do Petshop
+                      </Typography>
+                      <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
+                        {tenant?.name}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                        Telefone
+                      </Typography>
+                      <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
+                        {maskPhone(tenant?.phone) || "Não informado"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                        CPF / CNPJ
+                      </Typography>
+                      <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
+                        {tenant?.document ? maskDocument(tenant.document) : "Não informado"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
+
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setOpenTenantEdit(true)}
+                  sx={{ alignSelf: "flex-start", mt: 1, px: 3 }}
+                >
+                  Editar Informações
+                </Button>
+              </Stack>
+            </Paper>
+
+            {/* CARD 2: Agendamento Online */}
+            <Paper sx={{ p: 3, borderRadius: 3 }}>
+              <Stack spacing={2}>
+                <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
+                  Agendamento Online
+                </Typography>
+                <Typography variant="body2" color="text.primary" mb={1}>
+                  Configure as políticas de concorrência e capacidade de agendamentos online.
+                </Typography>
+                <Divider sx={{ mb: 1 }} />
+
+                <Stack spacing={2} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                  <Box>
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          size="small"
+                          checked={limitEnabled}
+                          disabled={savingLimit}
+                          onChange={(e) => handleToggleLimit(e.target.checked)}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" fontWeight={700} color="text.primary">
+                          Limitar agendamentos simultâneos
+                        </Typography>
+                      }
+                      sx={{ mb: 1 }}
+                    />
+                    
+                    <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
+                      Ative para configurar a capacidade de agendamentos que a loja suporta atender no mesmo horário. Se desativado, o agendamento online ficará livre sem bloqueio de concorrência.
+                    </Typography>
+                  </Box>
+
+                  {limitEnabled && (
+                    <Stack spacing={1.5} sx={{ mt: 1, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
+                      <FormControl fullWidth>
+                        <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 700, fontSize: "0.75rem" }}>
+                          Limite de agendamentos por horário
+                        </FormLabel>
+                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                          <TextField
+                            type="number"
+                            size="small"
+                            value={limitValue}
+                            disabled={savingLimit}
+                            onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
+                            slotProps={{ htmlInput: { min: 1 } }}
+                            sx={{ 
+                              width: 80,
+                              "& .MuiInputBase-input": { py: 0.5, fontWeight: 700, fontSize: "0.875rem" }
+                            }}
+                          />
+                          <Button
+                            variant="contained"
+                            size="small"
+                            onClick={handleSaveLimitValue}
+                            disabled={savingLimit}
+                            sx={{ py: 0.5, px: 2 }}
+                          >
+                            {savingLimit ? <CircularProgress size={16} color="inherit" /> : "Salvar Limite"}
+                          </Button>
+                        </Box>
+                      </FormControl>
+
+                      <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
+                        Ex: se for {limitValue}, o horário será bloqueado para novos agendamentos online se já houver {limitValue} pets agendados nesse mesmo intervalo na loja inteira.
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              </Stack>
+            </Paper>
+
+            {/* CARD 3: Políticas de Caixa */}
+            {isOwner && (
               <Paper sx={{ p: 3, borderRadius: 3 }}>
                 <Stack spacing={2}>
-                  <Typography variant="h6" fontWeight={700} gutterBottom>
-                    Informações da Empresa
+                  <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
+                    Políticas de Caixa
                   </Typography>
-                  <Typography variant="body2" color="text.primary" mb={2}>
-                    Gerencie os dados cadastrais e as políticas de agendamento online do seu estabelecimento.
+                  <Typography variant="body2" color="text.primary" mb={1}>
+                    Defina limites de descontos e permissões para operadores de caixa.
                   </Typography>
-                  <Divider sx={{ mb: 2 }} />
-                  
-                  <Grid container spacing={3}>
-                    {/* Left Column: Basic Info */}
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Stack spacing={2}>
-                        <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
-                          Dados Gerais
-                        </Typography>
-                        
-                        <Stack spacing={2} sx={{ bgcolor: "action.hover", p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                          <Box>
-                            <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
-                              Nome do Petshop
-                            </Typography>
-                            <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
-                              {tenant?.name}
-                            </Typography>
-                          </Box>
-                          
-                          <Box>
-                            <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
-                              Telefone
-                            </Typography>
-                            <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
-                              {maskPhone(tenant?.phone) || "Não informado"}
-                            </Typography>
-                          </Box>
-                          
-                          <Box>
-                            <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
-                              CPF / CNPJ
-                            </Typography>
-                            <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
-                              {tenant?.document ? maskDocument(tenant.document) : "Não informado"}
-                            </Typography>
-                          </Box>
-                        </Stack>
+                  <Divider sx={{ mb: 1 }} />
 
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => setOpenTenantEdit(true)}
-                          sx={{ alignSelf: "flex-start", mt: 1, px: 3 }}
-                        >
-                          Editar Informações
-                        </Button>
-                      </Stack>
-                    </Grid>
+                  <Stack spacing={2} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                    <Box>
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            size="small"
+                            checked={discountEnabled}
+                            disabled={savingDiscount}
+                            onChange={(e) => handleToggleDiscount(e.target.checked)}
+                          />
+                        }
+                        label={
+                          <Typography variant="body2" fontWeight={700} color="text.primary">
+                            Permitir descontos no Caixa
+                          </Typography>
+                        }
+                        sx={{ mb: 1 }}
+                      />
+                      
+                      <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
+                        Ative para permitir que operadores de caixa dêem descontos em vendas. Você pode definir a porcentagem máxima permitida.
+                      </Typography>
+                    </Box>
 
-                    {/* Right Column: Limit / Concurrency Configurations */}
-                    <Grid size={{ xs: 12, md: 6 }}>
-                      <Stack spacing={2}>
-                        <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                          <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
-                          Agendamento Online
-                        </Typography>
-
-                        <Stack spacing={2} sx={{ bgcolor: "action.hover", p: 2, borderRadius: 2, border: "1px solid", borderColor: "divider", height: "100%", justifyContent: "space-between" }}>
-                          <Box>
-                            <FormControlLabel
-                              control={
-                                <Switch
-                                  size="small"
-                                  checked={limitEnabled}
-                                  disabled={savingLimit}
-                                  onChange={(e) => handleToggleLimit(e.target.checked)}
-                                />
-                              }
-                              label={
-                                <Typography variant="body2" fontWeight={700} color="text.primary">
-                                  Limitar agendamentos simultâneos
-                                </Typography>
-                              }
-                              sx={{ mb: 1 }}
+                    {discountEnabled && (
+                      <Stack spacing={1.5} sx={{ mt: 1, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
+                        <FormControl fullWidth>
+                          <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 700, fontSize: "0.75rem" }}>
+                            Desconto máximo permitido (%)
+                          </FormLabel>
+                          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                            <TextField
+                              type="number"
+                              size="small"
+                              value={discountValue}
+                              disabled={savingDiscount}
+                              onChange={(e) => setDiscountValue(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
+                              slotProps={{ htmlInput: { min: 0, max: 100, step: 0.1 } }}
+                              sx={{ 
+                                width: 80,
+                                "& .MuiInputBase-input": { py: 0.5, fontWeight: 700, fontSize: "0.875rem" }
+                              }}
                             />
-                            
-                            <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
-                              Ative para configurar a capacidade de agendamentos que a loja suporta atender no mesmo horário. Se desativado, o agendamento online ficará livre sem bloqueio de concorrência.
-                            </Typography>
+                            <Button
+                              variant="contained"
+                              size="small"
+                              onClick={handleSaveDiscountValue}
+                              disabled={savingDiscount}
+                              sx={{ py: 0.5, px: 2 }}
+                            >
+                              {savingDiscount ? <CircularProgress size={16} color="inherit" /> : "Salvar Limite"}
+                            </Button>
                           </Box>
+                        </FormControl>
 
-                          {limitEnabled && (
-                            <Stack spacing={1.5} sx={{ mt: 1, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
-                              <FormControl fullWidth>
-                                <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 700, fontSize: "0.75rem" }}>
-                                  Limite de agendamentos por horário
-                                </FormLabel>
-                                <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                                  <TextField
-                                    type="number"
-                                    size="small"
-                                    value={limitValue}
-                                    disabled={savingLimit}
-                                    onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
-                                    slotProps={{ htmlInput: { min: 1 } }}
-                                    sx={{ 
-                                      width: 80,
-                                      "& .MuiInputBase-input": { py: 0.5, fontWeight: 700, fontSize: "0.875rem" }
-                                    }}
-                                  />
-                                  <Button
-                                    variant="contained"
-                                    size="small"
-                                    onClick={handleSaveLimitValue}
-                                    disabled={savingLimit}
-                                    sx={{ py: 0.5, px: 2 }}
-                                  >
-                                    {savingLimit ? <CircularProgress size={16} color="inherit" /> : "Salvar Limite"}
-                                  </Button>
-                                </Box>
-                              </FormControl>
-
-                              <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
-                                Ex: se for {limitValue}, o horário será bloqueado para novos agendamentos online se já houver {limitValue} pets agendados nesse mesmo intervalo na loja inteira.
-                              </Typography>
-                            </Stack>
-                          )}
-                        </Stack>
+                        <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
+                          Operadores de caixa não poderão conceder descontos maiores que {discountValue}% do valor total da venda.
+                        </Typography>
                       </Stack>
-                    </Grid>
-                  </Grid>
+                    )}
+                  </Stack>
                 </Stack>
               </Paper>
-            </Grid>
-
-            {isOwner && (
-              <Grid size={{ xs: 12 }}>
-                <WorkingHoursSettings />
-              </Grid>
             )}
-          </Grid>
+
+            {/* CARD 4: Horário de Funcionamento */}
+            {isOwner && (
+              <WorkingHoursSettings />
+            )}
+
+          </Stack>
         </CustomTabPanel>
 
         {/* --- ABA PLANOS E COBRANÇA (owner only) --- */}

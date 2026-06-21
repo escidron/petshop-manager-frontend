@@ -39,6 +39,7 @@ interface CheckoutModalProps {
   onClose: () => void;
   cart: SaleItem[];
   totalAmount: number;
+  discountAmount?: number;
   clientId: number | null;
   appointmentId?: number | null;
   onSuccess: () => void;
@@ -49,6 +50,7 @@ export default function CheckoutModal({
   onClose,
   cart,
   totalAmount,
+  discountAmount = 0,
   clientId,
   appointmentId,
   onSuccess,
@@ -114,6 +116,7 @@ export default function CheckoutModal({
       client_id: clientId,
       appointment_id: appointmentId,
       total_amount: totalAmount,
+      discount_amount: discountAmount,
       payment_method: paymentMethod,
       status: "completed",
       items: itemsWithEmployee,

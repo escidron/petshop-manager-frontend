@@ -21,4 +21,6 @@ export const tenantSchema = z.object({
 
   document: z.string().nullable().optional(),
   max_simultaneous_appointments: z.number().nullable().optional(),
+  allow_discount: z.boolean().optional(),
+  max_discount_percentage: z.number().nullable().optional(),
 });
