@@ -51,6 +51,8 @@ import { listPackages } from "../../api/services/packages";
 import { fetchPetsByClient } from "../../api/services/pets";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
+import { useAuth } from "../../hooks/useAuth";
+import { formatBRLFromCents } from "../../utils/masks";
 import type { SaleItem } from "./schemas";
 import { toast } from "react-toastify";
 import type { Appointment } from "../appointments/types";
@@ -110,11 +112,14 @@ const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
 );
 
 export default function POSInterface() {
+  const { tenant } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const hasPulled = useRef(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<SaleItem[]>([]);
+  const [discountCents, setDiscountCents] = useState<number>(0);
+  const discountAmount = discountCents / 100;
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<
     number | null
@@ -161,6 +166,11 @@ export default function POSInterface() {
 
   // Calculate cart total
   const cartTotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
+
+  const discountPercentage = cartTotal > 0 ? (discountAmount / cartTotal) * 100 : 0;
+  const isDiscountExceeded = tenant?.allow_discount === false
+    ? discountAmount > 0
+    : discountPercentage > (tenant?.max_discount_percentage ?? 100);
 
   // Filter items
   const lowStockProducts = useMemo(() => {
@@ -320,6 +330,7 @@ export default function POSInterface() {
     setCart([]);
     setSelectedClientId(null);
     setSelectedAppointmentId(null);
+    setDiscountCents(0);
   };
 
   const handlePullAppointment = (appointment: Appointment) => {
@@ -624,15 +635,81 @@ export default function POSInterface() {
               borderColor: "divider",
             }}
           >
-            <Box
-              sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}
-            >
-              <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>
-                Total:
-              </Typography>
-              <Typography variant="h4" color="primary" sx={{ fontWeight: 900 }}>
-                R$ {cartTotal.toFixed(2)}
-              </Typography>
+            {/* Always show the subtotal, discount, and total lines to keep the height 100% stable */}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="body2" color="text.primary" sx={{ opacity: 0.8 }}>
+                  Subtotal:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                  R$ {cartTotal.toFixed(2)}
+                </Typography>
+              </Box>
+
+              {tenant?.allow_discount !== false && cart.length > 0 && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 40 }}>
+                  <Typography variant="body2" color="text.primary" sx={{ opacity: 0.8 }}>
+                    Desconto:
+                  </Typography>
+                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", position: "relative" }}>
+                    <TextField
+                      value={formatBRLFromCents(discountCents)}
+                      size="small"
+                      placeholder="0,00"
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        const cents = digits === "" ? 0 : Number(digits);
+                        const maxCents = Math.round(cartTotal * 100);
+                        setDiscountCents(Math.min(maxCents, cents));
+                      }}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.75rem" }}>
+                                R$
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: {
+                          style: { textAlign: "right", fontWeight: 700, fontSize: "0.85rem", padding: "4px 8px" }
+                        }
+                      }}
+                      sx={{ width: 130 }}
+                      error={isDiscountExceeded}
+                      FormHelperTextProps={{
+                        sx: {
+                          position: "absolute",
+                          top: "100%",
+                          right: 0,
+                          whiteSpace: "nowrap",
+                          margin: 0,
+                          fontSize: "0.68rem",
+                          zIndex: 10
+                        }
+                      }}
+                      helperText={
+                        isDiscountExceeded
+                          ? `Desconto máximo: R$ ${((cartTotal * (tenant?.max_discount_percentage ?? 100)) / 100).toFixed(2)} (${(tenant?.max_discount_percentage ?? 100)}%)`
+                          : ""
+                      }
+                    />
+                  </Box>
+                </Box>
+              )}
+
+              {/* Extra spacing when helper text is shown to prevent overlapping/shifts */}
+              <Box sx={{ height: isDiscountExceeded ? 14 : 0, transition: "height 0.2s" }} />
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
+                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
+                  Total a Pagar:
+                </Typography>
+                <Typography variant="h4" color="primary" sx={{ fontWeight: 900 }}>
+                  R$ {(cartTotal - discountAmount).toFixed(2)}
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ display: "flex", gap: 1.5 }}>
@@ -655,7 +732,7 @@ export default function POSInterface() {
                 color="success"
                 fullWidth
                 size="large"
-                disabled={cart.length === 0}
+                disabled={cart.length === 0 || isDiscountExceeded}
                 onClick={() => setIsCheckoutOpen(true)}
                 sx={{
                   flex: 2,
@@ -1515,7 +1592,8 @@ export default function POSInterface() {
           open={isCheckoutOpen}
           onClose={() => setIsCheckoutOpen(false)}
           cart={cart}
-          totalAmount={cartTotal}
+          totalAmount={cartTotal - discountAmount}
+          discountAmount={discountAmount}
           clientId={selectedClientId}
           appointmentId={selectedAppointmentId}
           onSuccess={clearCart}
