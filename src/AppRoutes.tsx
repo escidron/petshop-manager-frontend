@@ -39,7 +39,6 @@ export const ProtectedRoute = ({ children }: Props) => {
   const { user, checking } = useAuth();
   const location = useLocation();
 
-  // Show full screen loader ONLY on initial load (when user is null)
   if (checking && !user) {
     return <LoadingScreen />;
   }
