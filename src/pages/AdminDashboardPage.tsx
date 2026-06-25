@@ -21,6 +21,12 @@ import {
   CircularProgress,
   IconButton,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  Switch,
 } from "@mui/material";
 import {
   Search,
@@ -35,6 +41,9 @@ import {
   TrendingUp,
   Activity,
   CheckCircle,
+  X,
+  Shield,
+  HelpCircle,
 } from "lucide-react";
 import apiClient from "../api/apiClient";
 import dayjs from "dayjs";
@@ -55,6 +64,7 @@ interface TenantDashboardData {
   payment_status: string;
   current_period_end: string | null;
   onboarding_step: string;
+  feature_flags?: Record<string, any>;
 }
 
 export default function AdminDashboardPage() {
@@ -63,6 +73,8 @@ export default function AdminDashboardPage() {
   const [search, setSearch] = useState("");
   const [paymentFilter, setPaymentFilter] = useState("all");
   const [planFilter, setPlanFilter] = useState("all");
+  const [selectedTenant, setSelectedTenant] = useState<TenantDashboardData | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
 
   const fetchData = async () => {
     setLoading(true);
@@ -79,6 +91,37 @@ export default function AdminDashboardPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  const handleRowClick = (tenant: TenantDashboardData) => {
+    setSelectedTenant(tenant);
+  };
+
+  const handleToggleFlag = async (flagName: string, enabled: boolean) => {
+    if (!selectedTenant) return;
+    setIsUpdating(true);
+    try {
+      const currentFlags = selectedTenant.feature_flags || {};
+      const newFlags = { ...currentFlags, [flagName]: enabled };
+
+      await apiClient.patch(`/api/v1/tenants/${selectedTenant.id}/admin`, {
+        feature_flags: newFlags,
+      });
+
+      // Update local state
+      setData((prevData) =>
+        prevData.map((item) =>
+          item.id === selectedTenant.id
+            ? { ...item, feature_flags: newFlags }
+            : item
+        )
+      );
+      setSelectedTenant((prev) => (prev ? { ...prev, feature_flags: newFlags } : null));
+    } catch (error) {
+      console.error("Error updating tenant feature flags:", error);
+    } finally {
+      setIsUpdating(false);
+    }
+  };
 
   // Format phone helper
   const formatPhone = (phoneNum: string) => {
@@ -417,9 +460,11 @@ export default function AdminDashboardPage() {
               filteredData.map((row) => (
                 <TableRow
                   key={row.id}
+                  onClick={() => handleRowClick(row)}
                   sx={{
                     "&:hover": { bgcolor: "action.hover" },
                     transition: "background-color 0.15s ease",
+                    cursor: "pointer",
                   }}
                 >
                   {/* Name & ID */}
@@ -522,6 +567,133 @@ export default function AdminDashboardPage() {
           </TableBody>
         </Table>
       </TableContainer>
+
+      {/* Dialog de Detalhes e Configurações */}
+      <Dialog
+        open={Boolean(selectedTenant)}
+        onClose={() => setSelectedTenant(null)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 4,
+            boxShadow: "0px 20px 40px rgba(0, 0, 0, 0.15)",
+          }
+        }}
+      >
+        <DialogTitle sx={{ m: 0, p: 3, display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "primary.main", color: "white" }}>
+          <Box display="flex" alignItems="center" gap={1.5}>
+            <Building size={24} />
+            <Typography variant="h6" sx={{ fontWeight: 800 }}>
+              Gerenciar Empresa
+            </Typography>
+          </Box>
+          <IconButton onClick={() => setSelectedTenant(null)} sx={{ color: "white" }} disabled={isUpdating}>
+            <X size={20} />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 4, bgcolor: "background.default" }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {/* Header com Nome e ID */}
+            <Box sx={{ mt: 1 }}>
+              <Typography variant="h5" sx={{ fontWeight: 800, color: "text.primary" }}>
+                {selectedTenant?.name}
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.6 }}>
+                ID da Empresa: #{selectedTenant?.id}
+              </Typography>
+            </Box>
+
+            {/* Informações Gerais Card */}
+            <Box sx={{
+              p: 2.5,
+              borderRadius: 3,
+              bgcolor: "background.paper",
+              border: "1px solid",
+              borderColor: "divider",
+              boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.02)"
+            }}>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "primary.main", mb: 2, letterSpacing: 1.1, textTransform: "uppercase", fontSize: "11px" }}>
+                Informações Gerais
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                <Box display="flex" alignItems="center" justifyContent="space-between" sx={{ pb: 1.5, borderBottom: "1px solid", borderColor: "divider" }}>
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Shield size={16} style={{ opacity: 0.6 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>Plano Atual</Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "text.primary" }}>
+                    {selectedTenant?.plan_name}
+                  </Typography>
+                </Box>
+                <Box display="flex" alignItems="center" justifyContent="space-between">
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Mail size={16} style={{ opacity: 0.6 }} />
+                    <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>E-mail</Typography>
+                  </Box>
+                  <Typography variant="body1" sx={{ fontWeight: 600, color: "text.primary" }}>
+                    {selectedTenant?.email || "-"}
+                  </Typography>
+                </Box>
+              </Box>
+            </Box>
+
+            {/* Feature Flags Section */}
+            <Box>
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "primary.main", mb: 2, letterSpacing: 1.1, textTransform: "uppercase", fontSize: "11px" }}>
+                Sinalizadores de Funcionalidades
+              </Typography>
+              
+              <Box sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                p: 2.5,
+                borderRadius: 3,
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.02)",
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  boxShadow: "0px 6px 16px rgba(0, 0, 0, 0.04)"
+                }
+              }}>
+                <Box display="flex" alignItems="flex-start" gap={2} sx={{ pr: 2 }}>
+                  <Box sx={{ mt: 0.5, p: 1, borderRadius: 2, bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.main", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <HelpCircle size={20} />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+                      Canal de Suporte
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: "text.primary", opacity: 0.7, mt: 0.5 }}>
+                      Habilita o canal de suporte técnico e ajuda diretamente no menu lateral deste inquilino.
+                    </Typography>
+                  </Box>
+                </Box>
+                <Switch
+                  checked={!!selectedTenant?.feature_flags?.support}
+                  onChange={(e) => handleToggleFlag("support", e.target.checked)}
+                  disabled={isUpdating}
+                  color="primary"
+                />
+              </Box>
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, bgcolor: "background.default", borderTop: "1px solid", borderColor: "divider" }}>
+          <Button
+            onClick={() => setSelectedTenant(null)}
+            variant="contained"
+            color="primary"
+            sx={{ fontWeight: 800, px: 4, py: 1, borderRadius: 2.5 }}
+          >
+            Fechar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }
