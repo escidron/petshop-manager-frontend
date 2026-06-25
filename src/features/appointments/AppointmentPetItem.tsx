@@ -79,7 +79,7 @@ export default function AppointmentPetItem({
 
   // Derived filtered services (matching size/coat type + prioritizing packages)
   const sortedAndFilteredServices = useMemo(() => {
-    let baseServices = services ?? [];
+    let baseServices = (services ?? []).filter((s) => s.is_active);
     if (!showAllServices) {
       baseServices = getServicesForPet(baseServices, currentPet);
     }
