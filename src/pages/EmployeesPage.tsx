@@ -186,17 +186,25 @@ export default function EmployeesPage() {
                   />
                 </TableCell>
                 <TableCell align="right">
-                  {row.is_active && (
-                    <IconButton size="small" onClick={() => handleCopyLink(row)} color="info" title="Copiar link da agenda">
-                      <Calendar size={16} />
+                  <Box sx={{ display: "flex", gap: 1, justifyContent: "flex-end", alignItems: "center" }}>
+                    {row.is_active && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleCopyLink(row)}
+                        startIcon={<Calendar size={14} />}
+                        sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem" }}
+                      >
+                        Compartilhar Agenda
+                      </Button>
+                    )}
+                    <IconButton size="small" onClick={() => handleEdit(row)} color="primary">
+                      <Edit2 size={16} />
                     </IconButton>
-                  )}
-                  <IconButton size="small" onClick={() => handleEdit(row)} color="primary">
-                    <Edit2 size={16} />
-                  </IconButton>
-                  <IconButton size="small" onClick={() => handleDeleteClick(row)} color="error">
-                    <Trash2 size={16} />
-                  </IconButton>
+                    <IconButton size="small" onClick={() => handleDeleteClick(row)} color="error">
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
                 </TableCell>
               </TableRow>
             ))}
