@@ -165,7 +165,7 @@ export default function InventoryReportPage({
         </Typography>
       )}
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <ReportCard
           icon={<Package size={20} />}
           label="TOTAL DE PRODUTOS"
