@@ -322,6 +322,10 @@ const Dashboard = () => {
                                 color: "white !important",
                                 backgroundColor: "primary.main !important",
                               },
+                              "&.Mui-disabled": {
+                                color: "#b8bbc2 !important",
+                                opacity: 0.4,
+                              },
                             },
                           }}
                         />

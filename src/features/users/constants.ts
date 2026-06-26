@@ -1,8 +1,9 @@
-import type { UserForm } from "./UserLoginForm";
+import type { UserFormData } from "./types";
 
-export const DEFAULT_USER_FORM: UserForm = {
+export const DEFAULT_USER_FORM: Partial<UserFormData> = {
   name: "",
   email: "",
   password: "",
   confirmPassword: "",
+  acceptTerms: false,
 };

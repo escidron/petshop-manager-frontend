@@ -110,6 +110,7 @@ const ProductForm = ({
                     error={!!fieldState.error}
                     helperText={fieldState.error?.message}
                     placeholder="ex: Ração Premium 10kg"
+                    inputProps={{ maxLength: 80 }}
                   />
                 )}
               />
@@ -349,7 +350,7 @@ const ProductForm = ({
                     name="sku"
                     control={control}
                     render={({ field }) => (
-                      <CustomTextField {...field} placeholder="ex: RAC-001" />
+                      <CustomTextField {...field} placeholder="ex: RAC-001" inputProps={{ maxLength: 50 }} />
                     )}
                   />
                 </FormControl>
@@ -361,7 +362,7 @@ const ProductForm = ({
                   <Controller
                     name="barcode"
                     control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 7891020304050" />}
+                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 7891020304050" inputProps={{ maxLength: 100 }} />}
                   />
                 </FormControl>
                 <FormControl fullWidth>
@@ -369,7 +370,7 @@ const ProductForm = ({
                   <Controller
                     name="ncm"
                     control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="0000.00.00" />}
+                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="0000.00.00" inputProps={{ maxLength: 20 }} />}
                   />
                 </FormControl>
               </Box>
@@ -380,7 +381,7 @@ const ProductForm = ({
                   <Controller
                     name="cest"
                     control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="00.000.00" />}
+                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="00.000.00" inputProps={{ maxLength: 20 }} />}
                   />
                 </FormControl>
                 <FormControl fullWidth>
@@ -389,12 +390,12 @@ const ProductForm = ({
                     <Controller
                       name="cfop"
                       control={control}
-                      render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="CFOP" />}
+                      render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="CFOP" inputProps={{ maxLength: 20 }} />}
                     />
                     <Controller
                       name="csosn"
                       control={control}
-                      render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="CSOSN" />}
+                      render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="CSOSN" inputProps={{ maxLength: 20 }} />}
                     />
                   </Box>
                 </FormControl>
@@ -406,7 +407,7 @@ const ProductForm = ({
                   <Controller
                     name="cst_pis"
                     control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 01" />}
+                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 01" inputProps={{ maxLength: 20 }} />}
                   />
                 </FormControl>
                 <FormControl fullWidth>
@@ -414,7 +415,7 @@ const ProductForm = ({
                   <Controller
                     name="cst_cofins"
                     control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 01" />}
+                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 01" inputProps={{ maxLength: 20 }} />}
                   />
                 </FormControl>
               </Box>
@@ -482,6 +483,7 @@ const ProductForm = ({
                       multiline
                       rows={4}
                       placeholder="Detalhes do produto..."
+                      inputProps={{ maxLength: 500 }}
                     />
                   )}
                 />

@@ -327,23 +327,11 @@ const SignupPage = () => {
 
               {step === 2 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
-                  <UserSignupForm onSubmit={handleSubmitUser} defaultValues={userData || {}} />
-                  <Typography variant="caption" sx={{ mt: 3, display: "block", textAlign: "center", color: "text.primary" }}>
-                    Ao continuar, você concorda com nossos{" "}
-                    <Button 
-                      onClick={() => setLegalModal({ open: true, type: "terms" })}
-                      sx={{ p: 0, minWidth: 0, color: "inherit", fontWeight: 700, fontSize: "inherit", textTransform: "none", verticalAlign: "baseline" }}
-                    >
-                      Termos de Uso
-                    </Button>{" "}
-                    e{" "}
-                    <Button 
-                      onClick={() => setLegalModal({ open: true, type: "privacy" })}
-                      sx={{ p: 0, minWidth: 0, color: "inherit", fontWeight: 700, fontSize: "inherit", textTransform: "none", verticalAlign: "baseline" }}
-                    >
-                      Política de Privacidade
-                    </Button>.
-                  </Typography>
+                  <UserSignupForm 
+                    onSubmit={handleSubmitUser} 
+                    defaultValues={userData || {}} 
+                    onOpenLegal={(type) => setLegalModal({ open: true, type })}
+                  />
                 </CustomCard>
               )}
 
