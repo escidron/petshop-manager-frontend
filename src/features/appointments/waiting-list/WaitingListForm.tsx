@@ -23,6 +23,7 @@ import type { Pet } from "../../pets/types";
 import type { Service } from "../../tenant_services/types";
 import type { WaitingListEntry, WaitingListPeriod } from "./types";
 import WaitingListPetItem from "./WaitingListPetItem";
+import { useAuth } from "../../../hooks/useAuth";
 
 type Props = {
   initialData?: WaitingListEntry;
@@ -49,10 +50,13 @@ export default function WaitingListForm({
   onCreatePet,
   onCreateService,
 }: Props) {
+  const { tenant } = useAuth();
+  const workingHours = tenant?.working_hours ?? null;
   const {
     control,
     handleSubmit,
     setValue,
+    formState: { errors },
   } = useForm<any>({
     resolver: zodResolver(waitingListSchema),
     defaultValues: {
@@ -162,7 +166,47 @@ export default function WaitingListForm({
                   format="DD/MM/YYYY"
                   value={field.value ? dayjs(field.value) : null}
                   onChange={(val) => field.onChange(val?.toISOString() || null)}
-                  slotProps={{ textField: { size: "small", fullWidth: true } }}
+                  shouldDisableDate={(date) => {
+                    if (!workingHours) return false;
+                    return workingHours[String(date.day())]?.is_open === false;
+                  }}
+                  dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                    return days[day.day()];
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#3d4048 !important",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#3d4048 !important",
+                          "&.Mui-selected": {
+                            color: "white !important",
+                          },
+                          "&.Mui-disabled": {
+                            color: "#b8bbc2 !important",
+                            opacity: 0.4,
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#3d4048 !important",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#3d4048 !important",
+                        },
+                      },
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                      inputMode: "numeric",
+                    },
+                  }}
                 />
               </LocalizationProvider>
             )}
@@ -188,7 +232,7 @@ export default function WaitingListForm({
       </Box>
 
       {/* OBSERVAÇÕES */}
-      <FormControl fullWidth>
+      <FormControl fullWidth error={!!errors.notes}>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Observações</FormLabel>
         <Controller
           name="notes"
@@ -199,6 +243,8 @@ export default function WaitingListForm({
               multiline 
               rows={3} 
               placeholder="ex: Adicionais, comportamento, alergias, etc." 
+              error={!!errors.notes}
+              helperText={errors.notes?.message as string}
             />
           )}
         />

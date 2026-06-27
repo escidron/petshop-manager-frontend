@@ -153,9 +153,11 @@ const AppointmentDetailsModal = ({
   const [localAssignments, setLocalAssignments] = useState<
     Record<string, number | null>
   >({});
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   useEffect(() => {
     if (open && appointment) {
+      setShowAllNotes(false);
       const initial: Record<string, number | null> = {};
       appointment.items.forEach((item) => {
         item.services.forEach((svc) => {
@@ -247,9 +249,28 @@ const AppointmentDetailsModal = ({
                       Observações do agendamento
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ ml: 3 }}>
-                    {appointment.notes}
+                  <Typography variant="body2" sx={{ ml: 3, wordBreak: "break-word", whiteSpace: "pre-line" }}>
+                    {appointment.notes.length > 180 && !showAllNotes
+                      ? `${appointment.notes.slice(0, 180)}...`
+                      : appointment.notes}
                   </Typography>
+                  {appointment.notes.length > 180 && (
+                    <Typography
+                      variant="caption"
+                      color="primary.main"
+                      sx={{
+                        ml: 3,
+                        cursor: "pointer",
+                        display: "inline-block",
+                        mt: 0.5,
+                        fontWeight: 700,
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                      onClick={() => setShowAllNotes(!showAllNotes)}
+                    >
+                      {showAllNotes ? "Mostrar menos" : "Mostrar mais"}
+                    </Typography>
+                  )}
                 </Box>
               )}
               {appointment.warnings && appointment.warnings.length > 0 && (
@@ -450,7 +471,7 @@ const AppointmentDetailsModal = ({
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Typography variant="h6" fontWeight={500}>
+                    <Typography variant="h6" fontWeight={500} noWrap sx={{ maxWidth: "250px" }}>
                       {item.pet.name}
                     </Typography>
 
@@ -576,7 +597,7 @@ const AppointmentDetailsModal = ({
                               color={theme.palette.text.disabled}
                               size={16}
                             />
-                            <Typography variant="body2">{s.name}</Typography>
+                            <Typography variant="body2" noWrap sx={{ maxWidth: "250px" }}>{s.name}</Typography>
                             {coveredServiceKeys.has(key) && (
                               <Chip
                                 label="pacote"

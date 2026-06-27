@@ -223,7 +223,13 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
             )}
             <List sx={{ px: 1, py: 0 }}>
               {section.items
-                .filter((item) => !item.ownerOnly || isOwner)
+                .filter((item) => {
+                  if (item.ownerOnly && !isOwner) return false;
+                  if (item.id === "support") {
+                    return !!tenant?.feature_flags?.support;
+                  }
+                  return true;
+                })
                 .map((item) => (
                   <SidebarItem
                     key={item.id}

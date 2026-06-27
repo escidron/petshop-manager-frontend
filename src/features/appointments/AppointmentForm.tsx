@@ -207,6 +207,10 @@ export default function AppointmentForm({
                           "&.Mui-selected": {
                             color: "white !important",
                           },
+                          "&.Mui-disabled": {
+                            color: "#b8bbc2 !important",
+                            opacity: 0.4,
+                          },
                         },
                         "& .MuiPickersCalendarHeader-label": {
                           color: "#3d4048 !important",
@@ -423,7 +427,7 @@ export default function AppointmentForm({
       </FormControl>
 
       {/* OBSERVAÇÕES */}
-      <FormControl fullWidth>
+      <FormControl fullWidth error={!!errors.notes}>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Observações
         </FormLabel>
@@ -436,6 +440,8 @@ export default function AppointmentForm({
               multiline
               rows={4}
               placeholder="ex: Adicionais, comportamento, alergias, etc."
+              error={!!errors.notes}
+              helperText={errors.notes?.message}
             />
           )}
         />

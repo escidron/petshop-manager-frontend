@@ -111,7 +111,15 @@ export default function WaitingListPetItem({
           control={control}
           render={({ field }) => (
             <Autocomplete
-              sx={{ flex: 1 }}
+              sx={{
+                flex: 1,
+                "& .MuiAutocomplete-tag": {
+                  maxWidth: "150px",
+                  textOverflow: "ellipsis",
+                  overflow: "hidden",
+                  whiteSpace: "nowrap",
+                },
+              }}
               disabled={!currentPet}
               noOptionsText="Nenhum serviço cadastrado"
               multiple
@@ -156,7 +164,22 @@ export default function WaitingListPetItem({
                           {formatServiceLabel(option)}
                         </Typography>
                         {option.description && (
-                          <div style={{ fontSize: 12, opacity: 0.6 }}>{option.description}</div>
+                          <div
+                            style={{
+                              fontSize: 12,
+                              opacity: 0.6,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              display: "-webkit-box",
+                              WebkitLineClamp: 2,
+                              WebkitBoxOrient: "vertical",
+                              lineHeight: "1.3",
+                              maxWidth: "380px",
+                              wordBreak: "break-word",
+                            }}
+                          >
+                            {option.description}
+                          </div>
                         )}
                       </Box>
                     </Box>

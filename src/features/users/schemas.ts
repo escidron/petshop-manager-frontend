@@ -20,6 +20,10 @@ export const userSchema = z
     confirmPassword: z
       .string()
       .min(1, "Confirmação de senha é obrigatória"),
+
+    acceptTerms: z
+      .boolean()
+      .refine((val) => val === true, "Você deve aceitar os termos de uso e política de privacidade"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "As senhas não coincidem",

@@ -118,16 +118,28 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           )}
         </Box>
 
-        {/* Client & Pet Info */}
-        <Box sx={{ flex: 1, minWidth: { xs: "calc(100% - 70px)", sm: 0 }, order: { xs: 2, sm: 2 } }}>
-          <Typography fontSize={{ xs: "15px", sm: "16px" }} fontWeight={600} noWrap>
+        <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden", order: { xs: 2, sm: 2 } }}>
+          <Typography
+            fontSize={{ xs: "15px", sm: "16px" }}
+            fontWeight={600}
+            noWrap
+            sx={{ maxWidth: { xs: "160px", sm: "240px", md: "340px" } }}
+          >
             {appointment.client.name}
           </Typography>
 
           <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
             {appointment.items.map((item, index) => (
               <Box key={item.id} sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
-                <Typography variant="body2" color="text.primary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
+                <Typography
+                  variant="body2"
+                  color="text.primary"
+                  noWrap
+                  sx={{
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                    maxWidth: { xs: "100px", sm: "180px" },
+                  }}
+                >
                   {item.pet.name}
                 </Typography>
                 {index < appointment.items.length - 1 && (

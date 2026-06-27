@@ -232,7 +232,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
   return (
     <Box>
       {/* KPI Cards Row */}
-      <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: { xs: "wrap", md: "nowrap" } }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
         <Paper
           variant="outlined"
           sx={{
@@ -359,7 +359,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
       {/* Breakdowns 3 Columns */}
       <Grid container spacing={3}>
         {/* Column 1: Forma de Pagamento */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 320 }}>
             <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
               <DollarSign size={16} />
@@ -393,7 +393,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
         </Grid>
 
         {/* Column 2: Vendas por Tipo */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 320 }}>
             <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
               <Briefcase size={16} />
@@ -424,7 +424,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
         </Grid>
 
         {/* Column 3: Vendas por Dia */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 320, display: "flex", flexDirection: "column" }}>
             <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
               <TrendingUp size={16} />

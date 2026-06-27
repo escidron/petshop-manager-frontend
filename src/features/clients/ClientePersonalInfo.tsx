@@ -124,8 +124,16 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
           >
             <User size={32} />
           </Box>
-          <Box>
-            <Typography variant="h5" fontWeight={700} color="text.primary">
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography
+              variant="h5"
+              fontWeight={700}
+              color="text.primary"
+              noWrap
+              sx={{
+                maxWidth: { xs: "180px", sm: "240px", md: "280px" },
+              }}
+            >
               {client.name}
             </Typography>
             <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.5 }}>

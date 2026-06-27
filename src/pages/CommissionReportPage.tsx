@@ -229,7 +229,7 @@ export default function CommissionReportPage({
           display: "flex",
           gap: 2,
           mb: 4,
-          flexWrap: { xs: "wrap", md: "nowrap" },
+          flexWrap: "wrap",
         }}
       >
         <CommissionCard

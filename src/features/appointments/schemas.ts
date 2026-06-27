@@ -18,7 +18,7 @@ export const appointmentSchema = z.object({
 
   notes: z
     .string()
-    .max(500, "Observações muito longas")
+    .max(5000, "Observações muito longas (máximo 5000 caracteres)")
     .optional(),
 
   items: z

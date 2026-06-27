@@ -1,4 +1,4 @@
-import { Box, FormControl, FormLabel, Stack, Typography } from "@mui/material";
+import { Box, FormControl, FormLabel, Stack, Typography, FormControlLabel, Checkbox, FormHelperText } from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
 import { Eye, EyeOff, Lock, Mail, User } from "lucide-react";
@@ -13,8 +13,9 @@ import { useState } from "react";
 type Props = {
   onSubmit: (data: UserFormData) => void;
   defaultValues?: Partial<UserFormData>;
+  onOpenLegal?: (type: "terms" | "privacy") => void;
 };
-const UserSignupForm = ({ onSubmit, defaultValues }: Props) => {
+const UserSignupForm = ({ onSubmit, defaultValues, onOpenLegal }: Props) => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
@@ -159,6 +160,70 @@ const UserSignupForm = ({ onSubmit, defaultValues }: Props) => {
             />
           )}
         />
+      </FormControl>
+
+      {/* Checkbox de Termos e Privacidade */}
+      <FormControl error={!!errors.acceptTerms} required sx={{ mt: 1 }}>
+        <Controller
+          name="acceptTerms"
+          control={control}
+          render={({ field: { value, onChange } }) => (
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={!!value}
+                  onChange={(e) => onChange(e.target.checked)}
+                  disableRipple
+                  sx={{ color: "primary.main", "&.Mui-checked": { color: "primary.main" } }}
+                />
+              }
+              label={
+                <Typography variant="body2" sx={{ color: "text.primary" }}>
+                  Eu li e concordo com os{" "}
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onOpenLegal?.("terms");
+                    }}
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      "&:hover": { textDecoration: "underline" },
+                    }}
+                  >
+                    Termos de Uso
+                  </Typography>{" "}
+                  e a{" "}
+                  <Typography
+                    component="span"
+                    variant="body2"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      onOpenLegal?.("privacy");
+                    }}
+                    sx={{
+                      color: "primary.main",
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      "&:hover": { textDecoration: "underline" },
+                    }}
+                  >
+                    Política de Privacidade
+                  </Typography>
+                  .
+                </Typography>
+              }
+            />
+          )}
+        />
+        {errors.acceptTerms && (
+          <FormHelperText sx={{ mx: 0 }}>{errors.acceptTerms.message}</FormHelperText>
+        )}
       </FormControl>
 
       <Button

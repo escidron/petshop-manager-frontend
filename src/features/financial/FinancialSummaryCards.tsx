@@ -70,7 +70,7 @@ export default function FinancialSummaryCards({ summary, isLoading = false }: Pr
         display: "flex",
         gap: 2,
         mb: 4,
-        flexWrap: { xs: "wrap", md: "nowrap" },
+        flexWrap: "wrap",
       }}
     >
       {isLoading ? (

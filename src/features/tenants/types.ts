@@ -43,6 +43,7 @@ export type Tenant = {
   max_simultaneous_appointments?: number | null;
   allow_discount?: boolean;
   max_discount_percentage?: number | null;
+  feature_flags?: Record<string, any> | null;
 };
 
 export type TenantOption = {

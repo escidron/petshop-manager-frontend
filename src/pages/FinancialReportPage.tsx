@@ -236,7 +236,7 @@ export default function FinancialReportPage({
         Relatório Financeiro
       </Typography>
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: { xs: "wrap", md: "nowrap" } }}>
+      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
         <ReportCard
           icon={<DollarSign size={20} />}
           label="FATURAMENTO"
