@@ -153,7 +153,7 @@ export default function PetPhotosModal({ pet, open, onClose, onRefresh }: Props)
         ) : (
           <Grid container spacing={2}>
             {pet.photos.map((photo, index) => (
-              <Grid item xs={12} sm={6} md={4} key={photo.id}>
+              <Grid size={{ xs: 12, sm: 6, md: 4 }} key={photo.id}>
                 <Card
                   sx={{
                     position: "relative",
