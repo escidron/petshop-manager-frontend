@@ -8,6 +8,15 @@ export type PetAgeUnit = "days" | "weeks" | "months" | "years";
 export type PetSpecies = (typeof PET_SPECIES)[number]["value"];
 export type CoatType = (typeof COAT_TYPES)[number]["value"];
 
+export type PetPhoto = {
+  id: number;
+  pet_id: number;
+  photo_url: string;
+  is_profile: boolean;
+  category: string;
+  created_at: string;
+};
+
 export type Pet = {
   id: number;
   tenant_id: number;
@@ -36,6 +45,7 @@ export type Pet = {
 
   // Info derivada
   owner_name?: string | null;
+  photos?: PetPhoto[];
 };
 
 export type PetFormData = z.infer<typeof petSchema>;

@@ -9,6 +9,7 @@ import PetDeleteModal from "../features/pets/PetDeleteModal";
 import { useClient } from "../hooks/useClient";
 import { deletePet } from "../api/services/pets";
 import PetFormModal from "../features/pets/PetFormModal";
+import PetPhotosModal from "../features/pets/PetPhotosModal";
 import type { Pet } from "../features/pets/types";
 import type { Package as PkgTemplate } from "../features/packages/types";
 import type { ClientPackage } from "../features/client_packages/types";
@@ -43,6 +44,8 @@ export default function ClientDetailsPage() {
   const [sellModal, setSellModal] = useState<{ open: boolean; petId?: number; packageId?: number }>({
     open: false,
   });
+  const [photosModalOpen, setPhotosModalOpen] = useState(false);
+  const [selectedPetForPhotos, setSelectedPetForPhotos] = useState<Pet | null>(null);
 
   useEffect(() => {
     listPackages().then(setPackageTemplates).catch(() => {});
@@ -143,6 +146,11 @@ export default function ClientDetailsPage() {
                 pet={pet}
                 onEdit={(p) => setPetModal({ open: true, mode: "edit", pet: p })}
                 onDelete={(p) => setPetToDelete(p)}
+                onPhotoUploadSuccess={refetchPets}
+                onViewPhotos={(p) => {
+                  setSelectedPetForPhotos(p);
+                  setPhotosModalOpen(true);
+                }}
               />
 
               {/* Pacotes do pet */}
@@ -247,6 +255,18 @@ export default function ClientDetailsPage() {
           setClientModal({ open: false });
         }}
       />
+
+      {selectedPetForPhotos && (
+        <PetPhotosModal
+          pet={pets.find((p) => p.id === selectedPetForPhotos.id) || selectedPetForPhotos}
+          open={photosModalOpen}
+          onClose={() => {
+            setPhotosModalOpen(false);
+            setSelectedPetForPhotos(null);
+          }}
+          onRefresh={refetchPets}
+        />
+      )}
     </Box>
   );
 }

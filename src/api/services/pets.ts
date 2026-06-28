@@ -1,4 +1,4 @@
-import type { Pet } from "../../features/pets/types";
+import type { Pet, PetPhoto } from "../../features/pets/types";
 import apiClient from "../apiClient";
 
 interface SavePetPayload extends Partial<Pet> {
@@ -41,3 +41,38 @@ export const deletePet = async (petId: number) => {
   await apiClient.delete(`/api/v1/pets/${petId}`, {
   });
 };
+
+export const uploadPetPhoto = async (
+  petId: number,
+  file: File,
+  isProfile: boolean = false,
+  category: string = "general"
+) => {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("is_profile", String(isProfile));
+  formData.append("category", category);
+
+  const response = await apiClient.post<PetPhoto>(
+    `/api/v1/pets/${petId}/photos`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    }
+  );
+  return response.data;
+};
+
+export const deletePetPhoto = async (petId: number, photoId: number) => {
+  await apiClient.delete(`/api/v1/pets/${petId}/photos/${photoId}`);
+};
+
+export const setProfilePhoto = async (petId: number, photoId: number) => {
+  const response = await apiClient.patch<PetPhoto>(
+    `/api/v1/pets/${petId}/photos/${photoId}/set-profile`
+  );
+  return response.data;
+};
+
