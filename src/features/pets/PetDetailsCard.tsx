@@ -5,18 +5,59 @@ import {
   Divider,
   IconButton,
   Typography,
+  CircularProgress,
 } from "@mui/material";
-import { Mars, Pencil, Trash2, Venus } from "lucide-react";
+import { Mars, Pencil, Trash2, Venus, Camera, Image } from "lucide-react";
 import theme from "../../theme";
 import type { Pet } from "./types";
+import { useRef, useState } from "react";
+import { uploadPetPhoto } from "../../api/services/pets";
+import { useToast } from "../../hooks/useToast";
 
 type Props = {
   pet: Pet;
   onEdit: (pet: Pet) => void;
   onDelete: (pet: Pet) => void;
+  onPhotoUploadSuccess?: () => void;
+  onViewPhotos?: (pet: Pet) => void;
 };
 
-const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
+const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPhotos }: Props) => {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const toast = useToast();
+
+  const profilePhoto = pet.photos?.find((p) => p.is_profile);
+
+  const handleImageClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Apenas imagens
+    if (!file.type.startsWith("image/")) {
+      toast.error("Por favor, selecione um arquivo de imagem válido.");
+      return;
+    }
+
+    try {
+      setUploading(true);
+      await uploadPetPhoto(pet.id, file, true, "profile");
+      toast.success("Foto de perfil atualizada com sucesso!");
+      if (onPhotoUploadSuccess) {
+        onPhotoUploadSuccess();
+      }
+    } catch (error) {
+      console.error("Erro ao fazer upload da foto:", error);
+      toast.error("Erro ao fazer upload da foto de perfil.");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   return (
     <CustomCard
       sx={{
@@ -29,23 +70,77 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
       }}
     >
       <Box
+        onClick={handleImageClick}
         sx={{
           height: "100%",
-          borderRadius: 1,
+          borderRadius: 3,
           aspectRatio: 1,
+          position: "relative",
+          cursor: "pointer",
+          overflow: "hidden",
+          "&:hover .upload-overlay": {
+            opacity: 1,
+          },
         }}
       >
-        <Box sx={{ height: "100%",backgroundColor: "text.primary",borderRadius: 3 }}>
-          <img
-            style={{ height: "100%", width: "100%" }}
-            alt="pet photo"
-            src={
-              pet.species === "Canino"
-                ? "/dog_background.png"
-                : "/cat_background.png"
-            }
-          />
+        <input
+          type="file"
+          ref={fileInputRef}
+          style={{ display: "none" }}
+          accept="image/*"
+          onChange={handleFileChange}
+          disabled={uploading}
+        />
+
+        <Box sx={{ height: "100%", backgroundColor: "text.primary", borderRadius: 3 }}>
+          {uploading ? (
+            <Box
+              sx={{
+                display: "flex",
+                height: "100%",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "rgba(0, 0, 0, 0.5)",
+              }}
+            >
+              <CircularProgress size={24} color="inherit" />
+            </Box>
+          ) : (
+            <img
+              style={{ height: "100%", width: "100%", objectFit: "cover", borderRadius: 12 }}
+              alt="pet photo"
+              src={
+                profilePhoto
+                  ? profilePhoto.photo_url
+                  : pet.species === "Canino"
+                  ? "/dog_background.png"
+                  : "/cat_background.png"
+              }
+            />
+          )}
         </Box>
+
+        {!uploading && (
+          <Box
+            className="upload-overlay"
+            sx={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              bgcolor: "rgba(0, 0, 0, 0.4)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              opacity: 0,
+              transition: "opacity 0.2s ease-in-out",
+              borderRadius: 3,
+            }}
+          >
+            <Camera color="#fff" size={24} />
+          </Box>
+        )}
       </Box>
       <Box sx={{ width: "100%" }}>
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
@@ -114,6 +209,18 @@ const PetDetailsCard = ({ pet, onEdit, onDelete }: Props) => {
               gap: 1,
             }}
           >
+            {onViewPhotos && (
+              <IconButton
+                size="medium"
+                sx={{
+                  color: "info.main",
+                }}
+                onClick={() => onViewPhotos(pet)}
+              >
+                <Image size={16} />
+              </IconButton>
+            )}
+
             <IconButton
               size="medium"
               sx={{
