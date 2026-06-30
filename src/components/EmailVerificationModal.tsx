@@ -229,7 +229,7 @@ export default function EmailVerificationModal({
             <Typography variant="h6" sx={{ fontWeight: 700, color: "#059669", textAlign: "center" }}>
               E-mail verificado!
             </Typography>
-            <Typography variant="body2" sx={{ color: "text.secondary", textAlign: "center" }}>
+            <Typography variant="body2" sx={{ color: "text.primary", textAlign: "center" }}>
               Sua conta foi ativada com sucesso. O banner sumirá em instantes.
             </Typography>
           </Box>
