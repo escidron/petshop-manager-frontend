@@ -16,7 +16,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, Calendar, MessageCircle } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, MessageCircle } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
 import EmployeeFormModal from "../features/employees/EmployeeFormModal";
 import EmployeeDeleteModal from "../features/employees/EmployeeDeleteModal";
