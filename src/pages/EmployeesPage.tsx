@@ -16,7 +16,7 @@ import {
   Skeleton,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
-import { Plus, Search, Edit2, Trash2, Calendar } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Calendar, MessageCircle } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
 import EmployeeFormModal from "../features/employees/EmployeeFormModal";
 import EmployeeDeleteModal from "../features/employees/EmployeeDeleteModal";
@@ -44,14 +44,28 @@ export default function EmployeesPage() {
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | undefined>(undefined);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleCopyLink = (employee: Employee) => {
+  const handleShareCalendar = (employee: Employee) => {
     if (!employee.schedule_token) {
       toast.error("Funcionário sem token de agenda.");
       return;
     }
     const url = `${window.location.origin}/shared-schedule/${employee.schedule_token}`;
-    navigator.clipboard.writeText(url);
-    toast.success(`Link da agenda de ${employee.name} copiado!`);
+    const text = `Olá! Segue o link para visualizar a agenda de ${employee.name}: ${url}`;
+    
+    let whatsappUrl = `https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`;
+    
+    if (employee.phone) {
+      const cleanPhone = employee.phone.replace(/\D/g, "");
+      if (cleanPhone.length > 0) {
+        // Prepend Brazil country code 55 if not already present
+        const formattedPhone = cleanPhone.startsWith("55") || cleanPhone.length > 11
+          ? cleanPhone
+          : `55${cleanPhone}`;
+        whatsappUrl += `&phone=${formattedPhone}`;
+      }
+    }
+    
+    window.open(whatsappUrl, "_blank");
   };
 
   useEffect(() => {
@@ -191,9 +205,20 @@ export default function EmployeesPage() {
                       <Button
                         variant="outlined"
                         size="small"
-                        onClick={() => handleCopyLink(row)}
-                        startIcon={<Calendar size={14} />}
-                        sx={{ py: 0.5, px: 1.5, fontSize: "0.75rem" }}
+                        onClick={() => handleShareCalendar(row)}
+                        startIcon={<MessageCircle size={14} />}
+                        sx={{
+                          py: 0.5,
+                          px: 1.5,
+                          fontSize: "0.75rem",
+                          color: "#128C7E",
+                          borderColor: "#25D366",
+                          backgroundColor: "transparent",
+                          "&:hover": {
+                            borderColor: "#128C7E",
+                            backgroundColor: "rgba(37, 211, 102, 0.08)",
+                          },
+                        }}
                       >
                         Compartilhar Agenda
                       </Button>

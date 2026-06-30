@@ -40,23 +40,29 @@ export default function PetPhotosModal({ pet, open, onClose, onRefresh }: Props)
   };
 
   const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
 
-    if (!file.type.startsWith("image/")) {
-      toast.error("Por favor, selecione um arquivo de imagem válido.");
+    const validFiles = Array.from(files).filter(file => file.type.startsWith("image/"));
+    if (validFiles.length === 0) {
+      toast.error("Por favor, selecione apenas arquivos de imagem válidos.");
       return;
     }
 
     try {
       setUploading(true);
-      const isFirstPhoto = !pet.photos || pet.photos.length === 0;
-      await uploadPetPhoto(pet.id, file, isFirstPhoto, "general");
-      toast.success("Foto adicionada com sucesso!");
+      await Promise.all(
+        validFiles.map(file => uploadPetPhoto(pet.id, file, false, "general"))
+      );
+      toast.success(
+        validFiles.length === 1
+          ? "Foto adicionada com sucesso!"
+          : `${validFiles.length} fotos adicionadas com sucesso!`
+      );
       onRefresh();
     } catch (error) {
       console.error(error);
-      toast.error("Erro ao fazer upload da foto.");
+      toast.error("Erro ao fazer upload das fotos.");
     } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -99,7 +105,7 @@ export default function PetPhotosModal({ pet, open, onClose, onRefresh }: Props)
         <Typography variant="h6" fontWeight={700} color="text.primary">
           Galeria de Fotos: {pet.name}
         </Typography>
-        <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>
+        <IconButton onClick={onClose} size="small" sx={{ color: "text.primary" }}>
           <X size={20} />
         </IconButton>
       </DialogTitle>
@@ -119,6 +125,7 @@ export default function PetPhotosModal({ pet, open, onClose, onRefresh }: Props)
             ref={fileInputRef}
             style={{ display: "none" }}
             accept="image/*"
+            multiple
             onChange={handleFileChange}
             disabled={uploading}
           />
@@ -146,7 +153,7 @@ export default function PetPhotosModal({ pet, open, onClose, onRefresh }: Props)
               bgcolor: "background.default",
             }}
           >
-            <Typography color="text.secondary" fontWeight={500}>
+            <Typography color="text.primary" fontWeight={500}>
               Nenhuma foto adicionada a este pet ainda.
             </Typography>
           </Box>

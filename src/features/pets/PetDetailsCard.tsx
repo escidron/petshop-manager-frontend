@@ -13,6 +13,7 @@ import type { Pet } from "./types";
 import { useRef, useState } from "react";
 import { uploadPetPhoto } from "../../api/services/pets";
 import { useToast } from "../../hooks/useToast";
+import { Button } from "../../components/Button/Button";
 
 type Props = {
   pet: Pet;
@@ -143,32 +144,42 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
         )}
       </Box>
       <Box sx={{ width: "100%" }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <Box>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Typography variant="h6" fontWeight={600} mb={0}>
               {pet.name}
             </Typography>
+            {pet.gender && ["male", "female"].includes(pet.gender) && (
+              <Chip
+                label={pet.gender === "male" ? "Macho" : "Femea"}
+                size="small"
+                icon={
+                  pet.gender === "male" ? (
+                    <Mars color={theme.palette.text.primary} size={16} />
+                  ) : (
+                    <Venus color={theme.palette.text.primary} size={16} />
+                  )
+                }
+                sx={{
+                  bgcolor:
+                    pet.gender === "male"
+                      ? "rgba(33, 150, 243, 0.3)"
+                      : "rgba(233, 30, 99, 0.3)",
+                  color: "text.primary",
+                  px: 1,
+                }}
+              />
+            )}
           </Box>
-          {pet.gender && ["male", "female"].includes(pet.gender) && (
-            <Chip
-              label={pet.gender === "male" ? "Macho" : "Femea"}
+          {onViewPhotos && (
+            <Button
+              variant="outlined"
               size="small"
-              icon={
-                pet.gender === "male" ? (
-                  <Mars color={theme.palette.text.primary} size={16} />
-                ) : (
-                  <Venus color={theme.palette.text.primary} size={16} />
-                )
-              }
-              sx={{
-                bgcolor:
-                  pet.gender === "male"
-                    ? "rgba(33, 150, 243, 0.3)"
-                    : "rgba(233, 30, 99, 0.3)",
-                color: "text.primary",
-                px: 1,
-              }}
-            />
+              startIcon={<Image size={14} />}
+              onClick={() => onViewPhotos(pet)}
+            >
+              Fotos
+            </Button>
           )}
         </Box>
         <Divider sx={{ my: 1 }} />
@@ -209,17 +220,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
               gap: 1,
             }}
           >
-            {onViewPhotos && (
-              <IconButton
-                size="medium"
-                sx={{
-                  color: "info.main",
-                }}
-                onClick={() => onViewPhotos(pet)}
-              >
-                <Image size={16} />
-              </IconButton>
-            )}
+
 
             <IconButton
               size="medium"
