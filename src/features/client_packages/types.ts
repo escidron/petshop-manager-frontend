@@ -40,4 +40,5 @@ export type ClientPackageUsage = {
   notes: string | null;
   created_at: string;
   service_name: string;
+  user_name?: string;
 };

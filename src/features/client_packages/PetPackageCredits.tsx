@@ -331,7 +331,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
 
                           {isUsed && (
                             <Typography variant="caption" color="text.primary" sx={{ mt: 0.5 }}>
-                              Baixa realizada{usage ? ` em ${new Date(usage.created_at).toLocaleDateString()}` : ""} {usage?.notes ? `[${usage.notes}]` : ""}
+                              Baixa realizada{usage ? ` em ${new Date(usage.created_at).toLocaleDateString()}` : ""}{usage?.user_name ? ` por ${usage.user_name}` : ""} {usage?.notes ? `[${usage.notes}]` : ""}
                             </Typography>
                           )}
                         </Box>
@@ -371,7 +371,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                             {usage.service_name}
                           </Typography>
                           <Typography variant="caption" color="text.primary" sx={{ opacity: 0.7 }}>
-                            {new Date(usage.created_at).toLocaleString()} - {usage.notes}
+                            {new Date(usage.created_at).toLocaleString()}{usage.user_name ? ` por ${usage.user_name}` : ""} - {usage.notes}
                           </Typography>
                         </Box>
                         <Chip
