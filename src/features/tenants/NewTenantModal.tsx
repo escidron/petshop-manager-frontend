@@ -68,7 +68,7 @@ const NewTenantModal = ({ open, onClose }: Props) => {
             <Typography variant="h6" fontWeight={800} color="primary.main">
               Novo estabelecimento
             </Typography>
-            <Typography variant="body2" color="text.secondary">
+            <Typography variant="body2" color="text.primary">
               Adicione outra petshop à sua conta
             </Typography>
           </Box>

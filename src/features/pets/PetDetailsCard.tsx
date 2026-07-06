@@ -14,6 +14,7 @@ import { useRef, useState } from "react";
 import { uploadPetPhoto } from "../../api/services/pets";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
+import { PET_SIZES, COAT_TYPES } from "./constants";
 
 type Props = {
   pet: Pet;
@@ -170,6 +171,18 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
                 }}
               />
             )}
+            {pet.is_deceased && (
+              <Chip
+                label="Óbito 🖤"
+                size="small"
+                sx={{
+                  bgcolor: "rgba(0, 0, 0, 0.6)",
+                  color: "#fff",
+                  fontWeight: 600,
+                  px: 1,
+                }}
+              />
+            )}
           </Box>
           {onViewPhotos && (
             <Button
@@ -190,7 +203,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
             alignItems: "center",
           }}
         >
-          <Box sx={{ display: "flex", gap: 4 }}>
+          <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
             <Box>
               <Typography color="text.primary">Espécie</Typography>
               <Typography color="text.disabled">
@@ -208,6 +221,48 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
                 <Typography color="text.primary">Castrado</Typography>
                 <Typography color="text.disabled">
                   {pet.is_neutered ? "Sim" : "Não"}
+                </Typography>
+              </Box>
+            )}
+            {pet.size && (
+              <Box>
+                <Typography color="text.primary">Porte</Typography>
+                <Typography color="text.disabled">
+                  {PET_SIZES.find((s) => s.value === pet.size)?.label || pet.size}
+                </Typography>
+              </Box>
+            )}
+            {pet.coat_type && (
+              <Box>
+                <Typography color="text.primary">Pelagem</Typography>
+                <Typography color="text.disabled">
+                  {COAT_TYPES.find((t) => t.value === pet.coat_type)?.label || pet.coat_type}
+                </Typography>
+              </Box>
+            )}
+            {pet.coat_color && (
+              <Box>
+                <Typography color="text.primary">Cor</Typography>
+                <Typography color="text.disabled">{pet.coat_color}</Typography>
+              </Box>
+            )}
+            {(pet.birth_date || pet.age) && (
+              <Box>
+                <Typography color="text.primary">Idade</Typography>
+                <Typography color="text.disabled">
+                  {pet.birth_date
+                    ? new Date(pet.birth_date).toLocaleDateString("pt-BR", { timeZone: "UTC" })
+                    : `${pet.age} ${
+                        pet.age_unit === "years"
+                          ? "ano(s)"
+                          : pet.age_unit === "months"
+                          ? "mes(es)"
+                          : pet.age_unit === "weeks"
+                          ? "semana(s)"
+                          : pet.age_unit === "days"
+                          ? "dia(s)"
+                          : pet.age_unit
+                      }`}
                 </Typography>
               </Box>
             )}

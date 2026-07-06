@@ -1668,15 +1668,15 @@ export default function POSInterface() {
           </IconButton>
         </DialogTitle>
         <DialogContent sx={{ p: 0 }}>
-          {clientPets.length === 0 ? (
+          {clientPets.filter(p => !p.is_deceased).length === 0 ? (
             <Box sx={{ p: 3, textAlign: "center" }}>
               <Typography color="text.primary" variant="body2">
-                Nenhum pet encontrado para este cliente. Por favor, cadastre um pet antes de vender o pacote.
+                Nenhum pet ativo encontrado para este cliente. Por favor, cadastre um pet antes de vender o pacote.
               </Typography>
             </Box>
           ) : (
             <List sx={{ pt: 0 }}>
-              {clientPets.map((pet) => {
+              {clientPets.filter(p => !p.is_deceased).map((pet) => {
                 const incompatible = getIncompatibleServicesForPet(pet);
                 const hasIncompatible = incompatible.length > 0;
 

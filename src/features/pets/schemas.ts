@@ -22,6 +22,7 @@ export const petSchema = z
       .max(30, "Espécie pode ter no máximo 30 caracteres"),
 
     is_active: z.boolean(),
+    is_deceased: z.boolean().optional(),
 
     /* =========================
      * Básicos

@@ -64,3 +64,14 @@ export const getClientPackageUsages = async (
   );
   return response.data;
 };
+
+export const transferClientPackage = async (
+  clientPackageId: number,
+  newPetId: number,
+): Promise<ClientPackage> => {
+  const response = await apiClient.patch<ClientPackage>(
+    `/api/v1/client-packages/${clientPackageId}/transfer/${newPetId}`,
+  );
+  return response.data;
+};
+

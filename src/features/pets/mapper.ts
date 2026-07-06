@@ -24,6 +24,7 @@ export function petToFormData(
     client_id: pet.client_id,
     species: mappedSpecies,
     is_active: pet.is_active ?? true,
+    is_deceased: pet.is_deceased ?? false,
 
     // Básicos
     breed: pet.breed ?? undefined,
