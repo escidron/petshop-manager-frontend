@@ -37,6 +37,7 @@ export default function ImportClientsModal({ open, onClose, onSuccess }: Props) 
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const toast = useToast();
 
@@ -101,6 +102,17 @@ export default function ImportClientsModal({ open, onClose, onSuccess }: Props) 
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      await downloadImportTemplate();
+    } catch (error) {
+      toast.error("Erro ao baixar o modelo.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -121,10 +133,11 @@ export default function ImportClientsModal({ open, onClose, onSuccess }: Props) 
             <Button
               variant="outlined"
               size="small"
-              startIcon={<Download size={16} />}
-              onClick={() => downloadImportTemplate()}
+              disabled={downloading}
+              startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download size={16} />}
+              onClick={handleDownload}
             >
-              Baixar Modelo (Excel)
+              {downloading ? "Gerando..." : "Baixar Modelo (Excel)"}
             </Button>
           </Box>
 
@@ -147,8 +160,8 @@ export default function ImportClientsModal({ open, onClose, onSuccess }: Props) 
                 </ListItem>
                 <ListItem sx={{ px: 0 }}>
                   <ListItemText 
-                    primary="pet_nome" 
-                    secondary="Nome do pet. Se deixado em branco, apenas o cliente será cadastrado/atualizado. (Opcional)" 
+                    primary="pet_nome *" 
+                    secondary="Nome do pet. (Obrigatório)" 
                     primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
                     secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
                   />
@@ -163,8 +176,16 @@ export default function ImportClientsModal({ open, onClose, onSuccess }: Props) 
                 </ListItem>
                 <ListItem sx={{ px: 0 }}>
                   <ListItemText 
+                    primary="Endereço Automático" 
+                    secondary='Se preferir, preencha só CEP, Número e Complemento. São os campos que não buscam automático, o sistema buscará a Rua, Bairro, Cidade e Estado durante a importação.' 
+                    primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
+                    secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
+                  />
+                </ListItem>
+                <ListItem sx={{ px: 0 }}>
+                  <ListItemText 
                     primary="Outros dados do Pet" 
-                    secondary="pet_raca, pet_genero (Macho, Fêmea, Desconhecido), pet_porte (PP, P, M, G, GG), pet_castrado (Sim, Não), data de nascimento e observações. (Opcional)" 
+                    secondary="pet_raca, pet_tipo_pelagem (Curta, Média, Longa, Dupla camada, Sem pelo), pet_cor_pelagem (lista no arquivo), pet_genero (Macho, Fêmea, Desconhecido), pet_porte (PP, P, M, G, GG), pet_castrado (Sim, Não), data de nascimento, idade aproximada, unidade idade (Anos, Meses) e observações. (Opcional)" 
                     primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
                     secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
                   />

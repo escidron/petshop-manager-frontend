@@ -216,14 +216,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
                 <Typography color="text.disabled">{pet.breed}</Typography>
               </Box>
             )}
-            {pet.is_neutered !== undefined && pet.is_neutered !== null && (
-              <Box>
-                <Typography color="text.primary">Castrado</Typography>
-                <Typography color="text.disabled">
-                  {pet.is_neutered ? "Sim" : "Não"}
-                </Typography>
-              </Box>
-            )}
+
             {pet.size && (
               <Box>
                 <Typography color="text.primary">Porte</Typography>
@@ -240,32 +233,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
                 </Typography>
               </Box>
             )}
-            {pet.coat_color && (
-              <Box>
-                <Typography color="text.primary">Cor</Typography>
-                <Typography color="text.disabled">{pet.coat_color}</Typography>
-              </Box>
-            )}
-            {(pet.birth_date || pet.age) && (
-              <Box>
-                <Typography color="text.primary">Idade</Typography>
-                <Typography color="text.disabled">
-                  {pet.birth_date
-                    ? new Date(pet.birth_date).toLocaleDateString("pt-BR", { timeZone: "UTC" })
-                    : `${pet.age} ${
-                        pet.age_unit === "years"
-                          ? "ano(s)"
-                          : pet.age_unit === "months"
-                          ? "mes(es)"
-                          : pet.age_unit === "weeks"
-                          ? "semana(s)"
-                          : pet.age_unit === "days"
-                          ? "dia(s)"
-                          : pet.age_unit
-                      }`}
-                </Typography>
-              </Box>
-            )}
+
           </Box>
           <Box
             sx={{
