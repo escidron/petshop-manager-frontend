@@ -5,7 +5,7 @@ export type Employee = {
   tenant_id: number;
   name: string;
   role: EmployeeRole;
-  phone?: string | null;
+  phone: string;
   email?: string | null;
   schedule_token?: string | null;
   is_active: boolean;
@@ -15,7 +15,7 @@ export type Employee = {
 export type EmployeeFormData = {
   name: string;
   role: EmployeeRole;
-  phone?: string | null;
+  phone: string;
   email?: string | null;
   is_active: boolean;
 };

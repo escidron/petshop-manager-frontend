@@ -122,6 +122,7 @@ export default function POSInterface() {
   const [searchTerm, setSearchTerm] = useState("");
   const [cart, setCart] = useState<SaleItem[]>([]);
   const [discountCents, setDiscountCents] = useState<number>(0);
+  const [discountPctInput, setDiscountPctInput] = useState<string>("0");
   const discountAmount = discountCents / 100;
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [showClientWarning, setShowClientWarning] = useState(false);
@@ -348,9 +349,10 @@ export default function POSInterface() {
 
   const clearCart = () => {
     setCart([]);
+    setDiscountCents(0);
+    setDiscountPctInput("0");
     setSelectedClientId(null);
     setSelectedAppointmentId(null);
-    setDiscountCents(0);
   };
 
   const handlePullAppointment = (appointment: Appointment) => {
@@ -676,16 +678,24 @@ export default function POSInterface() {
                   <Typography variant="body2" color="text.primary" sx={{ opacity: 0.8 }}>
                     Desconto:
                   </Typography>
-                  <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-end", position: "relative" }}>
+                  <Box sx={{ display: "flex", gap: 1, position: "relative" }}>
+                    {/* R$ Field */}
                     <TextField
-                      value={formatBRLFromCents(discountCents)}
+                      value={discountCents === 0 ? "" : formatBRLFromCents(discountCents)}
                       size="small"
                       placeholder="0,00"
+                      onFocus={(e) => e.target.select()}
                       onChange={(e) => {
                         const digits = e.target.value.replace(/\D/g, "");
                         const cents = digits === "" ? 0 : Number(digits);
                         const maxCents = Math.round(cartTotal * 100);
-                        setDiscountCents(Math.min(maxCents, cents));
+                        const finalCents = Math.min(maxCents, cents);
+                        setDiscountCents(finalCents);
+                        if (cartTotal > 0) {
+                           setDiscountPctInput(Number(((finalCents / 100) / cartTotal * 100).toFixed(2)).toString());
+                        } else {
+                           setDiscountPctInput("0");
+                        }
                       }}
                       slotProps={{
                         input: {
@@ -701,25 +711,64 @@ export default function POSInterface() {
                           style: { textAlign: "right", fontWeight: 700, fontSize: "0.85rem", padding: "4px 8px" }
                         }
                       }}
-                      sx={{ width: 130 }}
+                      sx={{ width: 110 }}
                       error={isDiscountExceeded}
-                      FormHelperTextProps={{
-                        sx: {
-                          position: "absolute",
-                          top: "100%",
-                          right: 0,
-                          whiteSpace: "nowrap",
-                          margin: 0,
-                          fontSize: "0.68rem",
-                          zIndex: 10
+                    />
+
+                    {/* % Field */}
+                    <TextField
+                      value={discountPctInput === "0" ? "" : discountPctInput}
+                      size="small"
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                         let val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
+                         const parts = val.split(".");
+                         if (parts.length > 2) val = parts[0] + "." + parts.slice(1).join("");
+                         
+                         setDiscountPctInput(val);
+                         
+                         const pct = parseFloat(val) || 0;
+                         const newCents = Math.round((pct / 100) * cartTotal * 100);
+                         const maxCents = Math.round(cartTotal * 100);
+                         setDiscountCents(Math.min(maxCents, newCents));
+                      }}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.75rem" }}>
+                                %
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: {
+                          style: { textAlign: "right", fontWeight: 700, fontSize: "0.85rem", padding: "4px 8px" }
                         }
                       }}
-                      helperText={
-                        isDiscountExceeded
-                          ? `Desconto máximo: R$ ${((cartTotal * (tenant?.max_discount_percentage ?? 100)) / 100).toFixed(2)} (${(tenant?.max_discount_percentage ?? 100)}%)`
-                          : ""
-                      }
+                      sx={{ width: 80 }}
+                      error={isDiscountExceeded}
                     />
+
+                    {/* Helper text moved outside to cover both fields */}
+                    {isDiscountExceeded && (
+                       <Typography
+                         color="error"
+                         sx={{
+                           position: "absolute",
+                           top: "100%",
+                           right: 0,
+                           whiteSpace: "nowrap",
+                           margin: 0,
+                           fontSize: "0.68rem",
+                           zIndex: 10,
+                           mt: 0.5
+                         }}
+                       >
+                          {`Desconto máximo: R$ ${((cartTotal * (tenant?.max_discount_percentage ?? 100)) / 100).toFixed(2)} (${(tenant?.max_discount_percentage ?? 100)}%)`}
+                       </Typography>
+                    )}
                   </Box>
                 </Box>
               )}

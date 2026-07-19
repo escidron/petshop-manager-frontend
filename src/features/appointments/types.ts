@@ -33,6 +33,9 @@ export type ServiceBase = {
   duration_minutes?: number;
   is_package_covered?: boolean;
   employee_id?: number | null;
+  species?: string | null;
+  size?: string | null;
+  coat_type?: string | null;
 };
 
 export type StatusPalette = "success" | "error" | "warning" | "info";

@@ -4,6 +4,7 @@ import { Dot, List, X } from "lucide-react";
 import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import theme from "../../theme";
 import CustomCard from "../../components/Card/CustomCard";
+import { COAT_TYPES, PET_SIZES } from "../pets/constants";
 
 type Props = {
   open: boolean;
@@ -54,9 +55,24 @@ const AppointmentServiceList = ({
       <Divider />
       <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {appointment.items.map((item, index) => {
+          const coatLabel = COAT_TYPES.find(c => c.value === item.pet.coat_type)?.label;
+          const sizeLabel = PET_SIZES.find(s => s.value === item.pet.size)?.label;
+          const details = [
+            item.pet.species,
+            sizeLabel ? `Porte ${sizeLabel}` : null,
+            coatLabel ? `Pelagem ${coatLabel}` : null
+          ].filter(Boolean).join(" • ");
+
           return (
             <CustomCard key={item.id} sx={{ p: 1 }}>
-              <Typography variant="h6" fontWeight={600}>{item.pet.name}</Typography>
+              <Box sx={{ mb: 1 }}>
+                <Typography variant="h6" fontWeight={600} sx={{ lineHeight: 1.2 }}>{item.pet.name}</Typography>
+                {details && (
+                  <Typography variant="caption" color="text.primary">
+                    {details}
+                  </Typography>
+                )}
+              </Box>
               <Box>
                 {item.services.map((s) => (
                   <Box
@@ -69,11 +85,29 @@ const AppointmentServiceList = ({
                     }}
                   >
                     {/* Nome do serviço */}
-                    <Box
-                      sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
-                    >
-                      <Dot color={theme.palette.text.disabled} size={16} />
-                      <Typography variant="body2">{s.name}</Typography>
+                    <Box sx={{ display: "flex", gap: 0.5, flex: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", height: 20 }}>
+                        <Dot color={theme.palette.text.disabled} size={16} />
+                      </Box>
+                      <Box>
+                        <Typography variant="body2">{s.name}</Typography>
+                        {(() => {
+                          const sCoatLabel = COAT_TYPES.find(c => c.value === s.coat_type)?.label;
+                          const sSizeLabel = PET_SIZES.find(sz => sz.value === s.size)?.label;
+                          const svcDetails = [
+                            s.species,
+                            sSizeLabel ? `Porte ${sSizeLabel}` : null,
+                            sCoatLabel ? `Pelagem ${sCoatLabel}` : null
+                          ].filter(Boolean).join(" • ");
+                          
+                          if (!svcDetails || svcDetails === details) return null;
+                          return (
+                            <Typography variant="caption" color="text.primary" sx={{ display: "block", mt: -0.5 }}>
+                              {svcDetails}
+                            </Typography>
+                          );
+                        })()}
+                      </Box>
                     </Box>
 
                     {/* Preço */}
