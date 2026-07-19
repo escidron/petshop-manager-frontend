@@ -388,6 +388,9 @@ export default function EmailVerificationModal({
                 {countdown > 0 ? `Reenviar em ${countdown}s` : "Reenviar e-mail"}
               </Button>
             </Box>
+            <Typography variant="caption" sx={{ color: "text.secondary", textAlign: "center", display: "block", mt: 1 }}>
+              Caso não encontre o e-mail, verifique sua caixa de <strong>spam</strong> ou <strong>lixo eletrônico</strong>.
+            </Typography>
           </>
         )}
       </DialogContent>
