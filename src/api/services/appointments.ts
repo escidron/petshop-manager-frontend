@@ -57,12 +57,14 @@ export const getAppointmentsByTenant = async (
 
 export const applyAppointmentAction = async (
   appointmentId: number,
-  action: AppointmentAction
+  action: AppointmentAction,
+  cancelAllFuture: boolean = false
 ) => {
   const response = await apiClient.post<Appointment>(
     `/api/v1/appointments/${appointmentId}/actions`,
     {
       action,
+      cancel_all_future: cancelAllFuture
     },
   );
 

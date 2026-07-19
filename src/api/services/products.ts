@@ -16,9 +16,10 @@ const mapProductToApi = (p: any) => {
   return mapped;
 };
 
-export const fetchProducts = async () => {
+export const fetchProducts = async (excludeInternal: boolean = false) => {
+  const query = excludeInternal ? "?exclude_internal=true" : "";
   const response = await apiClient.get<any[]>(
-    "/api/v1/products/",
+    `/api/v1/products/${query}`,
   );
   return response.data.map(mapProductFromApi);
 };

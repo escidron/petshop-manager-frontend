@@ -75,10 +75,11 @@ const AppointmentsDailyList = ({
   const handleAction = async (
     appointment: Appointment,
     action: AppointmentAction,
+    cancelAllFuture?: boolean
   ) => {
     setLoadingAction(action);
     try {
-      await applyAppointmentAction(appointment.id, action);
+      await applyAppointmentAction(appointment.id, action, cancelAllFuture);
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
     } finally {
       setLoadingAction(null);

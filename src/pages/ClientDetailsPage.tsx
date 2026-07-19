@@ -4,7 +4,7 @@ import { useParams } from "react-router-dom";
 import { Button } from "../components/Button/Button";
 import ClientePersonalInfo from "../features/clients/ClientePersonalInfo";
 import PetDetailsCard from "../features/pets/PetDetailsCard";
-import { Package, Plus } from "lucide-react";
+import { ShoppingBag, Plus } from "lucide-react";
 import PetDeleteModal from "../features/pets/PetDeleteModal";
 import { useClient } from "../hooks/useClient";
 import { deletePet } from "../api/services/pets";
@@ -109,13 +109,13 @@ export default function ClientDetailsPage() {
                 mb: 2,
               }}
             >
-              <Package size={20} />
+              <ShoppingBag size={20} />
               <Typography variant="h6" fontWeight={600}>
                 Pacotes
               </Typography>
             </Box>
             <PetPackageCredits
-              packages={clientPackages}
+              packages={clientPackages.filter((p) => p.is_active)}
               clientPhone={client.phone}
               onRefresh={fetchClientPackages}
             />

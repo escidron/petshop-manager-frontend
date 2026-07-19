@@ -1,7 +1,8 @@
-import { Box, Divider, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Box, Divider, Dialog, DialogContent, DialogTitle, Typography, Chip } from "@mui/material";
 import type { Appointment } from "./types";
+import { useQuery } from "@tanstack/react-query";
+import { listClientPackagesByClient } from "../../api/services/client_packages";
 import { Dot, List, X } from "lucide-react";
-import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import theme from "../../theme";
 import CustomCard from "../../components/Card/CustomCard";
 import { COAT_TYPES, PET_SIZES } from "../pets/constants";
@@ -16,9 +17,30 @@ const AppointmentServiceList = ({
   handleClose,
   appointment,
 }: Props) => {
-  const totalCents = getAppointmentTotal(appointment);
+  const { data: clientPackages = [] } = useQuery({
+    queryKey: ["clientPackages", "client", appointment.client.id],
+    queryFn: () => listClientPackagesByClient(appointment.client.id),
+  });
 
-  const formattedTotal = (totalCents / 100).toLocaleString("pt-BR", {
+  // Calculate dynamic coverage per pet/service
+  const isServiceCovered = (petId: number, serviceId: number, isAlreadyCovered: boolean = false) => {
+    if (isAlreadyCovered) return true;
+    return clientPackages.some(pkg => 
+      pkg.is_active && 
+      pkg.pets?.some(p => p.id === petId) && 
+      pkg.credits.some(c => c.service_id === serviceId && c.remaining_qty > 0)
+    );
+  };
+
+  // Re-calculate the total cents dynamically ignoring covered ones
+  const dynamicTotalCents = appointment.items.reduce((itemsAcc, item) => {
+    const itemTotal = item.services
+      .filter((s) => !isServiceCovered(item.pet.id, s.id, s.is_package_covered))
+      .reduce((servicesAcc, service) => servicesAcc + service.price_cents, 0);
+    return itemsAcc + itemTotal;
+  }, 0);
+
+  const formattedTotal = (dynamicTotalCents / 100).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });
@@ -45,7 +67,7 @@ const AppointmentServiceList = ({
           <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
             <List size={24} color={theme.palette.primary.main} />
             <Typography variant="h5" fontWeight={600}>Serviços à realizar</Typography>
-            <Typography variant="h6" color="text.secondary"> {formattedTotal}</Typography>
+            <Typography variant="h6" color="text.primary"> {formattedTotal}</Typography>
           </Box>
           <Box sx={{ cursor: "pointer", display: "flex" }} onClick={handleClose}>
             <X size={24} />
@@ -90,7 +112,22 @@ const AppointmentServiceList = ({
                         <Dot color={theme.palette.text.disabled} size={16} />
                       </Box>
                       <Box>
-                        <Typography variant="body2">{s.name}</Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Typography variant="body2">{s.name}</Typography>
+                          {isServiceCovered(item.pet.id, s.id, s.is_package_covered) && (
+                            <Chip
+                              label="Pacote"
+                              size="small"
+                              sx={{
+                                height: 16,
+                                fontSize: "0.6rem",
+                                fontWeight: 700,
+                                bgcolor: "success.main",
+                                color: "success.contrastText"
+                              }}
+                            />
+                          )}
+                        </Box>
                         {(() => {
                           const sCoatLabel = COAT_TYPES.find(c => c.value === s.coat_type)?.label;
                           const sSizeLabel = PET_SIZES.find(sz => sz.value === s.size)?.label;
@@ -112,10 +149,12 @@ const AppointmentServiceList = ({
 
                     {/* Preço */}
                     <Typography variant="body2">
-                      {(s.price_cents / 100).toLocaleString("pt-BR", {
-                        style: "currency",
-                        currency: "BRL",
-                      })}
+                      {isServiceCovered(item.pet.id, s.id, s.is_package_covered)
+                        ? "R$ 0,00"
+                        : (s.price_cents / 100).toLocaleString("pt-BR", {
+                            style: "currency",
+                            currency: "BRL",
+                          })}
                     </Typography>
                   </Box>
                 ))}
@@ -136,6 +175,7 @@ const AppointmentServiceList = ({
                   </Typography>
                   <Typography variant="body2" fontWeight={600}>
                     {item.services
+                      .filter(s => !isServiceCovered(item.pet.id, s.id, s.is_package_covered))
                       .reduce((acc, s) => acc + s.price_cents / 100, 0)
                       .toLocaleString("pt-BR", {
                         style: "currency",

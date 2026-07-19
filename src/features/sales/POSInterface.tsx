@@ -146,8 +146,8 @@ export default function POSInterface() {
 
   // Fetch Catalogs
   const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ["products"],
-    queryFn: fetchProducts,
+    queryKey: ["products", { excludeInternal: true }],
+    queryFn: () => fetchProducts(true),
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
   const { data: services = [], isLoading: servicesLoading } = useQuery({
@@ -388,7 +388,16 @@ export default function POSInterface() {
     setSelectedAppointmentId(appointment.id);
     setCart(chargeableItems);
     setIsPullDialogOpen(false);
-    toast.success(`Agendamento de ${appointment.client.name} carregado.`);
+
+    const hasCoveredItems = appointment.items.some(item => 
+      item.services.some(s => s.is_package_covered)
+    );
+
+    if (hasCoveredItems) {
+      toast.info(`Importado apenas serviços pendentes de ${appointment.client.name}. Os serviços de pacote já foram debitados.`);
+    } else {
+      toast.success(`Agendamento de ${appointment.client.name} carregado.`);
+    }
   };
 
   const handlePullPackage = (pkg: ClientPackage) => {

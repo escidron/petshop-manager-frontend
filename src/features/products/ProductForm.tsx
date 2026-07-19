@@ -49,6 +49,11 @@ const ProductForm = ({
     resolver: zodResolver(productSchema) as Resolver<ProductFormData>,
     defaultValues: {
       is_active: true,
+      is_internal_use: false,
+      ncm: "",
+      barcode: "",
+      quantity: "" as any,
+      min_stock: "" as any,
       ...defaultValues,
     },
   });
@@ -193,33 +198,144 @@ const ProductForm = ({
               </FormControl>
             </Box>
 
-            <FormControl fullWidth>
-              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                Status do Produto
-              </FormLabel>
-              <Controller
-                name="is_active"
-                control={control}
-                render={({ field }) => (
-                  <FormControlLabel
-                    control={
-                      <Switch
-                        checked={field.value}
-                        onChange={(e) => field.onChange(e.target.checked)}
-                      />
-                    }
-                    label={field.value ? "Ativo" : "Inativo"}
-                    sx={{
-                      "& .MuiFormControlLabel-label": {
-                        fontSize: "14px",
-                        fontWeight: 600,
-                        color: field.value ? "success.main" : "text.disabled",
-                      },
-                    }}
-                  />
-                )}
-              />
-            </FormControl>
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Quantidade em Estoque
+                </FormLabel>
+                <Controller
+                  name="quantity"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : Number(val));
+                      }}
+                      value={field.value ?? ""}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Estoque Mínimo
+                </FormLabel>
+                <Controller
+                  name="min_stock"
+                  control={control}
+                  render={({ field, fieldState }) => (
+                    <TextField
+                      {...field}
+                      type="number"
+                      size="small"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                      placeholder="0"
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        field.onChange(val === "" ? "" : Number(val));
+                      }}
+                      value={field.value ?? ""}
+                    />
+                  )}
+                />
+              </FormControl>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth>
+                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Código de Barras</FormLabel>
+                  <Typography 
+                    variant="caption" 
+                    color="primary" 
+                    sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+                    onClick={() => formObj.setValue("barcode", "SEM GTIN", { shouldValidate: true })}
+                  >
+                    Não possui?
+                  </Typography>
+                </Box>
+                <Controller
+                  name="barcode"
+                  control={control}
+                  render={({ field, fieldState }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 7891020304050" inputProps={{ maxLength: 100 }} error={!!fieldState.error} helperText={fieldState.error?.message} />}
+                />
+              </FormControl>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>NCM</FormLabel>
+                <Controller
+                  name="ncm"
+                  control={control}
+                  render={({ field, fieldState }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="00000000" inputProps={{ maxLength: 8 }} error={!!fieldState.error} helperText={fieldState.error?.message} />}
+                />
+              </FormControl>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 2 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Status do Produto
+                </FormLabel>
+                <Controller
+                  name="is_active"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                        />
+                      }
+                      label={field.value ? "Ativo" : "Inativo"}
+                      sx={{
+                        "& .MuiFormControlLabel-label": {
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: field.value ? "success.main" : "text.disabled",
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Uso Interno
+                </FormLabel>
+                <Controller
+                  name="is_internal_use"
+                  control={control}
+                  render={({ field }) => (
+                    <FormControlLabel
+                      control={
+                        <Switch
+                          checked={field.value}
+                          onChange={(e) => field.onChange(e.target.checked)}
+                        />
+                      }
+                      label={field.value ? "Sim (Oculto no PDV)" : "Não"}
+                      sx={{
+                        "& .MuiFormControlLabel-label": {
+                          fontSize: "14px",
+                          fontWeight: 600,
+                          color: field.value ? "primary.main" : "text.disabled",
+                        },
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
+            </Box>
 
             <Button
               variant="text"
@@ -356,24 +472,7 @@ const ProductForm = ({
                 </FormControl>
               </Box>
               
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Código de Barras</FormLabel>
-                  <Controller
-                    name="barcode"
-                    control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 7891020304050" inputProps={{ maxLength: 100 }} />}
-                  />
-                </FormControl>
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>NCM</FormLabel>
-                  <Controller
-                    name="ncm"
-                    control={control}
-                    render={({ field }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="0000.00.00" inputProps={{ maxLength: 20 }} />}
-                  />
-                </FormControl>
-              </Box>
+
 
               <Box sx={{ display: "flex", gap: 2 }}>
                 <FormControl fullWidth>
@@ -420,55 +519,7 @@ const ProductForm = ({
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Quantidade em Estoque
-                  </FormLabel>
-                  <Controller
-                    name="quantity"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        type="number"
-                        size="small"
-                        placeholder="0"
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          field.onChange(val === "" ? "" : Number(val));
-                        }}
-                        value={field.value ?? ""}
-                      />
-                    )}
-                  />
-                </FormControl>
 
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                    Estoque Mínimo
-                  </FormLabel>
-                  <Controller
-                    name="min_stock"
-                    control={control}
-                    render={({ field, fieldState }) => (
-                      <TextField
-                        {...field}
-                        type="number"
-                        size="small"
-                        error={!!fieldState.error}
-                        helperText={fieldState.error?.message}
-                        placeholder="0"
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          field.onChange(val === "" ? "" : Number(val));
-                        }}
-                        value={field.value ?? ""}
-                      />
-                    )}
-                  />
-                </FormControl>
-              </Box>
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>

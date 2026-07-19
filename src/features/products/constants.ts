@@ -34,5 +34,6 @@ export const DEFAULT_PRODUCT_FORM: ProductFormData = {
   quantity: 0,
   min_stock: 0,
   is_active: true,
+  is_internal_use: false,
   unit: "UN",
 };

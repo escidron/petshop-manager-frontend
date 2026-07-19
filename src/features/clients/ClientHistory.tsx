@@ -132,7 +132,7 @@ export default function ClientHistory({ clientId, refreshTrigger = 0 }: Props) {
             }}
           />
           <Tab 
-            icon={<Package size={18} />} 
+            icon={<ShoppingBag size={18} />} 
             iconPosition="start" 
             label="Pacotes" 
             sx={{ 

@@ -2106,28 +2106,45 @@ const SettingsPage = () => {
                       />
                     ) : (
                       <Box>
-                        <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
-                          Informe seu CPF ou CNPJ para gerar o QR Code PIX.
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                          <TextField
-                            fullWidth
-                            value={pixDocument}
-                            onChange={(e) => {
-                              setPixDocument(maskDocument(e.target.value));
-                            }}
-                            placeholder="000.000.000-00"
-                            size="small"
-                          />
-                          <Button
-                            variant="contained"
-                            disabled={pixDocument.replace(/\D/g, "").length < 11}
-                            onClick={() => handleGeneratePix()}
-                            sx={{ whiteSpace: "nowrap" }}
-                          >
-                            Gerar PIX
-                          </Button>
-                        </Box>
+                        {tenant?.document ? (
+                          <Box sx={{ textAlign: "center" }}>
+                            <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
+                              O PIX será gerado utilizando o CPF/CNPJ cadastrado no seu perfil ({maskDocument(tenant.document)}).
+                            </Typography>
+                            <Button
+                              variant="contained"
+                              onClick={() => handleGeneratePix()}
+                              sx={{ px: 6, py: 1.5 }}
+                            >
+                              Gerar PIX
+                            </Button>
+                          </Box>
+                        ) : (
+                          <>
+                            <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                              Informe seu CPF ou CNPJ para gerar o QR Code PIX.
+                            </Typography>
+                            <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                              <TextField
+                                fullWidth
+                                value={pixDocument}
+                                onChange={(e) => {
+                                  setPixDocument(maskDocument(e.target.value));
+                                }}
+                                placeholder="000.000.000-00"
+                                size="small"
+                              />
+                              <Button
+                                variant="contained"
+                                disabled={pixDocument.replace(/\D/g, "").length < 11}
+                                onClick={() => handleGeneratePix()}
+                                sx={{ whiteSpace: "nowrap" }}
+                              >
+                                Gerar PIX
+                              </Button>
+                            </Box>
+                          </>
+                        )}
                       </Box>
                     )
                   ) : checkoutMode === "payment" && paymentMethod === "card" && savedCards.length > 0 && !useNewCard ? (

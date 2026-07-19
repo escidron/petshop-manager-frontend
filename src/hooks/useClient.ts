@@ -11,6 +11,7 @@ export function useClient(initialClientId?: number) {
   );
   const [client, setClient] = useState<Client | null>(null);
   const [pets, setPets] = useState<Pet[]>([]);
+  const [loadedClientId, setLoadedClientId] = useState<number | undefined>(initialClientId);
   const [loading, setLoading] = useState(false);
 
   const fetchClient = useCallback(async () => {
@@ -28,11 +29,13 @@ export function useClient(initialClientId?: number) {
   const fetchPets = useCallback(async () => {
     if (!clientId) {
       setPets([]);
+      setLoadedClientId(undefined);
       return
     };
 
     const data = await fetchPetsByClient(clientId);
     setPets(data);
+    setLoadedClientId(clientId);
   }, [clientId]);
 
   useEffect(() => {
@@ -45,6 +48,7 @@ export function useClient(initialClientId?: number) {
     client,
     pets,
     loading,
+    loadedClientId,
     setPets,
     setClientId,   // 🔑 isso é o gatilho
     refetchPets: fetchPets,

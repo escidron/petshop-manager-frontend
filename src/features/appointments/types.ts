@@ -90,6 +90,7 @@ export type Appointment = {
   is_paid: boolean;
   is_fully_package_covered: boolean;
   warnings?: string[];
+  recurrence_id?: string | null;
 
   created_at: string;
 };

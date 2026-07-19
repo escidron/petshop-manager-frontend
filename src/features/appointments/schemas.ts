@@ -24,4 +24,18 @@ export const appointmentSchema = z.object({
   items: z
     .array(appointmentItemSchema)
     .min(1, "Adicione pelo menos um pet"),
+
+  recurrence: z.object({
+    frequency: z.enum(["weekly", "biweekly", "monthly"]),
+    occurrences: z.coerce.number().min(2, "Mínimo 2")
+  }).superRefine((data, ctx) => {
+    const max = data.frequency === "weekly" ? 52 : data.frequency === "biweekly" ? 26 : 12;
+    if (data.occurrences > max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Máximo de ${max} (1 ano)`,
+        path: ["occurrences"]
+      });
+    }
+  }).optional(),
 });

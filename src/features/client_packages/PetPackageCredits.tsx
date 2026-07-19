@@ -13,7 +13,7 @@ import {
   Autocomplete,
   TextField,
 } from "@mui/material";
-import { Package, Trash2, ChevronDown, ChevronUp, History, MessageCircle } from "lucide-react";
+import { ShoppingBag, Trash2, ChevronDown, ChevronUp, History, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import {
   deactivateClientPackage,
@@ -237,8 +237,9 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
               borderColor: "divider",
               borderRadius: 3,
               p: 2,
-              bgcolor: "common.white",
+              bgcolor: pkg.is_active ? "common.white" : "grey.50",
               boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
+              opacity: pkg.is_active ? 1 : 0.75,
             }}
           >
             <Box
@@ -251,12 +252,15 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
             >
               <Box>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
-                  <Package size={18} color={theme.palette.primary.main} />
+                  <ShoppingBag size={18} color={theme.palette.primary.main} />
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                     {pkg.package_name}
                   </Typography>
                   {pkg.is_paid && (
                     <Chip label="Pago" size="small" color="success" sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }} />
+                  )}
+                  {!pkg.is_active && (
+                    <Chip label="Finalizado" size="small" color="default" sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700, bgcolor: "grey.200", color: "grey.700" }} />
                   )}
                   {pkg.expires_at && (
                     <Chip
@@ -297,7 +301,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                       color="success"
                       startIcon={<MessageCircle size={14} />}
                       onClick={() => handleShareWhatsApp(pkg)}
-                      disabled={!clientPhone}
+                      disabled={!clientPhone || !pkg.is_active}
                       sx={{ fontSize: "0.75rem", py: 0.25, px: 1 }}
                     >
                       Enviar pacote
@@ -309,7 +313,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                   <IconButton
                     size="small"
                     color="error"
-                    disabled={removing === pkg.id}
+                    disabled={removing === pkg.id || !pkg.is_active}
                     onClick={() => setConfirmId(pkg.id)}
                   >
                     <Trash2 size={16} />

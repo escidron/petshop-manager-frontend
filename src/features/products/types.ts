@@ -20,6 +20,7 @@ export type Product = {
   supplier_id?: number | null;
   
   is_active: boolean;
+  is_internal_use: boolean;
 };
 
 export type { ProductFormData } from "./schemas";
