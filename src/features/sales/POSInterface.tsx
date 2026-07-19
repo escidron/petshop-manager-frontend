@@ -5,7 +5,6 @@ import {
   Grid,
   TextField,
   InputAdornment,
-  Button,
   List,
   ListItem,
   IconButton,
@@ -22,6 +21,8 @@ import {
   Alert,
   Collapse,
   Skeleton,
+  Checkbox,
+  DialogActions,
 } from "@mui/material";
 import {
   Search,
@@ -62,6 +63,7 @@ import type { CoatType } from "../pets/types";
 import type { ClientPackage } from "../client_packages/types";
 import { isServiceCompatibleWithPet } from "../../utils/serviceMatcher";
 import type { Service } from "../tenant_services/types";
+import { Button } from "../../components/Button/Button";
 
 const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
   <Grid container spacing={2}>
@@ -138,7 +140,9 @@ export default function POSInterface() {
     id: number;
     name: string;
     price_cents?: number;
+    quantity?: number;
   } | null>(null);
+  const [pendingPackagePetIds, setPendingPackagePetIds] = useState<number[]>([]);
 
   // Fetch Catalogs
   const { data: products = [], isLoading: productsLoading } = useQuery({
@@ -248,15 +252,15 @@ export default function POSInterface() {
   const addItemToCart = (
     item: { id: number; name: string; price_cents?: number; quantity?: number; unit?: string },
     type: "product" | "service" | "package",
-    petId?: number,
-    petName?: string,
+    petIds?: number[],
+    petNames?: string[],
   ) => {
     const price = (item.price_cents || 0) / 100;
     const displayName =
-      type === "package" && petName ? `${item.name} (${petName})` : item.name;
+      type === "package" && petNames && petNames.length > 0 ? `${item.name} (${petNames.join(', ')})` : item.name;
 
     const existingIndex = cart.findIndex(
-      (c) => c.item_id === item.id && c.item_type === type && c.pet_id === petId,
+      (c) => c.item_id === item.id && c.item_type === type && JSON.stringify(c.pet_ids) === JSON.stringify(petIds),
     );
 
     if (existingIndex >= 0) {
@@ -283,21 +287,24 @@ export default function POSInterface() {
           quantity: 1,
           unit_price: price,
           subtotal: price,
-          pet_id: petId,
+          pet_ids: petIds,
           unit: type === "product" ? item.unit || "UN" : "UN",
         },
       ]);
     }
   };
 
-  const handlePetSelected = (pet: Pet) => {
-    if (!pendingPackageItem) return;
-    addItemToCart(pendingPackageItem, "package", pet.id, pet.name);
+  const handlePetsSelected = () => {
+    if (!pendingPackageItem || pendingPackagePetIds.length === 0) return;
+    const selectedPets = clientPets.filter(p => pendingPackagePetIds.includes(p.id));
+    addItemToCart(pendingPackageItem, "package", selectedPets.map(p => p.id), selectedPets.map(p => p.name));
     setPendingPackageItem(null);
+    setPendingPackagePetIds([]);
   };
 
   const handlePetSelectionCancel = () => {
     setPendingPackageItem(null);
+    setPendingPackagePetIds([]);
   };
 
   const handleUpdateQuantity = (index: number, delta: number) => {
@@ -399,7 +406,7 @@ export default function POSInterface() {
       quantity: 1,
       unit_price: price,
       subtotal: price,
-      pet_id: pkg.pet_id,
+      pet_ids: pkg.pets ? pkg.pets.map(p => p.id) : undefined,
       client_package_id_to_pay: pkg.id,
     };
 
@@ -424,6 +431,25 @@ export default function POSInterface() {
       }
     }
   }, [location, navigate, packages]);
+
+  useEffect(() => {
+    if (pendingPackageItem) {
+      // Auto-select compatible pets
+      const defaultIds = clientPets
+        .filter(p => !p.is_deceased && getIncompatibleServicesForPet(p).length === 0)
+        .map(p => p.id);
+      
+      setPendingPackagePetIds((prev) => {
+        if (prev.length === defaultIds.length && prev.every(id => defaultIds.includes(id))) {
+          return prev;
+        }
+        return defaultIds;
+      });
+    } else {
+      setPendingPackagePetIds((prev) => prev.length === 0 ? prev : []);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingPackageItem, clientPets]);
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
@@ -789,7 +815,7 @@ export default function POSInterface() {
             <Box sx={{ display: "flex", gap: 1.5 }}>
               <Button
                 variant="outlined"
-                color="inherit"
+                color="secondary"
                 onClick={clearCart}
                 disabled={cart.length === 0}
                 sx={{
@@ -1705,7 +1731,7 @@ export default function POSInterface() {
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             <Dog size={18} />
             <Typography variant="subtitle1" fontWeight={700}>
-              Para qual pet é este pacote?
+              Para quais pets é este pacote?
             </Typography>
           </Box>
           <IconButton
@@ -1728,29 +1754,33 @@ export default function POSInterface() {
               {clientPets.filter(p => !p.is_deceased).map((pet) => {
                 const incompatible = getIncompatibleServicesForPet(pet);
                 const hasIncompatible = incompatible.length > 0;
+                const isSelected = pendingPackagePetIds.includes(pet.id);
 
                 return (
                   <ListItem
                     key={pet.id}
                     onClick={() => {
-                      if (hasIncompatible) {
-                        toast.error(
-                          `Este pacote contém serviços incompatíveis com ${pet.name} (ex: ${incompatible.map(s => `${s.name}${s.size ? ` ${s.size}` : ""}`).join(", ")}).`
-                        );
-                        return;
-                      }
-                      handlePetSelected(pet);
+                      setPendingPackagePetIds(prev => 
+                        prev.includes(pet.id) 
+                          ? prev.filter(id => id !== pet.id)
+                          : [...prev, pet.id]
+                      );
                     }}
                     sx={{
-                      cursor: hasIncompatible ? "not-allowed" : "pointer",
+                      cursor: "pointer",
                       borderBottom: "1px solid",
                       borderColor: "divider",
                       opacity: hasIncompatible ? 0.6 : 1,
-                      "&:hover": { bgcolor: hasIncompatible ? "transparent" : "action.hover" },
+                      "&:hover": { bgcolor: "action.hover" },
                       gap: 1.5,
+                      px: 2,
                     }}
                   >
-                    <Dog size={16} color={hasIncompatible ? "red" : "gray"} />
+                    <Checkbox
+                      checked={isSelected}
+                      disableRipple
+                      sx={{ color: "primary.main", py: 0 }}
+                    />
                     <Box sx={{ flex: 1 }}>
                       <Typography variant="body2" fontWeight={700} color={hasIncompatible ? "text.disabled" : "text.primary"}>
                         {pet.name}
@@ -1770,6 +1800,19 @@ export default function POSInterface() {
             </List>
           )}
         </DialogContent>
+        {clientPets.filter(p => !p.is_deceased).length > 0 && (
+          <DialogActions sx={{ p: 2, bgcolor: "background.default", borderTop: "1px solid", borderColor: "divider" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={pendingPackagePetIds.length === 0}
+              onClick={handlePetsSelected}
+              fullWidth
+            >
+              Adicionar ao Carrinho
+            </Button>
+          </DialogActions>
+        )}
       </Dialog>
     </Grid>
   );

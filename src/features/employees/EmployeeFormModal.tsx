@@ -82,7 +82,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const payload = { ...data, email: data.email || null, phone: data.phone || null };
+      const payload = { ...data, email: data.email || null, phone: data.phone };
       if (mode === "create") {
         await createEmployee(payload);
         toast.success("Funcionário cadastrado com sucesso");

@@ -46,8 +46,9 @@ export const deactivateClientPackage = async (
 
 export const consumeClientPackageCredit = async (
   creditId: number,
+  notes?: string
 ): Promise<void> => {
-  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`);
+  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`, { notes });
 };
 
 export const revertClientPackageCredit = async (

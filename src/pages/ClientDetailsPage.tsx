@@ -11,14 +11,11 @@ import { deletePet } from "../api/services/pets";
 import PetFormModal from "../features/pets/PetFormModal";
 import PetPhotosModal from "../features/pets/PetPhotosModal";
 import type { Pet } from "../features/pets/types";
-import type { Package as PkgTemplate } from "../features/packages/types";
 import type { ClientPackage } from "../features/client_packages/types";
 import {
-  listClientPackagesByPet,
+  listClientPackagesByClient,
 } from "../api/services/client_packages";
-import { listPackages } from "../api/services/packages";
 import PetPackageCredits from "../features/client_packages/PetPackageCredits";
-import ClientPackageSellModal from "../features/client_packages/ClientPackageSellModal";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
 import ClientHistory from "../features/clients/ClientHistory";
@@ -38,32 +35,24 @@ export default function ClientDetailsPage() {
 
   const [clientModal, setClientModal] = useState({ open: false });
 
-  const [packageTemplates, setPackageTemplates] = useState<PkgTemplate[]>([]);
-  const [petPackages, setPetPackages] = useState<Record<number, ClientPackage[]>>({});
-  const [refreshHistoryTrigger, setRefreshHistoryTrigger] = useState(0);
-  const [sellModal, setSellModal] = useState<{ open: boolean; petId?: number; packageId?: number }>({
-    open: false,
-  });
+  const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
+  const [refreshHistoryTrigger] = useState(0);
   const [photosModalOpen, setPhotosModalOpen] = useState(false);
   const [selectedPetForPhotos, setSelectedPetForPhotos] = useState<Pet | null>(null);
 
-  useEffect(() => {
-    listPackages().then(setPackageTemplates).catch(() => {});
-  }, []);
-
-  const fetchPetPackages = useCallback(async (petList: Pet[]) => {
-    const entries = await Promise.all(
-      petList.map(async (pet) => {
-        const pkgs = await listClientPackagesByPet(pet.id).catch(() => []);
-        return [pet.id, pkgs] as [number, ClientPackage[]];
-      }),
-    );
-    setPetPackages(Object.fromEntries(entries));
-  }, []);
+  const fetchClientPackages = useCallback(async () => {
+    if (!id) return;
+    try {
+      const pkgs = await listClientPackagesByClient(parseInt(id));
+      setClientPackages(pkgs);
+    } catch (e) {
+      console.error(e);
+    }
+  }, [id]);
 
   useEffect(() => {
-    if (pets.length > 0) fetchPetPackages(pets);
-  }, [pets, fetchPetPackages]);
+    fetchClientPackages();
+  }, [fetchClientPackages]);
 
   const toast = useToast();
 
@@ -84,17 +73,6 @@ export default function ClientDetailsPage() {
     } finally {
       setDeleting(false);
     }
-  };
-
-  const handlePackageSellSuccess = () => {
-    if (sellModal.petId) {
-      listClientPackagesByPet(sellModal.petId)
-        .then((pkgs) =>
-          setPetPackages((prev) => ({ ...prev, [sellModal.petId!]: pkgs })),
-        )
-        .catch(() => {});
-    }
-    setRefreshHistoryTrigger((prev) => prev + 1);
   };
 
   if (loading || !client) {
@@ -120,6 +98,28 @@ export default function ClientDetailsPage() {
             client={client} 
             onEdit={() => setClientModal({ open: true })}
           />
+
+          {/* Pacotes Ativos */}
+          <Box sx={{ mt: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              <Package size={20} />
+              <Typography variant="h6" fontWeight={600}>
+                Pacotes
+              </Typography>
+            </Box>
+            <PetPackageCredits
+              packages={clientPackages}
+              clientPhone={client.phone}
+              onRefresh={fetchClientPackages}
+            />
+          </Box>
           <Box
             sx={{
               display: "flex",
@@ -128,7 +128,7 @@ export default function ClientDetailsPage() {
               mt: 4,
             }}
           >
-            <Typography variant="h6" fontWeight={600}>
+            <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mt: 1 }}>
               Pets
             </Typography>
             <Button
@@ -153,62 +153,15 @@ export default function ClientDetailsPage() {
                 }}
               />
 
-              {/* Pacotes do pet */}
-              <Box
-                sx={{
-                  mt: 1,
-                  mb: 2,
-                  pl: 1,
-                  borderLeft: "3px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <Box
-                  sx={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    mb: 1,
-                  }}
-                >
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                    <Package size={14} />
-                    <Typography variant="body2" fontWeight={600}>
-                      Pacotes ativos
-                    </Typography>
-                  </Box>
-                  <Button
-                    size="small"
-                    variant="outlined"
-                    startIcon={<Plus size={13} />}
-                    sx={{ height: 28 }}
-                    onClick={() => setSellModal({ open: true, petId: pet.id })}
-                  >
-                    Vender Pacote
-                  </Button>
-                </Box>
-
-                <PetPackageCredits
-                  packages={petPackages[pet.id] ?? []}
-                  clientPhone={client.phone}
-                  onRefresh={() =>
-                    listClientPackagesByPet(pet.id)
-                      .then((pkgs) =>
-                        setPetPackages((prev) => ({ ...prev, [pet.id]: pkgs })),
-                      )
-                      .catch(() => {})
-                  }
-                />
-              </Box>
             </Box>
           ))}
+
         </Box>
 
         <Box sx={{ width: "40%" }}>
           <ClientHistory
             clientId={parseInt(id!)}
             refreshTrigger={refreshHistoryTrigger}
-            onSellPackage={(petId, packageId) => setSellModal({ open: true, petId, packageId })}
           />
         </Box>
       </Box>
@@ -234,16 +187,6 @@ export default function ClientDetailsPage() {
           onConfirm={handleConfirmDelete}
         />
       )}
-
-      <ClientPackageSellModal
-        open={sellModal.open}
-        onClose={() => setSellModal({ open: false })}
-        onSuccess={handlePackageSellSuccess}
-        pets={pets}
-        packages={packageTemplates}
-        defaultPetId={sellModal.petId}
-        defaultPackageId={sellModal.packageId}
-      />
 
       <ClientFormModal
         open={clientModal.open}

@@ -10,6 +10,8 @@ import {
   IconButton,
   Tooltip,
   Typography,
+  Autocomplete,
+  TextField,
 } from "@mui/material";
 import { Package, Trash2, ChevronDown, ChevronUp, History, MessageCircle } from "lucide-react";
 import { useState } from "react";
@@ -35,8 +37,8 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
   const [removing, setRemoving] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [expandedPackageId, setExpandedPackageId] = useState<number | null>(null);
-  const [consumeConfirmCreditId, setConsumeConfirmCreditId] = useState<number | null>(null);
-  const [consumeConfirmServiceName, setConsumeConfirmServiceName] = useState<string>("");
+  const [consumeConfirmData, setConsumeConfirmData] = useState<{ creditId: number, serviceName: string, packagePets: ClientPackage["pets"] } | null>(null);
+  const [consumeSelectedPetId, setConsumeSelectedPetId] = useState<number | "">("");
   const [revertConfirmCreditId, setRevertConfirmCreditId] = useState<number | null>(null);
   const [revertConfirmServiceName, setRevertConfirmServiceName] = useState<string>("");
   const toast = useToast();
@@ -48,24 +50,37 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
     if (!confirmId) return;
     try {
       setRemoving(confirmId);
-      setConfirmId(null);
       await deactivateClientPackage(confirmId);
+      toast.success("Pacote cancelado com sucesso!");
       onRefresh();
+    } catch (e: any) {
+      toast.error(e.response?.data?.detail || "Erro ao cancelar pacote");
     } finally {
+      setConfirmId(null);
       setRemoving(null);
     }
   };
 
   const confirmConsume = async () => {
-    if (consumeConfirmCreditId === null) return;
+    if (!consumeConfirmData) return;
+    
+    let notes = "Consumo manual";
+    if (consumeSelectedPetId) {
+      const pet = consumeConfirmData.packagePets.find(p => p.id === consumeSelectedPetId);
+      if (pet) {
+        notes = `Consumo manual - Pet: ${pet.name}`;
+      }
+    }
+
     try {
-      await consumeClientPackageCredit(consumeConfirmCreditId);
+      await consumeClientPackageCredit(consumeConfirmData.creditId, notes);
       toast.success("Baixa realizada com sucesso!");
       onRefresh();
     } catch (e) {
       toast.error("Erro ao realizar baixa.");
     } finally {
-      setConsumeConfirmCreditId(null);
+      setConsumeConfirmData(null);
+      setConsumeSelectedPetId("");
     }
   };
 
@@ -95,7 +110,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
     
     let text = `${petshopName}`;
     text += `Olá, *${pkg.client.name}*!\n\n`;
-    text += `Aqui está o saldo do pacote *${pkg.package_name}* do pet *${pkg.pet.name}*:\n`;
+    text += `Aqui está o saldo do pacote *${pkg.package_name}* para os pets *${pkg.pets.map(p => p.name).join(', ')}*:\n`;
     text += `*Data da compra:* ${purchaseDate}\n`;
     if (expirationDate) {
       text += `*Validade do pacote:* ${expirationDate}\n`;
@@ -154,15 +169,40 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
         </DialogActions>
       </Dialog>
 
-      <Dialog open={consumeConfirmCreditId !== null} onClose={() => setConsumeConfirmCreditId(null)} maxWidth="xs" fullWidth>
+      <Dialog open={consumeConfirmData !== null} onClose={() => setConsumeConfirmData(null)} maxWidth="xs" fullWidth>
         <DialogTitle>Confirmar Baixa Manual</DialogTitle>
         <DialogContent>
-          <DialogContentText sx={{ color: "text.primary" }}>
-            Tem certeza que deseja dar baixa manual em <strong>{consumeConfirmServiceName}</strong>?
+          <DialogContentText sx={{ color: "text.primary", mb: 2 }}>
+            Tem certeza que deseja dar baixa manual em <strong>{consumeConfirmData?.serviceName}</strong>?
           </DialogContentText>
+          
+          {consumeConfirmData && consumeConfirmData.packagePets.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Typography variant="body2" color="text.primary" sx={{ mb: 1 }}>
+                Para qual pet este serviço foi realizado? (Opcional)
+              </Typography>
+              <Autocomplete
+                options={consumeConfirmData.packagePets}
+                getOptionLabel={(option) => option.name}
+                value={consumeConfirmData.packagePets.find(p => p.id === consumeSelectedPetId) || null}
+                onChange={(_, newValue) => setConsumeSelectedPetId(newValue ? newValue.id : "")}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    placeholder="Selecione o pet"
+                    size="small"
+                  />
+                )}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                noOptionsText="Nenhum pet encontrado"
+                fullWidth
+              />
+            </Box>
+          )}
+
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" onClick={() => setConsumeConfirmCreditId(null)}>
+          <Button variant="outlined" onClick={() => setConsumeConfirmData(null)}>
             Voltar
           </Button>
           <Button variant="contained" color="primary" onClick={confirmConsume}>
@@ -215,6 +255,9 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                     {pkg.package_name}
                   </Typography>
+                  {pkg.is_paid && (
+                    <Chip label="Pago" size="small" color="success" sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }} />
+                  )}
                   {pkg.expires_at && (
                     <Chip
                       label={
@@ -227,6 +270,18 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                       sx={{ height: 20, fontSize: 10, fontWeight: 600 }}
                     />
                   )}
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mb: 1, flexWrap: "wrap" }}>
+                  <Typography variant="body2" color="text.primary" sx={{ mr: 0.5 }}>Pets:</Typography>
+                  {pkg.pets.map(p => (
+                    <Chip 
+                      key={p.id} 
+                      label={p.name} 
+                      size="small" 
+                      variant="outlined" 
+                      sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, borderColor: "divider", bgcolor: "grey.50" }} 
+                    />
+                  ))}
                 </Box>
                 <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8, display: "block" }}>
                   Comprado em: {new Date(pkg.created_at).toLocaleDateString()}
@@ -319,8 +374,8 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                                 variant="outlined"
                                 color="primary"
                                 onClick={() => {
-                                  setConsumeConfirmCreditId(credit.id);
-                                  setConsumeConfirmServiceName(serviceName);
+                                  setConsumeConfirmData({ creditId: credit.id, serviceName, packagePets: pkg.pets });
+                                  setConsumeSelectedPetId(pkg.pets.length === 1 ? pkg.pets[0].id : "");
                                 }}
                                 sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.25, px: 1, minWidth: 0, fontWeight: 700 }}
                               >

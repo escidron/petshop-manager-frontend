@@ -14,6 +14,7 @@ import { clientPackageSellSchema, type ClientPackageSellFormData } from "./schem
 import { Button } from "../../components/Button/Button";
 import type { Pet } from "../pets/types";
 import type { Package } from "../packages/types";
+import type { Service } from "../tenant_services/types";
 import { formatPrice, formatServiceLabel } from "../../utils/formatServiceLabel";
 import { isServiceCompatibleWithPet } from "../../utils/serviceMatcher";
 import { useEffect, useMemo, useState } from "react";
@@ -38,20 +39,23 @@ export default function ClientPackageSellForm({
   const { control, handleSubmit, watch, setError, clearErrors, formState: { errors } } = useForm<ClientPackageSellFormData>({
     resolver: zodResolver(clientPackageSellSchema),
     defaultValues: {
-      pet_id: defaultPetId ?? 0,
+      pet_ids: defaultPetId ? [defaultPetId] : [],
       package_id: defaultPackageId ?? 0,
     },
   });
 
   const [showAllPackages, setShowAllPackages] = useState(false);
-  const watchedPetId = watch("pet_id");
+  const watchedPetIds = watch("pet_ids");
   const watchedPackageId = watch("package_id");
 
   useEffect(() => {
     clearErrors("package_id");
-  }, [watchedPetId, watchedPackageId, clearErrors]);
+  }, [watchedPetIds, watchedPackageId, clearErrors]);
 
-  const pet = pets.find((p) => p.id === watchedPetId);
+  const selectedPets = useMemo(
+    () => pets.filter((p) => watchedPetIds.includes(p.id)),
+    [pets, watchedPetIds]
+  );
 
   const getIncompatibleServices = (pkg: Package, pet?: Pet) => {
     if (!pet) return [];
@@ -61,24 +65,36 @@ export default function ClientPackageSellForm({
       .filter((s) => !isServiceCompatibleWithPet(s, pet));
   };
 
+  const getIncompatibilitiesForPackage = (pkg: Package, selPets: Pet[]) => {
+    const issues: { pet: Pet; services: Service[] }[] = [];
+    selPets.forEach((p) => {
+      const inc = getIncompatibleServices(pkg, p);
+      if (inc.length > 0) issues.push({ pet: p, services: inc });
+    });
+    return issues;
+  };
+
   const compatiblePackages = useMemo(() => {
     return packages.filter((pkg) => {
       if (!pkg.is_active) return false;
       if (showAllPackages) return true;
-      const incompatible = getIncompatibleServices(pkg, pet);
-      return incompatible.length === 0;
+      const issues = getIncompatibilitiesForPackage(pkg, selectedPets);
+      return issues.length === 0;
     });
-  }, [packages, pet, showAllPackages]);
+  }, [packages, selectedPets, showAllPackages]);
 
   const handleFormSubmit = (data: ClientPackageSellFormData) => {
-    const selectedPet = pets.find((p) => p.id === data.pet_id);
+    const formPets = pets.filter((p) => data.pet_ids.includes(p.id));
     const pkg = packages.find((p) => p.id === data.package_id);
-    if (!showAllPackages && selectedPet && pkg) {
-      const incompatible = getIncompatibleServices(pkg, selectedPet);
-      if (incompatible.length > 0) {
+    if (!showAllPackages && formPets.length > 0 && pkg) {
+      const issues = getIncompatibilitiesForPackage(pkg, formPets);
+      if (issues.length > 0) {
+        const message = issues
+          .map((i) => `Incompatível com ${i.pet.name}: ${i.services.map((s) => `${s.name}${s.size ? ` (${s.size})` : ""}`).join(", ")}`)
+          .join(" | ");
         setError("package_id", {
           type: "manual",
-          message: `Incompatível com ${selectedPet.name}: ${incompatible.map((s) => `${s.name}${s.size ? ` (${s.size})` : ""}`).join(", ")}`,
+          message,
         });
         return;
       }
@@ -93,22 +109,23 @@ export default function ClientPackageSellForm({
       sx={{ display: "flex", flexDirection: "column", gap: 2 }}
     >
       <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Pet</FormLabel>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Para quais pets é este pacote?</FormLabel>
         <Controller
-          name="pet_id"
+          name="pet_ids"
           control={control}
           render={({ field, fieldState }) => (
-            <Autocomplete<Pet>
+            <Autocomplete<Pet, true>
+              multiple
               options={pets}
               size="small"
-              value={pets.find((p) => p.id === field.value) ?? null}
-              getOptionLabel={(o) => o.name}
+              value={pets.filter((p) => field.value.includes(p.id))}
+              getOptionLabel={(o) => `${o.name} (${o.breed || "Sem Raça"} • ${o.size || "?"})`}
               isOptionEqualToValue={(o, v) => o.id === v.id}
-              onChange={(_, v) => field.onChange(v?.id ?? 0)}
+              onChange={(_, val) => field.onChange(val.map((v) => v.id))}
               renderInput={(params) => (
                 <TextField
                   {...params}
-                  placeholder="Selecionar pet"
+                  placeholder="Selecionar pets"
                   error={!!fieldState.error}
                   helperText={fieldState.error?.message}
                 />
@@ -133,8 +150,8 @@ export default function ClientPackageSellForm({
               onChange={(_, v) => field.onChange(v?.id ?? 0)}
               renderOption={(props, option) => {
                 const { ...rest } = props;
-                const incompatible = getIncompatibleServices(option, pet);
-                const hasIncompatible = incompatible.length > 0;
+                const issues = getIncompatibilitiesForPackage(option, selectedPets);
+                const hasIncompatible = issues.length > 0;
 
                 return (
                   <li {...rest} key={option.id} style={{ opacity: hasIncompatible ? 0.65 : 1 }}>
@@ -178,11 +195,11 @@ export default function ClientPackageSellForm({
                             return `${item.quantity}x ${name || 'Item'}`;
                           }).join(", ")}
                         </Typography>
-                        {hasIncompatible && (
-                          <Typography variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5, fontWeight: 600 }}>
-                            Incompatível: {incompatible.map((s) => `${s.name}${s.size ? ` (${s.size})` : ""}`).join(", ")}
+                        {hasIncompatible && issues.map((issue) => (
+                          <Typography key={issue.pet.id} variant="caption" color="error.main" sx={{ display: 'block', mt: 0.5, fontWeight: 600 }}>
+                            {issue.pet.name}: {issue.services.map((s) => `${s.name}${s.size ? ` (${s.size})` : ""}`).join(", ")}
                           </Typography>
-                        )}
+                        ))}
                       </Box>
                       <Typography variant="body2" fontWeight={600} color="text.primary">
                         {formatPrice(option.price_cents)}

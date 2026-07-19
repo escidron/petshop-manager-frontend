@@ -123,7 +123,7 @@ export default function OpenInvoices() {
                 style: "currency",
                 currency: "BRL",
               });
-              clientName = `Pacote (Pet: ${pkg.pet.name})`;
+              clientName = `Pacote (Pets: ${pkg.pets ? pkg.pets.map(p => p.name).join(', ') : "N/A"})`;
               description = pkg.package_name;
               subDescription = "Venda Pendente";
             }
