@@ -56,8 +56,9 @@ import { fetchProducts } from "../../api/services/products";
 import { fetchClients } from "../../api/services/clients";
 import { getTenantServices } from "../../api/services/tenant_services";
 import { listPackages } from "../../api/services/packages";
+import { listClientPackagesByClient } from "../../api/services/client_packages";
 import { fetchPetsByClient } from "../../api/services/pets";
-import { getAppointmentsByTenant } from "../../api/services/appointments";
+import { getAppointmentsByTenant, listAppointmentsByClient } from "../../api/services/appointments";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
@@ -177,6 +178,16 @@ export default function POSInterface() {
   const { data: clientPets = [] } = useQuery<Pet[]>({
     queryKey: ["pets", "client", selectedClientId],
     queryFn: () => fetchPetsByClient(selectedClientId!),
+    enabled: !!selectedClientId,
+  });
+  const { data: clientActivePackages = [] } = useQuery<ClientPackage[]>({
+    queryKey: ["clientPackages", "client", selectedClientId],
+    queryFn: () => listClientPackagesByClient(selectedClientId!),
+    enabled: !!selectedClientId,
+  });
+  const { data: clientAppointments = [] } = useQuery<Appointment[]>({
+    queryKey: ["appointments", "client", selectedClientId],
+    queryFn: () => listAppointmentsByClient(selectedClientId!),
     enabled: !!selectedClientId,
   });
   const { data: allAppointments = [], isLoading: isLoadingApts } = useQuery({
@@ -528,58 +539,110 @@ export default function POSInterface() {
       
       {/* Main Content: Catalog */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, minWidth: 0 }}>
-        {/* Tab Buttons */}
-        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
-          {tabItems.map((tab) => (
-            <Paper
-              key={tab.id}
-              elevation={0}
-              onClick={() => setCategoryTab(tab.id)}
-              sx={{
-                px: 3,
-                py: 1.5,
-                borderRadius: "12px",
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: 1.5,
-                border: "2px solid",
-                borderColor: categoryTab === tab.id ? "primary.main" : "divider",
-                bgcolor: categoryTab === tab.id ? "primary.main" : "background.paper",
-                color: categoryTab === tab.id ? "white" : "text.primary",
-                transition: "all 0.2s ease",
-                userSelect: "none",
-                "&:hover": {
-                  borderColor: categoryTab === tab.id ? "primary.main" : "text.primary",
-                  transform: "translateY(-1px)",
-                  boxShadow: categoryTab === tab.id ? "0 4px 14px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)",
-                },
+        {/* Top Controls: Tabs and Search */}
+        <Box sx={{ display: "flex", flexDirection: { xs: 'column', md: 'row' }, gap: 2, justifyContent: "space-between", alignItems: "flex-start" }}>
+          {/* Tab Buttons */}
+          <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", flex: 1 }}>
+            {tabItems
+              .map((tab) => (
+              <Paper
+                key={tab.id}
+                elevation={0}
+                onClick={() => setCategoryTab(tab.id)}
+                sx={{
+                  px: 3,
+                  py: 1.5,
+                  borderRadius: "12px",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 1.5,
+                  border: "2px solid",
+                  borderColor: categoryTab === tab.id ? "primary.main" : "divider",
+                  bgcolor: categoryTab === tab.id ? "primary.main" : "background.paper",
+                  color: categoryTab === tab.id ? "white" : "text.primary",
+                  transition: "all 0.2s ease",
+                  userSelect: "none",
+                  "&:hover": {
+                    borderColor: categoryTab === tab.id ? "primary.main" : "text.primary",
+                    transform: "translateY(-1px)",
+                    boxShadow: categoryTab === tab.id ? "0 4px 14px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)",
+                  },
+                }}
+              >
+                {tab.icon}
+                <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                  {tab.label}
+                </Typography>
+              </Paper>
+            ))}
+          </Box>
+
+          {/* Search Bar */}
+          <Box sx={{ width: { xs: '100%', md: '300px' }, flexShrink: 0 }}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Pesquisar por nome, pet, produto..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search size={18} color="gray" />
+                  </InputAdornment>
+                ),
+                sx: { borderRadius: 3, bgcolor: "background.paper", height: 44 },
               }}
-            >
-              {tab.icon}
-              <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
-                {tab.label}
-              </Typography>
-            </Paper>
-          ))}
+            />
+          </Box>
         </Box>
 
-        {/* Search Bar */}
-        <TextField
-          fullWidth
-          size="small"
-          placeholder="Pesquisar por nome, pet, produto..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={18} color="gray" />
-              </InputAdornment>
-            ),
-            sx: { borderRadius: 3, bgcolor: "background.paper", height: 44 },
-          }}
-        />
+        {/* Big Client Selection */}
+        <Box sx={{ width: '100%', maxWidth: '600px', mb: 1 }}>
+          <Autocomplete
+            options={clients}
+            getOptionLabel={(option) => option.name}
+            value={selectedClient || null}
+            onChange={(_, newValue) => {
+              setSelectedClientId(newValue?.id || null);
+              if (newValue) {
+                setShowClientWarning(false);
+              }
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Pesquisar e vincular cliente para atendimento..."
+                variant="outlined"
+                error={showClientWarning}
+                helperText={showClientWarning ? "Selecione um cliente para poder vender pacotes" : ""}
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <User size={22} color={showClientWarning ? "error" : "primary"} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 3,
+                    bgcolor: !selectedClient ? (theme) => alpha(theme.palette.primary.main, 0.04) : "background.paper",
+                    py: 1,
+                    "& fieldset": {
+                      borderWidth: !selectedClient ? 2 : 1,
+                      borderColor: !selectedClient ? (theme) => alpha(theme.palette.primary.main, 0.5) : undefined,
+                    },
+                    "&:hover fieldset": {
+                      borderColor: !selectedClient ? "primary.main" : undefined,
+                    }
+                  },
+                }}
+              />
+            )}
+          />
+        </Box>
 
         {/* Content Area */}
         <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5, minHeight: 0 }}>
@@ -629,34 +692,304 @@ export default function POSInterface() {
           {/* === AGENDAMENTOS TAB === */}
           {categoryTab === "appointments" && (
             <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
-              <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <Box>
-                  <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
-                    Agendamentos para Cobrar
-                  </Typography>
-                  <Typography variant="caption" color="text.primary" sx={{ opacity: 0.5 }}>
-                    {filteredAppointments.length} agendamento{filteredAppointments.length !== 1 ? "s" : ""} finalizado{filteredAppointments.length !== 1 ? "s" : ""} · clique para cobrar
-                  </Typography>
+              {selectedClient ? (
+                <Box sx={{ p: { xs: 2, md: 3 } }}>
+                  <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    alignItems: "center",
+                    gap: 2,
+                    p: 2.5,
+                    border: "1px solid",
+                    borderRadius: 3,
+                    borderColor: "divider",
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
+                    mb: 4
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: "50%",
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "primary.main",
+                      flexShrink: 0
+                    }}
+                  >
+                    <User size={24} />
+                  </Box>
+                  <Box sx={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 2, flexGrow: 1, flexWrap: 'wrap' }}>
+                    <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main" }}>
+                      {selectedClient.name}
+                    </Typography>
+                    
+                    {/* Pets List inline */}
+                    {clientPets && clientPets.length > 0 && (
+                      <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: 'text.primary', opacity: 0.3, mr: 0.5 }}>
+                          PETS:
+                        </Typography>
+                        {clientPets.map(pet => (
+                          <Chip
+                            key={pet.id}
+                            label={pet.name}
+                            size="small"
+                            sx={{
+                              bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                              color: 'primary.main',
+                              fontWeight: 700,
+                            }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  </Box>
+                  
+                  {/* Unlink Button */}
+                  <IconButton 
+                    onClick={clearCart} 
+                    sx={{ 
+                      color: 'text.primary', 
+                      opacity: 0.4,
+                      transition: 'all 0.2s',
+                      '&:hover': { color: 'error.main', opacity: 1, bgcolor: (theme) => alpha(theme.palette.error.main, 0.1) } 
+                    }}
+                  >
+                    <X size={24} />
+                  </IconButton>
                 </Box>
-              </Box>
-              {isLoadingApts ? (
-                <Box sx={{ p: 4 }}>
-                  {[1, 2, 3, 4].map((i) => (
-                    <Skeleton key={i} height={56} sx={{ mb: 1, borderRadius: 1 }} />
-                  ))}
-                </Box>
-              ) : filteredAppointments.length === 0 ? (
-                <Box sx={{ textAlign: "center", py: 8 }}>
-                  <Calendar size={48} style={{ opacity: 0.2, marginBottom: 12 }} />
-                  <Typography variant="body1" color="text.primary" sx={{ fontWeight: 600 }}>
-                    {searchTerm ? "Nenhum agendamento encontrado" : "Nenhum agendamento pendente de pagamento"}
-                  </Typography>
-                  <Typography variant="body2" color="text.primary" sx={{ mt: 0.5, opacity: 0.6 }}>
-                    {searchTerm ? "Tente buscar por outro nome" : "Agendamentos finalizados aparecerão aqui"}
-                  </Typography>
+
+                  {/* Dashboard Info Grid */}
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4, width: '100%', maxWidth: 800, mb: 4, mx: 'auto' }}>
+                    
+                    {/* 1. Pending to Pay Appointments */}
+                    {(() => {
+                      const pendingToPay = clientAppointments
+                        .filter(a => 
+                          a.id !== selectedAppointmentId && 
+                          a.status === "completed" && 
+                          !a.is_paid &&
+                          getAppointmentPrice(a) > 0
+                        )
+                        .sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf());
+
+                      if (pendingToPay.length === 0) return null;
+
+                      return (
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant="overline" sx={{ fontWeight: 800, color: 'primary.main', mb: 1.5, display: 'block', letterSpacing: 1 }}>
+                            AGUARDANDO PAGAMENTO
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {pendingToPay.map(apt => {
+                              return (
+                                <Paper key={apt.id} elevation={0} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, border: '1px solid', borderColor: (theme) => alpha(theme.palette.primary.main, 0.4), borderRadius: 3, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                                    <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'primary.main', flexShrink: 0 }}>
+                                      <Calendar size={18} />
+                                    </Box>
+                                    <Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                        {dayjs(apt.scheduled_at).format("DD/MM")} às {dayjs(apt.scheduled_at).format("HH:mm")}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, color: 'text.primary', opacity: 0.7 }}>
+                                        Pets: {apt.items.map(i => i.pet.name).join(', ')}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                  <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', px: 2 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', opacity: 0.6, textAlign: 'center' }}>
+                                      {[...new Set(apt.items.flatMap(i => i.services.map(s => s.name)))].join(', ')}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, flex: 1, justifyContent: 'flex-end' }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'primary.main' }}>
+                                      R$ {(getAppointmentPrice(apt) / 100).toFixed(2)}
+                                    </Typography>
+                                    <Button
+                                      variant="contained"
+                                      size="small"
+                                      onClick={() => handlePullAppointment(apt)}
+                                      sx={{ 
+                                        bgcolor: 'primary.main', 
+                                        color: 'white', 
+                                        fontWeight: 700, 
+                                        borderRadius: 2,
+                                        px: 2,
+                                        boxShadow: 'none',
+                                        '&:hover': { bgcolor: 'primary.dark', boxShadow: 'none' } 
+                                      }}
+                                    >
+                                      Cobrar
+                                    </Button>
+                                  </Box>
+                                </Paper>
+                              );
+                            })}
+                          </Box>
+                        </Box>
+                      );
+                    })()}
+
+                    {/* 2. Active Packages */}
+                    {(() => {
+                      const packagesWithBalance = clientActivePackages
+                        .filter(pkg => pkg.is_active)
+                        .map(pkg => ({
+                          ...pkg,
+                          remaining: pkg.credits?.reduce((acc, credit) => acc + credit.remaining_qty, 0) || 0
+                        }))
+                        .filter(pkg => pkg.remaining > 0);
+
+                      if (packagesWithBalance.length === 0) return null;
+
+                      return (
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.primary', opacity: 0.5, mb: 1.5, display: 'block', letterSpacing: 1 }}>
+                            PACOTES DISPONÍVEIS
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {packagesWithBalance.map(pkg => (
+                              <Paper key={pkg.id} elevation={0} sx={{ display: 'flex', flexDirection: 'column', p: 2, border: '1px solid', borderColor: (theme) => alpha(theme.palette.primary.main, 0.2), borderRadius: 3, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) }}>
+                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1.5 }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                    <Box sx={{ width: 32, height: 32, borderRadius: 2, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'primary.main' }}>
+                                      <ShoppingBag size={16} />
+                                    </Box>
+                                    <Typography variant="body2" sx={{ fontWeight: 800, color: 'text.primary' }}>
+                                      {pkg.package_name}
+                                    </Typography>
+                                  </Box>
+                                </Box>
+                                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                  {pkg.credits?.filter(c => c.remaining_qty > 0).map(credit => (
+                                    <Box key={credit.id} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', bgcolor: 'background.paper', p: 1, px: 1.5, borderRadius: 2, border: '1px solid', borderColor: 'divider' }}>
+                                      <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                        {credit.service_name}
+                                      </Typography>
+                                      <Chip
+                                        label={`${credit.remaining_qty} disp.`}
+                                        size="small"
+                                        sx={{ height: 22, fontSize: '0.65rem', fontWeight: 800, bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1), color: 'primary.dark' }}
+                                      />
+                                    </Box>
+                                  ))}
+                                </Box>
+                              </Paper>
+                            ))}
+                          </Box>
+                        </Box>
+                      );
+                    })()}
+
+                    {/* 3. Upcoming Appointments */}
+                    {(() => {
+                      const upcoming = clientAppointments
+                        .filter(a => 
+                          a.id !== selectedAppointmentId && 
+                          ["pending", "confirmed"].includes(a.status) &&
+                          dayjs(a.scheduled_at).isAfter(dayjs().subtract(1, 'day'))
+                        )
+                        .sort((a, b) => dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf())
+                        .slice(0, 3);
+
+                      if (upcoming.length === 0) return null;
+
+                      return (
+                        <Box sx={{ width: '100%' }}>
+                          <Typography variant="overline" sx={{ fontWeight: 800, color: 'text.primary', opacity: 0.5, mb: 1.5, display: 'block', letterSpacing: 1 }}>
+                            PRÓXIMOS AGENDAMENTOS
+                          </Typography>
+                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                            {upcoming.map(apt => {
+                              const isToday = dayjs(apt.scheduled_at).isSame(dayjs(), 'day');
+                              return (
+                                <Paper key={apt.id} elevation={0} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', p: 2, border: '1px solid', borderColor: 'divider', borderRadius: 3, bgcolor: 'background.paper' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flex: 1 }}>
+                                    <Box sx={{ width: 36, height: 36, borderRadius: 2, bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04), display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'text.primary', flexShrink: 0 }}>
+                                      <Calendar size={18} />
+                                    </Box>
+                                    <Box>
+                                      <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                                        {isToday ? "Hoje" : dayjs(apt.scheduled_at).format("DD/MM")} às {dayjs(apt.scheduled_at).format("HH:mm")}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ display: 'block', fontWeight: 600, color: 'text.primary', opacity: 0.7 }}>
+                                        Pets: {apt.items.map(i => i.pet.name).join(', ')}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                  <Box sx={{ flex: 1, display: 'flex', justifyContent: 'center', px: 2 }}>
+                                    <Typography variant="body2" sx={{ fontWeight: 600, color: 'text.primary', opacity: 0.6, textAlign: 'center' }}>
+                                      {[...new Set(apt.items.flatMap(i => i.services.map(s => s.name)))].join(', ')}
+                                    </Typography>
+                                  </Box>
+                                  <Box sx={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                                    {isToday && (
+                                      <Chip label="Hoje" size="small" sx={{ height: 20, fontSize: '0.65rem', fontWeight: 800, bgcolor: (theme) => alpha(theme.palette.warning.main, 0.15), color: 'warning.dark' }} />
+                                    )}
+                                  </Box>
+                                </Paper>
+                              );
+                            })}
+                          </Box>
+                        </Box>
+                      );
+                    })()}
+                  </Box>
+
+                  <Button
+                    variant="outlined"
+                    color="inherit"
+                    onClick={clearCart}
+                    sx={{
+                      px: 4,
+                      py: 1.25,
+                      borderRadius: 2,
+                      fontWeight: 700,
+                      borderColor: "divider",
+                      "&:hover": {
+                        bgcolor: "action.hover",
+                      },
+                    }}
+                  >
+                    Voltar para Lista de Agendamentos
+                  </Button>
                 </Box>
               ) : (
-                <TableContainer>
+                <>
+                  <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Box>
+                      <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
+                        Agendamentos para Cobrar
+                      </Typography>
+                      <Typography variant="caption" color="text.primary" sx={{ opacity: 0.5 }}>
+                        {filteredAppointments.length} agendamento{filteredAppointments.length !== 1 ? "s" : ""} finalizado{filteredAppointments.length !== 1 ? "s" : ""} · clique para cobrar
+                      </Typography>
+                    </Box>
+                  </Box>
+                  {isLoadingApts ? (
+                    <Box sx={{ p: 4 }}>
+                      {[1, 2, 3, 4].map((i) => (
+                        <Skeleton key={i} height={56} sx={{ mb: 1, borderRadius: 1 }} />
+                      ))}
+                    </Box>
+                  ) : filteredAppointments.length === 0 ? (
+                    <Box sx={{ textAlign: "center", py: 8 }}>
+                      <Calendar size={48} style={{ opacity: 0.2, marginBottom: 12 }} />
+                      <Typography variant="body1" color="text.primary" sx={{ fontWeight: 600 }}>
+                        {searchTerm ? "Nenhum agendamento encontrado" : "Nenhum agendamento pendente de pagamento"}
+                      </Typography>
+                      <Typography variant="body2" color="text.primary" sx={{ mt: 0.5, opacity: 0.6 }}>
+                        {searchTerm ? "Tente buscar por outro nome" : "Agendamentos finalizados aparecerão aqui"}
+                      </Typography>
+                    </Box>
+                  ) : (
+                    <TableContainer>
                   <Table>
                     <TableHead>
                       <TableRow sx={{ "& th": { fontWeight: 700, color: "text.primary", opacity: 0.5, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "2px solid", borderColor: "divider", py: 1.25 } }}>
@@ -762,6 +1095,8 @@ export default function POSInterface() {
                   </Table>
                 </TableContainer>
               )}
+              </>
+            )}
             </Paper>
           )}
 
@@ -1576,46 +1911,7 @@ export default function POSInterface() {
             </Typography>
           </Box>
 
-          {/* Client Selection */}
-          <Box
-            sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
-          >
-            <Autocomplete
-              options={clients}
-              getOptionLabel={(option) => option.name}
-              value={selectedClient || null}
-              onChange={(_, newValue) => {
-                setSelectedClientId(newValue?.id || null);
-                if (newValue) {
-                  setShowClientWarning(false);
-                }
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Vincular Cliente"
-                  variant="outlined"
-                  size="small"
-                  error={showClientWarning}
-                  helperText={showClientWarning ? "Selecione um cliente para poder vender pacotes" : ""}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <User size={18} color={showClientWarning ? "error" : "gray"} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      bgcolor: "background.paper",
-                    },
-                  }}
-                />
-              )}
-            />
-          </Box>
+
 
           {/* Cart Items List */}
           <Box sx={{ flexGrow: 1, overflowY: "auto", px: 2, py: 1 }}>
