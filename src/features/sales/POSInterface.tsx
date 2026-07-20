@@ -10,8 +10,6 @@ import {
   IconButton,
   Divider,
   Chip,
-  Tabs,
-  Tab,
   Autocomplete,
   Tooltip,
   alpha,
@@ -23,6 +21,12 @@ import {
   Skeleton,
   Checkbox,
   DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
 } from "@mui/material";
 import {
   Search,
@@ -41,6 +45,9 @@ import {
   X,
   ChevronDown,
   ChevronUp,
+  Calendar,
+  Barcode,
+  ShoppingBag,
 } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -50,6 +57,8 @@ import { fetchClients } from "../../api/services/clients";
 import { getTenantServices } from "../../api/services/tenant_services";
 import { listPackages } from "../../api/services/packages";
 import { fetchPetsByClient } from "../../api/services/pets";
+import { getAppointmentsByTenant } from "../../api/services/appointments";
+import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
 import { useAuth } from "../../hooks/useAuth";
@@ -133,7 +142,7 @@ export default function POSInterface() {
   >(null);
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
-  const [categoryTab, setCategoryTab] = useState(0);
+  const [categoryTab, setCategoryTab] = useState<"appointments" | "products" | "services" | "packages">("appointments");
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [lowStockExpanded, setLowStockExpanded] = useState(false);
   const [pendingPackageItem, setPendingPackageItem] = useState<{
@@ -170,6 +179,40 @@ export default function POSInterface() {
     queryFn: () => fetchPetsByClient(selectedClientId!),
     enabled: !!selectedClientId,
   });
+  const { data: allAppointments = [], isLoading: isLoadingApts } = useQuery({
+    queryKey: ["appointments", "pos-pending"],
+    queryFn: () => getAppointmentsByTenant(),
+    staleTime: 1000 * 60 * 2,
+  });
+
+  const pendingAppointments = useMemo(() => {
+    const pending = allAppointments
+      .filter((apt) => apt.status === "completed" && !apt.is_paid && !apt.is_fully_package_covered);
+    
+    // Sort: today first (by time ascending), then older ones
+    const now = dayjs();
+    return pending.sort((a, b) => {
+      const aIsToday = dayjs(a.scheduled_at).isSame(now, 'day');
+      const bIsToday = dayjs(b.scheduled_at).isSame(now, 'day');
+      if (aIsToday && !bIsToday) return -1;
+      if (!aIsToday && bIsToday) return 1;
+      if (aIsToday && bIsToday) return dayjs(a.scheduled_at).valueOf() - dayjs(b.scheduled_at).valueOf();
+      return dayjs(b.scheduled_at).valueOf() - dayjs(a.scheduled_at).valueOf();
+    });
+  }, [allAppointments]);
+
+  const filteredAppointments = useMemo(() => {
+    if (!searchTerm || categoryTab !== "appointments") return pendingAppointments;
+    const term = searchTerm.toLowerCase();
+    return pendingAppointments.filter((apt) => {
+      const clientMatch = apt.client.name.toLowerCase().includes(term);
+      const petMatch = apt.items.some((item) => item.pet.name.toLowerCase().includes(term));
+      const serviceMatch = apt.items.some((item) =>
+        item.services.some((s) => s.name.toLowerCase().includes(term))
+      );
+      return clientMatch || petMatch || serviceMatch;
+    });
+  }, [pendingAppointments, searchTerm, categoryTab]);
 
   const isLoadingItems = productsLoading || servicesLoading || packagesLoading;
 
@@ -462,540 +505,87 @@ export default function POSInterface() {
 
   const selectedClient = clients.find((c) => c.id === selectedClientId);
 
+  const getAppointmentPrice = (apt: Appointment) => {
+    return apt.items.reduce(
+      (acc, item) =>
+        acc +
+        item.services
+          .filter((s) => !s.is_package_covered)
+          .reduce((sAcc, s) => sAcc + s.price_cents, 0),
+      0,
+    );
+  };
+
+  const tabItems = [
+    { id: "appointments" as const, label: "Agendamentos", icon: <Calendar size={20} /> },
+    { id: "products" as const, label: "Produtos", icon: <Barcode size={20} /> },
+    { id: "services" as const, label: "Serviços", icon: <ClipboardList size={20} /> },
+    { id: "packages" as const, label: "Pacotes", icon: <ShoppingBag size={20} /> },
+  ];
+
   return (
-    <Grid container spacing={3} sx={{ height: "100%", p: 1, width: "100%", flexWrap: { md: "nowrap", xs: "wrap" } }}>
-      {/* Sidebar: Digital Receipt */}
-      <Grid 
-        size={{ xs: 12, md: "auto" }} 
-        sx={{ 
-          maxHeight: "800px",
-          width: { md: "430px", xs: "100%" },
-          minWidth: { md: "410px", xs: "100%" },
-          flexShrink: 0,
-          flexGrow: 0
-        }}
-      >
-        <Paper
-          elevation={4}
-          sx={{
-            height: "100%",
-            display: "flex",
-            flexDirection: "column",
-            borderRadius: 3,
-            overflow: "hidden",
-            border: "1px solid",
-            borderColor: "divider",
-            maxWidth: "550px",
-          }}
-        >
-          {/* Receipt Header */}
-          <Box
-            sx={{
-              p: 2.5,
-              bgcolor: "primary.main",
-              color: "white",
-              textAlign: "center",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 2,
-            }}
-          >
-            <ReceiptText size={32} />
-            <Typography variant="h6" sx={{ fontWeight: 700, letterSpacing: 1 }}>
-              TICKET DE VENDA
-            </Typography>
-          </Box>
-
-          <Box
-            sx={{ p: 2, borderBottom: "1px dashed", borderColor: "divider" }}
-          >
-            <Button
-              fullWidth
-              variant="outlined"
-              color="primary"
-              startIcon={<ClipboardList size={20} />}
-              onClick={() => setIsPullDialogOpen(true)}
-              sx={{
-                borderRadius: 2,
-                height: 48,
-                fontWeight: 700,
-                borderStyle: "dashed",
-                borderWidth: 2,
-                "&:hover": { borderWidth: 2 },
-              }}
-            >
-              PUXAR AGENDAMENTOS
-            </Button>
-          </Box>
-
-          {/* Client Selection */}
-          <Box
-            sx={{ p: 2, borderBottom: "1px dashed", borderColor: "divider" }}
-          >
-            <Autocomplete
-              options={clients}
-              getOptionLabel={(option) => option.name}
-              value={selectedClient || null}
-              onChange={(_, newValue) => {
-                setSelectedClientId(newValue?.id || null);
-                if (newValue) {
-                  setShowClientWarning(false);
-                }
-              }}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  placeholder="Vincular Cliente"
-                  variant="outlined"
-                  size="small"
-                  error={showClientWarning}
-                  helperText={showClientWarning ? "Selecione um cliente para poder vender pacotes" : ""}
-                  InputProps={{
-                    ...params.InputProps,
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <User size={20} color={showClientWarning ? "error" : "gray"} />
-                      </InputAdornment>
-                    ),
-                  }}
-                  sx={{
-                    "& .MuiOutlinedInput-root": {
-                      borderRadius: 2,
-                      bgcolor: "background.paper",
-                    },
-                  }}
-                />
-              )}
-            />
-          </Box>
-
-          {/* Cart Items List */}
-          <Box sx={{ flexGrow: 1, overflowY: "auto", p: 1 }}>
-            {cart.length === 0 ? (
-              <Box
-                sx={{
-                  height: "100%",
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: 0.3,
-                  py: 8,
-                }}
-              >
-                <ShoppingCart size={64} style={{ opacity: 0.2 }} />
-                <Typography variant="body1">Carrinho Vazio</Typography>
-              </Box>
-            ) : (
-              <List sx={{ pt: 0 }}>
-                {cart.map((item, index) => (
-                  <Box key={`${item.item_type}-${item.item_id}-${index}`}>
-                    <ListItem
-                      sx={{
-                        flexDirection: "column",
-                        alignItems: "stretch",
-                        py: 1.5,
-                        px: 1,
-                      }}
-                    >
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          mb: 1,
-                        }}
-                      >
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 700, flex: 1 }}
-                        >
-                          {item.name}
-                        </Typography>
-                        <Typography variant="body2" sx={{ fontWeight: 800 }}>
-                          R$ {item.subtotal.toFixed(2)}
-                        </Typography>
-                      </Box>
-
-                      <Box
-                        sx={{
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                        }}
-                      >
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            bgcolor: "action.hover",
-                            borderRadius: 1.5,
-                            px: 1,
-                          }}
-                        >
-                          <IconButton
-                            size="small"
-                            onClick={() => handleUpdateQuantity(index, -1)}
-                          >
-                            <Minus size={18} />
-                          </IconButton>
-                          <input
-                            type="number"
-                            value={item.quantity}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value);
-                              if (!isNaN(val)) {
-                                handleSetQuantity(index, val);
-                              }
-                            }}
-                            min={1}
-                            style={{
-                              width: "55px",
-                              textAlign: "center",
-                              border: "none",
-                              background: "transparent",
-                              fontWeight: 700,
-                              outline: "none",
-                              fontSize: "0.875rem",
-                            }}
-                          />
-                          <Typography variant="body2" sx={{ fontWeight: 700, mr: 0.5, opacity: 0.8 }}>
-                            {item.unit || "UN"}
-                          </Typography>
-                          <IconButton
-                            size="small"
-                            onClick={() => handleUpdateQuantity(index, 1)}
-                          >
-                            <Plus size={18} />
-                          </IconButton>
-                        </Box>
-
-                        <Tooltip title="Remover item">
-                          <IconButton
-                            size="small"
-                            color="error"
-                            onClick={() => handleRemoveItem(index)}
-                          >
-                            <Trash2 size={18} />
-                          </IconButton>
-                        </Tooltip>
-                      </Box>
-                    </ListItem>
-                    <Divider sx={{ borderStyle: "dashed", mx: 1 }} />
-                  </Box>
-                ))}
-              </List>
-            )}
-          </Box>
-
-          {/* Receipt Footer */}
-          <Box
-            sx={{
-              p: 2.5,
-              bgcolor: "primary.50",
-              borderTop: "3px double",
-              borderColor: "divider",
-            }}
-          >
-            {/* Always show the subtotal, discount, and total lines to keep the height 100% stable */}
-            <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mb: 2 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="body2" color="text.primary" sx={{ opacity: 0.8 }}>
-                  Subtotal:
-                </Typography>
-                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                  R$ {cartTotal.toFixed(2)}
-                </Typography>
-              </Box>
-
-              {tenant?.allow_discount !== false && cart.length > 0 && (
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 40 }}>
-                  <Typography variant="body2" color="text.primary" sx={{ opacity: 0.8 }}>
-                    Desconto:
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 1, position: "relative" }}>
-                    {/* R$ Field */}
-                    <TextField
-                      value={discountCents === 0 ? "" : formatBRLFromCents(discountCents)}
-                      size="small"
-                      placeholder="0,00"
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                        const digits = e.target.value.replace(/\D/g, "");
-                        const cents = digits === "" ? 0 : Number(digits);
-                        const maxCents = Math.round(cartTotal * 100);
-                        const finalCents = Math.min(maxCents, cents);
-                        setDiscountCents(finalCents);
-                        if (cartTotal > 0) {
-                           setDiscountPctInput(Number(((finalCents / 100) / cartTotal * 100).toFixed(2)).toString());
-                        } else {
-                           setDiscountPctInput("0");
-                        }
-                      }}
-                      slotProps={{
-                        input: {
-                          startAdornment: (
-                            <InputAdornment position="start">
-                              <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.75rem" }}>
-                                R$
-                              </Typography>
-                            </InputAdornment>
-                          ),
-                        },
-                        htmlInput: {
-                          style: { textAlign: "right", fontWeight: 700, fontSize: "0.85rem", padding: "4px 8px" }
-                        }
-                      }}
-                      sx={{ width: 110 }}
-                      error={isDiscountExceeded}
-                    />
-
-                    {/* % Field */}
-                    <TextField
-                      value={discountPctInput === "0" ? "" : discountPctInput}
-                      size="small"
-                      placeholder="0"
-                      onFocus={(e) => e.target.select()}
-                      onChange={(e) => {
-                         let val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
-                         const parts = val.split(".");
-                         if (parts.length > 2) val = parts[0] + "." + parts.slice(1).join("");
-                         
-                         setDiscountPctInput(val);
-                         
-                         const pct = parseFloat(val) || 0;
-                         const newCents = Math.round((pct / 100) * cartTotal * 100);
-                         const maxCents = Math.round(cartTotal * 100);
-                         setDiscountCents(Math.min(maxCents, newCents));
-                      }}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.75rem" }}>
-                                %
-                              </Typography>
-                            </InputAdornment>
-                          ),
-                        },
-                        htmlInput: {
-                          style: { textAlign: "right", fontWeight: 700, fontSize: "0.85rem", padding: "4px 8px" }
-                        }
-                      }}
-                      sx={{ width: 80 }}
-                      error={isDiscountExceeded}
-                    />
-
-                    {/* Helper text moved outside to cover both fields */}
-                    {isDiscountExceeded && (
-                       <Typography
-                         color="error"
-                         sx={{
-                           position: "absolute",
-                           top: "100%",
-                           right: 0,
-                           whiteSpace: "nowrap",
-                           margin: 0,
-                           fontSize: "0.68rem",
-                           zIndex: 10,
-                           mt: 0.5
-                         }}
-                       >
-                          {`Desconto máximo: R$ ${((cartTotal * (tenant?.max_discount_percentage ?? 100)) / 100).toFixed(2)} (${(tenant?.max_discount_percentage ?? 100)}%)`}
-                       </Typography>
-                    )}
-                  </Box>
-                </Box>
-              )}
-
-              {/* Extra spacing when helper text is shown to prevent overlapping/shifts */}
-              <Box sx={{ height: isDiscountExceeded ? 14 : 0, transition: "height 0.2s" }} />
-
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 1, pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-                  Total a Pagar:
-                </Typography>
-                <Typography variant="h4" color="primary" sx={{ fontWeight: 900 }}>
-                  R$ {(cartTotal - discountAmount).toFixed(2)}
-                </Typography>
-              </Box>
-            </Box>
-
-            <Box sx={{ display: "flex", gap: 1.5 }}>
-              <Button
-                variant="outlined"
-                color="secondary"
-                onClick={clearCart}
-                disabled={cart.length === 0}
-                sx={{
-                  flex: 1,
-                  borderRadius: 2,
-                  height: 48,
-                  borderColor: "divider",
-                }}
-              >
-                Limpar
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                fullWidth
-                size="large"
-                disabled={cart.length === 0 || isDiscountExceeded}
-                onClick={() => setIsCheckoutOpen(true)}
-                sx={{
-                  flex: 2,
-                  borderRadius: 2,
-                  height: 48,
-                  fontWeight: 700,
-                  boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
-                }}
-              >
-                COBRAR
-              </Button>
-            </Box>
-          </Box>
-        </Paper>
-      </Grid>
-
+    <Box sx={{ display: "flex", flexDirection: { xs: "column", lg: "row" }, gap: 3, height: "100%", p: 1, width: "100%" }}>
+      
       {/* Main Content: Catalog */}
-      <Grid
-        size={{ xs: 12, md: "grow" }}
-        sx={{
-          height: "100%",
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          flexGrow: 1,
-          minWidth: 0,
-        }}
-      >
-        {/* Search & Tabs Header */}
-        <Box>
-          <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, sm: 5 }}>
-              <TextField
-                fullWidth
-                size="small"
-                placeholder="Buscar (Nome, Código...)"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search size={16} color="gray" />
-                    </InputAdornment>
-                  ),
-                  sx: { borderRadius: 3, bgcolor: "background.paper" },
-                }}
-              />
-            </Grid>
-            <Grid
-              size={{ xs: 12, sm: 7 }}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2, flexGrow: 1, minWidth: 0 }}>
+        {/* Tab Buttons */}
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap" }}>
+          {tabItems.map((tab) => (
+            <Paper
+              key={tab.id}
+              elevation={0}
+              onClick={() => setCategoryTab(tab.id)}
               sx={{
+                px: 3,
+                py: 1.5,
+                borderRadius: "12px",
+                cursor: "pointer",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "flex-end",
-                gap: 2,
+                gap: 1.5,
+                border: "2px solid",
+                borderColor: categoryTab === tab.id ? "primary.main" : "divider",
+                bgcolor: categoryTab === tab.id ? "primary.main" : "background.paper",
+                color: categoryTab === tab.id ? "white" : "text.primary",
+                transition: "all 0.2s ease",
+                userSelect: "none",
+                "&:hover": {
+                  borderColor: categoryTab === tab.id ? "primary.main" : "text.primary",
+                  transform: "translateY(-1px)",
+                  boxShadow: categoryTab === tab.id ? "0 4px 14px rgba(0,0,0,0.15)" : "0 2px 8px rgba(0,0,0,0.06)",
+                },
               }}
             >
-              <Tabs
-                value={categoryTab}
-                onChange={(_, newValue) => setCategoryTab(newValue)}
-                sx={{
-                  minHeight: 38,
-                  "& .MuiTab-root": {
-                    color: "text.primary",
-                    fontWeight: 700,
-                    fontSize: 13.5,
-                    minWidth: 0,
-                    px: 2.5,
-                    minHeight: 38,
-                    height: 38,
-                    borderRadius: "20px",
-                    border: "2px solid",
-                    borderColor: "divider",
-                    mx: 0.5,
-                    transition: "all 0.2s ease",
-                    textTransform: "none",
-                    "&:hover": {
-                      borderColor: "text.primary",
-                      color: "text.primary",
-                    },
-                  },
-                  "& .Mui-selected": {
-                    color: "primary.main !important",
-                    borderColor: "primary.main",
-                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                  },
-                  "& .MuiTabs-indicator": {
-                    display: "none",
-                  },
-                }}
-              >
-                <Tab label="Todos" />
-                <Tab label="Produtos" />
-                <Tab label="Serviços" />
-                <Tab label="Pacotes" />
-              </Tabs>
-
-              <Divider
-                orientation="vertical"
-                flexItem
-                sx={{ mx: 0.5, height: 24, alignSelf: "center" }}
-              />
-
-              <Box
-                sx={{
-                  bgcolor: "background.paper",
-                  borderRadius: 2,
-                  p: 0.5,
-                  display: "flex",
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <Tooltip title="Vista em Grade">
-                  <IconButton
-                    size="small"
-                    onClick={() => setViewMode("grid")}
-                    color={viewMode === "grid" ? "primary" : "inherit"}
-                    sx={{
-                      borderRadius: 1.5,
-                      bgcolor:
-                        viewMode === "grid"
-                          ? alpha("#1976d2", 0.08)
-                          : "transparent",
-                    }}
-                  >
-                    <LayoutGrid size={18} />
-                  </IconButton>
-                </Tooltip>
-                <Tooltip title="Vista em Lista">
-                  <IconButton
-                    size="small"
-                    onClick={() => setViewMode("list")}
-                    color={viewMode === "list" ? "primary" : "inherit"}
-                    sx={{
-                      borderRadius: 1.5,
-                      bgcolor:
-                        viewMode === "list"
-                          ? alpha("#1976d2", 0.08)
-                          : "transparent",
-                    }}
-                  >
-                    <ListIcon size={18} />
-                  </IconButton>
-                </Tooltip>
-              </Box>
-            </Grid>
-          </Grid>
+              {tab.icon}
+              <Typography variant="body2" sx={{ fontWeight: 700, whiteSpace: "nowrap" }}>
+                {tab.label}
+              </Typography>
+            </Paper>
+          ))}
         </Box>
 
-        {/* Catalog Grid */}
+        {/* Search Bar */}
+        <TextField
+          fullWidth
+          size="small"
+          placeholder="Pesquisar por nome, pet, produto..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          InputProps={{
+            startAdornment: (
+              <InputAdornment position="start">
+                <Search size={18} color="gray" />
+              </InputAdornment>
+            ),
+            sx: { borderRadius: 3, bgcolor: "background.paper", height: 44 },
+          }}
+        />
+
+        {/* Content Area */}
         <Box sx={{ flexGrow: 1, overflowY: "auto", pr: 0.5, minHeight: 0 }}>
+
           {/* Low Stock Alert */}
-          <Collapse in={lowStockProducts.length > 0}>
+          <Collapse in={lowStockProducts.length > 0 && categoryTab === "products"}>
             <Alert
               severity="warning"
               onClick={() => setLowStockExpanded((prev) => !prev)}
@@ -1036,24 +626,196 @@ export default function POSInterface() {
             </Alert>
           </Collapse>
 
-        {isLoadingItems ? (
-          <POSSkeleton viewMode={viewMode} />
-        ) : (
-          <>
-          {(categoryTab === 0 || categoryTab === 1) &&
-            filteredProducts.length > 0 && (
-              <Box sx={{ mb: 4 }}>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    fontWeight: 800,
-                    color: "primary.main",
-                    mb: 2,
-                    display: "block",
-                  }}
-                >
-                  Produtos em Estoque
-                </Typography>
+          {/* === AGENDAMENTOS TAB === */}
+          {categoryTab === "appointments" && (
+            <Paper elevation={0} sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden" }}>
+              <Box sx={{ p: 2.5, borderBottom: "1px solid", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Box>
+                  <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
+                    Agendamentos para Cobrar
+                  </Typography>
+                  <Typography variant="caption" color="text.primary" sx={{ opacity: 0.5 }}>
+                    {filteredAppointments.length} agendamento{filteredAppointments.length !== 1 ? "s" : ""} finalizado{filteredAppointments.length !== 1 ? "s" : ""} · clique para cobrar
+                  </Typography>
+                </Box>
+              </Box>
+              {isLoadingApts ? (
+                <Box sx={{ p: 4 }}>
+                  {[1, 2, 3, 4].map((i) => (
+                    <Skeleton key={i} height={56} sx={{ mb: 1, borderRadius: 1 }} />
+                  ))}
+                </Box>
+              ) : filteredAppointments.length === 0 ? (
+                <Box sx={{ textAlign: "center", py: 8 }}>
+                  <Calendar size={48} style={{ opacity: 0.2, marginBottom: 12 }} />
+                  <Typography variant="body1" color="text.primary" sx={{ fontWeight: 600 }}>
+                    {searchTerm ? "Nenhum agendamento encontrado" : "Nenhum agendamento pendente de pagamento"}
+                  </Typography>
+                  <Typography variant="body2" color="text.primary" sx={{ mt: 0.5, opacity: 0.6 }}>
+                    {searchTerm ? "Tente buscar por outro nome" : "Agendamentos finalizados aparecerão aqui"}
+                  </Typography>
+                </Box>
+              ) : (
+                <TableContainer>
+                  <Table>
+                    <TableHead>
+                      <TableRow sx={{ "& th": { fontWeight: 700, color: "text.primary", opacity: 0.5, fontSize: "0.8rem", textTransform: "uppercase", letterSpacing: 0.8, borderBottom: "2px solid", borderColor: "divider", py: 1.25 } }}>
+                        <TableCell sx={{ pl: 3 }}>Cliente</TableCell>
+                        <TableCell>Pets</TableCell>
+                        <TableCell>Serviços</TableCell>
+                        <TableCell>Horário</TableCell>
+                        <TableCell align="right" sx={{ pr: 3 }}>Valor</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {filteredAppointments.map((apt) => {
+                        const priceCents = getAppointmentPrice(apt);
+                        const allPets = apt.items.map((item) => item.pet);
+                        const allServices = apt.items.flatMap((item) =>
+                          item.services.filter((s) => !s.is_package_covered).map((s) => s.name)
+                        );
+                        // Dedupe service names
+                        const uniqueServices = [...new Set(allServices)];
+                        const isToday = dayjs(apt.scheduled_at).isSame(dayjs(), 'day');
+
+                        return (
+                          <TableRow
+                            key={apt.id}
+                            onClick={() => handlePullAppointment(apt)}
+                            sx={{
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                              "&:hover": {
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                              },
+                              "& td": {
+                                borderBottom: "1px solid",
+                                borderColor: "divider",
+                                py: 1.75,
+                              },
+                            }}
+                          >
+                            <TableCell sx={{ pl: 3 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
+                                {apt.client.name}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                {allPets.map((pet, idx) => (
+                                  <Chip
+                                    key={pet.id || idx}
+                                    label={pet.name}
+                                    size="small"
+                                    sx={{
+                                      fontSize: "0.72rem",
+                                      fontWeight: 600,
+                                      height: 24,
+                                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                      color: "primary.main",
+                                    }}
+                                  />
+                                ))}
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography variant="body2" color="text.primary" sx={{ fontWeight: 500 }}>
+                                {uniqueServices.length > 0 ? uniqueServices.join(", ") : "—"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Box>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                                  {isToday && (
+                                    <Chip
+                                      label="HOJE"
+                                      size="small"
+                                      sx={{
+                                        fontSize: "0.6rem",
+                                        fontWeight: 800,
+                                        height: 20,
+                                        bgcolor: (theme) => alpha(theme.palette.success.main, 0.1),
+                                        color: "success.dark",
+                                      }}
+                                    />
+                                  )}
+                                  <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary" }}>
+                                    {dayjs(apt.scheduled_at).format("HH:mm")}
+                                  </Typography>
+                                </Box>
+                                {!isToday && (
+                                  <Typography variant="caption" color="text.primary" sx={{ opacity: 0.5, fontWeight: 500 }}>
+                                    {dayjs(apt.scheduled_at).format("DD/MM/YYYY")}
+                                  </Typography>
+                                )}
+                              </Box>
+                            </TableCell>
+                            <TableCell align="right" sx={{ pr: 3 }}>
+                              <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main" }}>
+                                R$ {(priceCents / 100).toFixed(2).replace(".", ",")}
+                              </Typography>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              )}
+            </Paper>
+          )}
+
+          {/* === PRODUCTS TAB === */}
+          {categoryTab === "products" && (
+            isLoadingItems ? (
+              <POSSkeleton viewMode={viewMode} />
+            ) : filteredProducts.length > 0 ? (
+              <Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{ fontWeight: 800, color: "primary.main", display: "block" }}
+                  >
+                    Produtos em Estoque
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: "background.paper",
+                      borderRadius: 2,
+                      p: 0.5,
+                      display: "flex",
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Tooltip title="Vista em Grade">
+                      <IconButton
+                        size="small"
+                        onClick={() => setViewMode("grid")}
+                        color={viewMode === "grid" ? "primary" : "inherit"}
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: viewMode === "grid" ? alpha("#1976d2", 0.08) : "transparent",
+                        }}
+                      >
+                        <LayoutGrid size={18} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Vista em Lista">
+                      <IconButton
+                        size="small"
+                        onClick={() => setViewMode("list")}
+                        color={viewMode === "list" ? "primary" : "inherit"}
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: viewMode === "list" ? alpha("#1976d2", 0.08) : "transparent",
+                        }}
+                      >
+                        <ListIcon size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
                 <Grid container spacing={viewMode === "grid" ? 2 : 1}>
                   {filteredProducts.map((product) => (
                     <Grid
@@ -1254,22 +1016,70 @@ export default function POSInterface() {
                   ))}
                 </Grid>
               </Box>
-            )}
-
-          {(categoryTab === 0 || categoryTab === 2) &&
-            filteredServices.length > 0 && (
-              <Box>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    fontWeight: 800,
-                    color: "primary.main",
-                    mb: 2,
-                    display: "block",
-                  }}
-                >
-                  Serviços de Pet Shop
+            ) : (
+              <Box sx={{ textAlign: "center", mt: 10 }}>
+                <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
+                <Typography variant="h6" color="text.primary">
+                  Nenhum produto encontrado
                 </Typography>
+                <Typography variant="body2" color="text.primary">
+                  Tente mudar sua busca
+                </Typography>
+              </Box>
+            )
+          )}
+
+          {/* === SERVICES TAB === */}
+          {categoryTab === "services" && (
+            isLoadingItems ? (
+              <POSSkeleton viewMode={viewMode} />
+            ) : filteredServices.length > 0 ? (
+              <Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{ fontWeight: 800, color: "primary.main", display: "block" }}
+                  >
+                    Serviços de Pet Shop
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: "background.paper",
+                      borderRadius: 2,
+                      p: 0.5,
+                      display: "flex",
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Tooltip title="Vista em Grade">
+                      <IconButton
+                        size="small"
+                        onClick={() => setViewMode("grid")}
+                        color={viewMode === "grid" ? "primary" : "inherit"}
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: viewMode === "grid" ? alpha("#1976d2", 0.08) : "transparent",
+                        }}
+                      >
+                        <LayoutGrid size={18} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Vista em Lista">
+                      <IconButton
+                        size="small"
+                        onClick={() => setViewMode("list")}
+                        color={viewMode === "list" ? "primary" : "inherit"}
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: viewMode === "list" ? alpha("#1976d2", 0.08) : "transparent",
+                        }}
+                      >
+                        <ListIcon size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
                 <Grid container spacing={viewMode === "grid" ? 2 : 1}>
                   {filteredServices.map((service) => (
                     <Grid
@@ -1475,22 +1285,70 @@ export default function POSInterface() {
                   ))}
                 </Grid>
               </Box>
-            )}
-
-          {(categoryTab === 0 || categoryTab === 3) &&
-            filteredPackages.length > 0 && (
-              <Box sx={{ mt: 4 }}>
-                <Typography
-                  variant="overline"
-                  sx={{
-                    fontWeight: 800,
-                    color: "primary.main",
-                    mb: 2,
-                    display: "block",
-                  }}
-                >
-                  Pacotes de Serviços / Produtos
+            ) : (
+              <Box sx={{ textAlign: "center", mt: 10 }}>
+                <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
+                <Typography variant="h6" color="text.primary">
+                  Nenhum serviço encontrado
                 </Typography>
+                <Typography variant="body2" color="text.primary">
+                  Tente mudar sua busca
+                </Typography>
+              </Box>
+            )
+          )}
+
+          {/* === PACKAGES TAB === */}
+          {categoryTab === "packages" && (
+            isLoadingItems ? (
+              <POSSkeleton viewMode={viewMode} />
+            ) : filteredPackages.length > 0 ? (
+              <Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                  <Typography
+                    variant="overline"
+                    sx={{ fontWeight: 800, color: "primary.main", display: "block" }}
+                  >
+                    Pacotes de Serviços / Produtos
+                  </Typography>
+                  <Box
+                    sx={{
+                      bgcolor: "background.paper",
+                      borderRadius: 2,
+                      p: 0.5,
+                      display: "flex",
+                      border: "1px solid",
+                      borderColor: "divider",
+                    }}
+                  >
+                    <Tooltip title="Vista em Grade">
+                      <IconButton
+                        size="small"
+                        onClick={() => setViewMode("grid")}
+                        color={viewMode === "grid" ? "primary" : "inherit"}
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: viewMode === "grid" ? alpha("#1976d2", 0.08) : "transparent",
+                        }}
+                      >
+                        <LayoutGrid size={18} />
+                      </IconButton>
+                    </Tooltip>
+                    <Tooltip title="Vista em Lista">
+                      <IconButton
+                        size="small"
+                        onClick={() => setViewMode("list")}
+                        color={viewMode === "list" ? "primary" : "inherit"}
+                        sx={{
+                          borderRadius: 1.5,
+                          bgcolor: viewMode === "list" ? alpha("#1976d2", 0.08) : "transparent",
+                        }}
+                      >
+                        <ListIcon size={18} />
+                      </IconButton>
+                    </Tooltip>
+                  </Box>
+                </Box>
                 <Grid container spacing={viewMode === "grid" ? 2 : 1}>
                   {filteredPackages.map((pkg) => (
                     <Grid
@@ -1675,26 +1533,388 @@ export default function POSInterface() {
                   ))}
                 </Grid>
               </Box>
-            )}
-
-          {searchTerm &&
-            filteredProducts.length === 0 &&
-            filteredServices.length === 0 &&
-            filteredPackages.length === 0 && (
+            ) : (
               <Box sx={{ textAlign: "center", mt: 10 }}>
                 <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
                 <Typography variant="h6" color="text.primary">
-                  Nenhum item encontrado
+                  Nenhum pacote encontrado
                 </Typography>
                 <Typography variant="body2" color="text.primary">
-                  Tente mudar sua busca ou categoria
+                  Tente mudar sua busca
                 </Typography>
               </Box>
-            )}
-          </>
-        )}
+            )
+          )}
         </Box>
-      </Grid>
+      </Box>
+
+      {/* Sidebar: Ticket de Venda */}
+      <Box sx={{ maxHeight: "800px", width: { lg: "400px", xs: "100%" }, minWidth: { lg: "360px", xs: "100%" }, flexShrink: 0 }}>
+        <Paper
+          elevation={0}
+          sx={{
+            height: "100%",
+            display: "flex",
+            flexDirection: "column",
+            borderRadius: 3,
+            overflow: "hidden",
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "background.paper",
+          }}
+        >
+          {/* Receipt Header */}
+          <Box
+            sx={{
+              p: 2.5,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
+              Ticket de Venda
+            </Typography>
+          </Box>
+
+          {/* Client Selection */}
+          <Box
+            sx={{ px: 2, py: 1.5, borderBottom: "1px solid", borderColor: "divider" }}
+          >
+            <Autocomplete
+              options={clients}
+              getOptionLabel={(option) => option.name}
+              value={selectedClient || null}
+              onChange={(_, newValue) => {
+                setSelectedClientId(newValue?.id || null);
+                if (newValue) {
+                  setShowClientWarning(false);
+                }
+              }}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  placeholder="Vincular Cliente"
+                  variant="outlined"
+                  size="small"
+                  error={showClientWarning}
+                  helperText={showClientWarning ? "Selecione um cliente para poder vender pacotes" : ""}
+                  InputProps={{
+                    ...params.InputProps,
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <User size={18} color={showClientWarning ? "error" : "gray"} />
+                      </InputAdornment>
+                    ),
+                  }}
+                  sx={{
+                    "& .MuiOutlinedInput-root": {
+                      borderRadius: 2,
+                      bgcolor: "background.paper",
+                    },
+                  }}
+                />
+              )}
+            />
+          </Box>
+
+          {/* Cart Items List */}
+          <Box sx={{ flexGrow: 1, overflowY: "auto", px: 2, py: 1 }}>
+            {cart.length === 0 ? (
+              <Box
+                sx={{
+                  height: "100%",
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  opacity: 0.3,
+                  py: 8,
+                }}
+              >
+                <ShoppingCart size={48} style={{ opacity: 0.2 }} />
+                <Typography variant="body2" sx={{ mt: 1 }}>Carrinho Vazio</Typography>
+              </Box>
+            ) : (
+              <List sx={{ pt: 0 }}>
+                {cart.map((item, index) => (
+                  <Box key={`${item.item_type}-${item.item_id}-${index}`}>
+                    <ListItem
+                      sx={{
+                        flexDirection: "column",
+                        alignItems: "stretch",
+                        py: 1.5,
+                        px: 0,
+                      }}
+                    >
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          mb: 0.5,
+                        }}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{ fontWeight: 700, flex: 1, color: "text.primary" }}
+                        >
+                          {item.name}
+                        </Typography>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", ml: 1, whiteSpace: "nowrap" }}>
+                          R$ {item.subtotal.toFixed(2).replace(".", ",")}
+                        </Typography>
+                      </Box>
+
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            bgcolor: "action.hover",
+                            borderRadius: 1.5,
+                            px: 1,
+                          }}
+                        >
+                          <IconButton
+                            size="small"
+                            onClick={() => handleUpdateQuantity(index, -1)}
+                          >
+                            <Minus size={16} />
+                          </IconButton>
+                          <input
+                            type="number"
+                            value={item.quantity}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value);
+                              if (!isNaN(val)) {
+                                handleSetQuantity(index, val);
+                              }
+                            }}
+                            min={1}
+                            style={{
+                              width: "40px",
+                              textAlign: "center",
+                              border: "none",
+                              background: "transparent",
+                              fontWeight: 700,
+                              outline: "none",
+                              fontSize: "0.8rem",
+                            }}
+                          />
+                          <Typography variant="caption" sx={{ fontWeight: 700, mr: 0.5, opacity: 0.7 }}>
+                            {item.unit || "UN"}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            onClick={() => handleUpdateQuantity(index, 1)}
+                          >
+                            <Plus size={16} />
+                          </IconButton>
+                        </Box>
+
+                        <Tooltip title="Remover item">
+                          <IconButton
+                            size="small"
+                            color="error"
+                            onClick={() => handleRemoveItem(index)}
+                          >
+                            <Trash2 size={16} />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </ListItem>
+                    <Divider sx={{ borderStyle: "dashed" }} />
+                  </Box>
+                ))}
+              </List>
+            )}
+          </Box>
+
+          {/* Receipt Footer */}
+          <Box
+            sx={{
+              px: 2,
+              py: 2,
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", mb: 1.5 }}>
+              Resumo:
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mb: 1.5 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Typography variant="body2" color="text.primary">
+                  Subtotal:
+                </Typography>
+                <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+                  R$ {cartTotal.toFixed(2).replace(".", ",")}
+                </Typography>
+              </Box>
+
+              {tenant?.allow_discount !== false && cart.length > 0 && (
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 36 }}>
+                  <Typography variant="body2" color="text.primary">
+                    Desconto:
+                  </Typography>
+                  <Box sx={{ display: "flex", gap: 0.5, position: "relative" }}>
+                    {/* R$ Field */}
+                    <TextField
+                      value={discountCents === 0 ? "" : formatBRLFromCents(discountCents)}
+                      size="small"
+                      placeholder="0,00"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, "");
+                        const cents = digits === "" ? 0 : Number(digits);
+                        const maxCents = Math.round(cartTotal * 100);
+                        const finalCents = Math.min(maxCents, cents);
+                        setDiscountCents(finalCents);
+                        if (cartTotal > 0) {
+                           setDiscountPctInput(Number(((finalCents / 100) / cartTotal * 100).toFixed(2)).toString());
+                        } else {
+                           setDiscountPctInput("0");
+                        }
+                      }}
+                      slotProps={{
+                        input: {
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.7rem" }}>
+                                R$
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: {
+                          style: { textAlign: "right", fontWeight: 700, fontSize: "0.8rem", padding: "3px 6px" }
+                        }
+                      }}
+                      sx={{ width: 90 }}
+                      error={isDiscountExceeded}
+                    />
+
+                    {/* % Field */}
+                    <TextField
+                      value={discountPctInput === "0" ? "" : discountPctInput}
+                      size="small"
+                      placeholder="0"
+                      onFocus={(e) => e.target.select()}
+                      onChange={(e) => {
+                         let val = e.target.value.replace(/[^0-9.,]/g, "").replace(",", ".");
+                         const parts = val.split(".");
+                         if (parts.length > 2) val = parts[0] + "." + parts.slice(1).join("");
+                         
+                         setDiscountPctInput(val);
+                         
+                         const pct = parseFloat(val) || 0;
+                         const newCents = Math.round((pct / 100) * cartTotal * 100);
+                         const maxCents = Math.round(cartTotal * 100);
+                         setDiscountCents(Math.min(maxCents, newCents));
+                      }}
+                      slotProps={{
+                        input: {
+                          endAdornment: (
+                            <InputAdornment position="end">
+                              <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.7rem" }}>
+                                %
+                              </Typography>
+                            </InputAdornment>
+                          ),
+                        },
+                        htmlInput: {
+                          style: { textAlign: "right", fontWeight: 700, fontSize: "0.8rem", padding: "3px 6px" }
+                        }
+                      }}
+                      sx={{ width: 65 }}
+                      error={isDiscountExceeded}
+                    />
+
+                    {/* Helper text moved outside to cover both fields */}
+                    {isDiscountExceeded && (
+                       <Typography
+                         color="error"
+                         sx={{
+                           position: "absolute",
+                           top: "100%",
+                           right: 0,
+                           whiteSpace: "nowrap",
+                           margin: 0,
+                           fontSize: "0.62rem",
+                           zIndex: 10,
+                           mt: 0.5
+                         }}
+                       >
+                          {`Máx: R$ ${((cartTotal * (tenant?.max_discount_percentage ?? 100)) / 100).toFixed(2)} (${(tenant?.max_discount_percentage ?? 100)}%)`}
+                       </Typography>
+                    )}
+                  </Box>
+                </Box>
+              )}
+
+              {/* Extra spacing when helper text is shown */}
+              <Box sx={{ height: isDiscountExceeded ? 10 : 0, transition: "height 0.2s" }} />
+
+              <Divider sx={{ my: 0.5 }} />
+
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary" }}>
+                  Total:
+                </Typography>
+                <Typography variant="h5" color="primary" sx={{ fontWeight: 900 }}>
+                  R$ {(cartTotal - discountAmount).toFixed(2).replace(".", ",")}
+                </Typography>
+              </Box>
+            </Box>
+
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              disabled={cart.length === 0 || isDiscountExceeded}
+              onClick={() => setIsCheckoutOpen(true)}
+              startIcon={<ShoppingCart size={20} />}
+              sx={{
+                borderRadius: 2.5,
+                height: 52,
+                fontWeight: 800,
+                fontSize: "0.95rem",
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
+              }}
+            >
+              COBRAR R$ {(cartTotal - discountAmount).toFixed(2).replace(".", ",")}
+            </Button>
+
+            {cart.length > 0 && (
+              <Button
+                variant="text"
+                color="inherit"
+                fullWidth
+                onClick={clearCart}
+                sx={{
+                  mt: 1,
+                  borderRadius: 2,
+                  height: 36,
+                  fontWeight: 600,
+                  fontSize: "0.8rem",
+                  opacity: 0.6,
+                  "&:hover": { opacity: 1 },
+                }}
+              >
+                Limpar carrinho
+              </Button>
+            )}
+          </Box>
+        </Paper>
+      </Box>
 
       {isCheckoutOpen && (
         <CheckoutModal
@@ -1823,6 +2043,6 @@ export default function POSInterface() {
           </DialogActions>
         )}
       </Dialog>
-    </Grid>
+    </Box>
   );
 }
