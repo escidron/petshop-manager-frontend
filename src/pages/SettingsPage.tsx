@@ -496,8 +496,12 @@ const SettingsPage = () => {
   };
 
   const trialDays = getTrialDays();
-  const isTrialing = tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing";
+  const isTrialing = !tenant?.feature_flags?.free_access && (tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing");
   const showPaymentMethodSection = !!tenant?.subscription && tenant.subscription.plan?.code !== "FREE_TRIAL" && tenant.subscription.status !== "trialing";
+
+  const activePendingPixCharge = useMemo(() => {
+    return charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
+  }, [charges]);
 
   const getChargeStatusChip = (status: string) => {
     const mapping: Record<string, { label: string; color: "success" | "warning" | "error" | "default" | "info" }> = {
@@ -522,9 +526,22 @@ const SettingsPage = () => {
     setOpenCheckout(true);
 
     if (paymentMethod === "pix" && tenant?.document) {
-      const doc = maskDocument(tenant.document);
-      setPixDocument(doc);
-      handleGeneratePix(doc);
+      const pendingPixCharge = charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
+      if (pendingPixCharge) {
+        setPixData({
+          pagarme_subscription_id: "",
+          status: "pending",
+          pix_qr_code: pendingPixCharge.pix_qr_code,
+          pix_qr_code_url: pendingPixCharge.pix_qr_code_url ?? null,
+          expires_at: pendingPixCharge.expires_at ?? null,
+        });
+        const doc = maskDocument(tenant.document);
+        setPixDocument(doc);
+      } else {
+        const doc = maskDocument(tenant.document);
+        setPixDocument(doc);
+        handleGeneratePix(doc);
+      }
     } else {
       setPixDocument(tenant?.document ? maskDocument(tenant.document) : "");
       if (savedCards.length > 0) {
@@ -1007,6 +1024,7 @@ const SettingsPage = () => {
                       </Box>
                       <Chip
                         label={
+                          tenant?.feature_flags?.free_access ? "ACESSO PILOTO (GRÁTIS)" :
                           isTrialing ? "PERÍODO DE TESTE" :
                           tenant?.subscription?.status === "active"
                             ? (tenant.subscription.current_period_end && new Date(tenant.subscription.current_period_end) < new Date() ? "EXPIRADO" : "ATIVO")
@@ -1019,6 +1037,7 @@ const SettingsPage = () => {
                           "PENDENTE"
                         }
                         color={
+                          tenant?.feature_flags?.free_access ? "success" :
                           tenant?.subscription?.status === "active" ? "success" :
                           isTrialing ? "secondary" :
                           "error"
@@ -1082,6 +1101,30 @@ const SettingsPage = () => {
 
                     <Divider />
 
+                    {activePendingPixCharge && (
+                      <Box
+                        sx={{
+                          p: 3,
+                          borderRadius: 3,
+                          bgcolor: "rgba(255, 193, 7, 0.05)",
+                          border: "1px solid rgba(255, 193, 7, 0.3)",
+                          mb: 3,
+                        }}
+                      >
+                        <Typography variant="h6" fontWeight={800} gutterBottom>
+                          Pagamento PIX Pendente
+                        </Typography>
+                        <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+                          Você possui uma cobrança pendente. Escaneie o QR Code abaixo para concluir o pagamento da sua assinatura.
+                        </Typography>
+                        <PixQrCode
+                          qrCode={activePendingPixCharge.pix_qr_code!}
+                          qrCodeUrl={activePendingPixCharge.pix_qr_code_url ?? undefined}
+                          expiresAt={activePendingPixCharge.expires_at ?? ""}
+                        />
+                      </Box>
+                    )}
+
                     {awaitingConfirmation && (
                       <Box
                         sx={{
@@ -1106,7 +1149,7 @@ const SettingsPage = () => {
                       </Box>
                     )}
 
-                    {!awaitingConfirmation && (tenant?.subscription?.plan?.code === "FREE_TRIAL" ||
+                    {!activePendingPixCharge && !awaitingConfirmation && !tenant?.feature_flags?.free_access && (tenant?.subscription?.plan?.code === "FREE_TRIAL" ||
                       tenant?.subscription?.status === "incomplete" ||
                       tenant?.subscription?.status === "pending" ||
                       tenant?.subscription?.status === "failed" ||
@@ -1544,7 +1587,29 @@ const SettingsPage = () => {
                           <Typography variant="caption" color="text.primary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
                             Status
                           </Typography>
-                          {getChargeStatusChip(charge.status)}
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {getChargeStatusChip(charge.status)}
+                            {charge.payment_method === "pix" && charge.status === "pending" && charge.pix_qr_code && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  setPixData({
+                                    pagarme_subscription_id: "",
+                                    status: "pending",
+                                    pix_qr_code: charge.pix_qr_code,
+                                    pix_qr_code_url: charge.pix_qr_code_url ?? null,
+                                    expires_at: charge.expires_at ?? null,
+                                  });
+                                  setPaymentMethod("pix");
+                                  setCheckoutMode("payment");
+                                  setOpenCheckout(true);
+                                }}
+                              >
+                                Pagar
+                              </Button>
+                            )}
+                          </Box>
                         </Grid>
                       </Grid>
                     </Box>
@@ -1987,7 +2052,10 @@ const SettingsPage = () => {
       {/* --- MODAL DE CHECKOUT --- */}
       <Modal
         open={openCheckout}
-        onClose={() => setOpenCheckout(false)}
+        onClose={(_, reason) => {
+          if (reason === "backdropClick") return;
+          setOpenCheckout(false);
+        }}
         closeAfterTransition
         BackdropComponent={Backdrop}
         BackdropProps={{ timeout: 500 }}
@@ -2075,7 +2143,19 @@ const SettingsPage = () => {
                         <Button
                           size="small"
                           variant={paymentMethod === "pix" ? "contained" : "text"}
-                          onClick={() => setPaymentMethod("pix")}
+                          onClick={() => {
+                            setPaymentMethod("pix");
+                            const pendingPixCharge = charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
+                            if (pendingPixCharge && !pixData) {
+                              setPixData({
+                                pagarme_subscription_id: "",
+                                status: "pending",
+                                pix_qr_code: pendingPixCharge.pix_qr_code,
+                                pix_qr_code_url: pendingPixCharge.pix_qr_code_url ?? null,
+                                expires_at: pendingPixCharge.expires_at ?? null,
+                              });
+                            }
+                          }}
                           startIcon={<QrCode size={14} />}
                           sx={{
                             borderRadius: 2,

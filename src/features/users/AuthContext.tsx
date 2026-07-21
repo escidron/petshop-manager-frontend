@@ -35,6 +35,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const subscriptionStatus = tenant?.subscription?.status ?? null;
 
   const subscriptionInfo = (() => {
+    if (tenant?.feature_flags?.free_access) {
+      return {
+        isActive: true,
+        inGracePeriod: false,
+        gracePeriodDaysLeft: 0,
+        isTrial: false,
+        trialDaysLeft: null,
+      };
+    }
+
     const sub = tenant?.subscription;
     if (!sub) {
       return {

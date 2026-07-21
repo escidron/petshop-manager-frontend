@@ -7,7 +7,7 @@ interface Props {
   qrCode: string;
   qrCodeUrl?: string;
   expiresAt: string;
-  onClose: () => void;
+  onClose?: () => void;
 }
 
 const PixQrCode = ({ qrCode, expiresAt, onClose }: Props) => {
@@ -48,7 +48,7 @@ const PixQrCode = ({ qrCode, expiresAt, onClose }: Props) => {
 
       <Box sx={{ display: "flex", gap: 2, justifyContent: "center" }}>
         <Button onClick={handleCopy}>Copiar código PIX</Button>
-        <MuiButton variant="text" onClick={onClose}>Fechar</MuiButton>
+        {onClose && <MuiButton variant="text" onClick={onClose}>Fechar</MuiButton>}
       </Box>
     </Box>
   );

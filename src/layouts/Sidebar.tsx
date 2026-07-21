@@ -138,6 +138,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const { isOwner } = usePermission();
 
   const getTrialInfo = () => {
+    if (tenant?.feature_flags?.free_access) return null;
+    
     const subscription = tenant?.subscription;
     if (!subscription) {
       return null;

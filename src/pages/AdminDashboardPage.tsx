@@ -646,39 +646,82 @@ export default function AdminDashboardPage() {
               
               <Box sx={{
                 display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                p: 2.5,
-                borderRadius: 3,
-                bgcolor: "background.paper",
-                border: "1px solid",
-                borderColor: "divider",
-                boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.02)",
-                transition: "all 0.2s ease-in-out",
-                "&:hover": {
-                  borderColor: "primary.main",
-                  boxShadow: "0px 6px 16px rgba(0, 0, 0, 0.04)"
-                }
+                flexDirection: "column",
+                gap: 2
               }}>
-                <Box display="flex" alignItems="flex-start" gap={2} sx={{ pr: 2 }}>
-                  <Box sx={{ mt: 0.5, p: 1, borderRadius: 2, bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.main", display: "flex", alignItems: "center", justifyContent: "center" }}>
-                    <HelpCircle size={20} />
+                <Box sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  p: 2.5,
+                  borderRadius: 3,
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.02)",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    boxShadow: "0px 6px 16px rgba(0, 0, 0, 0.04)"
+                  }
+                }}>
+                  <Box display="flex" alignItems="flex-start" gap={2} sx={{ pr: 2 }}>
+                    <Box sx={{ mt: 0.5, p: 1, borderRadius: 2, bgcolor: "rgba(25, 118, 210, 0.08)", color: "primary.main", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <HelpCircle size={20} />
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+                        Canal de Suporte
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "text.primary", opacity: 0.7, mt: 0.5 }}>
+                        Habilita o canal de suporte técnico e ajuda diretamente no menu lateral deste inquilino.
+                      </Typography>
+                    </Box>
                   </Box>
-                  <Box>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
-                      Canal de Suporte
-                    </Typography>
-                    <Typography variant="body2" sx={{ color: "text.primary", opacity: 0.7, mt: 0.5 }}>
-                      Habilita o canal de suporte técnico e ajuda diretamente no menu lateral deste inquilino.
-                    </Typography>
-                  </Box>
+                  <Switch
+                    checked={!!selectedTenant?.feature_flags?.support}
+                    onChange={(e) => handleToggleFlag("support", e.target.checked)}
+                    disabled={isUpdating}
+                    color="primary"
+                  />
                 </Box>
-                <Switch
-                  checked={!!selectedTenant?.feature_flags?.support}
-                  onChange={(e) => handleToggleFlag("support", e.target.checked)}
-                  disabled={isUpdating}
-                  color="primary"
-                />
+
+                <Box sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  p: 2.5,
+                  borderRadius: 3,
+                  bgcolor: "background.paper",
+                  border: "1px solid",
+                  borderColor: "divider",
+                  boxShadow: "0px 4px 12px rgba(0, 0, 0, 0.02)",
+                  transition: "all 0.2s ease-in-out",
+                  "&:hover": {
+                    borderColor: "success.main",
+                    boxShadow: "0px 6px 16px rgba(0, 0, 0, 0.04)"
+                  }
+                }}>
+                  <Box display="flex" alignItems="flex-start" gap={2} sx={{ pr: 2 }}>
+                    <Box sx={{ mt: 0.5, p: 1, borderRadius: 2, bgcolor: "rgba(46, 125, 50, 0.08)", color: "success.main", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      <Shield size={20} />
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+                        Acesso de Piloto (Isenção de Cobrança)
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: "text.primary", opacity: 0.7, mt: 0.5 }}>
+                        Ao ativar, a empresa terá acesso total ao sistema independentemente do status da assinatura. Ideal para clientes beta.
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Switch
+                    checked={!!selectedTenant?.feature_flags?.free_access}
+                    onChange={(e) => handleToggleFlag("free_access", e.target.checked)}
+                    disabled={isUpdating}
+                    color="success"
+                  />
+                </Box>
               </Box>
             </Box>
           </Box>
