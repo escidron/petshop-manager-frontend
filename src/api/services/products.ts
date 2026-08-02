@@ -73,16 +73,22 @@ export const fetchGlobalInventoryLogs = async () => {
   return response.data;
 };
 
-export const importProducts = async (file: File) => {
+import type { ImportJobStatus } from "./clients";
+
+export const startProductsImport = async (file: File): Promise<{ job_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
   const response = await apiClient.post("/api/v1/products/import", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
+
+export const getProductImportStatus = async (jobId: string): Promise<ImportJobStatus> => {
+  const response = await apiClient.get<ImportJobStatus>(`/api/v1/products/import/status/${jobId}`);
+  return response.data;
+};
+
 
 export const downloadImportTemplate = async () => {
   const response = await apiClient.get("/api/v1/products/import/template", {

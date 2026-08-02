@@ -40,16 +40,22 @@ export const deleteService = async (serviceId: number) => {
   await apiClient.delete(`/api/v1/services/${serviceId}`);
 };
 
-export const importServices = async (file: File) => {
+import type { ImportJobStatus } from "./clients";
+
+export const startServicesImport = async (file: File): Promise<{ job_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
   const response = await apiClient.post("/api/v1/services/import", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
+
+export const getServiceImportStatus = async (jobId: string): Promise<ImportJobStatus> => {
+  const response = await apiClient.get<ImportJobStatus>(`/api/v1/services/import/status/${jobId}`);
+  return response.data;
+};
+
 
 export const downloadImportTemplate = async () => {
   const response = await apiClient.get("/api/v1/services/import/template", {

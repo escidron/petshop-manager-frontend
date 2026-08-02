@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Chip, CircularProgress } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import { useToast } from "../hooks/useToast";
@@ -17,6 +17,7 @@ export default function ServicesPage() {
   const [deleting, setDeleting] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
   const toast = useToast();
   const [serviceModal, setServiceModal] = useState<{
     open: boolean;
@@ -84,13 +85,33 @@ export default function ServicesPage() {
         />
       )}
 
-      {isLibraryOpen && (
-        <ServiceLibraryModal
-          open={isLibraryOpen}
-          onClose={() => setIsLibraryOpen(false)}
-          onSuccess={async () => {
-            await getServices();
-            queryClient.invalidateQueries({ queryKey: ["services"] });
+      <ServiceLibraryModal
+        open={isLibraryOpen}
+        activeJobId={activeJobId}
+        onJobStarted={(id) => setActiveJobId(id)}
+        onJobFinished={() => setActiveJobId(null)}
+        onClose={() => setIsLibraryOpen(false)}
+        onSuccess={async () => {
+          await getServices();
+          queryClient.invalidateQueries({ queryKey: ["services"] });
+        }}
+      />
+
+      {/* Persistent import progress chip when modal is closed */}
+      {!isLibraryOpen && activeJobId && (
+        <Chip
+          icon={<CircularProgress size={14} color="inherit" />}
+          label="Importação em andamento — clique para ver"
+          color="primary"
+          onClick={() => setIsLibraryOpen(true)}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 1400,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: 3,
           }}
         />
       )}
@@ -98,6 +119,7 @@ export default function ServicesPage() {
       {/* Delete Modal */}
       {serviceToDelete && (
         <ServiceDeleteModal
+
           open
           service={serviceToDelete}
           loading={deleting}

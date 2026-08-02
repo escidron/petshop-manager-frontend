@@ -40,14 +40,27 @@ export const deleteClient = async (clientId: number) => {
   await apiClient.delete(`/api/v1/clients/${clientId}`);
 };
 
-export const importClients = async (file: File): Promise<{ imported: number; errors: string[] }> => {
+export const startClientsImport = async (file: File): Promise<{ job_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
   const response = await apiClient.post("/api/v1/clients/import", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
+  return response.data;
+};
+
+export type ImportJobStatus = {
+  status: "pending" | "running" | "done" | "error";
+  progress: number;
+  imported: number;   // rows processed so far during run
+  created: number;    // new records (final)
+  updated: number;    // updated records (final)
+  total: number;
+  errors: string[];
+};
+
+export const getImportJobStatus = async (jobId: string): Promise<ImportJobStatus> => {
+  const response = await apiClient.get<ImportJobStatus>(`/api/v1/clients/import/status/${jobId}`);
   return response.data;
 };
 
