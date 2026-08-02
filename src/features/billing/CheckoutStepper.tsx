@@ -15,7 +15,7 @@ import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft } from "lucide-rea
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
 import { QRCodeSVG } from "qrcode.react";
-import { createCheckout, addPaymentMethod, cancelCharge } from "../../api/services/subscriptions";
+import { createCheckout, cancelCharge } from "../../api/services/subscriptions";
 import type { CheckoutPixResponse } from "./types";
 import { maskDocument } from "../../utils/masks";
 import dayjs from "dayjs";

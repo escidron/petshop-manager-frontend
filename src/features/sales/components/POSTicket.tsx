@@ -11,11 +11,10 @@ import {
   Tooltip,
   Chip,
   Switch,
-  FormControlLabel,
   alpha,
   Collapse,
 } from "@mui/material";
-import { ShoppingCart, Trash2, Plus, Minus, Dog, Eye, EyeOff, CheckCircle } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Eye, EyeOff, CheckCircle } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../../../components/Button/Button";
 import { formatBRLFromCents } from "../../../utils/masks";
@@ -427,8 +426,7 @@ export default function POSTicket({
         <Collapse in={!clientMode}>
           {cart.length > 0 && (
             <Button
-              variant="text"
-              color="inherit"
+              color="secondary"
               fullWidth
               onClick={onClearCart}
               sx={{ mt: 1, borderRadius: 2, height: 36, fontWeight: 600, fontSize: "0.8rem", opacity: 0.5, "&:hover": { opacity: 1 } }}

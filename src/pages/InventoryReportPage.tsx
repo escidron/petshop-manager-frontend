@@ -106,15 +106,17 @@ export default function InventoryReportPage({
   const [filterType, setFilterType] = useState("");
   const [filterProduct, setFilterProduct] = useState("");
 
-  const { data: products = [], isLoading: loadingProducts } = useQuery<Product[]>({
+  const { data: productsData, isLoading: loadingProducts } = useQuery({
     queryKey: ["products"],
-    queryFn: fetchProducts,
+    queryFn: () => fetchProducts(),
   });
+  const products: Product[] = productsData || [];
 
-  const { data: logs = [], isLoading: loadingLogs } = useQuery<InventoryLog[]>({
+  const { data: logsData, isLoading: loadingLogs } = useQuery({
     queryKey: ["inventory-logs"],
-    queryFn: fetchGlobalInventoryLogs,
+    queryFn: () => fetchGlobalInventoryLogs(),
   });
+  const logs: InventoryLog[] = logsData || [];
 
   const isLoading = loadingProducts || loadingLogs;
 

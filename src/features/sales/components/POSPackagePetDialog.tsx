@@ -9,7 +9,6 @@ import {
   List,
   ListItem,
   IconButton,
-  alpha,
 } from "@mui/material";
 import { Dog, X } from "lucide-react";
 import { Button } from "../../../components/Button/Button";

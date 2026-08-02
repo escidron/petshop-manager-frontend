@@ -15,7 +15,6 @@ import {
 } from "@mui/material";
 import {
   Search,
-  Tag,
   ClipboardList,
   Plus,
   Filter,

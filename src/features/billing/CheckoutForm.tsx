@@ -8,7 +8,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { CreditCard, Calendar, Lock, User, FileText, MapPin } from "lucide-react";
+import { CreditCard, Lock, MapPin } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 
 export interface BillingAddress {

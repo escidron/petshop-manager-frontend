@@ -1,4 +1,4 @@
-import { Box, Paper, Typography, Autocomplete, TextField, InputAdornment, alpha, Button } from "@mui/material";
+import { Box, Paper, Autocomplete, TextField, InputAdornment, Button } from "@mui/material";
 import { User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -46,7 +46,6 @@ export default function POSInterface() {
   const discountAmount = discountCents / 100;
 
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
-  const [showClientWarning, setShowClientWarning] = useState(false);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
 
   // Session state: "none" | "selecting-client" | "in-session"
@@ -263,7 +262,6 @@ export default function POSInterface() {
   ) => {
     if (type === "package") {
       if (!selectedClientId) {
-        setShowClientWarning(true);
         toast.warning("Por favor, selecione um cliente antes de adicionar um pacote.");
         return;
       }
@@ -513,8 +511,8 @@ export default function POSInterface() {
               viewMode={viewMode}
               isLoading={isLoadingItems}
               products={filteredProducts}
-              services={filteredServices}
-              packages={filteredPackages}
+              services={filteredServices as any}
+              packages={filteredPackages as any}
               lowStockProducts={lowStockProducts}
               lowStockExpanded={lowStockExpanded}
               onTabChange={setCatalogTab}

@@ -11,9 +11,6 @@ import {
   Grid,
   Chip,
   LinearProgress,
-  Modal,
-  Backdrop,
-  Fade,
   CircularProgress,
   IconButton,
   FormControl,
@@ -35,6 +32,12 @@ import {
   Trash2,
   AlertTriangle,
   Info,
+  Users,
+  QrCode,
+  CheckCircle2,
+  Lock,
+  Plus,
+  X,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
@@ -57,10 +60,7 @@ import CustomTextField from "../components/Textfield/CustomTextfield";
 import { useToast } from "../hooks/useToast";
 import { maskPhone, maskDocument } from "../utils/masks";
 import {
-  createCheckout,
   listPaymentMethods,
-  removePaymentMethod,
-  setDefaultPaymentMethod,
   cancelSubscription,
   listCharges,
   updateChargeCard,
@@ -127,7 +127,6 @@ const SettingsPage = () => {
   const [openPixConfirmation, setOpenPixConfirmation] = useState(false);
   const [loadingChangeToPix, setLoadingChangeToPix] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
-  const [selectedCardId, setSelectedCardId] = useState<string>("");
   const [savingTenant, setSavingTenant] = useState(false);
   const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
@@ -382,12 +381,11 @@ const SettingsPage = () => {
   }, [isOwner]);
 
   const fetchCards = useCallback(async () => {
-    setLoadingCards(true);
     try {
       const methods = await listPaymentMethods();
       setSavedCards(methods);
-    } finally {
-      setLoadingCards(false);
+    } catch (err) {
+      console.error(err);
     }
   }, []);
 
@@ -422,7 +420,6 @@ const SettingsPage = () => {
   useEffect(() => {
     setSavedCards([]);
     setCharges([]);
-    setSelectedCardId("");
   }, [tenant?.id]);
 
   // Busca cartões e cobranças ao abrir a aba de cobrança (ou ao trocar de tenant)
@@ -492,21 +489,6 @@ const SettingsPage = () => {
     };
     const conf = mapping[status] || { label: status, color: "default" };
     return <Chip label={conf.label} color={conf.color} size="small" sx={{ fontWeight: 700 }} />;
-  };
-
-  const handleGeneratePix = async (docOverride?: string) => {
-    const doc = docOverride ?? pixDocument;
-    try {
-      const data = await createCheckout("MONTHLY", "pix", undefined, doc);
-      if ("pix_qr_code" in data) {
-        setPixData(data as CheckoutPixResponse);
-        await checkAuth();
-        setAwaitingConfirmation(true);
-        setPollCount(0);
-      }
-    } catch {
-      toast.error("Erro ao gerar PIX. Tente novamente.");
-    }
   };
 
   const onSaveTenant = async (data: TenantFormData) => {

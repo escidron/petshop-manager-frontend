@@ -7,7 +7,7 @@ import {
   Collapse,
   alpha,
 } from "@mui/material";
-import { Calendar, ShoppingBag, User, X, ChevronDown, ChevronUp, Check } from "lucide-react";
+import { Calendar, User, X, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { useState } from "react";
 import dayjs from "dayjs";
 import { Button } from "../../../components/Button/Button";
@@ -423,7 +423,7 @@ export default function POSClientDashboard({
         <Box sx={{ mt: 3 }}>
           <Button
             variant="outlined"
-            color="inherit"
+            color="secondary"
             onClick={onClearClient}
             sx={{ px: 3, py: 1, borderRadius: 2, fontWeight: 700, borderColor: "divider", "&:hover": { bgcolor: "action.hover" } }}
           >

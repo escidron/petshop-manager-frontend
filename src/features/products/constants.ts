@@ -36,4 +36,6 @@ export const DEFAULT_PRODUCT_FORM: ProductFormData = {
   is_active: true,
   is_internal_use: false,
   unit: "UN",
+  barcode: "",
+  ncm: "",
 };

@@ -1,6 +1,5 @@
 import {
   Box,
-  Paper,
   Typography,
   Chip,
   Table,
