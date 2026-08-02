@@ -154,7 +154,6 @@ const AppointmentDetailsModal = ({
   const allServices = appointment.items.flatMap(i => i.services);
   const coveredServices = allServices.filter(s => s.is_package_covered);
   const billableServices = allServices.filter(s => !s.is_package_covered);
-  const coveredCount = coveredServices.length;
   const billableCount = billableServices.length;
 
   const remainingBalancesText = useMemo(() => {

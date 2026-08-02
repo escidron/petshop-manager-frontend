@@ -19,7 +19,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
-import { Plus, CalendarCheck, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, CalendarCheck } from "lucide-react";
 import type { Client } from "../clients/types";
 import type { Pet } from "../pets/types";
 import type { Service } from "../tenant_services/types";
@@ -53,7 +53,6 @@ type Props = {
   autoSelectPet?: { index: number; id: number };
   autoSelectService?: { index: number; id: number };
   initialDate?: string;
-  isLoadingPets?: boolean;
   loadedClientId?: number;
 };
 
@@ -75,7 +74,6 @@ export default function AppointmentForm({
   autoSelectPet,
   autoSelectService,
   initialDate,
-  isLoadingPets = false,
   loadedClientId,
 }: Props) {
   const { tenant } = useAuth();
@@ -97,7 +95,7 @@ export default function AppointmentForm({
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "date" | "never">("occurrences");
   const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
+    resolver: zodResolver(appointmentSchema) as any,
     defaultValues: {
       ...defaultValues,
       scheduled_at: defaultValues?.scheduled_at || "",
@@ -194,7 +192,6 @@ export default function AppointmentForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSelectService]);
 
-  const scheduledDateValue = useWatch({ control, name: "scheduled_at" });
   const recurrenceFrequency = useWatch({ control, name: "recurrence.frequency" }) || "weekly";
   const recurrenceOccurrences = useWatch({ control, name: "recurrence.occurrences" }) || 2;
 
@@ -237,11 +234,11 @@ export default function AppointmentForm({
   return (
     <Box
         component="form"
-        onSubmit={handleSubmit((data) => {
+        onSubmit={handleSubmit((data: any) => {
           if (!isRecurrent) {
             delete data.recurrence;
           }
-          onSubmit(data);
+          onSubmit(data as AppointmentFormData);
         })}
         sx={{ display: "flex", flexDirection: "column", gap: 3 }}
       >{/* DATA E HORA */}
@@ -682,11 +679,11 @@ export default function AppointmentForm({
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           loading={isSubmitting}
-          onClick={handleSubmit((data: AppointmentFormData) => {
+          onClick={handleSubmit((data: any) => {
             if (!isRecurrent) {
               delete data.recurrence;
             }
-            onSubmit(data);
+            onSubmit(data as AppointmentFormData);
           })}
         >
           {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}
