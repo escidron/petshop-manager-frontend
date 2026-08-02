@@ -18,6 +18,7 @@ import {
   UserCheck,
   BarChart2,
   Percent,
+  ShoppingBag,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -62,7 +63,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
       {
         id: "packages",
         label: "Pacotes",
-        icon: <Package size={20} />,
+        icon: <ShoppingBag size={20} />,
         path: "/registration/packages",
       },
       {
@@ -137,6 +138,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const { isOwner } = usePermission();
 
   const getTrialInfo = () => {
+    if (tenant?.feature_flags?.free_access) return null;
+    
     const subscription = tenant?.subscription;
     if (!subscription) {
       return null;

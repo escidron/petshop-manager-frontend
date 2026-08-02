@@ -38,7 +38,7 @@ const ROLE_LABELS: Record<string, string> = {
 const schema = z.object({
   name: z.string().min(1, "Nome obrigatório"),
   role: z.enum(["groomer", "bather", "vet", "salesperson", "receptionist", "driver", "other"]),
-  phone: z.string().nullable().optional(),
+  phone: z.string().min(1, "Telefone obrigatório"),
   email: z.string().email("E-mail inválido").nullable().optional().or(z.literal("")),
   is_active: z.boolean(),
 });
@@ -82,7 +82,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const payload = { ...data, email: data.email || null, phone: data.phone || null };
+      const payload = { ...data, email: data.email || null, phone: data.phone };
       if (mode === "create") {
         await createEmployee(payload);
         toast.success("Funcionário cadastrado com sucesso");
@@ -115,7 +115,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
           <Divider />
 
           <FormControl fullWidth>
-            <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Nome</FormLabel>
+            <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Nome</FormLabel>
             <Controller
               name="name"
               control={control}
@@ -132,7 +132,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
           </FormControl>
 
           <FormControl fullWidth>
-            <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>Cargo</FormLabel>
+            <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cargo</FormLabel>
             <Controller
               name="role"
               control={control}
@@ -166,7 +166,7 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
           </FormControl>
 
           <FormControl fullWidth>
-            <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>E-mail</FormLabel>
+            <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>E-mail (Opcional)</FormLabel>
             <Controller
               name="email"
               control={control}

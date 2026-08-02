@@ -11,9 +11,6 @@ import {
   Grid,
   Chip,
   LinearProgress,
-  Modal,
-  Backdrop,
-  Fade,
   CircularProgress,
   IconButton,
   FormControl,
@@ -23,6 +20,7 @@ import {
   DialogContent,
   Select,
   MenuItem,
+  Menu,
   TextField,
   Switch,
   FormControlLabel,
@@ -31,18 +29,16 @@ import {
   Settings,
   CreditCard,
   User,
-  CheckCircle2,
-  TrendingUp,
-  X,
-  Lock,
-  QrCode,
-  Users,
-  Plus,
   Trash2,
   AlertTriangle,
   Info,
+  Users,
+  QrCode,
+  CheckCircle2,
+  Lock,
+  Plus,
+  X,
 } from "lucide-react";
-import Skeleton from "@mui/material/Skeleton";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import dayjs from "dayjs";
@@ -64,18 +60,16 @@ import CustomTextField from "../components/Textfield/CustomTextfield";
 import { useToast } from "../hooks/useToast";
 import { maskPhone, maskDocument } from "../utils/masks";
 import {
-  addPaymentMethod,
-  createCheckout,
   listPaymentMethods,
-  removePaymentMethod,
-  setDefaultPaymentMethod,
   cancelSubscription,
   listCharges,
   updateChargeCard,
+  changeSubscriptionToPix,
 } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
-import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import PixQrCode from "../features/billing/PixQrCode";
+import CheckoutStepper from "../features/billing/CheckoutStepper";
+import UpdateCardModal from "../features/billing/UpdateCardModal";
 import type { PaymentMethod, CheckoutPixResponse, SubscriptionCharge } from "../features/billing/types";
 import { Button } from "../components/Button/Button";
 import WorkingHoursSettings from "../features/tenants/WorkingHoursSettings";
@@ -127,16 +121,14 @@ const SettingsPage = () => {
   const [value, setValue] = useState(0);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
-  const [checkoutMode, setCheckoutMode] = useState<"payment" | "setup">("payment");
   const [openCancelModal, setOpenCancelModal] = useState(false);
+  const [openUpdateCard, setOpenUpdateCard] = useState(false);
+  const [manageAnchorEl, setManageAnchorEl] = useState<null | HTMLElement>(null);
+  const [openPixConfirmation, setOpenPixConfirmation] = useState(false);
+  const [loadingChangeToPix, setLoadingChangeToPix] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
-  const [selectedCardId, setSelectedCardId] = useState<string>("");
-  const [useNewCard, setUseNewCard] = useState<boolean>(false);
   const [savingTenant, setSavingTenant] = useState(false);
   const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
-  const [loadingCards, setLoadingCards] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [pollCount, setPollCount] = useState(0);
   const [pixDocument, setPixDocument] = useState("");
@@ -317,18 +309,8 @@ const SettingsPage = () => {
     }
   }, [tenant?.document, pixDocument]);
 
-  const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState<"card" | "pix" | null>(null);
   const [checkoutStartAt, setCheckoutStartAt] = useState<string | null>(null);
-
-  const handlePaymentMethodChange = (method: "card" | "pix") => {
-    if (!tenant?.id || method === paymentMethod) return;
-    if (tenant?.subscription?.status === "active") {
-      setPendingPaymentMethod(method);
-    } else {
-      confirmPaymentMethodChange(method);
-    }
-  };
 
   const confirmPaymentMethodChange = async (method: "card" | "pix") => {
     if (!tenant?.id) return;
@@ -339,22 +321,17 @@ const SettingsPage = () => {
     if (method === "card" && tenant?.subscription?.payment_method === "pix" && tenant?.subscription?.status === "active") {
       const startAt = tenant.subscription.current_period_end;
       setCheckoutStartAt(startAt);
-      setCheckoutMode("payment");
-      setCheckoutError(null);
       setPixData(null);
       setOpenCheckout(true);
       return;
     }
 
     setPaymentMethod(method);
-    setSavingPaymentMethod(true);
     try {
       await updateSubscription(tenant.id, method);
       await checkAuth();
     } catch {
       setPaymentMethod(paymentMethod); // revert on error
-    } finally {
-      setSavingPaymentMethod(false);
     }
   };
 
@@ -404,12 +381,11 @@ const SettingsPage = () => {
   }, [isOwner]);
 
   const fetchCards = useCallback(async () => {
-    setLoadingCards(true);
     try {
       const methods = await listPaymentMethods();
       setSavedCards(methods);
-    } finally {
-      setLoadingCards(false);
+    } catch (err) {
+      console.error(err);
     }
   }, []);
 
@@ -425,20 +401,18 @@ const SettingsPage = () => {
     }
   }, []);
 
-  
-
-  const handleSetDefault = async (pmId: string) => {
-    await setDefaultPaymentMethod(pmId);
-    setSavedCards((prev) =>
-      prev.map((c) => ({ ...c, is_default: c.id === pmId }))
-    );
-    toast.success("Cartão padrão atualizado!");
-  };
-
-  const handleRemoveCard = async (pmId: string) => {
-    await removePaymentMethod(pmId);
-    setSavedCards((prev) => prev.filter((c) => c.id !== pmId));
-    toast.success("Cartão removido.");
+  const handleChangeToPix = async () => {
+    setLoadingChangeToPix(true);
+    try {
+      await changeSubscriptionToPix();
+      toast.success("Forma de pagamento alterada para PIX!");
+      await checkAuth();
+      setOpenPixConfirmation(false);
+    } catch (err) {
+      toast.error("Erro ao alterar para PIX. Tente novamente.");
+    } finally {
+      setLoadingChangeToPix(false);
+    }
   };
 
   // Limpa os dados sensíveis imediatamente ao trocar de tenant,
@@ -446,7 +420,6 @@ const SettingsPage = () => {
   useEffect(() => {
     setSavedCards([]);
     setCharges([]);
-    setSelectedCardId("");
   }, [tenant?.id]);
 
   // Busca cartões e cobranças ao abrir a aba de cobrança (ou ao trocar de tenant)
@@ -496,8 +469,11 @@ const SettingsPage = () => {
   };
 
   const trialDays = getTrialDays();
-  const isTrialing = tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing";
-  const showPaymentMethodSection = !!tenant?.subscription && tenant.subscription.plan?.code !== "FREE_TRIAL" && tenant.subscription.status !== "trialing";
+  const isTrialing = !tenant?.feature_flags?.free_access && (tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing");
+
+  const activePendingPixCharge = useMemo(() => {
+    return charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
+  }, [charges]);
 
   const getChargeStatusChip = (status: string) => {
     const mapping: Record<string, { label: string; color: "success" | "warning" | "error" | "default" | "info" }> = {
@@ -513,86 +489,6 @@ const SettingsPage = () => {
     };
     const conf = mapping[status] || { label: status, color: "default" };
     return <Chip label={conf.label} color={conf.color} size="small" sx={{ fontWeight: 700 }} />;
-  };
-
-  const handleOpenCheckout = () => {
-    setCheckoutMode("payment");
-    setCheckoutError(null);
-    setPixData(null);
-    setOpenCheckout(true);
-
-    if (paymentMethod === "pix" && tenant?.document) {
-      const doc = maskDocument(tenant.document);
-      setPixDocument(doc);
-      handleGeneratePix(doc);
-    } else {
-      setPixDocument(tenant?.document ? maskDocument(tenant.document) : "");
-      if (savedCards.length > 0) {
-        const defaultCard = savedCards.find((c) => c.is_default) || savedCards[0];
-        setSelectedCardId(defaultCard.id);
-        setUseNewCard(false);
-      } else {
-        setSelectedCardId("");
-        setUseNewCard(true);
-      }
-    }
-  };
-
-  const handleGeneratePix = async (docOverride?: string) => {
-    const doc = docOverride ?? pixDocument;
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    try {
-      const data = await createCheckout("MONTHLY", "pix", undefined, doc);
-      if ("pix_qr_code" in data) {
-        setPixData(data as CheckoutPixResponse);
-        await checkAuth();
-        setAwaitingConfirmation(true);
-        setPollCount(0);
-      }
-    } catch {
-      setCheckoutError("Erro ao gerar PIX. Tente novamente.");
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleCheckoutWithSavedCard = async () => {
-    if (!selectedCardId) {
-      toast.error("Por favor, selecione um cartão.");
-      return;
-    }
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    try {
-      await createCheckout(
-        "MONTHLY",
-        "credit_card",
-        undefined,
-        undefined,
-        undefined,
-        checkoutStartAt ?? undefined,
-        selectedCardId
-      );
-      setCheckoutStartAt(null);
-      toast.success("Pagamento enviado! Aguardando confirmação...");
-      await checkAuth();
-      setAwaitingConfirmation(true);
-      setPollCount(0);
-      setOpenCheckout(false);
-    } catch (err: any) {
-      console.error(err);
-      const detail = err.response?.data?.detail || "Erro ao processar o pagamento com o cartão salvo.";
-      setCheckoutError(typeof detail === "string" ? detail : JSON.stringify(detail));
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleOpenSetupCard = () => {
-    setCheckoutMode("setup");
-    setCheckoutError(null);
-    setOpenCheckout(true);
   };
 
   const onSaveTenant = async (data: TenantFormData) => {
@@ -954,539 +850,350 @@ const SettingsPage = () => {
 
         {/* --- ABA PLANOS E COBRANÇA (owner only) --- */}
         {isOwner && <CustomTabPanel value={value} index={getTabIndex("billing")}>
-          <Grid container spacing={4}>
-            <Grid size={{ xs: 12, md: 7 }}>
-              <Stack spacing={3}>
-                <Paper
-                  sx={{
-                    p: 4,
-                    borderRadius: 4,
-                    position: "relative",
-                    overflow: "hidden",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      position: "absolute",
-                      top: -20,
-                      right: -20,
-                      width: 150,
-                      height: 150,
-                      background:
-                        "radial-gradient(circle, rgba(111,66,193,0.05) 0%, rgba(255,255,255,0) 70%)",
-                      borderRadius: "50%",
-                    }}
-                  />
-                  <Stack spacing={3}>
-                    <Box
-                      sx={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                      }}
-                    >
-                      <Box>
-                        <Typography
-                          variant="caption"
-                          sx={{
-                            fontWeight: 800,
-                            color: "primary.main",
-                            textTransform: "uppercase",
-                            letterSpacing: 1,
-                          }}
-                        >
-                          Plano Atual
-                        </Typography>
-                        <Typography
-                          variant="h5"
-                          fontWeight={800}
-                          sx={{ mt: 0.5 }}
-                        >
-                          {tenant?.subscription?.plan?.name || "Sem Assinatura"}
-                        </Typography>
-                      </Box>
-                      <Chip
-                        label={
-                          isTrialing ? "PERÍODO DE TESTE" :
-                          tenant?.subscription?.status === "active"
-                            ? (tenant.subscription.current_period_end && new Date(tenant.subscription.current_period_end) < new Date() ? "EXPIRADO" : "ATIVO")
-                            :
-                          tenant?.subscription?.status === "incomplete" ? "PAGAMENTO PENDENTE" :
-                          tenant?.subscription?.status === "pending" ? "AGUARDANDO PAGAMENTO" :
-                          tenant?.subscription?.status === "past_due" ? "PAGAMENTO ATRASADO" :
-                          tenant?.subscription?.status === "canceled" ? "CANCELADO" :
-                          tenant?.subscription?.status === "failed" ? "FALHA NO PAGAMENTO" :
-                          "PENDENTE"
-                        }
-                        color={
-                          tenant?.subscription?.status === "active" ? "success" :
-                          isTrialing ? "secondary" :
-                          "error"
-                        }
-                        size="small"
-                        sx={{ fontWeight: 700 }}
-                      />
-                    </Box>
+          <Stack spacing={4}>
 
-                    {isTrialing && (
-                      <Box
-                        sx={{
-                          bgcolor: "rgba(111,66,193,0.03)",
-                          p: 3,
-                          borderRadius: 3,
-                          border: "1px solid rgba(111,66,193,0.1)",
-                        }}
-                      >
-                        <Stack spacing={2}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              justifyContent: "space-between",
-                              alignItems: "center",
-                            }}
-                          >
-                            <Typography variant="body2" fontWeight={700} color={trialDays === 0 ? "error" : "inherit"}>
-                              {trialDays === 0
-                                ? dayjs(tenant?.subscription?.trial_ends_at).isBefore(dayjs())
-                                  ? "Seu período de teste expirou"
-                                  : `Seu teste grátis acaba hoje às ${dayjs(tenant?.subscription?.trial_ends_at).format("HH:mm")}`
-                                : `Faltam ${trialDays} ${trialDays === 1 ? "dia" : "dias"} para o fim do teste`}
-                            </Typography>
-                            {trialDays > 0 && (
-                              <Typography
-                                variant="caption"
-                                color="text.secondary"
-                              >
-                                {dayjs(tenant?.subscription?.trial_ends_at).format(
-                                  "DD/MM/YYYY",
-                                )}
-                              </Typography>
-                            )}
-                          </Box>
-                          <LinearProgress
-                            variant="determinate"
-                            value={(trialDays / 14) * 100}
-                            sx={{
-                              height: 8,
-                              borderRadius: 4,
-                              bgcolor: "rgba(0,0,0,0.05)",
-                            }}
-                          />
-                          <Typography variant="caption" color="text.primary">
-                            Ao final desse período, você precisará escolher um
-                            plano para continuar usando o PetControle.
-                          </Typography>
-                        </Stack>
-                      </Box>
-                    )}
+            {/* ---- Cabeçalho ---- */}
+            <Box>
+              <Typography variant="h5" fontWeight={800} gutterBottom>
+                {tenant?.subscription?.status === "active" ? "Planos disponíveis" : "Escolha um plano"}
+              </Typography>
+              <Typography variant="body2" color="text.primary">
+                {tenant?.subscription?.status === "active" 
+                  ? "Confira nossos planos. Em breve teremos novidades!" 
+                  : "Escolha o plano ideal para o tamanho do seu pet shop."}
+              </Typography>
+            </Box>
 
-                    <Divider />
-
-                    {awaitingConfirmation && (
-                      <Box
-                        sx={{
-                          p: 3,
-                          borderRadius: 3,
-                          bgcolor: "rgba(111,66,193,0.04)",
-                          border: "1px solid rgba(111,66,193,0.15)",
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 2,
-                        }}
-                      >
-                        <CircularProgress size={20} />
-                        <Box>
-                          <Typography variant="subtitle2" fontWeight={700}>
-                            Aguardando confirmação do pagamento
-                          </Typography>
-                          <Typography variant="caption" color="text.primary">
-                            Isso pode levar alguns segundos...
-                          </Typography>
-                        </Box>
-                      </Box>
-                    )}
-
-                    {!awaitingConfirmation && (tenant?.subscription?.plan?.code === "FREE_TRIAL" ||
-                      tenant?.subscription?.status === "incomplete" ||
-                      tenant?.subscription?.status === "pending" ||
-                      tenant?.subscription?.status === "failed" ||
-                      tenant?.subscription?.status === "past_due" ||
-                      tenant?.subscription?.status === "canceled" ||
-                      (tenant?.subscription?.status === "active" &&
-                        !!tenant.subscription.current_period_end &&
-                        new Date(tenant.subscription.current_period_end) < new Date())) && (
-                      <Box>
-                        <Typography variant="h6" fontWeight={800} gutterBottom>
-                          {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
-                            ? "Complete o pagamento"
-                            : tenant?.subscription?.status === "past_due" || tenant?.subscription?.status === "failed"
-                            ? "Regularize seu pagamento"
-                            : tenant?.subscription?.status === "canceled"
-                            ? "Reative sua assinatura"
-                            : tenant?.subscription?.status === "active"
-                            ? "Renove sua assinatura"
-                            : "Faça o Upgrade agora"}
-                        </Typography>
-                        <Typography
-                          variant="body2"
-                          color="text.primary"
-                          sx={{ mb: 3 }}
-                        >
-                          {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
-                            ? "Seu cadastro foi criado. Insira os dados do cartão para ativar."
-                            : tenant?.subscription?.status === "past_due" || tenant?.subscription?.status === "failed"
-                            ? "Houve uma falha no pagamento. Tente novamente com outro cartão."
-                            : tenant?.subscription?.status === "active"
-                            ? "Seu período atual expirou. Renove para continuar usando o PetControle."
-                            : "Desbloqueie todos os recursos, clientes ilimitados e suporte prioritário."}
-                        </Typography>
-                        <Button
-                          variant="contained"
-                          size="large"
-                          fullWidth
-                          onClick={handleOpenCheckout}
-                          disabled={checkoutLoading}
-                          startIcon={<TrendingUp size={18} />}
-                          sx={{ py: 1.5, borderRadius: 3, fontWeight: 700 }}
-                        >
-                          {checkoutLoading ? "Carregando..." : tenant?.subscription?.status === "active" ? "Renovar Plano Mensal (R$ 99,90)" : "Assinar Plano Mensal (R$ 99,90)"}
-                        </Button>
-                      </Box>
-                    )}
-
-                    {tenant?.subscription?.plan?.code === "MONTHLY" && tenant?.subscription?.status === "active" &&
-                      tenant.subscription.current_period_end && new Date(tenant.subscription.current_period_end) >= new Date() && (
-                      <Box>
-                        <Box
-                          sx={{
-                            p: 3,
-                            borderRadius: 3,
-                            bgcolor: "rgba(76, 175, 80, 0.05)",
-                            border: "1px solid rgba(76, 175, 80, 0.2)",
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 2,
-                            mb: 2,
-                          }}
-                        >
-                          <CheckCircle2 color="#4caf50" size={24} />
-                          <Box sx={{ flex: 1 }}>
-                            <Typography variant="subtitle2" fontWeight={800}>
-                              Você está no Plano Profissional
-                            </Typography>
-                            <Typography variant="caption" color="text.primary">
-                              Sua assinatura está ativa e você tem acesso total a
-                              todos os recursos.
-                            </Typography>
-                            {(() => {
-                              if (tenant?.subscription?.payment_method === "pix") {
-                                return (
-                                  <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
-                                    Próxima cobrança em{" "}
-                                    {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
-                                    • Pagamento via PIX
-                                  </Typography>
-                                );
-                              }
-                              const defaultCard = savedCards.find((c) => c.is_default);
-                              if (!defaultCard) return null;
-                              return (
-                                <Typography variant="caption" color="text.primary" display="block" sx={{ mt: 0.5 }}>
-                                  Próxima cobrança em{" "}
-                                  {dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}{" "}
-                                  • {defaultCard.brand.toUpperCase()} •••• {defaultCard.last4}
-                                </Typography>
-                              );
-                            })()}
-                          </Box>
-                        </Box>
-                        <Button
-                          variant="outlined"
-                          color="error"
-                          size="small"
-                          onClick={() => setOpenCancelModal(true)}
-                          sx={{ borderRadius: 2 }}
-                        >
-                          Cancelar Assinatura
-                        </Button>
-                      </Box>
-                    )}
-                  </Stack>
-                </Paper>
-
-                {showPaymentMethodSection && (
-                  <Paper sx={{ p: 3, borderRadius: 3 }}>
-                    <Stack spacing={3}>
-                      <Box
-                        sx={{
-                          display: "flex",
-                          justifyContent: "space-between",
-                          alignItems: "center",
-                        }}
-                      >
-                        <Typography variant="h6" fontWeight={700}>
-                          Método de Pagamento
-                        </Typography>
-                        <Stack direction="row" spacing={1}>
-                          <Button
-                            size="small"
-                            variant={
-                              paymentMethod === "card" ? "contained" : "text"
-                            }
-                            onClick={() => handlePaymentMethodChange("card")}
-                            startIcon={<CreditCard size={16} />}
-                            disabled={savingPaymentMethod}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            Cartão
-                          </Button>
-                          <Button
-                            size="small"
-                            variant={
-                              paymentMethod === "pix" ? "contained" : "text"
-                            }
-                            onClick={() => handlePaymentMethodChange("pix")}
-                            startIcon={<QrCode size={16} />}
-                            disabled={savingPaymentMethod}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            PIX
-                          </Button>
-                        </Stack>
-                      </Box>
-
-                      {paymentMethod === "card" ? (
-                        <Box>
-                          {loadingCards ? (
-                            <Stack spacing={1.5} sx={{ mb: 2 }}>
-                              {[0, 1].map((i) => (
-                                <Box
-                                  key={i}
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    gap: 2,
-                                    p: "12px 16px",
-                                    borderRadius: 3,
-                                    border: "1px solid #E0E0E0",
-                                  }}
-                                >
-                                  <Skeleton variant="rounded" width={54} height={34} sx={{ flexShrink: 0 }} />
-                                  <Box sx={{ flex: 1 }}>
-                                    <Skeleton variant="text" width={160} height={18} />
-                                    <Skeleton variant="text" width={90} height={14} />
-                                  </Box>
-                                  <Skeleton variant="circular" width={30} height={30} sx={{ flexShrink: 0 }} />
-                                </Box>
-                              ))}
-                            </Stack>
-                          ) : savedCards.length > 0 ? (
-                            <Stack spacing={1.5} sx={{ mb: 2 }}>
-                              {savedCards.map((card) => (
-                                <PaymentMethodCard
-                                  key={card.id}
-                                  card={card}
-                                  onSetDefault={handleSetDefault}
-                                  onRemove={handleRemoveCard}
-                                />
-                              ))}
-                            </Stack>
-                          ) : (
-                            <Box
-                              sx={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                  gap: 2,
-                                  p: 2.5,
-                                  borderRadius: 2,
-                                  bgcolor: "rgba(0,0,0,0.02)",
-                                  border: "1px dashed rgba(0,0,0,0.12)",
-                                  mb: 2,
-                                }}
-                              >
-                                <CreditCard size={22} color="#bbb" />
-                                <Typography variant="body2" color="text.primary">
-                                  Nenhum cartão cadastrado.
-                                </Typography>
-                              </Box>
-                          )}
-                          <Button
-                            variant="outlined"
-                            fullWidth
-                            startIcon={<Plus size={16} />}
-                            onClick={
-                              tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
-                                ? handleOpenCheckout
-                                : handleOpenSetupCard
-                            }
-                            disabled={checkoutLoading}
-                            sx={{ borderRadius: 2 }}
-                          >
-                            {tenant?.subscription?.status === "incomplete" || tenant?.subscription?.status === "pending"
-                              ? "Ativar assinatura com cartão"
-                              : "Adicionar Cartão"}
-                          </Button>
-                        </Box>
-                      ) : (
-                        <Box>
-                          <Stack
-                            spacing={2}
-                            sx={{
-                              p: 2,
-                              borderRadius: 2,
-                              bgcolor: "rgba(111,66,193,0.03)",
-                              border: "1px solid rgba(111,66,193,0.1)",
-                            }}
-                          >
-                            <Box
-                              sx={{
-                                display: "flex",
-                                gap: 2,
-                                alignItems: "center",
-                              }}
-                            >
-                              <Box
-                                sx={{
-                                  p: 1,
-                                  bgcolor: "primary.main",
-                                  borderRadius: 1.5,
-                                  color: "white",
-                                  display: "flex",
-                                }}
-                              >
-                                <QrCode size={24} />
-                              </Box>
-                              <Box>
-                                <Typography variant="subtitle2" fontWeight={800}>
-                                  Pagamento via PIX selecionado
-                                </Typography>
-                                <Typography
-                                  variant="caption"
-                                  color="text.primary"
-                                >
-                                  As faturas serão geradas mensalmente com QR Code
-                                  para pagamento.
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </Stack>
-                        </Box>
-                      )}
-                    </Stack>
-                  </Paper>
-                )}
-
-                {/* Encerrar conta — card simples no fim da coluna de cobrança */}
-                <Paper sx={{ p: 2.5, borderRadius: 3 }}>
-                  <Box
-                    sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "space-between",
-                      gap: 2,
-                      flexWrap: "wrap",
-                    }}
-                  >
-                    <Box>
-                      <Typography variant="subtitle2" fontWeight={700}>
-                        Encerrar conta
-                      </Typography>
-                      <Typography variant="caption" color="text.primary">
-                        Remove permanentemente todos os seus dados.
-                      </Typography>
-                    </Box>
-                    <Button
-                      variant="outlined"
-                      color="error"
-                      size="small"
-                      onClick={() => {
-                        setDeleteAccountPassword("");
-                        setDeleteAccountStep(1);
-                        setOpenDeleteAccount(true);
-                      }}
-                      sx={{ borderRadius: 2, whiteSpace: "nowrap" }}
-                    >
-                      Encerrar Conta
-                    </Button>
-                  </Box>
-                </Paper>
-              </Stack>
-            </Grid>
-
-            <Grid size={{ xs: 12, md: 5 }}>
-              <Paper
+            {/* ---- Estado: PIX pendente inline ---- */}
+            {activePendingPixCharge && (
+              <Box
                 sx={{
-                  p: 4,
-                  borderRadius: 4,
-                  bgcolor: "primary.main",
-                  color: "white",
+                  p: 3,
+                  borderRadius: 3,
+                  border: "2px solid",
+                  borderColor: "warning.light",
+                  bgcolor: "rgba(255,193,7,0.04)",
                 }}
               >
-                <Stack spacing={3}>
-                  <Typography variant="h6" fontWeight={800}>
-                    Por que assinar?
-                  </Typography>
-                  <Stack spacing={2}>
-                    {[
-                      "Clientes e Pets ilimitados",
-                      "Agenda inteligente sem conflitos",
-                      "Relatórios financeiros avançados",
-                      "Automação básica de WhatsApp",
-                      "Suporte prioritário via chat",
-                      "Backup diário automático",
-                    ].map((feat, i) => (
-                      <Box
-                        key={i}
-                        sx={{ display: "flex", gap: 1.5, alignItems: "center" }}
-                      >
-                        <CheckCircle2 size={18} color="#90caf9" />
-                        <Typography variant="body2">{feat}</Typography>
-                      </Box>
-                    ))}
-                  </Stack>
-                  <Box
-                    sx={{
-                      mt: 1,
-                      p: 2,
-                      borderRadius: 2,
-                      bgcolor: "rgba(255,255,255,0.05)",
-                    }}
-                  >
-                    <Typography
-                      variant="caption"
-                      sx={{ opacity: 0.8, display: "block" }}
-                    >
-                      "O PetControle mudou a forma como gerencio meu banho e
-                      tosa. Economizo pelo menos 5h por semana."
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
+                  <Box>
+                    <Typography variant="h6" fontWeight={800}>
+                      {tenant?.subscription?.plan?.name || "Plano Mensal"}
                     </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{ mt: 1, fontWeight: 700, display: "block" }}
-                    >
-                      — Maria S., Pet d'Aline
-                    </Typography>
+                    <Chip label="Aguardando pagamento" color="warning" size="small" sx={{ fontWeight: 700, mt: 0.5 }} />
                   </Box>
-                </Stack>
-              </Paper>
-            </Grid>
-          </Grid>
+                  <Typography variant="caption" color="text.primary">
+                    PIX gerado em {dayjs(activePendingPixCharge.created_at).format("DD/MM/YYYY [às] HH:mm")}
+                  </Typography>
+                </Box>
 
-          {/* --- HISTÓRICO DE FATURAS --- */}
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 2, mb: 2 }}>
+                  {/* mini QR preview */}
+                  <Box sx={{ p: 1, bgcolor: "white", borderRadius: 2, border: "1px solid", borderColor: "divider", display: "inline-flex" }}>
+                    <Box sx={{ width: 80, height: 80, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                      {/* QRCodeSVG inline mini */}
+                      <QrCode size={60} color="#1E2A6E" />
+                    </Box>
+                  </Box>
+                  <Stack spacing={0.5} justifyContent="center">
+                    <Typography variant="body2" fontWeight={700}>R$ 99,90/mês</Typography>
+                    {activePendingPixCharge.expires_at && (
+                      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.75, px: 1.5, py: 0.4, borderRadius: 2, bgcolor: "rgba(255,193,7,0.12)", border: "1px solid rgba(255,193,7,0.25)" }}>
+                        <Typography variant="caption" fontWeight={700} color="warning.dark">
+                          Expira em: {dayjs(activePendingPixCharge.expires_at).format("HH:mm")}
+                        </Typography>
+                      </Box>
+                    )}
+                  </Stack>
+                </Box>
+
+                <Stack direction="row" spacing={1.5} flexWrap="wrap">
+                  <Button
+                    variant="contained"
+                    onClick={() => setOpenCheckout(true)}
+                    startIcon={<QrCode size={16} />}
+                    sx={{ fontWeight: 700 }}
+                  >
+                    Continuar pagamento
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    onClick={() => setOpenCancelModal(true)}
+                    sx={{ fontWeight: 600 }}
+                  >
+                    Cancelar cobrança
+                  </Button>
+                </Stack>
+              </Box>
+            )}
+
+            {/* ---- Estado: Assinatura Ativa ---- */}
+            {!activePendingPixCharge && tenant?.subscription?.plan?.code === "MONTHLY" &&
+              tenant?.subscription?.status === "active" &&
+              tenant.subscription.current_period_end &&
+              new Date(tenant.subscription.current_period_end) >= new Date() && (
+              <Box
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  border: "2px solid",
+                  borderColor: "success.light",
+                  bgcolor: "rgba(76,175,80,0.04)",
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1 }}>
+                  <Box>
+                    <Typography variant="h6" fontWeight={800}>
+                      {tenant.subscription.plan.name}
+                    </Typography>
+                    <Chip label="Ativo" color="success" size="small" sx={{ fontWeight: 700, mt: 0.5 }} />
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={(e) => setManageAnchorEl(e.currentTarget)}
+                    sx={{ fontWeight: 600, color: "text.primary" }}
+                  >
+                    Gerenciar assinatura
+                  </Button>
+                  <Menu
+                    anchorEl={manageAnchorEl}
+                    open={Boolean(manageAnchorEl)}
+                    onClose={() => setManageAnchorEl(null)}
+                  >
+                    <MenuItem onClick={() => { 
+                      setManageAnchorEl(null); 
+                      if (tenant.subscription?.payment_method === "pix") {
+                        confirmPaymentMethodChange("card");
+                      } else {
+                        setOpenUpdateCard(true); 
+                      }
+                    }}>
+                      {tenant.subscription.payment_method === "pix" ? "Mudar para Cartão de Crédito" : "Alterar cartão de crédito"}
+                    </MenuItem>
+                    {tenant.subscription.payment_method !== "pix" && (
+                      <MenuItem onClick={() => { setManageAnchorEl(null); setOpenPixConfirmation(true); }}>
+                        Mudar para PIX
+                      </MenuItem>
+                    )}
+                    <MenuItem onClick={() => { setManageAnchorEl(null); setOpenCancelModal(true); }}>
+                      Cancelar assinatura
+                    </MenuItem>
+                  </Menu>
+                </Box>
+                <Stack spacing={0.5} sx={{ mt: 2 }}>
+                  <Typography variant="body2" color="text.primary">
+                    Próxima renovação: <strong>{dayjs(tenant.subscription.current_period_end).format("DD/MM/YYYY")}</strong>
+                  </Typography>
+                  <Typography variant="body2" color="text.primary">
+                    Forma de pagamento: <strong>
+                      {tenant.subscription.payment_method === "pix" 
+                        ? "PIX" 
+                        : (() => {
+                            const defaultCard = savedCards.find((c) => c.is_default);
+                            return defaultCard 
+                              ? `Cartão de Crédito (${defaultCard.brand.toUpperCase()} •••• ${defaultCard.last4})` 
+                              : "Cartão de Crédito";
+                          })()}
+                    </strong>
+                  </Typography>
+                </Stack>
+              </Box>
+            )}
+
+            {/* ---- Período de trial ---- */}
+            {isTrialing && !activePendingPixCharge && (
+              <Box
+                sx={{
+                  p: 3,
+                  borderRadius: 3,
+                  bgcolor: "rgba(111,66,193,0.03)",
+                  border: "1px solid rgba(111,66,193,0.12)",
+                }}
+              >
+                <Stack spacing={1.5}>
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <Typography variant="body2" fontWeight={700} color={trialDays === 0 ? "error" : "inherit"}>
+                      {trialDays === 0
+                        ? dayjs(tenant?.subscription?.trial_ends_at).isBefore(dayjs())
+                          ? "Seu período de teste expirou"
+                          : `Seu teste grátis acaba hoje às ${dayjs(tenant?.subscription?.trial_ends_at).format("HH:mm")}`
+                        : `Faltam ${trialDays} ${trialDays === 1 ? "dia" : "dias"} para o fim do teste`}
+                    </Typography>
+                    {trialDays > 0 && (
+                      <Typography variant="caption" color="text.primary">
+                        {dayjs(tenant?.subscription?.trial_ends_at).format("DD/MM/YYYY")}
+                      </Typography>
+                    )}
+                  </Box>
+                  <LinearProgress
+                    variant="determinate"
+                    value={(trialDays / 14) * 100}
+                    sx={{ height: 8, borderRadius: 4, bgcolor: "rgba(0,0,0,0.05)" }}
+                  />
+                  <Typography variant="caption" color="text.primary">
+                    Ao final desse período, você precisará escolher um plano para continuar usando o PetControle.
+                  </Typography>
+                </Stack>
+              </Box>
+            )}
+
+            {/* ---- Aguardando confirmação polling ---- */}
+            {awaitingConfirmation && (
+              <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "rgba(111,66,193,0.04)", border: "1px solid rgba(111,66,193,0.15)", display: "flex", alignItems: "center", gap: 2 }}>
+                <CircularProgress size={20} />
+                <Box>
+                  <Typography variant="subtitle2" fontWeight={700}>Aguardando confirmação do pagamento</Typography>
+                  <Typography variant="caption" color="text.primary">Isso pode levar alguns segundos...</Typography>
+                </Box>
+              </Box>
+            )}
+
+            {/* ---- Plan cards ---- */}
+            {!activePendingPixCharge && !awaitingConfirmation && (
+              <Grid container spacing={2} alignItems="stretch">
+                {/* Plano Mensal — único funcional */}
+                {([
+                  {
+                    id: "MONTHLY",
+                    name: "Plano Mensal",
+                    price: "R$ 99,90",
+                    description: "Ideal para pet shops que estão começando.",
+                    features: ["Clientes e pets ilimitados", "Agenda inteligente", "Relatórios financeiros", "Suporte via chat"],
+                    highlight: false,
+                    disabled: false,
+                  },
+                  {
+                    id: "PROFESSIONAL",
+                    name: "Plano Profissional",
+                    price: "R$ 159,90",
+                    description: "Recursos avançados para pet shops em crescimento.",
+                    features: ["Tudo do Plano Mensal", "WhatsApp automático", "Backup diário", "Suporte prioritário"],
+                    highlight: true,
+                    disabled: true,
+                  },
+                  {
+                    id: "PREMIUM",
+                    name: "Plano Premium",
+                    price: "R$ 239,90",
+                    description: "Para pet shops que querem o máximo.",
+                    features: ["Tudo do Plano Profissional", "Multiunidades", "Relatórios avançados", "Onboarding personalizado"],
+                    highlight: false,
+                    disabled: true,
+                  },
+                ] as const).map((plan) => (
+                  <Grid key={plan.id} size={{ xs: 12, md: 4 }}>
+                    <Box
+                      sx={{
+                        height: "100%",
+                        border: "1.5px solid",
+                        borderColor: plan.highlight ? "primary.main" : "divider",
+                        borderRadius: 3,
+                        p: 3,
+                        position: "relative",
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 2,
+                        transition: "box-shadow 0.2s",
+                        boxShadow: plan.highlight ? "0 0 0 3px rgba(49,52,133,0.08)" : "none",
+                        opacity: plan.disabled ? 0.7 : 1,
+                      }}
+                    >
+                      {plan.highlight && (
+                        <Chip
+                          label="Mais escolhido"
+                          size="small"
+                          sx={{
+                            position: "absolute",
+                            top: -12,
+                            left: "50%",
+                            transform: "translateX(-50%)",
+                            bgcolor: "primary.main",
+                            color: "white",
+                            fontWeight: 700,
+                            fontSize: "0.7rem",
+                          }}
+                        />
+                      )}
+                      {plan.disabled && (
+                        <Chip
+                          label="Em breve"
+                          size="small"
+                          sx={{
+                            position: "absolute",
+                            top: 12,
+                            right: 12,
+                            bgcolor: "rgba(0,0,0,0.06)",
+                            fontWeight: 700,
+                            fontSize: "0.68rem",
+                          }}
+                        />
+                      )}
+
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={800}>
+                          {plan.name}
+                        </Typography>
+                        <Typography variant="caption" color="text.primary">
+                          {plan.description}
+                        </Typography>
+                      </Box>
+
+                      <Box>
+                        <Typography variant="h5" fontWeight={900} color="primary.main">
+                          {plan.price}
+                          <Typography component="span" variant="body2" color="text.primary" fontWeight={400}> /mês</Typography>
+                        </Typography>
+                      </Box>
+
+                      <Stack spacing={0.75} sx={{ flex: 1 }}>
+                        {plan.features.map((f, i) => (
+                          <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                            <CheckCircle2 size={15} color="#4caf50" />
+                            <Typography variant="caption" color="text.primary">{f}</Typography>
+                          </Box>
+                        ))}
+                      </Stack>
+
+                      <Button
+                        variant={plan.highlight ? "contained" : "outlined"}
+                        fullWidth
+                        disabled={plan.disabled || (plan.id === "MONTHLY" && tenant?.subscription?.status === "active")}
+                        onClick={() => {
+                          setCheckoutStartAt(null);
+                          setOpenCheckout(true);
+                        }}
+                        sx={{ fontWeight: 700, borderRadius: 2, mt: "auto" }}
+                      >
+                        {plan.id === "MONTHLY" && tenant?.subscription?.status === "active" ? "Plano atual" : "Escolher plano"}
+                      </Button>
+                    </Box>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
+
+            {/* ---- Security note ---- */}
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+              <Lock size={14} color="#9CA3AF" />
+              <Typography variant="caption" color="text.disabled">
+                Ambiente seguro. Seus dados estão protegidos.
+              </Typography>
+            </Box>
+
+          </Stack>
+
+          {/* ---- Histórico de Faturas ---- */}
           <Paper sx={{ mt: 4, p: 4, borderRadius: 4 }}>
             <Stack spacing={3}>
-              <Typography variant="h6" fontWeight={800}>
-                Histórico de Faturas
-              </Typography>
+              <Typography variant="h6" fontWeight={800}>Histórico de Faturas</Typography>
               <Divider />
               {loadingCharges ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress />
-                </Box>
+                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}><CircularProgress /></Box>
               ) : charges.length === 0 ? (
                 <Box sx={{ p: 4, textAlign: "center" }}>
-                  <Typography color="text.primary">
-                    Nenhuma fatura encontrada.
-                  </Typography>
+                  <Typography color="text.primary">Nenhuma fatura encontrada.</Typography>
                 </Box>
               ) : (
                 <Stack spacing={2}>
@@ -1499,8 +1206,9 @@ const SettingsPage = () => {
                         justifyContent: "space-between",
                         p: 2,
                         borderRadius: 3,
-                        border: "1px solid #E0E0E0",
-                        bgcolor: "rgba(0,0,0,0.01)",
+                        border: "1px solid",
+                        borderColor: charge.status === "pending" ? "warning.light" : "divider",
+                        bgcolor: charge.status === "pending" ? "rgba(255,193,7,0.03)" : "rgba(0,0,0,0.01)",
                         flexWrap: "wrap",
                         gap: 2,
                         width: "100%",
@@ -1508,43 +1216,47 @@ const SettingsPage = () => {
                     >
                       <Grid container spacing={2} alignItems="center" sx={{ flex: 1, minWidth: "280px" }}>
                         <Grid size={{ xs: 6, sm: 2.5 }}>
-                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">
-                            Data
-                          </Typography>
-                          <Typography variant="body2" fontWeight={600} mt={0.5}>
-                            {dayjs(charge.created_at).format("DD/MM/YYYY")}
-                          </Typography>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">Data</Typography>
+                          <Typography variant="body2" fontWeight={600} mt={0.5}>{dayjs(charge.created_at).format("DD/MM/YYYY")}</Typography>
                         </Grid>
-
                         <Grid size={{ xs: 12, sm: 4.5 }}>
-                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">
-                            Método de Pagamento
-                          </Typography>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">Método de Pagamento</Typography>
                           <Typography variant="body2" sx={{ textTransform: "uppercase", fontWeight: 600 }} mt={0.5}>
                             {charge.payment_method === "card"
-                              ? `Cartão de Crédito ${
-                                  charge.card_brand
-                                    ? `(${charge.card_brand.toUpperCase()} •••• ${charge.card_last_four})`
-                                    : ""
-                                }`
+                              ? `Cartão de Crédito ${charge.card_brand ? `(${charge.card_brand.toUpperCase()} •••• ${charge.card_last_four})` : ""}`
                               : "PIX"}
                           </Typography>
                         </Grid>
-
                         <Grid size={{ xs: 6, sm: 2.5 }}>
-                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">
-                            Valor
-                          </Typography>
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block">Valor</Typography>
                           <Typography variant="body2" fontWeight={800} color="primary.main" mt={0.5}>
                             {(charge.amount / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
                           </Typography>
                         </Grid>
-
                         <Grid size={{ xs: 6, sm: 2.5 }}>
-                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>
-                            Status
-                          </Typography>
-                          {getChargeStatusChip(charge.status)}
+                          <Typography variant="caption" color="text.primary" fontWeight={700} display="block" sx={{ mb: 0.5 }}>Status</Typography>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            {getChargeStatusChip(charge.status)}
+                            {charge.payment_method === "pix" && charge.status === "pending" && charge.pix_qr_code && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                onClick={() => {
+                                  setPixData({
+                                    pagarme_subscription_id: "",
+                                    status: "pending",
+                                    pix_qr_code: charge.pix_qr_code || "",
+                                    pix_qr_code_url: charge.pix_qr_code_url || "",
+                                    expires_at: charge.expires_at || "",
+                                  });
+                                  setPaymentMethod("pix");
+                                  setOpenCheckout(true);
+                                }}
+                              >
+                                Pagar
+                              </Button>
+                            )}
+                          </Box>
                         </Grid>
                       </Grid>
                     </Box>
@@ -1553,6 +1265,28 @@ const SettingsPage = () => {
               )}
             </Stack>
           </Paper>
+
+          {/* Encerrar conta */}
+          <Paper sx={{ mt: 3, p: 2.5, borderRadius: 3 }}>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 2, flexWrap: "wrap" }}>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={700}>Encerrar conta</Typography>
+                <Typography variant="caption" color="text.primary">Remove permanentemente todos os seus dados.</Typography>
+              </Box>
+              <Button
+                variant="outlined"
+                color="error"
+                size="small"
+                onClick={() => { setDeleteAccountPassword(""); setDeleteAccountStep(1); setOpenDeleteAccount(true); }}
+                sx={{ borderRadius: 2, whiteSpace: "nowrap" }}
+              >
+                Encerrar Conta
+              </Button>
+            </Box>
+          </Paper>
+
+
+
         </CustomTabPanel>}
 
         {/* --- ABA PERFIL --- */}
@@ -1984,329 +1718,36 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* --- MODAL DE CHECKOUT --- */}
-      <Modal
+      {/* --- CHECKOUT STEPPER (novo modal) --- */}
+      <CheckoutStepper
         open={openCheckout}
-        onClose={() => setOpenCheckout(false)}
-        closeAfterTransition
-        BackdropComponent={Backdrop}
-        BackdropProps={{ timeout: 500 }}
-      >
-        <Fade in={openCheckout}>
-          <Box
-            sx={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              width: { xs: "95%", sm: 900 },
-              bgcolor: "background.paper",
-              borderRadius: 4,
-              boxShadow: 24,
-              overflow: "hidden",
-            }}
-          >
-            <Box
-              sx={{
-                bgcolor: "primary.main",
-                p: 3,
-                color: "white",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-              }}
-            >
-              <Stack direction="row" spacing={1} alignItems="center">
-                <Lock size={20} />
-                <Typography variant="h6" fontWeight={700}>
-                  {checkoutMode === "setup" ? "Adicionar Cartão" : "Assinar Plano Mensal"}
-                </Typography>
-              </Stack>
-              <IconButton onClick={() => setOpenCheckout(false)} sx={{ color: "white" }}>
-                <X size={20} />
-              </IconButton>
-            </Box>
-
-            <Box sx={{ p: 4 }}>
-              {checkoutError ? (
-                <Box>
-                  <Typography color="error" variant="body2" sx={{ mb: 3 }}>
-                    {checkoutError}
-                  </Typography>
-                  <Stack direction="row" spacing={2}>
-                    <Button variant="outlined" onClick={() => setOpenCheckout(false)} sx={{ flex: 1 }}>
-                      Fechar
-                    </Button>
-                    <Button variant="contained" onClick={() => setCheckoutError(null)} sx={{ flex: 1 }}>
-                      Tentar Novamente
-                    </Button>
-                  </Stack>
-                </Box>
-              ) : checkoutLoading ? (
-                <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
-                  <CircularProgress />
-                </Box>
-              ) : (
-                <>
-                  {/* Selector of payment method inside the modal */}
-                  {checkoutMode === "payment" && !pixData && (
-                    <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
-                      <Stack direction="row" spacing={1} sx={{ bgcolor: "rgba(0,0,0,0.03)", p: 0.5, borderRadius: 2.5 }}>
-                        <Button
-                          size="small"
-                          variant={paymentMethod === "card" ? "contained" : "text"}
-                          onClick={() => setPaymentMethod("card")}
-                          startIcon={<CreditCard size={14} />}
-                          sx={{
-                            borderRadius: 2,
-                            px: 3,
-                            py: 0.75,
-                            textTransform: "none",
-                            fontWeight: 700,
-                            bgcolor: paymentMethod === "card" ? "primary.main" : "transparent",
-                            color: paymentMethod === "card" ? "white" : "text.primary",
-                            "&:hover": {
-                              bgcolor: paymentMethod === "card" ? "primary.dark" : "rgba(0,0,0,0.05)",
-                            }
-                          }}
-                        >
-                          Cartão de Crédito
-                        </Button>
-                        <Button
-                          size="small"
-                          variant={paymentMethod === "pix" ? "contained" : "text"}
-                          onClick={() => setPaymentMethod("pix")}
-                          startIcon={<QrCode size={14} />}
-                          sx={{
-                            borderRadius: 2,
-                            px: 3,
-                            py: 0.75,
-                            textTransform: "none",
-                            fontWeight: 700,
-                            bgcolor: paymentMethod === "pix" ? "primary.main" : "transparent",
-                            color: paymentMethod === "pix" ? "white" : "text.primary",
-                            "&:hover": {
-                              bgcolor: paymentMethod === "pix" ? "primary.dark" : "rgba(0,0,0,0.05)",
-                            }
-                          }}
-                        >
-                          PIX
-                        </Button>
-                      </Stack>
-                    </Box>
-                  )}
-
-                  {checkoutMode === "payment" && paymentMethod === "pix" && !checkoutStartAt ? (
-                    pixData ? (
-                      <PixQrCode
-                        qrCode={pixData.pix_qr_code}
-                        qrCodeUrl={pixData.pix_qr_code_url}
-                        expiresAt={pixData.expires_at}
-                        onClose={() => setOpenCheckout(false)}
-                      />
-                    ) : (
-                      <Box>
-                        <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
-                          Informe seu CPF ou CNPJ para gerar o QR Code PIX.
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                          <TextField
-                            fullWidth
-                            value={pixDocument}
-                            onChange={(e) => {
-                              setPixDocument(maskDocument(e.target.value));
-                            }}
-                            placeholder="000.000.000-00"
-                            size="small"
-                          />
-                          <Button
-                            variant="contained"
-                            disabled={pixDocument.replace(/\D/g, "").length < 11}
-                            onClick={() => handleGeneratePix()}
-                            sx={{ whiteSpace: "nowrap" }}
-                          >
-                            Gerar PIX
-                          </Button>
-                        </Box>
-                      </Box>
-                    )
-                  ) : checkoutMode === "payment" && paymentMethod === "card" && savedCards.length > 0 && !useNewCard ? (
-                    <Box>
-                      <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2 }}>
-                        Selecione um cartão salvo para assinar:
-                      </Typography>
-                      <Stack spacing={1.5} sx={{ mb: 3 }}>
-                        {savedCards.map((card) => {
-                          const isSelected = selectedCardId === card.id;
-                          const brand = card.brand.toLowerCase();
-                          const brandLabel = brand === "visa" ? "VISA" : brand === "mastercard" ? "MASTER" : brand.toUpperCase();
-                          const brandColor = brand === "visa" ? "#1A1F71" : brand === "mastercard" ? "#A50808" : "#313485";
-                          const brandBg = brand === "visa" ? "#DDE1F5" : brand === "mastercard" ? "#FAD7D7" : "#E0E0F0";
-
-                          return (
-                            <Box
-                              key={card.id}
-                              onClick={() => setSelectedCardId(card.id)}
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                gap: 2,
-                                p: 2,
-                                borderRadius: 3,
-                                border: isSelected
-                                  ? "2.5px solid #313485"
-                                  : "1px solid #C5C7D4",
-                                bgcolor: isSelected ? "#F0F0FA" : "#FAFAFA",
-                                cursor: "pointer",
-                                transition: "all 0.2s ease-in-out",
-                                "&:hover": {
-                                  borderColor: "#313485",
-                                  bgcolor: "#F5F5FC",
-                                },
-                              }}
-                            >
-                              {/* Custom Radio Button */}
-                              <Box
-                                sx={{
-                                  width: 20,
-                                  height: 20,
-                                  borderRadius: "50%",
-                                  border: isSelected ? "6px solid #313485" : "2px solid #C5C7D4",
-                                  bgcolor: "white",
-                                  flexShrink: 0,
-                                  transition: "all 0.1s ease-in-out",
-                                }}
-                              />
-
-                              {/* Brand badge */}
-                              <Box
-                                sx={{
-                                  minWidth: 54,
-                                  height: 34,
-                                  borderRadius: 1.5,
-                                  bgcolor: brandBg,
-                                  border: `1px solid ${brandColor}22`,
-                                  display: "flex",
-                                  alignItems: "center",
-                                  justifyContent: "center",
-                                  px: 1,
-                                  flexShrink: 0,
-                                }}
-                              >
-                                <Typography
-                                  sx={{
-                                    fontWeight: 900,
-                                    color: brandColor,
-                                    letterSpacing: 0.5,
-                                    fontSize: "0.62rem",
-                                    lineHeight: 1,
-                                  }}
-                                >
-                                  {brandLabel}
-                                </Typography>
-                              </Box>
-
-                              {/* Card details */}
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Stack direction="row" alignItems="center" spacing={1}>
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight={700}
-                                    noWrap
-                                    sx={{ color: "#1A1A2E" }}
-                                  >
-                                    •••• •••• •••• {card.last4}
-                                  </Typography>
-                                  {card.is_default && (
-                                    <Chip
-                                      label="Padrão"
-                                      size="small"
-                                      sx={{
-                                        height: 18,
-                                        fontSize: "0.62rem",
-                                        fontWeight: 700,
-                                        bgcolor: "#313485",
-                                        color: "#fff",
-                                        "& .MuiChip-label": { px: 0.8 },
-                                      }}
-                                    />
-                                  )}
-                                </Stack>
-                                <Typography sx={{ fontSize: "0.72rem", color: "#555570", mt: 0.2 }}>
-                                  Expira {String(card.exp_month).padStart(2, "0")}/{card.exp_year}
-                                </Typography>
-                              </Box>
-                            </Box>
-                          );
-                        })}
-                      </Stack>
-
-                      <Button
-                        variant="contained"
-                        fullWidth
-                        onClick={handleCheckoutWithSavedCard}
-                        sx={{ py: 1.5, fontSize: "1rem", fontWeight: 700, borderRadius: 2, mb: 2 }}
-                      >
-                        Confirmar Assinatura
-                      </Button>
-
-                      <Button
-                        variant="outlined"
-                        fullWidth
-                        onClick={() => setUseNewCard(true)}
-                        sx={{ py: 1, fontSize: "0.875rem", borderRadius: 2 }}
-                      >
-                        Usar outro cartão de crédito
-                      </Button>
-                    </Box>
-                  ) : (
-                    <Box>
-                      <CheckoutForm
-                        buttonLabel={checkoutMode === "setup" ? "Adicionar Cartão" : "Confirmar Assinatura"}
-                        defaultDocument={tenant?.document}
-                        onSuccess={async (cardToken, document, billingAddress) => {
-                          setCheckoutLoading(true);
-                          try {
-                            if (checkoutMode === "setup") {
-                              await addPaymentMethod(cardToken, billingAddress, document);
-                              toast.success("Cartão salvo com sucesso!");
-                              await fetchCards();
-                            } else {
-                              await createCheckout("MONTHLY", "credit_card", cardToken, document, billingAddress, checkoutStartAt ?? undefined);
-                              setCheckoutStartAt(null);
-                              toast.success("Pagamento enviado! Aguardando confirmação...");
-                              await checkAuth();
-                              setAwaitingConfirmation(true);
-                              setPollCount(0);
-                            }
-                            setOpenCheckout(false);
-                          } catch (err: any) {
-                            console.error(err);
-                            const detail = err.response?.data?.detail || "Erro ao processar pagamento. Tente novamente.";
-                            setCheckoutError(typeof detail === "string" ? detail : JSON.stringify(detail));
-                          } finally {
-                            setCheckoutLoading(false);
-                          }
-                        }}
-                      />
-                      {checkoutMode === "payment" && paymentMethod === "card" && savedCards.length > 0 && (
-                        <Button
-                          variant="text"
-                          fullWidth
-                          onClick={() => setUseNewCard(false)}
-                          sx={{ mt: 1.5, fontSize: "0.875rem", textTransform: "none" }}
-                        >
-                          Voltar para cartões salvos
-                        </Button>
-                      )}
-                    </Box>
-                  )}
-                </>
-              )}
-            </Box>
-          </Box>
-        </Fade>
-      </Modal>
+        onClose={() => {
+          setOpenCheckout(false);
+          setPixData(null);
+          // Refresh charges when closed
+          fetchCharges();
+          checkAuth();
+        }}
+        onSuccess={() => {
+          setAwaitingConfirmation(true);
+          setPollCount(0);
+          checkAuth();
+          fetchCharges();
+          fetchCards();
+        }}
+        planId="MONTHLY"
+        tenantDocument={tenant?.document}
+        existingPixData={pixData ? {
+          pix_qr_code: pixData.pix_qr_code,
+          pix_qr_code_url: pixData.pix_qr_code_url,
+          expires_at: pixData.expires_at,
+        } : activePendingPixCharge ? {
+          pix_qr_code: activePendingPixCharge.pix_qr_code!,
+          pix_qr_code_url: activePendingPixCharge.pix_qr_code_url,
+          expires_at: activePendingPixCharge.expires_at,
+        } : null}
+        startAt={checkoutStartAt}
+      />
       {/* --- MODAL DE EDIÇÃO DO TENANT --- */}
       <Dialog
         open={openTenantEdit}
@@ -2648,6 +2089,50 @@ const SettingsPage = () => {
               onClose={() => setOpenPixModal(false)}
             />
           )}
+        </DialogContent>
+      </Dialog>
+      <UpdateCardModal
+        open={openUpdateCard}
+        onClose={() => setOpenUpdateCard(false)}
+        onSuccess={() => {
+          checkAuth(); // Recarrega os dados da assinatura
+          fetchCards(); // Recarrega a lista de cartões para atualizar o final do cartão na interface
+        }}
+        tenantDocument={tenant?.document}
+      />
+
+      {/* --- DIALOG MUDAR PARA PIX --- */}
+      <Dialog open={openPixConfirmation} onClose={() => !loadingChangeToPix && setOpenPixConfirmation(false)} maxWidth="xs" fullWidth>
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
+          <Typography variant="h6">Mudar para PIX</Typography>
+          <Box sx={{ cursor: "pointer" }}>
+            <X onClick={() => !loadingChangeToPix && setOpenPixConfirmation(false)} size={24} />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Typography variant="body2" mb={2}>
+            Tem certeza que deseja mudar o pagamento da sua assinatura para <strong>PIX</strong>? 
+          </Typography>
+          <Typography variant="body2" color="text.primary" mb={3}>
+            A partir da próxima renovação ({dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}), 
+            você não será mais cobrado no cartão e enviaremos o código PIX na tela para pagamento.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+            <Button
+              variant="text"
+              onClick={() => setOpenPixConfirmation(false)}
+              disabled={loadingChangeToPix}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              onClick={handleChangeToPix}
+              disabled={loadingChangeToPix}
+            >
+              {loadingChangeToPix ? <CircularProgress size={24} color="inherit" /> : "Sim, Mudar para PIX"}
+            </Button>
+          </Box>
         </DialogContent>
       </Dialog>
     </Box>

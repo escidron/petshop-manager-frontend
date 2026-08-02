@@ -46,8 +46,9 @@ export const deactivateClientPackage = async (
 
 export const consumeClientPackageCredit = async (
   creditId: number,
+  notes?: string
 ): Promise<void> => {
-  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`);
+  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`, { notes });
 };
 
 export const revertClientPackageCredit = async (
@@ -64,3 +65,14 @@ export const getClientPackageUsages = async (
   );
   return response.data;
 };
+
+export const transferClientPackage = async (
+  clientPackageId: number,
+  newPetId: number,
+): Promise<ClientPackage> => {
+  const response = await apiClient.patch<ClientPackage>(
+    `/api/v1/client-packages/${clientPackageId}/transfer/${newPetId}`,
+  );
+  return response.data;
+};
+

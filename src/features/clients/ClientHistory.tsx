@@ -20,12 +20,9 @@ import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../sales/schemas";
 import type { ClientPackage } from "../client_packages/types";
 import { APPOINTMENT_STATUS_LABEL } from "../../api/services/appointments";
-import { Button } from "../../components/Button/Button";
-
 type Props = {
   clientId: number;
   refreshTrigger?: number;
-  onSellPackage?: (petId: number, packageId: number) => void;
 };
 
 interface TabPanelProps {
@@ -50,7 +47,7 @@ function CustomTabPanel(props: TabPanelProps) {
   );
 }
 
-export default function ClientHistory({ clientId, refreshTrigger, onSellPackage }: Props) {
+export default function ClientHistory({ clientId, refreshTrigger = 0 }: Props) {
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -135,7 +132,7 @@ export default function ClientHistory({ clientId, refreshTrigger, onSellPackage 
             }}
           />
           <Tab 
-            icon={<Package size={18} />} 
+            icon={<ShoppingBag size={18} />} 
             iconPosition="start" 
             label="Pacotes" 
             sx={{ 
@@ -294,7 +291,7 @@ export default function ClientHistory({ clientId, refreshTrigger, onSellPackage 
                       secondary={
                         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.5 }}>
                           <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
-                            Pet: <strong>{pkg.pet?.name || "N/A"}</strong>
+                            Pets: <strong>{pkg.pets ? pkg.pets.map(p => p.name).join(', ') : "N/A"}</strong>
                           </Typography>
                           <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
                             Comprado em: {new Date(pkg.created_at).toLocaleDateString("pt-BR")}
@@ -311,20 +308,6 @@ export default function ClientHistory({ clientId, refreshTrigger, onSellPackage 
                               </Typography>
                             ))}
                           </Box>
-
-                          {onSellPackage && pkg.package_id && (
-                            <Box sx={{ display: "flex", justifyContent: "flex-start", mt: 1 }}>
-                              <Button
-                                size="small"
-                                variant="outlined"
-                                color="primary"
-                                onClick={() => onSellPackage(pkg.pet_id, pkg.package_id!)}
-                                sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.25, px: 1 }}
-                              >
-                                Vender de novo
-                              </Button>
-                            </Box>
-                          )}
                         </Box>
                       }
                     />

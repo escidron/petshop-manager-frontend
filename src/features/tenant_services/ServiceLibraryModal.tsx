@@ -36,6 +36,7 @@ export default function ServiceLibraryModal({ open, onClose, onSuccess }: Props)
   const [file, setFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [downloading, setDownloading] = useState(false);
   const [result, setResult] = useState<ImportResult | null>(null);
   const toast = useToast();
 
@@ -100,6 +101,17 @@ export default function ServiceLibraryModal({ open, onClose, onSuccess }: Props)
     }
   };
 
+  const handleDownload = async () => {
+    try {
+      setDownloading(true);
+      await downloadImportTemplate();
+    } catch (error) {
+      toast.error("Erro ao baixar o modelo.");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
       <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -120,10 +132,11 @@ export default function ServiceLibraryModal({ open, onClose, onSuccess }: Props)
             <Button
               variant="outlined"
               size="small"
-              startIcon={<Download size={16} />}
-              onClick={() => downloadImportTemplate()}
+              disabled={downloading}
+              startIcon={downloading ? <CircularProgress size={16} color="inherit" /> : <Download size={16} />}
+              onClick={handleDownload}
             >
-              Baixar Modelo (Excel)
+              {downloading ? "Gerando..." : "Baixar Modelo (Excel)"}
             </Button>
           </Box>
 

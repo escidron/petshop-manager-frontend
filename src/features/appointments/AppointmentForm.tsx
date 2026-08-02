@@ -5,6 +5,13 @@ import {
   FormControl,
   FormLabel,
   TextField,
+  Switch,
+  FormControlLabel,
+  Select,
+  MenuItem,
+  Typography,
+  Radio,
+  RadioGroup,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
@@ -12,7 +19,7 @@ import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
-import { Plus } from "lucide-react";
+import { Plus, CalendarCheck } from "lucide-react";
 import type { Client } from "../clients/types";
 import type { Pet } from "../pets/types";
 import type { Service } from "../tenant_services/types";
@@ -20,7 +27,7 @@ import type { AppointmentFormData } from "./types";
 import { Controller, useFieldArray, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { appointmentSchema } from "./schemas";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useMemo } from "react";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
 import theme from "../../theme";
@@ -46,6 +53,7 @@ type Props = {
   autoSelectPet?: { index: number; id: number };
   autoSelectService?: { index: number; id: number };
   initialDate?: string;
+  loadedClientId?: number;
 };
 
 export default function AppointmentForm({
@@ -66,6 +74,7 @@ export default function AppointmentForm({
   autoSelectPet,
   autoSelectService,
   initialDate,
+  loadedClientId,
 }: Props) {
   const { tenant } = useAuth();
   const workingHours = tenant?.working_hours ?? null;
@@ -83,11 +92,14 @@ export default function AppointmentForm({
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const pendingTimeCloseRef = useRef(false);
 
+  const [isRecurrent, setIsRecurrent] = useState(false);
+  const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "date" | "never">("occurrences");
   const form = useForm<AppointmentFormData>({
-    resolver: zodResolver(appointmentSchema),
+    resolver: zodResolver(appointmentSchema) as any,
     defaultValues: {
       ...defaultValues,
       scheduled_at: defaultValues?.scheduled_at || "",
+      recurrence: defaultValues?.recurrence || { frequency: "weekly", occurrences: 4 }
     },
   });
 
@@ -97,17 +109,46 @@ export default function AppointmentForm({
     resetField,
     setValue,
     getValues,
+    trigger,
     formState: { errors },
   } = form;
 
   const items = useWatch({ control, name: "items" });
   const watchedClientId = useWatch({ control, name: "client_id" });
-  const { fields, append, remove } = useFieldArray({ control, name: "items" });
+  const { fields, append, remove, replace } = useFieldArray({ control, name: "items" });
+
+  const populatedClientIdRef = useRef<number | undefined>(defaultValues?.client_id);
 
   useEffect(() => {
-    setClientId(selectedClient?.id || defaultValues?.client_id || 0);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [defaultValues?.client_id, selectedClient]);
+    // Only populate if we have actually finished loading the pets for THIS client
+    if (watchedClientId && watchedClientId !== populatedClientIdRef.current && watchedClientId === loadedClientId) {
+      populatedClientIdRef.current = watchedClientId;
+      if (mode === "create") {
+        const clientPets = pets?.filter(p => p.client_id === watchedClientId) || [];
+        
+        if (autoSelectPet) {
+          const selectedPetIndex = clientPets.findIndex(p => p.id === autoSelectPet.id);
+          if (selectedPetIndex > 0) {
+            const selectedPet = clientPets[selectedPetIndex];
+            clientPets.splice(selectedPetIndex, 1);
+            clientPets.unshift(selectedPet);
+          }
+        }
+
+        if (clientPets.length > 0) {
+          replace(clientPets.map(p => ({ pet_id: p.id, service_ids: [] as any })));
+        } else {
+          replace([{ pet_id: "" as any, service_ids: [] }]);
+        }
+      }
+    }
+  }, [watchedClientId, pets, mode, replace, autoSelectPet, loadedClientId]);
+
+  useEffect(() => {
+    if (watchedClientId) {
+      setClientId(watchedClientId);
+    }
+  }, [watchedClientId, setClientId]);
 
   useEffect(() => {
     if (selectedPet && fields.length > 0 && !getValues("items.0.pet_id")) {
@@ -141,20 +182,66 @@ export default function AppointmentForm({
 
   useEffect(() => {
     if (!autoSelectService) return;
-    const current =
-      getValues(`items.${autoSelectService.index}.service_ids`) || [];
-    if (!current.includes(autoSelectService.id)) {
+    const currentServices = getValues(`items.${autoSelectService.index}.service_ids`) || [];
+    if (!currentServices.includes(autoSelectService.id)) {
       setValue(`items.${autoSelectService.index}.service_ids`, [
-        ...current,
+        ...currentServices,
         autoSelectService.id,
       ]);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSelectService]);
 
+  const recurrenceFrequency = useWatch({ control, name: "recurrence.frequency" }) || "weekly";
+  const recurrenceOccurrences = useWatch({ control, name: "recurrence.occurrences" }) || 2;
+
+  const maxOccurrences = recurrenceFrequency === "weekly" ? 52 : recurrenceFrequency === "biweekly" ? 26 : 12;
+
+  useEffect(() => {
+    if (!isRecurrent) return;
+
+    if (recurrenceEndType === "never") {
+      setValue("recurrence.occurrences", maxOccurrences);
+      trigger("recurrence.occurrences");
+    } else {
+      trigger("recurrence.occurrences");
+    }
+  }, [recurrenceEndType, recurrenceFrequency, maxOccurrences, isRecurrent, setValue, trigger]);
+
+  const summaryDates = useMemo(() => {
+    if (!isRecurrent || !scheduledDate) return null;
+    const start = dayjs(scheduledDate);
+    if (!start.isValid()) return null;
+    
+    const count = Number(recurrenceOccurrences) || 2;
+    const dates = [];
+    const computeCount = Math.min(count, 6);
+    for (let i = 0; i < computeCount; i++) {
+      if (recurrenceFrequency === "weekly") dates.push(start.add(i, "week"));
+      else if (recurrenceFrequency === "biweekly") dates.push(start.add(i * 2, "week"));
+      else if (recurrenceFrequency === "monthly") dates.push(start.add(i, "month"));
+    }
+    return {
+      dates: dates.map(d => ({
+        day: d.format("DD"),
+        month: d.format("MMM").toLowerCase()
+      })),
+      total: count,
+      remaining: count > 6 ? count - 6 : 0
+    };
+  }, [isRecurrent, scheduledDate, recurrenceFrequency, recurrenceOccurrences]);
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {/* DATA E HORA */}
+    <Box
+        component="form"
+        onSubmit={handleSubmit((data: any) => {
+          if (!isRecurrent) {
+            delete data.recurrence;
+          }
+          onSubmit(data as AppointmentFormData);
+        })}
+        sx={{ display: "flex", flexDirection: "column", gap: 3 }}
+      >{/* DATA E HORA */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Data e hora
@@ -338,6 +425,8 @@ export default function AppointmentForm({
         />
       </FormControl>
 
+
+
       {/* CLIENTE */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
@@ -447,11 +536,155 @@ export default function AppointmentForm({
         />
       </FormControl>
 
+      {/* RECORRÊNCIA (APENAS NA CRIAÇÃO) */}
+      {mode === "create" && (
+        <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 3, mt: 2, bgcolor: "white" }}>
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+            <Switch 
+              checked={isRecurrent} 
+              onChange={(e) => setIsRecurrent(e.target.checked)} 
+              color="primary"
+            />
+            <Box>
+              <Typography variant="body1" fontWeight="600" color="text.primary">
+                Repetir agendamento
+              </Typography>
+              <Typography variant="body2" color="text.primary">
+                Crie uma série de agendamentos automaticamente.
+              </Typography>
+            </Box>
+          </Box>
+
+          {isRecurrent && (
+            <Box sx={{ display: "flex", flexDirection: "column" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between" , flexWrap: "wrap", ml: 1 }}>
+                <FormControl sx={{ minWidth: "240px" }}>
+                  <FormLabel sx={{ color: "text.primary", mb: 1.5, fontSize: "0.9rem", fontWeight: 600 }}>Repete</FormLabel>
+                  <Controller
+                    name="recurrence.frequency"
+                    control={control}
+                    render={({ field }) => (
+                      <Select 
+                        {...field} 
+                        size="small" 
+                        sx={{ bgcolor: "white", ".MuiSelect-select": { display: "flex", alignItems: "center", gap: 1.5 } }}
+                      >
+                        <MenuItem value="weekly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> Toda semana</Box></MenuItem>
+                        <MenuItem value="biweekly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> A cada 15 dias</Box></MenuItem>
+                        <MenuItem value="monthly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> Todo mês</Box></MenuItem>
+                      </Select>
+                    )}
+                  />
+                </FormControl>
+                
+                <FormControl>
+                  <FormLabel sx={{ color: "text.primary", mb: 1.5, fontSize: "0.9rem", fontWeight: 600 }}>Termina</FormLabel>
+                  <RadioGroup
+                    value={recurrenceEndType}
+                    onChange={(e) => setRecurrenceEndType(e.target.value as any)}
+                  >
+                    <Box sx={{ display: "flex", flexDirection: "column" }}>
+                      <Controller
+                        name="recurrence.occurrences"
+                        control={control}
+                        render={({ field, fieldState }) => (
+                          <Box sx={{ display: "flex", flexDirection: "column" }}>
+                            <Box sx={{ display: "flex", alignItems: "center" }}>
+                              <FormControlLabel value="occurrences" control={<Radio size="small" disableRipple sx={{ color: theme.palette.primary.main }} />} label={<Typography variant="body2">Após</Typography>} sx={{ mr: 1 }} />
+                              <TextField 
+                                {...field} 
+                                type="number"
+                                size="small"
+                                sx={{ bgcolor: "white", width: "80px", mr: 2 }}
+                                inputProps={{ min: 2, max: maxOccurrences, maxLength: 3 }}
+                                disabled={recurrenceEndType !== "occurrences"}
+                                onChange={(e) => {
+                                  let val = e.target.value;
+                                  if (val.length > 3) val = val.slice(0, 3);
+                                  field.onChange(val);
+                                  trigger("recurrence.occurrences");
+                                }}
+                                error={!!fieldState.error}
+                              />
+                              <Typography variant="body2" color="text.primary">agendamentos</Typography>
+                            </Box>
+                            {fieldState.error && (
+                              <Typography color="error" variant="caption" sx={{ ml: 4, mt: 0.5 }}>
+                                {fieldState.error.message}
+                              </Typography>
+                            )}
+                          </Box>
+                        )}
+                      />
+
+                      <FormControlLabel value="never" control={<Radio size="small" disableRipple sx={{ color: theme.palette.primary.main }} />} label={<Typography variant="body2">Nunca</Typography>} />
+                    </Box>
+                  </RadioGroup>
+                </FormControl>
+              </Box>
+
+              {summaryDates && summaryDates.dates.length > 0 && (
+                <Box sx={{ 
+                  borderRadius: 3, 
+                  p: 1, 
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 2
+                }}>
+                  <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.5, width: "100%" }}>
+                    Serão criados <b>{summaryDates.total}</b> agendamentos, um por {recurrenceFrequency === "weekly" ? "semana" : recurrenceFrequency === "biweekly" ? "quinzena" : "mês"}.
+                  </Typography>
+                  
+                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                    {summaryDates.dates.map((d, i) => (
+                      <Box key={i} sx={{ 
+                        bgcolor: "white", 
+                        border: "1px solid",
+                        borderColor: theme.palette.divider,
+                        color: theme.palette.text.primary, 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: 2, 
+                        fontSize: "0.85rem", 
+                        fontWeight: 600,
+                        textTransform: "capitalize"
+                      }}>
+                        {d.day} {d.month}
+                      </Box>
+                    ))}
+                    {summaryDates.remaining > 0 && (
+                      <Box sx={{ 
+                        bgcolor: theme.palette.action.disabledBackground, 
+                        border: "1px solid",
+                        borderColor: "transparent",
+                        color: theme.palette.text.primary, 
+                        px: 1.5, 
+                        py: 0.5, 
+                        borderRadius: 2, 
+                        fontSize: "0.85rem", 
+                        fontWeight: 600
+                      }}>
+                        +{summaryDates.remaining} datas
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+              )}
+            </Box>
+          )}
+        </Box>
+      )}
+
       <Divider />
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           loading={isSubmitting}
-          onClick={handleSubmit((data: AppointmentFormData) => onSubmit(data))}
+          onClick={handleSubmit((data: any) => {
+            if (!isRecurrent) {
+              delete data.recurrence;
+            }
+            onSubmit(data as AppointmentFormData);
+          })}
         >
           {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}
         </Button>

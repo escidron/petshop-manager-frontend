@@ -8,6 +8,7 @@ import {
   FormLabel,
   TextField,
   Typography,
+  Switch,
 } from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import type { PetFormData } from "./types";
@@ -55,6 +56,7 @@ const PetForm = ({
     resolver: zodResolver(petSchema),
     defaultValues: {
       is_active: true,
+      is_deceased: false,
       ...defaultValues,
     },
   });
@@ -84,6 +86,7 @@ const PetForm = ({
     }
     reset({
       is_active: true,
+      is_deceased: false,
       ...applyMasksOnEdit(defaultValues),
     });
   }, [open, defaultValues, reset, selectedClient]);
@@ -444,7 +447,7 @@ const PetForm = ({
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                 <Box sx={{ width: "50%" }}>
                   <FormControl fullWidth>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
@@ -492,6 +495,26 @@ const PetForm = ({
                       label="Não sabe a data de nascimento?"
                     />
                   </Box>
+                </Box>
+
+                <Box sx={{ width: "50%", pt: 0 }}>
+                  <Controller
+                    name="is_deceased"
+                    control={control}
+                    render={({ field }) => (
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={!!field.value}
+                            onChange={(e) => field.onChange(e.target.checked)}
+                            color="error"
+                          />
+                        }
+                        label="Pet foi a óbito (falecido)"
+                        sx={{ color: "text.primary" }}
+                      />
+                    )}
+                  />
                 </Box>
               </Box>
 

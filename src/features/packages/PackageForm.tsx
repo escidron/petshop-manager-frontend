@@ -78,14 +78,17 @@ export default function PackageForm({
     name: "items",
   });
 
-  const { data: services = [] } = useQuery<Service[]>({
+  const { data: servicesData } = useQuery({
     queryKey: ["services"],
-    queryFn: fetchServices,
+    queryFn: () => fetchServices(),
   });
-  const { data: products = [] } = useQuery<Product[]>({
+  const services: Service[] = servicesData || [];
+
+  const { data: productsData } = useQuery({
     queryKey: ["products"],
-    queryFn: fetchProducts,
+    queryFn: () => fetchProducts(),
   });
+  const products: Product[] = productsData || [];
 
   useEffect(() => {
     if (editingPackage) {

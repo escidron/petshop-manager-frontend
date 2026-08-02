@@ -138,7 +138,7 @@ export default function PullAppointmentDialog({
                 const packageDef = allPackages.find((p) => p.id === pkg.package_id);
                 priceFormatted = packageDef ? `R$ ${(packageDef.price_cents / 100).toFixed(2)}` : "R$ 0.00";
                 hasPetDetails = true;
-                petDetails = [{ petName: pkg.pet.name, servicesStr: pkg.package_name }];
+                petDetails = [{ petName: pkg.pets ? pkg.pets.map(p => p.name).join(", ") : "N/A", servicesStr: pkg.package_name }];
                 statusLabel = "Pacote";
                 statusColor = "info";
               }

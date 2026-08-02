@@ -29,6 +29,7 @@ export type Pet = {
   gender?: PetGender | null;
   is_neutered?: boolean | null;
   is_active: boolean;
+  is_deceased?: boolean;
 
   // Porte e pelagem
   size?: PetSize | null;

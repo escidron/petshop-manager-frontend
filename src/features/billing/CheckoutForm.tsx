@@ -8,7 +8,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import { CreditCard, Calendar, Lock, User, FileText, MapPin } from "lucide-react";
+import { CreditCard, Lock, MapPin } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 
 export interface BillingAddress {
@@ -21,7 +21,7 @@ export interface BillingAddress {
 }
 
 interface Props {
-  onSuccess: (cardToken: string, document: string, billingAddress: BillingAddress) => void;
+  onSuccess: (cardToken: string, document: string, billingAddress: BillingAddress) => Promise<void> | void;
   buttonLabel?: string;
   defaultDocument?: string | null;
 }
@@ -103,21 +103,6 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
     state: "",
   });
 
-  const handleNumber = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCard((p) => ({ ...p, number: formatCardNumber(e.target.value) }));
-
-  const handleExpiry = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCard((p) => ({ ...p, expiry: formatExpiry(e.target.value) }));
-
-  const handleCvv = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCard((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }));
-
-  const handleName = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setCard((p) => ({ ...p, holder_name: e.target.value.toUpperCase() }));
-
-  const handleDocument = (e: React.ChangeEvent<HTMLInputElement>) =>
-    setDocument(formatDocument(e.target.value));
-
   const handleCep = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const formatted = formatCep(e.target.value);
     setAddress((p) => ({ ...p, zip_code: formatted }));
@@ -143,6 +128,22 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
       }
     }
   };
+
+
+  const handleNumber = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setCard((p) => ({ ...p, number: formatCardNumber(e.target.value) }));
+
+  const handleExpiry = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setCard((p) => ({ ...p, expiry: formatExpiry(e.target.value) }));
+
+  const handleCvv = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setCard((p) => ({ ...p, cvv: e.target.value.replace(/\D/g, "").slice(0, 3) }));
+
+  const handleName = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setCard((p) => ({ ...p, holder_name: e.target.value.toUpperCase() }));
+
+  const handleDocument = (e: React.ChangeEvent<HTMLInputElement>) =>
+    setDocument(formatDocument(e.target.value));
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -185,7 +186,7 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
         line_1: address.line_1,
         ...(address.line_2 ? { line_2: address.line_2 } : {}),
       };
-      onSuccess(data.id, document, billingAddress);
+      await onSuccess(data.id, document, billingAddress);
     } catch {
       setErrorMsg("Erro de conexão. Tente novamente.");
     } finally {
@@ -196,200 +197,171 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
   const fieldSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: 2,
-      bgcolor: "#FAFAFA",
+      bgcolor: "white",
       "&:hover fieldset": { borderColor: "primary.main" },
     },
-    "& label": { fontSize: "0.875rem" },
+  };
+
+  const labelSx = {
+    fontSize: "0.75rem",
+    fontWeight: 700,
+    color: "#1A1A2E",
+    mb: 0.5,
+    display: "block",
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
-      {/* Card preview strip */}
-      <Box
-        sx={{
-          background: "linear-gradient(135deg, #313485 0%, #4B4EAD 100%)",
-          borderRadius: 3,
-          p: 2.5,
-          mb: 3,
-          color: "white",
-          position: "relative",
-          overflow: "hidden",
-          minHeight: 80,
-          display: "flex",
-          flexDirection: "column",
-          justifyContent: "space-between",
-        }}
-      >
-        <Box sx={{ position: "absolute", top: -30, right: -30, width: 120, height: 120, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.05)" }} />
-        <Box sx={{ position: "absolute", bottom: -20, left: -20, width: 90, height: 90, borderRadius: "50%", bgcolor: "rgba(255,255,255,0.05)" }} />
-        <Typography variant="caption" sx={{ opacity: 0.7, letterSpacing: 1 }}>
-          NÚMERO DO CARTÃO
-        </Typography>
-        <Typography variant="h6" sx={{ fontFamily: "monospace", letterSpacing: 3, opacity: card.number ? 1 : 0.4 }}>
-          {card.number || "0000 0000 0000 0000"}
-        </Typography>
-        <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start", flexDirection: { xs: "column", md: "row" } }}>
+        <Stack spacing={2.5} sx={{ flex: 1, width: "100%" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: -1 }}>
+            <CreditCard size={18} color="#1A1A2E" />
+            <Typography variant="subtitle2" fontWeight={800} color="#1A1A2E">Dados do cartão</Typography>
+          </Box>
           <Box>
-            <Typography variant="caption" sx={{ opacity: 0.7, display: "block", letterSpacing: 1 }}>TITULAR</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: card.holder_name ? 1 : 0.4 }}>
-              {card.holder_name || "NOME DO TITULAR"}
-            </Typography>
-          </Box>
-          <Box sx={{ textAlign: "right" }}>
-            <Typography variant="caption" sx={{ opacity: 0.7, display: "block", letterSpacing: 1 }}>VALIDADE</Typography>
-            <Typography variant="body2" sx={{ fontWeight: 600, opacity: card.expiry ? 1 : 0.4 }}>
-              {card.expiry || "MM/AA"}
-            </Typography>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Duas colunas: dados do cartão | endereço */}
-      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start" }}>
-        {/* Coluna esquerda — dados do cartão */}
-        <Stack spacing={2} sx={{ flex: 1 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <CreditCard size={16} color="#6B7280" />
-            <Typography variant="subtitle2" color="text.primary">Dados do cartão</Typography>
-          </Box>
-
-          <TextField
-            fullWidth
-            value={document}
-            onChange={handleDocument}
-            placeholder="CPF ou CNPJ"
-            required
-            sx={fieldSx}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <FileText size={18} color="#9CA3AF" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            fullWidth
-            value={card.number}
-            onChange={handleNumber}
-            placeholder="0000 0000 0000 0000"
-            required
-            sx={fieldSx}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <CreditCard size={18} color="#9CA3AF" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <TextField
-            fullWidth
-            value={card.holder_name}
-            onChange={handleName}
-            placeholder="NOME SOBRENOME"
-            required
-            sx={fieldSx}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <User size={18} color="#9CA3AF" />
-                </InputAdornment>
-              ),
-            }}
-          />
-
-          <Box sx={{ display: "flex", gap: 2 }}>
+            <Typography sx={labelSx}>Número do cartão</Typography>
             <TextField
-              value={card.expiry}
-              onChange={handleExpiry}
-              placeholder="MM/AA"
+              fullWidth
+              value={card.number}
+              onChange={handleNumber}
+              placeholder="0000 0000 0000 0000"
               required
-              sx={{ ...fieldSx, flex: 1 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Calendar size={18} color="#9CA3AF" />
-                  </InputAdornment>
-                ),
-              }}
+              size="small"
+              sx={fieldSx}
             />
+          </Box>
+  
+          <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={labelSx}>Validade</Typography>
+              <TextField
+                value={card.expiry}
+                onChange={handleExpiry}
+                placeholder="MM/AA"
+                required
+                size="small"
+                sx={fieldSx}
+                fullWidth
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={labelSx}>CVV</Typography>
+              <TextField
+                value={card.cvv}
+                onChange={handleCvv}
+                placeholder="123"
+                required
+                size="small"
+                sx={fieldSx}
+                fullWidth
+              />
+            </Box>
+          </Box>
+  
+          <Box>
+            <Typography sx={labelSx}>Nome do titular</Typography>
             <TextField
-              value={card.cvv}
-              onChange={handleCvv}
-              placeholder="CVV"
+              fullWidth
+              value={card.holder_name}
+              onChange={handleName}
+              placeholder="Como está no cartão"
               required
-              sx={{ ...fieldSx, flex: 1 }}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Lock size={18} color="#9CA3AF" />
-                  </InputAdornment>
-                ),
-              }}
+              size="small"
+              sx={fieldSx}
+            />
+          </Box>
+  
+          <Box>
+            <Typography sx={labelSx}>CPF do titular</Typography>
+            <TextField
+              fullWidth
+              value={document}
+              onChange={handleDocument}
+              placeholder="000.000.000-00"
+              required
+              size="small"
+              sx={fieldSx}
             />
           </Box>
         </Stack>
 
-        <Divider orientation="vertical" flexItem />
+        <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />
 
-        {/* Coluna direita — endereço de cobrança */}
-        <Stack spacing={2} sx={{ flex: 1 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <MapPin size={16} color="#6B7280" />
-            <Typography variant="subtitle2" color="text.primary">Endereço de cobrança</Typography>
+        <Stack spacing={2.5} sx={{ flex: 1, width: "100%" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: -1 }}>
+            <MapPin size={18} color="#1A1A2E" />
+            <Typography variant="subtitle2" fontWeight={800} color="#1A1A2E">Endereço de cobrança</Typography>
           </Box>
-
-          <TextField
-            fullWidth
-            value={address.zip_code}
-            onChange={handleCep}
-            placeholder="CEP"
-            required
-            sx={fieldSx}
-            InputProps={{
-              endAdornment: cepLoading ? (
-                <InputAdornment position="end">
-                  <CircularProgress size={16} />
-                </InputAdornment>
-              ) : undefined,
-            }}
-          />
-
-          <TextField
-            fullWidth
-            value={address.line_1}
-            onChange={(e) => setAddress((p) => ({ ...p, line_1: e.target.value }))}
-            placeholder="Rua, número"
-            required
-            sx={fieldSx}
-          />
-
-          <TextField
-            fullWidth
-            value={address.line_2}
-            onChange={(e) => setAddress((p) => ({ ...p, line_2: e.target.value }))}
-            placeholder="Complemento (opcional)"
-            sx={fieldSx}
-          />
-
+          <Box>
+            <Typography sx={labelSx}>CEP</Typography>
+            <TextField
+              fullWidth
+              value={address.zip_code}
+              onChange={handleCep}
+              placeholder="00000-000"
+              required
+              size="small"
+              sx={fieldSx}
+              InputProps={{
+                endAdornment: cepLoading ? (
+                  <InputAdornment position="end">
+                    <CircularProgress size={16} />
+                  </InputAdornment>
+                ) : undefined,
+              }}
+            />
+          </Box>
+  
+          <Box>
+            <Typography sx={labelSx}>Rua, número</Typography>
+            <TextField
+              fullWidth
+              value={address.line_1}
+              onChange={(e) => setAddress((p) => ({ ...p, line_1: e.target.value }))}
+              placeholder="Ex: Av. Paulista, 1000"
+              required
+              size="small"
+              sx={fieldSx}
+            />
+          </Box>
+  
+          <Box>
+            <Typography sx={labelSx}>Complemento (opcional)</Typography>
+            <TextField
+              fullWidth
+              value={address.line_2}
+              onChange={(e) => setAddress((p) => ({ ...p, line_2: e.target.value }))}
+              placeholder="Ex: Apto 101"
+              size="small"
+              sx={fieldSx}
+            />
+          </Box>
+  
           <Box sx={{ display: "flex", gap: 2 }}>
-            <TextField
-              value={address.city}
-              onChange={(e) => setAddress((p) => ({ ...p, city: e.target.value }))}
-              placeholder="Cidade"
-              required
-              sx={{ ...fieldSx, flex: 1 }}
-            />
-            <TextField
-              value={address.state}
-              onChange={(e) => setAddress((p) => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))}
-              placeholder="UF"
-              required
-              sx={{ ...fieldSx, width: 80 }}
-            />
+            <Box sx={{ flex: 2 }}>
+              <Typography sx={labelSx}>Cidade</Typography>
+              <TextField
+                fullWidth
+                value={address.city}
+                onChange={(e) => setAddress((p) => ({ ...p, city: e.target.value }))}
+                placeholder="Ex: São Paulo"
+                required
+                size="small"
+                sx={fieldSx}
+              />
+            </Box>
+            <Box sx={{ flex: 1 }}>
+              <Typography sx={labelSx}>UF</Typography>
+              <TextField
+                fullWidth
+                value={address.state}
+                onChange={(e) => setAddress((p) => ({ ...p, state: e.target.value.toUpperCase().slice(0, 2) }))}
+                placeholder="Ex: SP"
+                required
+                size="small"
+                sx={fieldSx}
+              />
+            </Box>
           </Box>
         </Stack>
       </Box>
@@ -407,15 +379,13 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
         disabled={loading}
         sx={{ mt: 3, width: "100%", py: 1.5, fontSize: "1rem", fontWeight: 700, borderRadius: 2 }}
       >
-        {loading ? <CircularProgress size={22} sx={{ color: "white" }} /> : (buttonLabel || "Confirmar assinatura")}
+        {loading ? <CircularProgress size={22} sx={{ color: "white" }} /> : (
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
+            <Lock size={18} />
+            {buttonLabel || "Confirmar pagamento"}
+          </Box>
+        )}
       </Button>
-
-      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, mt: 2 }}>
-        <Lock size={12} color="#9CA3AF" />
-        <Typography variant="caption" color="text.disabled">
-          Dados criptografados e protegidos via Pagar.me
-        </Typography>
-      </Box>
     </Box>
   );
 };

@@ -51,30 +51,6 @@ const TenantCreateForm = ({ onSubmit, defaultValues, loading }: Props) => {
         />
       </FormControl>
 
-      {/* E-mail da petshop */}
-      <FormControl error={!!errors.email}>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-          <Stack direction="row" spacing={0.5} alignItems="center">
-            <Mail size={16} />
-            <Typography>E-mail do estabelecimento (Opcional)</Typography>
-          </Stack>
-        </FormLabel>
-
-        <Controller
-          name="email"
-          control={control}
-          render={({ field }) => (
-            <CustomTextField
-              {...field}
-              value={field.value || ""}
-              placeholder="ex: contato@meupetshop.com.br"
-              error={!!errors.email}
-              helperText={errors.email?.message}
-            />
-          )}
-        />
-      </FormControl>
-
       {/* Telefone */}
       <FormControl error={!!errors.phone}>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
@@ -95,6 +71,30 @@ const TenantCreateForm = ({ onSubmit, defaultValues, loading }: Props) => {
               onChange={(e) => field.onChange(maskPhone(e.target.value))}
               error={!!errors.phone}
               helperText={errors.phone?.message}
+            />
+          )}
+        />
+      </FormControl>
+
+      {/* E-mail da petshop */}
+      <FormControl error={!!errors.email}>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+          <Stack direction="row" spacing={0.5} alignItems="center">
+            <Mail size={16} />
+            <Typography>E-mail do estabelecimento (Opcional)</Typography>
+          </Stack>
+        </FormLabel>
+
+        <Controller
+          name="email"
+          control={control}
+          render={({ field }) => (
+            <CustomTextField
+              {...field}
+              value={field.value || ""}
+              placeholder="ex: contato@meupetshop.com.br"
+              error={!!errors.email}
+              helperText={errors.email?.message}
             />
           )}
         />

@@ -31,9 +31,9 @@ export default function AdjustStockModal({
 }: AdjustStockModalProps) {
   const queryClient = useQueryClient();
 
-  const { data: products = [], isLoading: isLoadingProducts } = useQuery({
+  const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
     queryKey: ["products"],
-    queryFn: fetchProducts,
+    queryFn: () => fetchProducts(),
   });
 
   const {

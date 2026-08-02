@@ -14,7 +14,6 @@ export type ClientPackage = {
   id: number;
   tenant_id: number;
   client_id: number;
-  pet_id: number;
   package_id: number | null;
   package_name: string;
   is_active: boolean;
@@ -22,13 +21,13 @@ export type ClientPackage = {
   created_at: string;
   expires_at: string | null;
   client: { id: number; name: string };
-  pet: { id: number; name: string };
+  pets: { id: number; name: string }[];
   credits: ClientPackageCredit[];
   usages: ClientPackageUsage[];
 };
 
 export type ClientPackageSellData = {
-  pet_id: number;
+  pet_ids: number[];
   package_id: number;
 };
 
@@ -40,4 +39,5 @@ export type ClientPackageUsage = {
   notes: string | null;
   created_at: string;
   service_name: string;
+  user_name?: string;
 };

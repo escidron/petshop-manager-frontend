@@ -33,6 +33,9 @@ export type ServiceBase = {
   duration_minutes?: number;
   is_package_covered?: boolean;
   employee_id?: number | null;
+  species?: string | null;
+  size?: string | null;
+  coat_type?: string | null;
 };
 
 export type StatusPalette = "success" | "error" | "warning" | "info";
@@ -87,6 +90,7 @@ export type Appointment = {
   is_paid: boolean;
   is_fully_package_covered: boolean;
   warnings?: string[];
+  recurrence_id?: string | null;
 
   created_at: string;
 };

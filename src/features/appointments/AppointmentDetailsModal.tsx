@@ -25,13 +25,14 @@ import {
   Dot,
   Info,
   Mars,
-  Package,
+  ShoppingBag,
   Pencil,
   Play,
   ShoppingCart,
   Venus,
   X,
   AlertTriangle,
+  AlertCircle,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -47,7 +48,7 @@ type Props = {
   open: boolean;
   appointment: Appointment;
   onClose: () => void;
-  handleAction: (appointment: Appointment, action: AppointmentAction) => void;
+  handleAction: (appointment: Appointment, action: AppointmentAction, cancelAllFuture?: boolean) => void;
   loadingAction: AppointmentAction | null;
   onEdit: (appointment: Appointment) => void;
 };
@@ -150,10 +151,48 @@ const AppointmentDetailsModal = ({
     }, 0);
   }, [appointment, coveredServiceKeys]);
 
+  const allServices = appointment.items.flatMap(i => i.services);
+  const coveredServices = allServices.filter(s => s.is_package_covered);
+  const billableServices = allServices.filter(s => !s.is_package_covered);
+  const billableCount = billableServices.length;
+
+  const remainingBalancesText = useMemo(() => {
+    if (appointment.status !== "completed") return "";
+    const usedServiceIds = new Set(appointment.items.flatMap(i => i.services).filter(s => s.is_package_covered).map(s => s.id));
+    if (usedServiceIds.size === 0) return "";
+    
+    const balances: string[] = [];
+    usedServiceIds.forEach(serviceId => {
+       let totalRemaining = 0;
+       let serviceName = "";
+       packageQueries.forEach(q => {
+          const pkgs = q.data || [];
+          pkgs.forEach(pkg => {
+            if (!pkg.is_active) return;
+            pkg.credits.forEach(c => {
+               if (c.service_id === serviceId) {
+                  totalRemaining += c.remaining_qty;
+                  if (!serviceName) serviceName = c.service_name || "Serviço";
+               }
+            });
+          });
+       });
+       balances.push(`${totalRemaining}x ${serviceName}`);
+    });
+    return balances.join(", ");
+  }, [appointment, packageQueries]);
+
   const [localAssignments, setLocalAssignments] = useState<
     Record<string, number | null>
   >({});
   const [showAllNotes, setShowAllNotes] = useState(false);
+
+  // Invalidate cache immediately when appointment completes to refresh remaining balances
+  useEffect(() => {
+    if (appointment?.status === "completed") {
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+    }
+  }, [appointment?.status, queryClient]);
 
   useEffect(() => {
     if (open && appointment) {
@@ -396,6 +435,37 @@ const AppointmentDetailsModal = ({
                 {appointment.status === "completed" && (
                   <>
                     <Divider sx={{ my: 1 }} />
+                    <Box sx={{ mb: 2, p: 2, bgcolor: "grey.50", borderRadius: 2, border: "1px dashed", borderColor: "divider" }}>
+                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Resumo da Finalização</Typography>
+                      
+                      {coveredServices.map((s, idx) => (
+                        <Box key={`cov-${idx}`} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, color: "success.main" }}>
+                          <Check size={18} strokeWidth={3} />
+                          <Typography variant="body2">
+                            <strong>{s.name}</strong> debitado do pacote.
+                          </Typography>
+                        </Box>
+                      ))}
+                      
+                      {remainingBalancesText && (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: billableCount > 0 ? 1.5 : 0, pl: 3.5, color: "text.primary " }}>
+                          <ShoppingBag size={14} />
+                          <Typography variant="caption">
+                            Saldo atualizado: {remainingBalancesText}
+                          </Typography>
+                        </Box>
+                      )}
+                      
+                      {billableServices.map((s, idx) => (
+                        <Box key={`bil-${idx}`} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, color: appointment.is_paid ? "success.main" : "warning.main" }}>
+                          {appointment.is_paid ? <Check size={18} strokeWidth={3} /> : <AlertCircle size={18} />}
+                          <Typography variant="body2">
+                            <strong>{s.name}</strong> {appointment.is_paid ? "pago no caixa." : "pendente de pagamento no caixa."}
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+
                     <Box
                       sx={{
                         display: "flex",
@@ -413,11 +483,11 @@ const AppointmentDetailsModal = ({
                         />
                       ) : appointment.is_fully_package_covered ? (
                         <Chip
-                          label="PAGO VIA PACOTE"
+                          label="PAGO"
                           color="success"
                           size="small"
                           variant="filled"
-                          icon={<Package size={13} />}
+                          icon={<ShoppingBag size={13} />}
                           sx={{ fontWeight: 900, px: 1 }}
                         />
                       ) : (
@@ -604,7 +674,7 @@ const AppointmentDetailsModal = ({
                                 size="small"
                                 color="success"
                                 variant="outlined"
-                                icon={<Package size={10} />}
+                                icon={<ShoppingBag size={10} />}
                                 sx={{ height: 18, fontSize: 10, px: 0.5 }}
                               />
                             )}
@@ -776,27 +846,70 @@ const AppointmentDetailsModal = ({
             Tem certeza que deseja cancelar este agendamento? Esta ação não pode
             ser desfeita.
           </Typography>
+          {appointment?.recurrence_id && (
+            <Alert severity="info" sx={{ mt: 2, fontSize: "0.85rem" }}>
+              Este agendamento faz parte de uma recorrência. Você pode cancelar apenas este ou todos os futuros.
+            </Alert>
+          )}
         </DialogContent>
-        <DialogActions>
-          <Button
-            variant="text"
-            onClick={() => setCancelConfirmOpen(false)}
-            disabled={!!loadingAction}
-          >
-            Voltar
-          </Button>
-          <Button
-            variant="contained"
-            color="error"
-            onClick={() => {
-              handleAction(appointment, "cancel");
-              setCancelConfirmOpen(false);
-            }}
-            loading={loadingAction === "cancel"}
-            disabled={!!loadingAction}
-          >
-            Sim, cancelar
-          </Button>
+        <DialogActions sx={{ flexDirection: appointment?.recurrence_id ? "column" : "row", alignItems: "stretch", p: 2, gap: 1 }}>
+          {!appointment?.recurrence_id ? (
+            <>
+              <Button
+                variant="text"
+                onClick={() => setCancelConfirmOpen(false)}
+                disabled={!!loadingAction}
+              >
+                Voltar
+              </Button>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() => {
+                  handleAction(appointment, "cancel");
+                  setCancelConfirmOpen(false);
+                }}
+                loading={loadingAction === "cancel"}
+                disabled={!!loadingAction}
+              >
+                Sim, cancelar
+              </Button>
+            </>
+          ) : (
+            <>
+              <Button
+                variant="contained"
+                color="error"
+                onClick={() => {
+                  handleAction(appointment, "cancel", false);
+                  setCancelConfirmOpen(false);
+                }}
+                loading={loadingAction === "cancel"}
+                disabled={!!loadingAction}
+              >
+                Cancelar apenas este
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={() => {
+                  handleAction(appointment, "cancel", true);
+                  setCancelConfirmOpen(false);
+                }}
+                loading={loadingAction === "cancel"}
+                disabled={!!loadingAction}
+              >
+                Cancelar este e TODOS os futuros
+              </Button>
+              <Button
+                variant="text"
+                onClick={() => setCancelConfirmOpen(false)}
+                disabled={!!loadingAction}
+              >
+                Voltar
+              </Button>
+            </>
+          )}
         </DialogActions>
       </Dialog>
     </Dialog>

@@ -71,15 +71,17 @@ export default function InventoryPage() {
   const [stockSearch, setStockSearch] = useState("");
 
   // Queries
-  const { data: products = [], isLoading: loadingProducts } = useQuery({
+  const { data: productsData, isLoading: loadingProducts } = useQuery({
     queryKey: ["products"],
-    queryFn: fetchProducts,
+    queryFn: () => fetchProducts(),
   });
+  const products: Product[] = productsData || [];
 
-  const { data: logs = [], isLoading: loadingLogs } = useQuery({
+  const { data: logsData, isLoading: loadingLogs } = useQuery({
     queryKey: ["inventory_logs"],
-    queryFn: fetchGlobalInventoryLogs,
+    queryFn: () => fetchGlobalInventoryLogs(),
   });
+  const logs: InventoryLog[] = logsData || [];
 
   const handleOpenAdjust = (product?: Product) => {
     setSelectedProduct(product || null);

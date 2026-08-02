@@ -56,7 +56,7 @@ export default function AppointmentModal({
 
   const { clients, getClients } = useClients();
   const { services, getServices } = useServices();
-  const { pets, setClientId, refetchPets } = useClient(initialClientId);
+  const { pets, setClientId, refetchPets, loadedClientId } = useClient(initialClientId);
 
   // Sub-modal state
   const [clientModalOpen, setClientModalOpen] = useState(false);
@@ -155,6 +155,7 @@ export default function AppointmentModal({
             autoSelectPet={autoSelectPet}
             autoSelectService={autoSelectService}
             initialDate={initialDate}
+            loadedClientId={loadedClientId}
           />
         </DialogContent>
       </Dialog>

@@ -8,9 +8,11 @@ import { getAppointmentStatusUI } from "../../utils/getAppointmentStatusColor";
 import { getServiceIcons } from "../../utils/getServiceIcons";
 import { useState } from "react";
 import AppointmentServiceList from "./AppointmentServiceList";
-import { Info } from "lucide-react";
+import { Info, ShoppingBag } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import AppointmentObservationList from "./AppointmentObservationList";
+import { useQuery } from "@tanstack/react-query";
+import { listClientPackagesByClient } from "../../api/services/client_packages";
 
 type Props = {
   appointment: Appointment;
@@ -22,8 +24,23 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
   const allServiceNames = appointment.items.flatMap((item) =>
     item.services.map((service) => service.name),
   );
+
+  const { data: clientPackages = [] } = useQuery({
+    queryKey: ["clientPackages", "client", appointment.client.id],
+    queryFn: () => listClientPackagesByClient(appointment.client.id),
+  });
+
   const hasPetNotes = appointment.items.some(
     (item) => item.pet?.notes && item.pet.notes.trim() !== "",
+  );
+  const hasPackage = appointment.is_fully_package_covered || appointment.items.some(item => 
+    item.services.some(s => 
+      s.is_package_covered || clientPackages.some(pkg => 
+        pkg.is_active && 
+        pkg.pets?.some(p => p.id === item.pet.id) && 
+        pkg.credits.some(c => c.service_id === s.id && c.remaining_qty > 0)
+      )
+    )
   );
   const hasAnyNotes = hasPetNotes || (appointment.notes && appointment.notes.trim() !== "");
   const icons = getServiceIcons(allServiceNames);
@@ -209,6 +226,11 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
                 {icon}
               </Box>
             ))}
+            {hasPackage && (
+              <Box sx={{ display: "flex", alignItems: "center", opacity: 0.7, color: "success.main" }}>
+                <ShoppingBag size={20} />
+              </Box>
+            )}
           </Box>
         </Box>
       </Box>

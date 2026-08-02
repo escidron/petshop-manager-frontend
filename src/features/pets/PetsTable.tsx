@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import { Typography, Skeleton } from "@mui/material";
+import { Typography, Skeleton, Chip } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -226,13 +226,29 @@ export default function PetsTable({ rows, loading, onEdit, onDelete }: Props) {
                 key={row.id}
                 sx={{
                   transition: "background-color 0.2s ease",
+                  opacity: row.is_deceased ? 0.65 : 1,
                   "&:hover": {
                     backgroundColor: "secondary.main",
                   },
                 }}
               >
                 <TableCell component="th" scope="row">
-                  {row.name}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    {row.name}
+                    {row.is_deceased && (
+                      <Chip
+                        label="Óbito 🖤"
+                        size="small"
+                        sx={{
+                          height: 20,
+                          fontSize: "0.75rem",
+                          bgcolor: "rgba(0, 0, 0, 0.6)",
+                          color: "#fff",
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                  </Box>
                 </TableCell>
                 <TableCell align="left">{row.species ?? "-"}</TableCell>
                 <TableCell align="left">
