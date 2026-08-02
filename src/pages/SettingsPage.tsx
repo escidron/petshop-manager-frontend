@@ -32,18 +32,10 @@ import {
   Settings,
   CreditCard,
   User,
-  CheckCircle2,
-  TrendingUp,
-  X,
-  Lock,
-  QrCode,
-  Users,
-  Plus,
   Trash2,
   AlertTriangle,
   Info,
 } from "lucide-react";
-import Skeleton from "@mui/material/Skeleton";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import dayjs from "dayjs";
@@ -65,7 +57,6 @@ import CustomTextField from "../components/Textfield/CustomTextfield";
 import { useToast } from "../hooks/useToast";
 import { maskPhone, maskDocument } from "../utils/masks";
 import {
-  addPaymentMethod,
   createCheckout,
   listPaymentMethods,
   removePaymentMethod,
@@ -76,7 +67,6 @@ import {
   changeSubscriptionToPix,
 } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
-import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import PixQrCode from "../features/billing/PixQrCode";
 import CheckoutStepper from "../features/billing/CheckoutStepper";
 import UpdateCardModal from "../features/billing/UpdateCardModal";
@@ -131,20 +121,15 @@ const SettingsPage = () => {
   const [value, setValue] = useState(0);
   const [openCheckout, setOpenCheckout] = useState(false);
   const [openTenantEdit, setOpenTenantEdit] = useState(false);
-  const [checkoutMode, setCheckoutMode] = useState<"payment" | "setup">("payment");
   const [openCancelModal, setOpenCancelModal] = useState(false);
   const [openUpdateCard, setOpenUpdateCard] = useState(false);
   const [manageAnchorEl, setManageAnchorEl] = useState<null | HTMLElement>(null);
   const [openPixConfirmation, setOpenPixConfirmation] = useState(false);
   const [loadingChangeToPix, setLoadingChangeToPix] = useState(false);
   const [cancelingSubscription, setCancelingSubscription] = useState(false);
-  const [checkoutLoading, setCheckoutLoading] = useState(false);
-  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   const [selectedCardId, setSelectedCardId] = useState<string>("");
-  const [useNewCard, setUseNewCard] = useState<boolean>(false);
   const [savingTenant, setSavingTenant] = useState(false);
   const [savedCards, setSavedCards] = useState<PaymentMethod[]>([]);
-  const [loadingCards, setLoadingCards] = useState(false);
   const [awaitingConfirmation, setAwaitingConfirmation] = useState(false);
   const [pollCount, setPollCount] = useState(0);
   const [pixDocument, setPixDocument] = useState("");
@@ -325,18 +310,8 @@ const SettingsPage = () => {
     }
   }, [tenant?.document, pixDocument]);
 
-  const [savingPaymentMethod, setSavingPaymentMethod] = useState(false);
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState<"card" | "pix" | null>(null);
   const [checkoutStartAt, setCheckoutStartAt] = useState<string | null>(null);
-
-  const handlePaymentMethodChange = (method: "card" | "pix") => {
-    if (!tenant?.id || method === paymentMethod) return;
-    if (tenant?.subscription?.status === "active") {
-      setPendingPaymentMethod(method);
-    } else {
-      confirmPaymentMethodChange(method);
-    }
-  };
 
   const confirmPaymentMethodChange = async (method: "card" | "pix") => {
     if (!tenant?.id) return;
@@ -347,22 +322,17 @@ const SettingsPage = () => {
     if (method === "card" && tenant?.subscription?.payment_method === "pix" && tenant?.subscription?.status === "active") {
       const startAt = tenant.subscription.current_period_end;
       setCheckoutStartAt(startAt);
-      setCheckoutMode("payment");
-      setCheckoutError(null);
       setPixData(null);
       setOpenCheckout(true);
       return;
     }
 
     setPaymentMethod(method);
-    setSavingPaymentMethod(true);
     try {
       await updateSubscription(tenant.id, method);
       await checkAuth();
     } catch {
       setPaymentMethod(paymentMethod); // revert on error
-    } finally {
-      setSavingPaymentMethod(false);
     }
   };
 
@@ -447,20 +417,6 @@ const SettingsPage = () => {
     }
   };
 
-  const handleSetDefault = async (pmId: string) => {
-    await setDefaultPaymentMethod(pmId);
-    setSavedCards((prev) =>
-      prev.map((c) => ({ ...c, is_default: c.id === pmId }))
-    );
-    toast.success("Cartão padrão atualizado!");
-  };
-
-  const handleRemoveCard = async (pmId: string) => {
-    await removePaymentMethod(pmId);
-    setSavedCards((prev) => prev.filter((c) => c.id !== pmId));
-    toast.success("Cartão removido.");
-  };
-
   // Limpa os dados sensíveis imediatamente ao trocar de tenant,
   // evitando que cartões/cobranças de um tenant apareçam em outro.
   useEffect(() => {
@@ -517,7 +473,6 @@ const SettingsPage = () => {
 
   const trialDays = getTrialDays();
   const isTrialing = !tenant?.feature_flags?.free_access && (tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing");
-  const showPaymentMethodSection = !!tenant?.subscription && tenant.subscription.plan?.code !== "FREE_TRIAL" && tenant.subscription.status !== "trialing";
 
   const activePendingPixCharge = useMemo(() => {
     return charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
@@ -539,46 +494,8 @@ const SettingsPage = () => {
     return <Chip label={conf.label} color={conf.color} size="small" sx={{ fontWeight: 700 }} />;
   };
 
-  const handleOpenCheckout = () => {
-    setCheckoutMode("payment");
-    setCheckoutError(null);
-    setPixData(null);
-    setOpenCheckout(true);
-
-    if (paymentMethod === "pix" && tenant?.document) {
-      const pendingPixCharge = charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
-      if (pendingPixCharge) {
-        setPixData({
-          pagarme_subscription_id: "",
-          status: "pending",
-          pix_qr_code: pendingPixCharge.pix_qr_code,
-          pix_qr_code_url: pendingPixCharge.pix_qr_code_url ?? null,
-          expires_at: pendingPixCharge.expires_at ?? null,
-        });
-        const doc = maskDocument(tenant.document);
-        setPixDocument(doc);
-      } else {
-        const doc = maskDocument(tenant.document);
-        setPixDocument(doc);
-        handleGeneratePix(doc);
-      }
-    } else {
-      setPixDocument(tenant?.document ? maskDocument(tenant.document) : "");
-      if (savedCards.length > 0) {
-        const defaultCard = savedCards.find((c) => c.is_default) || savedCards[0];
-        setSelectedCardId(defaultCard.id);
-        setUseNewCard(false);
-      } else {
-        setSelectedCardId("");
-        setUseNewCard(true);
-      }
-    }
-  };
-
   const handleGeneratePix = async (docOverride?: string) => {
     const doc = docOverride ?? pixDocument;
-    setCheckoutLoading(true);
-    setCheckoutError(null);
     try {
       const data = await createCheckout("MONTHLY", "pix", undefined, doc);
       if ("pix_qr_code" in data) {
@@ -588,48 +505,8 @@ const SettingsPage = () => {
         setPollCount(0);
       }
     } catch {
-      setCheckoutError("Erro ao gerar PIX. Tente novamente.");
-    } finally {
-      setCheckoutLoading(false);
+      toast.error("Erro ao gerar PIX. Tente novamente.");
     }
-  };
-
-  const handleCheckoutWithSavedCard = async () => {
-    if (!selectedCardId) {
-      toast.error("Por favor, selecione um cartão.");
-      return;
-    }
-    setCheckoutLoading(true);
-    setCheckoutError(null);
-    try {
-      await createCheckout(
-        "MONTHLY",
-        "credit_card",
-        undefined,
-        undefined,
-        undefined,
-        checkoutStartAt ?? undefined,
-        selectedCardId
-      );
-      setCheckoutStartAt(null);
-      toast.success("Pagamento enviado! Aguardando confirmação...");
-      await checkAuth();
-      setAwaitingConfirmation(true);
-      setPollCount(0);
-      setOpenCheckout(false);
-    } catch (err: any) {
-      console.error(err);
-      const detail = err.response?.data?.detail || "Erro ao processar o pagamento com o cartão salvo.";
-      setCheckoutError(typeof detail === "string" ? detail : JSON.stringify(detail));
-    } finally {
-      setCheckoutLoading(false);
-    }
-  };
-
-  const handleOpenSetupCard = () => {
-    setCheckoutMode("setup");
-    setCheckoutError(null);
-    setOpenCheckout(true);
   };
 
   const onSaveTenant = async (data: TenantFormData) => {
@@ -1094,7 +971,6 @@ const SettingsPage = () => {
                     variant="outlined"
                     size="small"
                     onClick={(e) => setManageAnchorEl(e.currentTarget)}
-                    color="inherit"
                     sx={{ fontWeight: 600, color: "text.primary" }}
                   >
                     Gerenciar assinatura
@@ -1106,7 +982,7 @@ const SettingsPage = () => {
                   >
                     <MenuItem onClick={() => { 
                       setManageAnchorEl(null); 
-                      if (tenant.subscription.payment_method === "pix") {
+                      if (tenant.subscription?.payment_method === "pix") {
                         confirmPaymentMethodChange("card");
                       } else {
                         setOpenUpdateCard(true); 
@@ -1387,9 +1263,9 @@ const SettingsPage = () => {
                                   setPixData({
                                     pagarme_subscription_id: "",
                                     status: "pending",
-                                    pix_qr_code: charge.pix_qr_code,
-                                    pix_qr_code_url: charge.pix_qr_code_url ?? null,
-                                    expires_at: charge.expires_at ?? null,
+                                    pix_qr_code: charge.pix_qr_code || "",
+                                    pix_qr_code_url: charge.pix_qr_code_url || "",
+                                    expires_at: charge.expires_at || "",
                                   });
                                   setPaymentMethod("pix");
                                   setOpenCheckout(true);
