@@ -77,6 +77,10 @@ export const setDefaultPaymentMethod = async (pmId: string) => {
   await apiClient.post(`/api/v1/subscriptions/payment-methods/${pmId}/default`);
 };
 
+export const changeSubscriptionToPix = async () => {
+  await apiClient.post(`/api/v1/subscriptions/change-to-pix`);
+};
+
 export const listCharges = async () => {
   const response = await apiClient.get<SubscriptionCharge[]>(
     "/api/v1/subscriptions/charges"
