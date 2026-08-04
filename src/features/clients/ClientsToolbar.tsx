@@ -1,5 +1,5 @@
 import { Box } from "@mui/material";
-import { Search, Plus, Upload } from "lucide-react";
+import { Search, Plus, Upload, Wand2 } from "lucide-react";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
 
@@ -8,6 +8,7 @@ type Props = {
   onSearchChange: (value: string) => void;
   onCreate: () => void;
   onImport: () => void;
+  onOpenWizard: () => void;
 };
 
 export default function ClientsToolbar({
@@ -15,6 +16,7 @@ export default function ClientsToolbar({
   onSearchChange,
   onCreate,
   onImport,
+  onOpenWizard,
 }: Props) {
   return (
     <Box mb={2} display="flex" justifyContent="space-between" gap={2}>
@@ -26,6 +28,9 @@ export default function ClientsToolbar({
       />
 
       <Box display="flex" gap={1}>
+        <Button variant="outlined" startIcon={<Wand2 size={18} />} onClick={onOpenWizard}>
+          Assistente de Migração
+        </Button>
         <Button variant="outlined" startIcon={<Upload size={18} />} onClick={onImport}>
           Cadastro em Massa
         </Button>
@@ -36,4 +41,5 @@ export default function ClientsToolbar({
     </Box>
   );
 }
+
 

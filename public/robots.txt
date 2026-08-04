@@ -1,0 +1,3 @@
+User-agent: *
+Allow: /
+Sitemap: https://sistemapetcontrole.com.br/sitemap.xml

@@ -24,6 +24,7 @@ import {
   TextField,
   Switch,
   FormControlLabel,
+  Card,
 } from "@mui/material";
 import {
   Settings,
@@ -38,6 +39,9 @@ import {
   Lock,
   Plus,
   X,
+  Download,
+  Package as PackageIcon,
+  Truck,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
@@ -73,6 +77,12 @@ import UpdateCardModal from "../features/billing/UpdateCardModal";
 import type { PaymentMethod, CheckoutPixResponse, SubscriptionCharge } from "../features/billing/types";
 import { Button } from "../components/Button/Button";
 import WorkingHoursSettings from "../features/tenants/WorkingHoursSettings";
+import { exportClients } from "../api/services/clients";
+import { exportProducts } from "../api/services/products";
+import { exportServices } from "../api/services/tenant_services";
+import { exportPackages } from "../api/services/packages";
+import { exportSuppliers } from "../api/services/suppliers";
+import { exportEmployees } from "../api/services/employees";
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -237,11 +247,8 @@ const SettingsPage = () => {
 
   const [charges, setCharges] = useState<SubscriptionCharge[]>([]);
   const [loadingCharges, setLoadingCharges] = useState(false);
-  const [chargeToUpdateCard, _setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
   const [openUpdateCardDialog, setOpenUpdateCardDialog] = useState(false);
   const [updateCardLoading, setUpdateCardLoading] = useState(false);
-  const [selectedPixCharge, _setSelectedPixCharge] = useState<SubscriptionCharge | null>(null);
-  const [openPixModal, setOpenPixModal] = useState(false);
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -256,6 +263,13 @@ const SettingsPage = () => {
   const [deleteAccountStep, setDeleteAccountStep] = useState<1 | 2>(1);
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
+
+  const [loadingExportClients, setLoadingExportClients] = useState(false);
+  const [loadingExportProducts, setLoadingExportProducts] = useState(false);
+  const [loadingExportServices, setLoadingExportServices] = useState(false);
+  const [loadingExportPackages, setLoadingExportPackages] = useState(false);
+  const [loadingExportSuppliers, setLoadingExportSuppliers] = useState(false);
+  const [loadingExportUsers, setLoadingExportUsers] = useState(false);
 
   const {
     control: controlPassword,
@@ -286,6 +300,9 @@ const SettingsPage = () => {
       { id: "profile", label: "Perfil", icon: <User size={18} /> },
       ...(isOwner
         ? [{ id: "users", label: "Usuários", icon: <Users size={18} /> }]
+        : []),
+      ...(isOwner
+        ? [{ id: "backup", label: "Exportar Dados", icon: <Download size={18} /> }]
         : []),
     ],
     [isOwner],
@@ -1450,6 +1467,271 @@ const SettingsPage = () => {
             </Stack>
           </CustomTabPanel>
         )}
+
+        {/* --- ABA BACKUP (owner only) --- */}
+        {isOwner && (
+          <CustomTabPanel value={value} index={getTabIndex("backup")}>
+            <Stack spacing={3}>
+              <Box>
+                <Typography variant="h6" fontWeight={700}>
+                  Exportar Dados
+                </Typography>
+                <Typography variant="body2" color="text.primary">
+                  Você é dono dos seus dados. Aqui você tem a facilidade de exportar e baixar os registros completos da sua empresa a qualquer momento.
+                </Typography>
+              </Box>
+
+              <Grid container spacing={3}>
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
+                        <Users size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>Clientes e Pets</Typography>
+                        <Typography variant="caption" color="text.primary">Cadastros completos</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button 
+                      variant="outlined" 
+                      startIcon={!loadingExportClients && <Download size={18} />}
+                      fullWidth
+                      disabled={loadingExportClients}
+                      onClick={async () => {
+                        setLoadingExportClients(true);
+                        try {
+                          const blob = await exportClients();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "backup_clientes_pets.xlsx";
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          toast.success("Download iniciado!");
+                        } catch (e) {
+                          toast.error("Erro ao exportar clientes e pets.");
+                        } finally {
+                          setLoadingExportClients(false);
+                        }
+                      }}
+                    >
+                      {loadingExportClients ? <CircularProgress size={20} color="inherit" /> : "Exportar Excel"}
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
+                        <Lock size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>Produtos</Typography>
+                        <Typography variant="caption" color="text.primary">Inventário e valores</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button 
+                      variant="outlined" 
+                      startIcon={!loadingExportProducts && <Download size={18} />}
+                      fullWidth
+                      disabled={loadingExportProducts}
+                      onClick={async () => {
+                        setLoadingExportProducts(true);
+                        try {
+                          const blob = await exportProducts();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "backup_produtos.xlsx";
+                          a.click();
+                          window.URL.revokeObjectURL(url);
+                          toast.success("Download iniciado!");
+                        } catch (e) {
+                          toast.error("Erro ao exportar produtos.");
+                        } finally {
+                          setLoadingExportProducts(false);
+                        }
+                      }}
+                    >
+                      {loadingExportProducts ? <CircularProgress size={20} color="inherit" /> : "Exportar Excel"}
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
+                        <Settings size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>Serviços</Typography>
+                        <Typography variant="caption" color="text.primary">Tabela de preços</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button 
+                      variant="outlined" 
+                      startIcon={!loadingExportServices && <Download size={18} />}
+                      fullWidth
+                      disabled={loadingExportServices}
+                      onClick={async () => {
+                        setLoadingExportServices(true);
+                        try {
+                          const blob = await exportServices();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "backup_servicos.xlsx";
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Erro ao exportar serviços.");
+                        } finally {
+                          setLoadingExportServices(false);
+                        }
+                      }}
+                    >
+                      {loadingExportServices ? <CircularProgress size={20} color="inherit" /> : "Exportar Excel"}
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                {/* PACOTES */}
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
+                        <PackageIcon size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>Pacotes</Typography>
+                        <Typography variant="caption" color="text.primary">Planos e combos</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button
+                      variant="outlined"
+                      startIcon={!loadingExportPackages && <Download size={18} />}
+                      fullWidth
+                      disabled={loadingExportPackages}
+                      onClick={async () => {
+                        setLoadingExportPackages(true);
+                        try {
+                          const blob = await exportPackages();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "backup_pacotes.xlsx";
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Erro ao exportar pacotes.");
+                        } finally {
+                          setLoadingExportPackages(false);
+                        }
+                      }}
+                    >
+                      {loadingExportPackages ? <CircularProgress size={20} color="inherit" /> : "Exportar Excel"}
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                {/* FORNECEDORES */}
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
+                        <Truck size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>Fornecedores</Typography>
+                        <Typography variant="caption" color="text.primary">Contatos de compra</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button
+                      variant="outlined"
+                      startIcon={!loadingExportSuppliers && <Download size={18} />}
+                      fullWidth
+                      disabled={loadingExportSuppliers}
+                      onClick={async () => {
+                        setLoadingExportSuppliers(true);
+                        try {
+                          const blob = await exportSuppliers();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "backup_fornecedores.xlsx";
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Erro ao exportar fornecedores.");
+                        } finally {
+                          setLoadingExportSuppliers(false);
+                        }
+                      }}
+                    >
+                      {loadingExportSuppliers ? <CircularProgress size={20} color="inherit" /> : "Exportar Excel"}
+                    </Button>
+                  </Paper>
+                </Grid>
+
+                {/* FUNCIONÁRIOS */}
+                <Grid item xs={12} md={4}>
+                  <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
+                    <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+                      <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
+                        <Users size={24} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle1" fontWeight={700}>Funcionários</Typography>
+                        <Typography variant="caption" color="text.primary">Equipe / Prestadores</Typography>
+                      </Box>
+                    </Box>
+                    <Box sx={{ flexGrow: 1 }} />
+                    <Button
+                      variant="outlined"
+                      startIcon={!loadingExportUsers && <Download size={18} />}
+                      fullWidth
+                      disabled={loadingExportUsers}
+                      onClick={async () => {
+                        setLoadingExportUsers(true);
+                        try {
+                          const blob = await exportEmployees();
+                          const url = window.URL.createObjectURL(blob);
+                          const a = document.createElement("a");
+                          a.href = url;
+                          a.download = "backup_funcionarios.xlsx";
+                          document.body.appendChild(a);
+                          a.click();
+                          a.remove();
+                        } catch (error) {
+                          console.error(error);
+                          toast.error("Erro ao exportar funcionários.");
+                        } finally {
+                          setLoadingExportUsers(false);
+                        }
+                      }}
+                    >
+                      {loadingExportUsers ? <CircularProgress size={20} color="inherit" /> : "Exportar Excel"}
+                    </Button>
+                  </Paper>
+                </Grid>
+              </Grid>
+            </Stack>
+          </CustomTabPanel>
+        )}
       </Stack>
 
       {/* --- DIALOG CRIAR USUÁRIO --- */}
@@ -2067,30 +2349,7 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* --- DIALOG VER QR CODE PIX DA FATURA --- */}
-      <Dialog
-        open={openPixModal}
-        onClose={() => setOpenPixModal(false)}
-        maxWidth="xs"
-        fullWidth
-      >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
-          <Typography variant="h6">QR Code PIX da Fatura</Typography>
-          <Box sx={{ cursor: "pointer" }}>
-            <X onClick={() => setOpenPixModal(false)} size={24} />
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedPixCharge && (
-            <PixQrCode
-              qrCode={selectedPixCharge.pix_qr_code || ""}
-              qrCodeUrl={selectedPixCharge.pix_qr_code_url || ""}
-              expiresAt={selectedPixCharge.expires_at || ""}
-              onClose={() => setOpenPixModal(false)}
-            />
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* --- DIALOG DE UPDATE CARD --- */}
       <UpdateCardModal
         open={openUpdateCard}
         onClose={() => setOpenUpdateCard(false)}

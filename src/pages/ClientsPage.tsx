@@ -15,12 +15,16 @@ import { useToast } from "../hooks/useToast";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import ImportClientsModal from "../features/clients/ImportClientsModal";
+import MigrationWizardModal from "../features/clients/MigrationWizardModal";
+
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { getPets } = usePets();
   const [clientModal, setClientModal] = useState<{
@@ -89,8 +93,9 @@ export default function ClientsPage() {
       <ClientsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setClientModal({ open: true, mode: "create", client: undefined })}
+        onCreate={() => setClientModal({ open: true, mode: "create" })}
         onImport={() => setImportOpen(true)}
+        onOpenWizard={() => setWizardOpen(true)}
       />
 
       <ClientsTable
@@ -164,6 +169,16 @@ export default function ClientsPage() {
           queryClient.invalidateQueries({ queryKey: ["clients"] });
         }}
       />
+
+      <MigrationWizardModal
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onJobStarted={(id) => {
+          setActiveJobId(id);
+          setImportOpen(true);
+        }}
+      />
+
 
       {/* Persistent import progress chip when modal is closed */}
       {!importOpen && activeJobId && (

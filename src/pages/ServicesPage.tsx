@@ -9,6 +9,7 @@ import ServiceTable from "../features/tenant_services/ServiceTable";
 import ServiceFormModal from "../features/tenant_services/ServiceFormModal";
 import ServiceToolbar from "../features/tenant_services/ServiceToolbar";
 import ServiceLibraryModal from "../features/tenant_services/ServiceLibraryModal";
+import ServiceMigrationWizardModal from "../features/tenant_services/ServiceMigrationWizardModal";
 import type { Service } from "../features/tenant_services/types";
 import { deleteService } from "../api/services/tenant_services";
 
@@ -17,7 +18,9 @@ export default function ServicesPage() {
   const [deleting, setDeleting] = useState(false);
   const [serviceToDelete, setServiceToDelete] = useState<Service | null>(null);
   const [isLibraryOpen, setIsLibraryOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
   const toast = useToast();
   const [serviceModal, setServiceModal] = useState<{
     open: boolean;
@@ -59,6 +62,7 @@ export default function ServicesPage() {
         onSearchChange={setSearch}
         onCreate={() => setServiceModal({ open: true, mode: "create", service: undefined })}
         onImportLibrary={() => setIsLibraryOpen(true)}
+        onOpenWizard={() => setWizardOpen(true)}
       />
 
       <ServiceTable
@@ -73,14 +77,14 @@ export default function ServicesPage() {
 
       {serviceModal.open && (
         <ServiceFormModal
-          open={serviceModal.open}
+          open
           mode={serviceModal.mode}
           service={serviceModal.service}
           onClose={() => setServiceModal((prev) => ({ ...prev, open: false }))}
-          onSuccess={async () => {
-            await getServices();
-            queryClient.invalidateQueries({ queryKey: ["services"] });
+          onSuccess={() => {
             setServiceModal((prev) => ({ ...prev, open: false }));
+            getServices();
+            queryClient.invalidateQueries({ queryKey: ["services"] });
           }}
         />
       )}
@@ -94,6 +98,15 @@ export default function ServicesPage() {
         onSuccess={async () => {
           await getServices();
           queryClient.invalidateQueries({ queryKey: ["services"] });
+        }}
+      />
+
+      <ServiceMigrationWizardModal
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onJobStarted={(id) => {
+          setActiveJobId(id);
+          setIsLibraryOpen(true);
         }}
       />
 
