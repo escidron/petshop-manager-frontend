@@ -248,7 +248,7 @@ const SettingsPage = () => {
   const [loadingCharges, setLoadingCharges] = useState(false);
   const [openUpdateCardDialog, setOpenUpdateCardDialog] = useState(false);
   const [updateCardLoading, setUpdateCardLoading] = useState(false);
-  const [chargeToUpdateCard, _setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
+  const [chargeToUpdateCard, setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
 
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
@@ -1277,6 +1277,19 @@ const SettingsPage = () => {
                                 }}
                               >
                                 Pagar
+                              </Button>
+                            )}
+                            {charge.payment_method === "card" && charge.status === "failed" && (
+                              <Button
+                                size="small"
+                                variant="outlined"
+                                color="error"
+                                onClick={() => {
+                                  setChargeToUpdateCard(charge);
+                                  setOpenUpdateCardDialog(true);
+                                }}
+                              >
+                                Pagar com outro cartão
                               </Button>
                             )}
                           </Box>
