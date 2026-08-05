@@ -8,6 +8,7 @@ export type Subscription = {
   trial_ends_at: string | null;
   current_period_end: string;
   payment_method?: string | null;
+  eligible_for_refund?: boolean;
   plan: {
     id: number;
     code: string;

@@ -20,6 +20,13 @@ export const deleteEmployee = async (id: number): Promise<void> => {
   await apiClient.delete(`/api/v1/employees/${id}`);
 };
 
+export const exportEmployees = async (): Promise<Blob> => {
+  const response = await apiClient.get<Blob>("/api/v1/employees/export", {
+    responseType: "blob",
+  });
+  return response.data;
+};
+
 export type PublicAppointmentService = {
   id: number;
   name: string;

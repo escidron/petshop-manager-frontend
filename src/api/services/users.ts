@@ -119,4 +119,11 @@ export const updateProfile = async (payload: {
   const response = await apiClient.patch<AuthUser>("/api/v1/users/me", payload);
   return response.data;
 };
+
+export const exportUsers = async (): Promise<Blob> => {
+  const response = await apiClient.get<Blob>("/api/v1/users/export", {
+    responseType: "blob",
+  });
+  return response.data;
+};
 

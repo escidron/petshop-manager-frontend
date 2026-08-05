@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Chip, CircularProgress } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router";
 import ClientsToolbar from "../features/clients/ClientsToolbar";
@@ -15,11 +15,16 @@ import { useToast } from "../hooks/useToast";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
 import ImportClientsModal from "../features/clients/ImportClientsModal";
+import MigrationWizardModal from "../features/clients/MigrationWizardModal";
+
 
 export default function ClientsPage() {
   const [search, setSearch] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
   const { getPets } = usePets();
   const [clientModal, setClientModal] = useState<{
@@ -88,8 +93,9 @@ export default function ClientsPage() {
       <ClientsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setClientModal({ open: true, mode: "create", client: undefined })}
+        onCreate={() => setClientModal({ open: true, mode: "create" })}
         onImport={() => setImportOpen(true)}
+        onOpenWizard={() => setWizardOpen(true)}
       />
 
       <ClientsTable
@@ -154,12 +160,44 @@ export default function ClientsPage() {
 
       <ImportClientsModal
         open={importOpen}
+        activeJobId={activeJobId}
+        onJobStarted={(id) => setActiveJobId(id)}
+        onJobFinished={() => setActiveJobId(null)}
         onClose={() => setImportOpen(false)}
         onSuccess={async () => {
           await getClients();
           queryClient.invalidateQueries({ queryKey: ["clients"] });
         }}
       />
+
+      <MigrationWizardModal
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onJobStarted={(id) => {
+          setActiveJobId(id);
+          setImportOpen(true);
+        }}
+      />
+
+
+      {/* Persistent import progress chip when modal is closed */}
+      {!importOpen && activeJobId && (
+        <Chip
+          icon={<CircularProgress size={14} color="inherit" />}
+          label="Importação em andamento — clique para ver"
+          color="primary"
+          onClick={() => setImportOpen(true)}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 1400,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: 3,
+          }}
+        />
+      )}
     </Box>
   );
 }

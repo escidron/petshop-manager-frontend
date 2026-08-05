@@ -1,4 +1,4 @@
-import { Box } from "@mui/material";
+import { Box, Chip, CircularProgress } from "@mui/material";
 import { useMemo, useState } from "react";
 import { useProducts } from "../hooks/useProducts";
 import ProductFormModal from "../features/products/ProductFormModal";
@@ -11,6 +11,7 @@ import { useToast } from "../hooks/useToast";
 import { useQueryClient } from "@tanstack/react-query";
 
 import type { Product } from "../features/products/types";
+import ProductMigrationWizardModal from "../features/products/ProductMigrationWizardModal";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
@@ -23,6 +24,9 @@ export default function ProductsPage() {
     product?: Product;
   }>({ open: false, mode: "create" });
   const [importModalOpen, setImportModalOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [activeJobId, setActiveJobId] = useState<string | null>(null);
+
   const queryClient = useQueryClient();
   const { products, loading, getProducts } = useProducts();
   const filteredRows = useMemo(() => {
@@ -54,56 +58,82 @@ export default function ProductsPage() {
       <ProductsToolbar
         search={search}
         onSearchChange={setSearch}
-        onCreate={() => setProductModal({ open: true, mode: "create", product: undefined })}
+        onCreate={() => setProductModal({ open: true, mode: "create" })}
         onImport={() => setImportModalOpen(true)}
+        onOpenWizard={() => setWizardOpen(true)}
       />
 
       <ProductsTable
         rows={filteredRows}
         loading={loading}
-        onEdit={(product) =>
-          setProductModal({ open: true, mode: "edit", product })
-        }
+        onEdit={(product) => setProductModal({ open: true, mode: "edit", product })}
         onDelete={(product) => setProductToDelete(product)}
       />
 
-      {/* Create / Edit Modal */}
       {productModal.open && (
         <ProductFormModal
-          open
-          mode={productModal.mode ? productModal.mode : "create"}
-          product={
-            productModal.mode === "edit" ? productModal.product : undefined
-          }
+          open={productModal.open}
+          mode={productModal.mode || "create"}
+          product={productModal.product}
           onClose={() => setProductModal((prev) => ({ ...prev, open: false }))}
-          onSuccess={() => {
-            setProductModal((prev) => ({ ...prev, open: false }));
-            getProducts();
+          onSuccess={async () => {
+            await getProducts();
             queryClient.invalidateQueries({ queryKey: ["products"] });
+            setProductModal({ open: false, mode: "create" });
           }}
         />
       )}
 
-      {/* Delete Modal */}
       {productToDelete && (
         <ProductDeleteModal
-          open
+          open={!!productToDelete}
           product={productToDelete}
           loading={deleting}
           onCancel={() => setProductToDelete(null)}
           onConfirm={handleConfirmDelete}
         />
       )}
-      {/* Import Modal */}
+
       <ImportProductsModal
         open={importModalOpen}
+        activeJobId={activeJobId}
+        onJobStarted={(id) => setActiveJobId(id)}
+        onJobFinished={() => setActiveJobId(null)}
         onClose={() => setImportModalOpen(false)}
-        onSuccess={() => {
-          setImportModalOpen(false);
-          getProducts();
+        onSuccess={async () => {
+          await getProducts();
           queryClient.invalidateQueries({ queryKey: ["products"] });
         }}
       />
+
+      <ProductMigrationWizardModal
+        open={wizardOpen}
+        onClose={() => setWizardOpen(false)}
+        onJobStarted={(id) => {
+          setActiveJobId(id);
+          setImportModalOpen(true);
+        }}
+      />
+
+      {/* Persistent import progress chip when modal is closed */}
+      {!importModalOpen && activeJobId && (
+        <Chip
+          icon={<CircularProgress size={14} color="inherit" />}
+          label="Importação em andamento — clique para ver"
+          color="primary"
+          onClick={() => setImportModalOpen(true)}
+          sx={{
+            position: "fixed",
+            bottom: 24,
+            right: 24,
+            zIndex: 1400,
+            fontWeight: 600,
+            cursor: "pointer",
+            boxShadow: 3,
+          }}
+        />
+      )}
     </Box>
   );
 }
+

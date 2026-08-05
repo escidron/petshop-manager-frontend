@@ -49,6 +49,13 @@ export const deleteProduct = async (productId: number) => {
   await apiClient.delete(`/api/v1/products/${productId}`);
 };
 
+export const exportProducts = async (): Promise<Blob> => {
+  const response = await apiClient.get("/api/v1/products/export", {
+    responseType: "blob",
+  });
+  return response.data;
+};
+
 export const getLowStockProducts = async (): Promise<Product[]> => {
   const response = await apiClient.get<any[]>("/api/v1/products/inventory/low-stock");
   return response.data.map(mapProductFromApi);
@@ -73,16 +80,22 @@ export const fetchGlobalInventoryLogs = async () => {
   return response.data;
 };
 
-export const importProducts = async (file: File) => {
+import type { ImportJobStatus } from "./clients";
+
+export const startProductsImport = async (file: File): Promise<{ job_id: string }> => {
   const formData = new FormData();
   formData.append("file", file);
   const response = await apiClient.post("/api/v1/products/import", formData, {
-    headers: {
-      "Content-Type": "multipart/form-data",
-    },
+    headers: { "Content-Type": "multipart/form-data" },
   });
   return response.data;
 };
+
+export const getProductImportStatus = async (jobId: string): Promise<ImportJobStatus> => {
+  const response = await apiClient.get<ImportJobStatus>(`/api/v1/products/import/status/${jobId}`);
+  return response.data;
+};
+
 
 export const downloadImportTemplate = async () => {
   const response = await apiClient.get("/api/v1/products/import/template", {
@@ -96,3 +109,56 @@ export const downloadImportTemplate = async () => {
   link.click();
   link.parentNode?.removeChild(link);
 };
+
+export const inspectProductMigrationFile = async (file1: File): Promise<{ file1_headers: string[] }> => {
+  const formData = new FormData();
+  formData.append("file1", file1);
+  const response = await apiClient.post<{ file1_headers: string[] }>(
+    "/api/v1/products/migration/inspect",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
+};
+
+export const downloadConvertedProductMigrationExcel = async (
+  file1: File,
+  config: { column_mapping?: Record<string, string>; default_values?: Record<string, string> }
+) => {
+  const formData = new FormData();
+  formData.append("file1", file1);
+  formData.append("config", JSON.stringify(config));
+
+  const response = await apiClient.post(
+    "/api/v1/products/migration/convert",
+    formData,
+    {
+      responseType: "blob",
+      headers: { "Content-Type": "multipart/form-data" },
+    }
+  );
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "produtos_migrados.xlsx");
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+};
+
+export const startProductMigrationImport = async (
+  file1: File,
+  config: { column_mapping?: Record<string, string>; default_values?: Record<string, string> }
+): Promise<{ job_id: string; total_items: number }> => {
+  const formData = new FormData();
+  formData.append("file1", file1);
+  formData.append("config", JSON.stringify(config));
+
+  const response = await apiClient.post<{ job_id: string; total_items: number }>(
+    "/api/v1/products/migration/import",
+    formData,
+    { headers: { "Content-Type": "multipart/form-data" } }
+  );
+  return response.data;
+};
+

@@ -24,3 +24,10 @@ export const updateSupplier = async (id: number | string, data: Partial<Supplier
 export const deleteSupplier = async (id: number | string): Promise<void> => {
   await apiClient.delete(`/api/v1/suppliers/${id}`);
 };
+
+export const exportSuppliers = async (): Promise<Blob> => {
+  const response = await apiClient.get<Blob>("/api/v1/suppliers/export", {
+    responseType: "blob",
+  });
+  return response.data;
+};

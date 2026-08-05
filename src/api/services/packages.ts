@@ -27,3 +27,10 @@ export const updatePackage = async (
 export const deletePackage = async (packageId: number): Promise<void> => {
   await apiClient.delete(`/api/v1/packages/${packageId}`);
 };
+
+export const exportPackages = async (): Promise<Blob> => {
+  const response = await apiClient.get<Blob>("/api/v1/packages/export", {
+    responseType: "blob",
+  });
+  return response.data;
+};

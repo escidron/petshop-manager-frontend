@@ -29,6 +29,7 @@ export interface SubscriptionResponse {
   payment_method: string | null;
   pagarme_subscription_id: string | null;
   plan: Plan;
+  eligible_for_refund?: boolean;
 }
 
 /** Returned by POST /checkout for paid plans — card */

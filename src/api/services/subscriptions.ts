@@ -46,6 +46,13 @@ export const cancelSubscription = async () => {
   return response.data;
 };
 
+export const refundAndCancelSubscription = async () => {
+  const response = await apiClient.post<SubscriptionResponse>(
+    "/api/v1/subscriptions/refund-and-cancel"
+  );
+  return response.data;
+};
+
 export const addPaymentMethod = async (
   cardToken: string,
   billingAddress?: BillingAddress,
