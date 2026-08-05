@@ -412,7 +412,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
             </FormControl>
 
             <Grid container spacing={2}>
-              <Grid item xs={12} sm={mode === "two_files" ? 6 : 12}>
+              <Grid size={{ xs: 12, sm: mode === "two_files" ? 6 : 12 }}>
                 <Paper variant="outlined" sx={{ p: 3, textAlign: "center", borderRadius: 2, borderColor: file1 ? "success.main" : "divider", bgcolor: file1 ? "#f1f8e9" : "transparent" }}>
                   {file1 ? <CheckCircle2 size={36} color="#2e7d32" /> : <FileSpreadsheet size={36} color="#1976d2" />}
                   <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 600, color: file1 ? "success.dark" : "text.primary" }}>
@@ -444,7 +444,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
               </Grid>
 
               {mode === "two_files" && (
-                <Grid item xs={12} sm={6}>
+                <Grid size={{ xs: 12, sm: 6 }}>
                   <Paper variant="outlined" sx={{ p: 3, textAlign: "center", borderRadius: 2, borderColor: file2 ? "success.main" : "divider", bgcolor: file2 ? "#f1f8e9" : "transparent" }}>
                     {file2 ? <CheckCircle2 size={36} color="#2e7d32" /> : <FileSpreadsheet size={36} color="#9c27b0" />}
                     <Typography variant="subtitle2" sx={{ mt: 1, fontWeight: 600, color: file2 ? "success.dark" : "text.primary" }}>
@@ -501,7 +501,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
                   Vínculo entre as duas planilhas (Chave de Ligação):
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="caption" fontWeight={600} color="text.primary">
                       Coluna ID na Planilha de Clientes:
                     </Typography>
@@ -514,7 +514,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
                       {headers1.map((h) => <MenuItem key={h} value={h}>{h}</MenuItem>)}
                     </Select>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="caption" fontWeight={600} color="text.primary">
                       Coluna ID Dono na Planilha de Pets:
                     </Typography>
@@ -748,7 +748,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
                     Valores Padrão (para campos não existentes na planilha):
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">
                         Espécie Padrão:
                       </Typography>
@@ -763,7 +763,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
                         <MenuItem value="Exoticos">Exóticos</MenuItem>
                       </Select>
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">
                         Gênero Padrão:
                       </Typography>
@@ -778,7 +778,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
                         <MenuItem value="Desconhecido">Desconhecido</MenuItem>
                       </Select>
                     </Grid>
-                    <Grid item xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">
                         Porte Padrão:
                       </Typography>

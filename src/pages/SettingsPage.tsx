@@ -24,7 +24,6 @@ import {
   TextField,
   Switch,
   FormControlLabel,
-  Card,
 } from "@mui/material";
 import {
   Settings,
@@ -72,7 +71,6 @@ import {
   changeSubscriptionToPix,
 } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
-import PixQrCode from "../features/billing/PixQrCode";
 import CheckoutStepper from "../features/billing/CheckoutStepper";
 import UpdateCardModal from "../features/billing/UpdateCardModal";
 import type { PaymentMethod, CheckoutPixResponse, SubscriptionCharge } from "../features/billing/types";
@@ -250,6 +248,8 @@ const SettingsPage = () => {
   const [loadingCharges, setLoadingCharges] = useState(false);
   const [openUpdateCardDialog, setOpenUpdateCardDialog] = useState(false);
   const [updateCardLoading, setUpdateCardLoading] = useState(false);
+  const [chargeToUpdateCard, _setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
+
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
@@ -1488,7 +1488,7 @@ const SettingsPage = () => {
               </Box>
 
               <Grid container spacing={3}>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
@@ -1528,7 +1528,7 @@ const SettingsPage = () => {
                   </Paper>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
@@ -1568,7 +1568,7 @@ const SettingsPage = () => {
                   </Paper>
                 </Grid>
 
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
@@ -1610,7 +1610,7 @@ const SettingsPage = () => {
                 </Grid>
 
                 {/* PACOTES */}
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
@@ -1652,7 +1652,7 @@ const SettingsPage = () => {
                 </Grid>
 
                 {/* FORNECEDORES */}
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>
@@ -1694,7 +1694,7 @@ const SettingsPage = () => {
                 </Grid>
 
                 {/* FUNCIONÁRIOS */}
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                   <Paper sx={{ p: 3, borderRadius: 3, display: "flex", flexDirection: "column", height: "100%", gap: 2 }}>
                     <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
                       <Box sx={{ p: 1.5, bgcolor: "primary.main", borderRadius: 2, color: "white" }}>

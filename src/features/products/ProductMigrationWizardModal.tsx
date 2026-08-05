@@ -309,19 +309,19 @@ export default function ProductMigrationWizardModal({ open, onClose, onJobStarte
                     Valores Padrão (caso a coluna não exista na planilha):
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">Unidade Padrão:</Typography>
                       <TextField fullWidth size="small" value={defaultValues.unidade || ""} onChange={(e) => setDefaultValues((prev) => ({ ...prev, unidade: e.target.value }))} />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">Cód. Barras Padrão:</Typography>
                       <TextField fullWidth size="small" value={defaultValues.codigo_barras || ""} onChange={(e) => setDefaultValues((prev) => ({ ...prev, codigo_barras: e.target.value }))} />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">Estoque Atual Padrão:</Typography>
                       <TextField fullWidth size="small" type="number" value={defaultValues.estoque_atual || ""} onChange={(e) => setDefaultValues((prev) => ({ ...prev, estoque_atual: e.target.value }))} />
                     </Grid>
-                    <Grid item xs={12} sm={6} md={3}>
+                    <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                       <Typography variant="caption" fontWeight={600} color="text.primary">Estoque Mín. Padrão:</Typography>
                       <TextField fullWidth size="small" type="number" value={defaultValues.estoque_minimo || ""} onChange={(e) => setDefaultValues((prev) => ({ ...prev, estoque_minimo: e.target.value }))} />
                     </Grid>
