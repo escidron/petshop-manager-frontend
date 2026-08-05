@@ -66,6 +66,7 @@ import { maskPhone, maskDocument } from "../utils/masks";
 import {
   listPaymentMethods,
   cancelSubscription,
+  refundAndCancelSubscription,
   listCharges,
   updateChargeCard,
   changeSubscriptionToPix,
@@ -596,8 +597,13 @@ const SettingsPage = () => {
   const handleCancelSubscription = async () => {
     setCancelingSubscription(true);
     try {
-      await cancelSubscription();
-      toast.success("Assinatura cancelada com sucesso.");
+      if (tenant?.subscription?.eligible_for_refund) {
+        await refundAndCancelSubscription();
+        toast.success("Assinatura cancelada e valor estornado com sucesso.");
+      } else {
+        await cancelSubscription();
+        toast.success("Assinatura cancelada com sucesso.");
+      }
       await checkAuth(); // Updates tenant state
       setOpenCancelModal(false);
     } catch (error) {
@@ -2191,8 +2197,10 @@ const SettingsPage = () => {
         <DialogTitle>Cancelar Assinatura</DialogTitle>
         <DialogContent>
           <Typography>
-            Tem certeza que deseja cancelar sua assinatura? Você perderá imediatamente o
-            acesso a novos agendamentos e o sistema entrará em modo leitura.
+            {tenant?.subscription?.eligible_for_refund 
+              ? "Tem certeza que deseja cancelar sua assinatura? Como está dentro do prazo de 7 dias do primeiro pagamento, o valor será integralmente estornado."
+              : "Tem certeza que deseja cancelar sua assinatura? Você perderá imediatamente o acesso a novos agendamentos e o sistema entrará em modo leitura."
+            }
           </Typography>
           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
             <Button
@@ -2241,7 +2249,9 @@ const SettingsPage = () => {
                 {[
                   "Todos os clientes, pets e histórico de atendimentos serão deletados",
                   "Agendamentos, vendas e registros financeiros serão removidos",
-                  "Sua assinatura será cancelada imediatamente",
+                  tenant?.subscription?.eligible_for_refund 
+                    ? "Sua assinatura será cancelada e o valor pago estornado"
+                    : "Sua assinatura será cancelada imediatamente (sem estorno)",
                   "Não será possível recuperar os dados após a exclusão",
                 ].map((item, i) => (
                   <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "flex-start" }}>
