@@ -30,7 +30,6 @@ import SharedSchedulePage from "./pages/SharedSchedulePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
 
-
 type Props = {
   children: JSX.Element;
 };
