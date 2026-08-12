@@ -12,7 +12,6 @@ import { Info, ShoppingBag } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import AppointmentObservationList from "./AppointmentObservationList";
 import { useQuery } from "@tanstack/react-query";
-import { listClientPackagesByClient } from "../../api/services/client_packages";
 
 type Props = {
   appointment: Appointment;
@@ -25,22 +24,13 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
     item.services.map((service) => service.name),
   );
 
-  const { data: clientPackages = [] } = useQuery({
-    queryKey: ["clientPackages", "client", appointment.client.id],
-    queryFn: () => listClientPackagesByClient(appointment.client.id),
-  });
+
 
   const hasPetNotes = appointment.items.some(
     (item) => item.pet?.notes && item.pet.notes.trim() !== "",
   );
   const hasPackage = appointment.is_fully_package_covered || appointment.items.some(item => 
-    item.services.some(s => 
-      s.is_package_covered || clientPackages.some(pkg => 
-        pkg.is_active && 
-        pkg.pets?.some(p => p.id === item.pet.id) && 
-        pkg.credits.some(c => c.service_id === s.id && c.remaining_qty > 0)
-      )
-    )
+    item.services.some(s => s.is_package_covered)
   );
   const hasAnyNotes = hasPetNotes || (appointment.notes && appointment.notes.trim() !== "");
   const icons = getServiceIcons(allServiceNames);

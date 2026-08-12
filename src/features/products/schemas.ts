@@ -13,8 +13,8 @@ export const productSchema = z.object({
   quantity: z.coerce.number().int().min(1, "A quantidade deve ser maior que zero"),
   min_stock: z.coerce.number().int().min(1, "O estoque mínimo deve ser maior que zero"),
   
-  barcode: z.string().min(1, "O código de barras é obrigatório").max(100, "O código de barras deve ter no máximo 100 caracteres"),
-  ncm: z.string().min(8, "O NCM deve ter 8 caracteres").max(8, "O NCM deve ter 8 caracteres"),
+  barcode: z.string().max(100, "O código de barras deve ter no máximo 100 caracteres").optional().or(z.literal("")),
+  ncm: z.string().max(8, "O NCM deve ter no máximo 8 caracteres").optional().or(z.literal("")),
   cest: z.string().max(20, "O CEST deve ter no máximo 20 caracteres").optional(),
   cfop: z.string().max(20, "O CFOP deve ter no máximo 20 caracteres").optional(),
   csosn: z.string().max(20, "O CSOSN deve ter no máximo 20 caracteres").optional(),

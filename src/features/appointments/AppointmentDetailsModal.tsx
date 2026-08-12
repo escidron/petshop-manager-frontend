@@ -13,7 +13,12 @@ import {
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useQuery, useMutation, useQueryClient, useQueries } from "@tanstack/react-query";
+import {
+  useQuery,
+  useMutation,
+  useQueryClient,
+  useQueries,
+} from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
 import { assignAppointmentEmployees } from "../../api/services/appointments";
 import { getCommissionRules } from "../../api/services/commissions";
@@ -48,7 +53,11 @@ type Props = {
   open: boolean;
   appointment: Appointment;
   onClose: () => void;
-  handleAction: (appointment: Appointment, action: AppointmentAction, cancelAllFuture?: boolean) => void;
+  handleAction: (
+    appointment: Appointment,
+    action: AppointmentAction,
+    cancelAllFuture?: boolean,
+  ) => void;
   loadingAction: AppointmentAction | null;
   onEdit: (appointment: Appointment) => void;
 };
@@ -87,7 +96,8 @@ const AppointmentDetailsModal = ({
       if (rule.applies_to === "product") return false;
 
       // Check employee
-      const employeeMatch = !rule.employee_id || rule.employee_id === employeeId;
+      const employeeMatch =
+        !rule.employee_id || rule.employee_id === employeeId;
       // Check service
       const serviceMatch =
         rule.service_ids.length === 0 || rule.service_ids.includes(serviceId);
@@ -108,35 +118,49 @@ const AppointmentDetailsModal = ({
   // Dynamically map which services will be covered by packages
   const coveredServiceKeys = useMemo(() => {
     const coveredIds = new Set<string>();
-    
-    appointment.items.forEach((item, index) => {
-      const petPackages = packageQueries[index]?.data || [];
-      const map = new Map<number, number>();
-      
-      petPackages.forEach((pkg) => {
+
+    // Build a global map of available credits to avoid double-counting shared packages
+    const globalCredits = new Map<number, number>(); // credit.id -> remaining_qty
+    const serviceToCredits = new Map<number, number[]>(); // service.id -> array of credit.ids
+
+    packageQueries.forEach((q) => {
+      const pkgs = q.data || [];
+      pkgs.forEach((pkg) => {
         if (!pkg.is_active) return;
         pkg.credits.forEach((credit) => {
           if (credit.service_id && credit.remaining_qty > 0) {
-            const current = map.get(credit.service_id) || 0;
-            map.set(credit.service_id, current + credit.remaining_qty);
+            if (!globalCredits.has(credit.id)) {
+              globalCredits.set(credit.id, credit.remaining_qty);
+
+              const cList = serviceToCredits.get(credit.service_id) || [];
+              cList.push(credit.id);
+              serviceToCredits.set(credit.service_id, cList);
+            }
           }
         });
       });
+    });
 
+    appointment.items.forEach((item) => {
       item.services.forEach((s) => {
         const key = `${item.id}-${s.id}`;
         if (s.is_package_covered) {
-           coveredIds.add(key);
+          coveredIds.add(key);
         } else if (appointment.status !== "completed") {
-           const current = map.get(s.id) || 0;
-           if (current > 0) {
-               coveredIds.add(key);
-               map.set(s.id, current - 1);
-           }
+          // Try to find an available credit for this service
+          const cList = serviceToCredits.get(s.id) || [];
+          for (const creditId of cList) {
+            const remaining = globalCredits.get(creditId) || 0;
+            if (remaining > 0) {
+              coveredIds.add(key);
+              globalCredits.set(creditId, remaining - 1);
+              break;
+            }
+          }
         }
       });
     });
-    
+
     return coveredIds;
   }, [appointment, packageQueries]);
 
@@ -145,47 +169,62 @@ const AppointmentDetailsModal = ({
     return appointment.items.reduce((itemsAcc, item) => {
       const itemTotal = item.services.reduce((servicesAcc, s) => {
         const key = `${item.id}-${s.id}`;
-        return coveredServiceKeys.has(key) ? servicesAcc : servicesAcc + s.price_cents;
+        return coveredServiceKeys.has(key)
+          ? servicesAcc
+          : servicesAcc + s.price_cents;
       }, 0);
       return itemsAcc + itemTotal;
     }, 0);
   }, [appointment, coveredServiceKeys]);
 
-  const allServices = appointment.items.flatMap(i => i.services);
-  const coveredServices = allServices.filter(s => s.is_package_covered);
-  const billableServices = allServices.filter(s => !s.is_package_covered);
+  const allServices = appointment.items.flatMap((i) => i.services);
+  const coveredServices = allServices.filter((s) => s.is_package_covered);
+  const billableServices = allServices.filter((s) => !s.is_package_covered);
   const billableCount = billableServices.length;
 
-  const remainingBalancesText = useMemo(() => {
-    if (appointment.status !== "completed") return "";
-    const usedServiceIds = new Set(appointment.items.flatMap(i => i.services).filter(s => s.is_package_covered).map(s => s.id));
-    if (usedServiceIds.size === 0) return "";
-    
+  const remainingBalances = useMemo(() => {
+    if (appointment.status !== "completed") return [];
+    const usedServiceIds = new Set(
+      appointment.items
+        .flatMap((i) => i.services)
+        .filter((s) => s.is_package_covered)
+        .map((s) => s.id),
+    );
+    if (usedServiceIds.size === 0) return [];
+
     const balances: string[] = [];
-    usedServiceIds.forEach(serviceId => {
-       let totalRemaining = 0;
-       let serviceName = "";
-       packageQueries.forEach(q => {
-          const pkgs = q.data || [];
-          pkgs.forEach(pkg => {
-            if (!pkg.is_active) return;
-            pkg.credits.forEach(c => {
-               if (c.service_id === serviceId) {
-                  totalRemaining += c.remaining_qty;
-                  if (!serviceName) serviceName = c.service_name || "Serviço";
-               }
-            });
+    usedServiceIds.forEach((serviceId) => {
+      let totalRemaining = 0;
+      let serviceName = "";
+      const seenCreditIds = new Set<number>();
+
+      packageQueries.forEach((q) => {
+        const pkgs = q.data || [];
+        pkgs.forEach((pkg) => {
+          if (!pkg.is_active) return;
+          pkg.credits.forEach((c) => {
+            if (c.service_id === serviceId) {
+              if (!seenCreditIds.has(c.id)) {
+                seenCreditIds.add(c.id);
+                totalRemaining += c.remaining_qty;
+                if (!serviceName) serviceName = c.service_name || "Serviço";
+              }
+            }
           });
-       });
-       balances.push(`${totalRemaining}x ${serviceName}`);
+        });
+      });
+      if (totalRemaining > 0 || seenCreditIds.size > 0) {
+        balances.push(`${totalRemaining}x ${serviceName}`);
+      }
     });
-    return balances.join(", ");
+    return balances;
   }, [appointment, packageQueries]);
 
   const [localAssignments, setLocalAssignments] = useState<
     Record<string, number | null>
   >({});
   const [showAllNotes, setShowAllNotes] = useState(false);
+  const [employeeLimit, setEmployeeLimit] = useState(20);
 
   // Invalidate cache immediately when appointment completes to refresh remaining balances
   useEffect(() => {
@@ -288,7 +327,14 @@ const AppointmentDetailsModal = ({
                       Observações do agendamento
                     </Typography>
                   </Box>
-                  <Typography variant="body2" sx={{ ml: 3, wordBreak: "break-word", whiteSpace: "pre-line" }}>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      ml: 3,
+                      wordBreak: "break-word",
+                      whiteSpace: "pre-line",
+                    }}
+                  >
                     {appointment.notes.length > 180 && !showAllNotes
                       ? `${appointment.notes.slice(0, 180)}...`
                       : appointment.notes}
@@ -313,9 +359,21 @@ const AppointmentDetailsModal = ({
                 </Box>
               )}
               {appointment.warnings && appointment.warnings.length > 0 && (
-                <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Box
+                  sx={{
+                    mt: 1,
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 0.5,
+                  }}
+                >
                   {appointment.warnings.map((w, i) => (
-                    <Alert key={i} severity="warning" icon={<AlertTriangle size={16} />} sx={{ py: 0.25, fontSize: "0.75rem" }}>
+                    <Alert
+                      key={i}
+                      severity="warning"
+                      icon={<AlertTriangle size={16} />}
+                      sx={{ py: 0.25, fontSize: "0.75rem" }}
+                    >
                       {w}
                     </Alert>
                   ))}
@@ -435,32 +493,107 @@ const AppointmentDetailsModal = ({
                 {appointment.status === "completed" && (
                   <>
                     <Divider sx={{ my: 1 }} />
-                    <Box sx={{ mb: 2, p: 2, bgcolor: "grey.50", borderRadius: 2, border: "1px dashed", borderColor: "divider" }}>
-                      <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700 }}>Resumo da Finalização</Typography>
-                      
+                    <Box
+                      sx={{
+                        mb: 2,
+                        p: 2,
+                        bgcolor: "grey.50",
+                        borderRadius: 2,
+                        border: "1px dashed",
+                        borderColor: "divider",
+                      }}
+                    >
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ mb: 1, fontWeight: 700 }}
+                      >
+                        Resumo da Finalização
+                      </Typography>
+
                       {coveredServices.map((s, idx) => (
-                        <Box key={`cov-${idx}`} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, color: "success.main" }}>
+                        <Box
+                          key={`cov-${idx}`}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 0.5,
+                            color: "success.main",
+                          }}
+                        >
                           <Check size={18} strokeWidth={3} />
                           <Typography variant="body2">
                             <strong>{s.name}</strong> debitado do pacote.
                           </Typography>
                         </Box>
                       ))}
-                      
-                      {remainingBalancesText && (
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: billableCount > 0 ? 1.5 : 0, pl: 3.5, color: "text.primary " }}>
-                          <ShoppingBag size={14} />
-                          <Typography variant="caption">
-                            Saldo atualizado: {remainingBalancesText}
-                          </Typography>
+
+                      {remainingBalances.length > 0 && (
+                        <Box sx={{ mb: billableCount > 0 ? 1.5 : 0, pl: 3.5 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mb: 0.5,
+                            }}
+                          >
+                            <ShoppingBag
+                              size={14}
+                              color={theme.palette.text.secondary}
+                            />
+                            <Typography
+                              variant="caption"
+                              color="text.primary"
+                              fontWeight={600}
+                            >
+                              Saldo de pacotes atualizado:
+                            </Typography>
+                          </Box>
+                          <Box
+                            sx={{
+                              pl: 3,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 0.5,
+                            }}
+                          >
+                            {remainingBalances.map((balance, idx) => (
+                              <Typography
+                                key={`bal-${idx}`}
+                                variant="caption"
+                                color="text.primary"
+                              >
+                                • {balance}
+                              </Typography>
+                            ))}
+                          </Box>
                         </Box>
                       )}
-                      
+
                       {billableServices.map((s, idx) => (
-                        <Box key={`bil-${idx}`} sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5, color: appointment.is_paid ? "success.main" : "warning.main" }}>
-                          {appointment.is_paid ? <Check size={18} strokeWidth={3} /> : <AlertCircle size={18} />}
+                        <Box
+                          key={`bil-${idx}`}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            mb: 0.5,
+                            color: appointment.is_paid
+                              ? "success.main"
+                              : "warning.main",
+                          }}
+                        >
+                          {appointment.is_paid ? (
+                            <Check size={18} strokeWidth={3} />
+                          ) : (
+                            <AlertCircle size={18} />
+                          )}
                           <Typography variant="body2">
-                            <strong>{s.name}</strong> {appointment.is_paid ? "pago no caixa." : "pendente de pagamento no caixa."}
+                            <strong>{s.name}</strong>{" "}
+                            {appointment.is_paid
+                              ? "pago no caixa."
+                              : "pendente de pagamento no caixa."}
                           </Typography>
                         </Box>
                       ))}
@@ -541,7 +674,12 @@ const AppointmentDetailsModal = ({
                   }}
                 >
                   <Box sx={{ display: "flex", alignItems: "center" }}>
-                    <Typography variant="h6" fontWeight={500} noWrap sx={{ maxWidth: "250px" }}>
+                    <Typography
+                      variant="h6"
+                      fontWeight={500}
+                      noWrap
+                      sx={{ maxWidth: "250px" }}
+                    >
                       {item.pet.name}
                     </Typography>
 
@@ -667,7 +805,13 @@ const AppointmentDetailsModal = ({
                               color={theme.palette.text.disabled}
                               size={16}
                             />
-                            <Typography variant="body2" noWrap sx={{ maxWidth: "250px" }}>{s.name}</Typography>
+                            <Typography
+                              variant="body2"
+                              noWrap
+                              sx={{ maxWidth: "250px" }}
+                            >
+                              {s.name}
+                            </Typography>
                             {coveredServiceKeys.has(key) && (
                               <Chip
                                 label="pacote"
@@ -690,8 +834,18 @@ const AppointmentDetailsModal = ({
                                 : "text.primary",
                             }}
                           >
-                            {coveredServiceKeys.has(key) && !s.is_package_covered ? (
-                               <span style={{ fontSize: "0.75rem", marginRight: 8, fontStyle: "italic", textDecoration: "none" }}>disponível</span>
+                            {coveredServiceKeys.has(key) &&
+                            !s.is_package_covered ? (
+                              <span
+                                style={{
+                                  fontSize: "0.75rem",
+                                  marginRight: 8,
+                                  fontStyle: "italic",
+                                  textDecoration: "none",
+                                }}
+                              >
+                                disponível
+                              </span>
                             ) : null}
                             {(s.price_cents / 100).toLocaleString("pt-BR", {
                               style: "currency",
@@ -718,18 +872,43 @@ const AppointmentDetailsModal = ({
                               >
                                 Profissional:
                               </Typography>
-                              <Box sx={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                              <Box
+                                sx={{
+                                  flex: 1,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                }}
+                              >
                                 <Autocomplete
                                   size="small"
                                   sx={{ width: "100%" }}
                                   options={activeEmployees}
+                                  filterOptions={(options, state) => {
+                                    const input = state.inputValue.toLowerCase();
+                                    return options.filter((option) =>
+                                      option.name.toLowerCase().includes(input)
+                                    ).slice(0, employeeLimit);
+                                  }}
+                                  onInputChange={(_, __, reason) => {
+                                    if (reason === "input") setEmployeeLimit(20);
+                                  }}
+                                  ListboxProps={{
+                                    onScroll: (event: React.SyntheticEvent) => {
+                                      const listboxNode = event.currentTarget;
+                                      if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                                        setEmployeeLimit((prev) => prev + 20);
+                                      }
+                                    }
+                                  }}
                                   getOptionLabel={(option) => option.name}
+
                                   isOptionEqualToValue={(option, value) =>
                                     String(option.id) === String(value.id)
                                   }
                                   value={
                                     activeEmployees.find(
-                                      (e) => String(e.id) === String(currentEmpId),
+                                      (e) =>
+                                        String(e.id) === String(currentEmpId),
                                     ) || null
                                   }
                                   onChange={(_: any, val: any) => {
@@ -739,31 +918,67 @@ const AppointmentDetailsModal = ({
                                     };
                                     setLocalAssignments(newAssignments);
 
-                                    const payload = Object.entries(newAssignments).map(
-                                      ([k, empId]) => {
-                                        const [itemId, svcId] = k.split("-").map(Number);
-                                        return {
-                                          appointment_item_id: itemId,
-                                          service_id: svcId,
-                                          employee_id: empId as number | null,
-                                        };
-                                      },
-                                    );
+                                    const payload = Object.entries(
+                                      newAssignments,
+                                    ).map(([k, empId]) => {
+                                      const [itemId, svcId] = k
+                                        .split("-")
+                                        .map(Number);
+                                      return {
+                                        appointment_item_id: itemId,
+                                        service_id: svcId,
+                                        employee_id: empId as number | null,
+                                      };
+                                    });
 
                                     assignMutation.mutate(payload);
                                   }}
                                   renderOption={(props: any, option: any) => {
-                                    const hasComm = checkHasCommission(option.id, s.id);
-                                    const { key: optKey, ...otherProps } = props;
+                                    const hasComm = checkHasCommission(
+                                      option.id,
+                                      s.id,
+                                    );
+                                    const { key, ...otherProps } = props;
                                     return (
-                                      <li key={optKey} {...otherProps}>
-                                        <Box sx={{ display: "flex", flexDirection: "column", width: "100%" }}>
-                                          <Typography variant="body2" fontWeight={500}>{option.name}</Typography>
+                                      <li key={option.id} {...otherProps}>
+                                        <Box
+                                          sx={{
+                                            display: "flex",
+                                            flexDirection: "column",
+                                            width: "100%",
+                                          }}
+                                        >
+                                          <Typography
+                                            variant="body2"
+                                            fontWeight={500}
+                                          >
+                                            {option.name}
+                                          </Typography>
                                           {!hasComm && (
-                                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: -0.25 }}>
-                                              <AlertTriangle size={12} color={theme.palette.warning.main} />
-                                              <Typography variant="caption" color="warning.main" sx={{ fontSize: "10px", fontStyle: "italic" }}>
-                                                Sem regra de comissão compatível cadastrada.
+                                            <Box
+                                              sx={{
+                                                display: "flex",
+                                                alignItems: "center",
+                                                gap: 0.5,
+                                                mt: -0.25,
+                                              }}
+                                            >
+                                              <AlertTriangle
+                                                size={12}
+                                                color={
+                                                  theme.palette.warning.main
+                                                }
+                                              />
+                                              <Typography
+                                                variant="caption"
+                                                color="warning.main"
+                                                sx={{
+                                                  fontSize: "10px",
+                                                  fontStyle: "italic",
+                                                }}
+                                              >
+                                                Sem regra de comissão compatível
+                                                cadastrada.
                                               </Typography>
                                             </Box>
                                           )}
@@ -777,28 +992,72 @@ const AppointmentDetailsModal = ({
                                       placeholder="Selecionar..."
                                       error={
                                         currentEmpId
-                                          ? !checkHasCommission(Number(currentEmpId), s.id)
+                                          ? !checkHasCommission(
+                                              Number(currentEmpId),
+                                              s.id,
+                                            )
                                           : false
                                       }
                                     />
                                   )}
                                 />
-                                {currentEmpId && !checkHasCommission(Number(currentEmpId), s.id) && (
-                                  <Box sx={{ mt: 0.5, display: "flex", alignItems: "flex-start", gap: 0.5 }}>
-                                    <AlertTriangle size={12} color={theme.palette.warning.main} style={{ marginTop: "2px" }} />
-                                    <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ lineHeight: 1.2 }}>
-                                      Aviso: Não há uma regra de comissão para este caso. Para gerar comissionamento, verifique as regras cadastradas.
-                                    </Typography>
-                                  </Box>
-                                )}
-                                {!currentEmpId && coveredServiceKeys.has(key) && (
-                                  <Box sx={{ mt: 0.5, display: "flex", alignItems: "flex-start", gap: 0.5 }}>
-                                    <AlertTriangle size={12} color={theme.palette.warning.main} style={{ marginTop: "2px" }} />
-                                    <Typography variant="caption" color="warning.main" fontWeight={600} sx={{ lineHeight: 1.2 }}>
-                                      Serviço coberto por pacote sem funcionário vinculado. Comissão não será gerada.
-                                    </Typography>
-                                  </Box>
-                                )}
+                                {currentEmpId &&
+                                  !checkHasCommission(
+                                    Number(currentEmpId),
+                                    s.id,
+                                  ) && (
+                                    <Box
+                                      sx={{
+                                        mt: 0.5,
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      <AlertTriangle
+                                        size={12}
+                                        color={theme.palette.warning.main}
+                                        style={{ marginTop: "2px" }}
+                                      />
+                                      <Typography
+                                        variant="caption"
+                                        color="warning.main"
+                                        fontWeight={600}
+                                        sx={{ lineHeight: 1.2 }}
+                                      >
+                                        Aviso: Não há uma regra de comissão para
+                                        este caso. Para gerar comissionamento,
+                                        verifique as regras cadastradas.
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                {!currentEmpId &&
+                                  coveredServiceKeys.has(key) && (
+                                    <Box
+                                      sx={{
+                                        mt: 0.5,
+                                        display: "flex",
+                                        alignItems: "flex-start",
+                                        gap: 0.5,
+                                      }}
+                                    >
+                                      <AlertTriangle
+                                        size={12}
+                                        color={theme.palette.warning.main}
+                                        style={{ marginTop: "2px" }}
+                                      />
+                                      <Typography
+                                        variant="caption"
+                                        color="warning.main"
+                                        fontWeight={600}
+                                        sx={{ lineHeight: 1.2 }}
+                                      >
+                                        Serviço coberto por pacote sem
+                                        funcionário vinculado. Comissão não será
+                                        gerada.
+                                      </Typography>
+                                    </Box>
+                                  )}
                               </Box>
                             </Box>
                           )}
@@ -819,8 +1078,10 @@ const AppointmentDetailsModal = ({
                     <Typography variant="body2" fontWeight={600}>
                       {item.services
                         .reduce((acc, s) => {
-                             const key = `${item.id}-${s.id}`;
-                             return coveredServiceKeys.has(key) ? acc : acc + s.price_cents / 100;
+                          const key = `${item.id}-${s.id}`;
+                          return coveredServiceKeys.has(key)
+                            ? acc
+                            : acc + s.price_cents / 100;
                         }, 0)
                         .toLocaleString("pt-BR", {
                           style: "currency",
@@ -831,7 +1092,6 @@ const AppointmentDetailsModal = ({
                 </Box>
               </CustomCard>
             ))}
-
           </Box>
         </Box>
       </DialogContent>
@@ -848,11 +1108,19 @@ const AppointmentDetailsModal = ({
           </Typography>
           {appointment?.recurrence_id && (
             <Alert severity="info" sx={{ mt: 2, fontSize: "0.85rem" }}>
-              Este agendamento faz parte de uma recorrência. Você pode cancelar apenas este ou todos os futuros.
+              Este agendamento faz parte de uma recorrência. Você pode cancelar
+              apenas este ou todos os futuros.
             </Alert>
           )}
         </DialogContent>
-        <DialogActions sx={{ flexDirection: appointment?.recurrence_id ? "column" : "row", alignItems: "stretch", p: 2, gap: 1 }}>
+        <DialogActions
+          sx={{
+            flexDirection: appointment?.recurrence_id ? "column" : "row",
+            alignItems: "stretch",
+            p: 2,
+            gap: 1,
+          }}
+        >
           {!appointment?.recurrence_id ? (
             <>
               <Button
@@ -889,6 +1157,14 @@ const AppointmentDetailsModal = ({
               >
                 Cancelar apenas este
               </Button>
+
+              <Button
+                variant="outlined"
+                onClick={() => setCancelConfirmOpen(false)}
+                disabled={!!loadingAction}
+              >
+                Voltar
+              </Button>
               <Button
                 variant="outlined"
                 color="error"
@@ -900,13 +1176,6 @@ const AppointmentDetailsModal = ({
                 disabled={!!loadingAction}
               >
                 Cancelar este e TODOS os futuros
-              </Button>
-              <Button
-                variant="text"
-                onClick={() => setCancelConfirmOpen(false)}
-                disabled={!!loadingAction}
-              >
-                Voltar
               </Button>
             </>
           )}

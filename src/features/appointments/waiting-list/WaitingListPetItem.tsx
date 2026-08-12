@@ -8,7 +8,7 @@ import {
   Typography,
 } from "@mui/material";
 import { Button } from "../../../components/Button/Button";
-import { Plus, Trash } from "lucide-react";
+import { Trash } from "lucide-react";
 import { Controller, type Control, type UseFormSetValue } from "react-hook-form";
 import type { Pet } from "../../pets/types";
 import type { Service } from "../../tenant_services/types";
@@ -22,8 +22,7 @@ type Props = {
   pets: Pet[];
   services: Service[];
   items: { pet_id: number; service_ids: number[] }[];
-  onCreatePet?: () => void;
-  onCreateService?: () => void;
+
   onRemove: () => void;
   isOnlyPet: boolean;
 };
@@ -35,12 +34,12 @@ export default function WaitingListPetItem({
   pets,
   services,
   items,
-  onCreatePet,
-  onCreateService,
   onRemove,
   isOnlyPet,
 }: Props) {
   const [showAllServices, setShowAllServices] = useState(false);
+  const [petLimit, setPetLimit] = useState(20);
+  const [serviceLimit, setServiceLimit] = useState(20);
 
   const currentPetId = items[index]?.pet_id;
   const currentPet = pets?.find((p) => p.id === currentPetId);
@@ -78,8 +77,28 @@ export default function WaitingListPetItem({
               <Autocomplete<Pet>
                 sx={{ flex: 1 }}
                 options={availablePets}
+                filterOptions={(options, state) => {
+                  const input = state.inputValue.toLowerCase();
+                  return options
+                    .filter((option) => option.name.toLowerCase().includes(input))
+                    .slice(0, petLimit);
+                }}
                 noOptionsText="Nenhum pet cadastrado"
                 size="small"
+                onInputChange={(_, __, reason) => {
+                  if (reason === "input") setPetLimit(20);
+                }}
+                ListboxProps={{
+                  onScroll: (event: React.SyntheticEvent) => {
+                    const listboxNode = event.currentTarget;
+                    if (
+                      listboxNode.scrollTop + listboxNode.clientHeight >=
+                      listboxNode.scrollHeight - 10
+                    ) {
+                      setPetLimit((prev) => prev + 20);
+                    }
+                  }
+                }}
                 value={pets?.find((p) => p.id === field.value) ?? null}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
@@ -94,14 +113,6 @@ export default function WaitingListPetItem({
             );
           }}
         />
-        <Button
-          variant="outlined"
-          sx={{ width: "150px", height: "40px", flexShrink: 0 }}
-          startIcon={<Plus size={14} />}
-          onClick={onCreatePet}
-        >
-          Criar Pet
-        </Button>
       </Box>
 
       {/* SERVIÇOS */}
@@ -130,7 +141,21 @@ export default function WaitingListPetItem({
                   `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
                     .toLowerCase()
                     .includes(input)
-                );
+                ).slice(0, serviceLimit);
+              }}
+              onInputChange={(_, __, reason) => {
+                if (reason === "input") setServiceLimit(20);
+              }}
+              ListboxProps={{
+                onScroll: (event: React.SyntheticEvent) => {
+                  const listboxNode = event.currentTarget;
+                  if (
+                    listboxNode.scrollTop + listboxNode.clientHeight >=
+                    listboxNode.scrollHeight - 10
+                  ) {
+                    setServiceLimit((prev) => prev + 20);
+                  }
+                }
               }}
               disableCloseOnSelect
               size="small"
@@ -199,14 +224,6 @@ export default function WaitingListPetItem({
             />
           )}
         />
-        <Button
-          variant="outlined"
-          sx={{ width: "150px", height: "40px", flexShrink: 0 }}
-          startIcon={<Plus size={14} />}
-          onClick={onCreateService}
-        >
-          Criar Serviço
-        </Button>
       </Box>
 
       <FormControlLabel

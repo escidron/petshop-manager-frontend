@@ -1,5 +1,6 @@
 import { createTheme } from "@mui/material/styles";
 import { red, grey, green, amber, blue } from "@mui/material/colors";
+import { ptBR } from "@mui/material/locale";
 
 const theme = createTheme({
   palette: {
@@ -88,6 +89,6 @@ const theme = createTheme({
       },
     },
   },
-});
+}, ptBR);
 
 export default theme;

@@ -60,6 +60,7 @@ export default function CheckoutModal({
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeMap, setEmployeeMap] = useState<Record<number, number | null>>({});
   const [showNoEmployeeWarning, setShowNoEmployeeWarning] = useState(false);
+  const [employeeLimit, setEmployeeLimit] = useState(20);
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -198,7 +199,32 @@ export default function CheckoutModal({
                       </Typography>
                       <Autocomplete
                         options={employees}
+                        filterOptions={(options, state) => {
+                          const input = state.inputValue.toLowerCase();
+                          return options.filter((option) =>
+                            option.name.toLowerCase().includes(input)
+                          ).slice(0, employeeLimit);
+                        }}
+                        onInputChange={(_, __, reason) => {
+                          if (reason === "input") setEmployeeLimit(20);
+                        }}
+                        ListboxProps={{
+                          onScroll: (event: React.SyntheticEvent) => {
+                            const listboxNode = event.currentTarget;
+                            if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                              setEmployeeLimit((prev) => prev + 20);
+                            }
+                          }
+                        }}
                         getOptionLabel={(option) => option.name}
+                        renderOption={(props, option) => {
+                          const { key, ...restProps } = props as any;
+                          return (
+                            <li key={option.id} {...restProps}>
+                              {option.name}
+                            </li>
+                          );
+                        }}
                         isOptionEqualToValue={(option, value) => String(option.id) === String(value.id)}
                         value={employees.find((emp) => String(emp.id) === String(employeeMap[idx])) || null}
                         onChange={(_, newValue) => {

@@ -45,6 +45,7 @@ export default function ClientPackageSellForm({
   });
 
   const [showAllPackages, setShowAllPackages] = useState(false);
+  const [packageLimit, setPackageLimit] = useState(20);
   const watchedPetIds = watch("pet_ids");
   const watchedPackageId = watch("package_id");
 
@@ -143,6 +144,23 @@ export default function ClientPackageSellForm({
           render={({ field, fieldState }) => (
             <Autocomplete<Package>
               options={compatiblePackages}
+              filterOptions={(options, state) => {
+                const input = state.inputValue.toLowerCase();
+                return options.filter((option) =>
+                  option.name.toLowerCase().includes(input)
+                ).slice(0, packageLimit);
+              }}
+              onInputChange={(_, __, reason) => {
+                if (reason === "input") setPackageLimit(20);
+              }}
+              ListboxProps={{
+                onScroll: (event: React.SyntheticEvent) => {
+                  const listboxNode = event.currentTarget;
+                  if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                    setPackageLimit((prev) => prev + 20);
+                  }
+                }
+              }}
               size="small"
               value={packages.find((p) => p.id === field.value) ?? null}
               getOptionLabel={(o) => o.name}

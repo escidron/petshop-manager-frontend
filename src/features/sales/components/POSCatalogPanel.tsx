@@ -12,6 +12,7 @@ import {
   Collapse,
   Alert,
   Skeleton,
+  Button,
 } from "@mui/material";
 import {
   Search,
@@ -22,13 +23,17 @@ import {
   List as ListIcon,
   ShoppingBag,
   Barcode,
+  Calendar,
+  Clock,
+  ArrowRight,
   ChevronDown,
   ChevronUp,
-  ArrowLeft,
-  Star,
 } from "lucide-react";
+import dayjs from "dayjs";
+import { useState, useEffect } from "react";
 import { getCoatTypeLabel } from "../../../utils/formatCoatType";
 import type { CoatType } from "../../pets/types";
+import type { Appointment } from "../../appointments/types";
 
 interface Product {
   id: number;
@@ -61,7 +66,7 @@ interface Package {
   is_active: boolean;
 }
 
-type CatalogTab = "products" | "services" | "packages" | null;
+type CatalogTab = "appointments" | "products" | "services" | "packages" | null;
 
 interface POSCatalogPanelProps {
   activeTab: CatalogTab;
@@ -71,11 +76,14 @@ interface POSCatalogPanelProps {
   products: Product[];
   services: Service[];
   packages: Package[];
-  lowStockProducts: Product[];
-  lowStockExpanded: boolean;
+  appointments?: Appointment[];
+  getAppointmentPrice?: (apt: Appointment) => number;
+  onPullAppointment?: (apt: Appointment) => void;
   onTabChange: (tab: CatalogTab) => void;
   onSearchChange: (term: string) => void;
   onViewModeChange: (mode: "grid" | "list") => void;
+  lowStockProducts: Product[];
+  lowStockExpanded: boolean;
   onLowStockToggle: () => void;
   onAddItem: (
     item: { id: number; name: string; price_cents?: number; quantity?: number },
@@ -185,15 +193,24 @@ export default function POSCatalogPanel({
   products,
   services,
   packages,
-  lowStockProducts,
-  lowStockExpanded,
   onTabChange,
   onSearchChange,
   onViewModeChange,
-  onLowStockToggle,
   onAddItem,
+  appointments = [],
+  getAppointmentPrice,
+  onPullAppointment,
+  lowStockProducts,
+  lowStockExpanded,
+  onLowStockToggle,
 }: POSCatalogPanelProps) {
+  const [productLimit, setProductLimit] = useState(24);
+
+  useEffect(() => {
+    setProductLimit(24);
+  }, [activeTab, searchTerm]);
   const tabs: { id: CatalogTab; label: string; icon: React.ReactNode }[] = [
+    { id: "appointments", label: "Agendamentos", icon: <Calendar size={20} /> },
     { id: "products", label: "Produtos", icon: <Barcode size={20} /> },
     { id: "services", label: "Serviços", icon: <ClipboardList size={20} /> },
     { id: "packages", label: "Pacotes", icon: <ShoppingBag size={20} /> },
@@ -201,9 +218,6 @@ export default function POSCatalogPanel({
 
   // Derived state for the catalog
   const activeTabConfig = tabs.find((t) => t.id === activeTab);
-  const categories = [...new Set(products.map((p) => p.category).filter(Boolean))] as string[];
-  const bestSellers = products.slice(0, 4); // Mocked best sellers
-  const favorites = products.slice(4, 6); // Mocked favorites
 
   const renderProduct = (product: Product) => (
     <Grid
@@ -267,28 +281,100 @@ export default function POSCatalogPanel({
     </Grid>
   );
 
-  if (activeTab === null) {
+  const renderAppointment = (apt: Appointment) => {
+    const isToday = dayjs(apt.scheduled_at).isSame(dayjs(), "day");
+    const price = getAppointmentPrice ? getAppointmentPrice(apt) : 0;
+    const aptServices = [
+      ...new Set(
+        apt.items.flatMap((i) =>
+          i.services
+            .filter((s) => !s.is_package_covered)
+            .map((s) => s.name)
+        )
+      ),
+    ];
+    const pets = [...new Set(apt.items.map((i) => i.pet.name))];
+
     return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 3, pt: 2, pb: 4 }}>
-        <Typography variant="overline" sx={{ fontWeight: 800, color: "text.primary", letterSpacing: 1.5 }}>
-          Adicionar ao Atendimento
-        </Typography>
-        <Grid container spacing={3}>
-          {tabs.map((tab) => (
-            <Grid size={{ xs: 12, md: 4 }} key={tab.id}>
+      <Paper
+        key={apt.id}
+        elevation={0}
+        onClick={() => onPullAppointment && onPullAppointment(apt)}
+        sx={{
+          display: "flex", alignItems: "center", gap: 2, p: 2, mb: 1.5,
+          border: "1px solid", borderColor: "divider", borderRadius: 3,
+          bgcolor: "background.paper", cursor: "pointer", transition: "all 0.18s ease",
+          "&:hover": { borderColor: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.03) },
+        }}
+      >
+        <Box
+          sx={{
+            width: 48, height: 48, borderRadius: 2,
+            bgcolor: isToday ? (theme) => alpha(theme.palette.primary.main, 0.1) : "action.hover",
+            display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center",
+            flexShrink: 0, color: isToday ? "primary.main" : "text.primary",
+          }}
+        >
+          {isToday ? (
+            <>
+              <Clock size={14} />
+              <Typography variant="caption" sx={{ fontWeight: 800, fontSize: "0.6rem", mt: 0.25 }}>HOJE</Typography>
+            </>
+          ) : (
+            <>
+              <Typography variant="caption" sx={{ fontWeight: 800, lineHeight: 1.2, fontSize: "0.75rem" }}>{dayjs(apt.scheduled_at).format("DD")}</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600, fontSize: "0.6rem", opacity: 0.7 }}>{dayjs(apt.scheduled_at).format("MMM").toUpperCase()}</Typography>
+            </>
+          )}
+        </Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.4 }}>
+            <Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+              {apt.client.name}
+            </Typography>
+            {isToday && (
+              <Chip label={dayjs(apt.scheduled_at).format("HH:mm")} size="small" color="primary" variant="outlined" sx={{ height: 20, fontSize: "0.6rem", fontWeight: 800 }} />
+            )}
+          </Box>
+          <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 500, display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+            {pets.join(", ")}
+            {aptServices.length > 0 && ` • ${aptServices.join(", ")}`}
+          </Typography>
+        </Box>
+        <Box sx={{ textAlign: "right", display: "flex", flexDirection: "column", alignItems: "flex-end" }}>
+          {price > 0 && (
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "success.main" }}>
+              R$ {(price / 100).toFixed(2)}
+            </Typography>
+          )}
+          <ArrowRight size={18} className="arrow-icon" style={{ opacity: 0.4 }} />
+        </Box>
+      </Paper>
+    );
+  };
+
+  return (
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, height: "100%" }}>
+      {/* Tab Cards */}
+      <Grid container spacing={1.5}>
+        {tabs.map((tab) => {
+          const isActive = activeTab === tab.id;
+          return (
+            <Grid size={{ xs: 6, sm: 3 }} key={tab.id}>
               <Paper
                 elevation={0}
-                onClick={() => onTabChange(tab.id!)}
+                onClick={() => { onTabChange(tab.id!); onSearchChange(""); }}
                 sx={{
-                  p: 2.5,
-                  borderRadius: 3,
+                  p: 1.5,
+                  borderRadius: 2,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
-                  gap: 2,
+                  justifyContent: "center",
+                  gap: 1,
                   border: "2px solid",
-                  borderColor: "divider",
-                  bgcolor: "background.paper",
+                  borderColor: isActive ? "primary.main" : "divider",
+                  bgcolor: isActive ? alpha("#1976d2", 0.04) : "background.paper",
                   transition: "all 0.2s ease",
                   "&:hover": {
                     borderColor: "primary.main",
@@ -298,152 +384,134 @@ export default function POSCatalogPanel({
               >
                 <Box
                   sx={{
-                    width: 48,
-                    height: 48,
-                    borderRadius: "50%",
-                    bgcolor: alpha("#1976d2", 0.08),
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    color: "primary.main",
+                    color: isActive ? "primary.main" : "text.primary",
                   }}
                 >
                   {tab.icon}
                 </Box>
-                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+                <Typography variant="body2" sx={{ fontWeight: 800, color: isActive ? "primary.main" : "text.primary" }}>
                   {tab.label}
                 </Typography>
               </Paper>
             </Grid>
-          ))}
-        </Grid>
-      </Box>
-    );
-  }
+          );
+        })}
+      </Grid>
 
-  return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-      {/* Browsing Header */}
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-        <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-          <IconButton onClick={() => { onTabChange(null); onSearchChange(""); }} sx={{ bgcolor: "background.paper", border: "1px solid", borderColor: "divider" }}>
-            <ArrowLeft size={20} />
-          </IconButton>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
-            {activeTabConfig?.label}
-          </Typography>
-        </Box>
-        <TextField
-          fullWidth
-          size="small"
-          placeholder={`Pesquisar ${activeTabConfig?.label.toLowerCase()}...`}
-          value={searchTerm}
-          onChange={(e) => onSearchChange(e.target.value)}
-          autoFocus
-          InputProps={{
-            startAdornment: (
-              <InputAdornment position="start">
-                <Search size={18} color="gray" />
-              </InputAdornment>
-            ),
-            sx: { borderRadius: 3, bgcolor: "background.paper" },
-          }}
-        />
-      </Box>
+      {/* Search Bar */}
+      <TextField
+        fullWidth
+        size="small"
+        placeholder={`Pesquisar ${activeTabConfig?.label.toLowerCase() || ""}...`}
+        value={searchTerm}
+        onChange={(e) => onSearchChange(e.target.value)}
+        autoFocus
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search size={18} color="gray" />
+            </InputAdornment>
+          ),
+          sx: { borderRadius: 3, bgcolor: "background.paper" },
+        }}
+      />
 
       {/* Low Stock Alert */}
-      <Collapse in={lowStockProducts.length > 0 && activeTab === "products"}>
-        <Alert
-          severity="warning"
-          onClick={onLowStockToggle}
-          action={
-            <IconButton size="small" onClick={(e) => { e.stopPropagation(); onLowStockToggle(); }}>
-              {lowStockExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
-            </IconButton>
+      {/* Main Scrollable Container */}
+      <Box 
+        onScroll={(e) => {
+          const target = e.target as HTMLElement;
+          if (target.scrollHeight - target.scrollTop <= target.clientHeight + 100) {
+            setProductLimit(prev => {
+              const maxCurrent = 
+                activeTab === "appointments" ? (appointments?.length || 0) :
+                activeTab === "products" ? products.length :
+                activeTab === "services" ? services.length :
+                activeTab === "packages" ? packages.length : 0;
+              if (prev < maxCurrent) {
+                return prev + 24;
+              }
+              return prev;
+            });
           }
-          sx={{ mb: 2, borderRadius: 2, cursor: "pointer" }}
-        >
-          <Typography variant="body2" sx={{ fontWeight: 700 }}>
-            {lowStockProducts.length} produto
-            {lowStockProducts.length > 1 ? "s" : ""} com estoque baixo
-          </Typography>
-          <Collapse in={lowStockExpanded}>
-            <Box sx={{ mt: 0.5 }}>
-              {lowStockProducts.map((p) => (
-                <Typography key={p.id} variant="body2" color="text.primary">
-                  {p.name} ({p.quantity} un)
-                </Typography>
-              ))}
-            </Box>
-          </Collapse>
-        </Alert>
-      </Collapse>
+        }}
+        sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto", pr: 1, display: "flex", flexDirection: "column", gap: 2, "&::-webkit-scrollbar": { width: 6 }, "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4 } }}
+      >
+        {/* Low Stock Alert */}
+        {lowStockProducts.length > 0 && activeTab === "products" && (
+          <Alert
+            severity="warning"
+            onClick={onLowStockToggle}
+            action={
+              <IconButton size="small" onClick={(e) => { e.stopPropagation(); onLowStockToggle(); }}>
+                {lowStockExpanded ? <ChevronUp size={22} /> : <ChevronDown size={22} />}
+              </IconButton>
+            }
+            sx={{ borderRadius: 2, cursor: "pointer", flexShrink: 0 }}
+          >
+            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+              {lowStockProducts.length} produto
+              {lowStockProducts.length > 1 ? "s" : ""} com estoque baixo
+            </Typography>
+            <Collapse in={lowStockExpanded}>
+              <Box sx={{ mt: 0.5 }}>
+                {lowStockProducts.map((p) => (
+                  <Typography key={p.id} variant="body2" color="text.primary">
+                    {p.name} ({p.quantity} un)
+                  </Typography>
+                ))}
+              </Box>
+            </Collapse>
+          </Alert>
+        )}
+
+        {/* Appointments Tab */}
+      {activeTab === "appointments" && (
+        isLoading ? (
+          <POSSkeleton viewMode="list" />
+        ) : appointments.length === 0 ? (
+          <Paper elevation={0} sx={{ p: 4, textAlign: "center", border: "1px solid", borderColor: "divider", borderRadius: 3, bgcolor: "background.paper" }}>
+            <Calendar size={36} style={{ opacity: 0.2, marginBottom: 8 }} />
+            <Typography variant="body1" sx={{ fontWeight: 600, color: "text.primary" }}>
+              {searchTerm ? "Nenhum resultado encontrado" : "Nenhuma pendência"}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.primary", mt: 0.5 }}>
+              {searchTerm ? "Tente buscar por outro nome" : "Agendamentos finalizados aparecerão aqui"}
+            </Typography>
+          </Paper>
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column" }}>
+            {appointments.slice(0, productLimit).map(renderAppointment)}
+          </Box>
+        )
+      )}
 
       {/* Products Tab */}
       {activeTab === "products" && (
         isLoading ? (
           <POSSkeleton viewMode={viewMode} />
-        ) : !searchTerm ? (
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {/* Favoritos */}
-            {favorites.length > 0 && (
-              <Box>
-                <Typography variant="overline" sx={{ fontWeight: 800, color: "text.primary", display: "block", mb: 1.5 }}>
-                  <Star size={14} style={{ marginRight: 4, verticalAlign: "middle" }} />
-                  Favoritos do Cliente
-                </Typography>
-                <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-                  {favorites.map(renderProduct)}
-                </Grid>
-              </Box>
-            )}
-
-            {/* Mais Vendidos */}
-            {bestSellers.length > 0 && (
-              <Box>
-                <Typography variant="overline" sx={{ fontWeight: 800, color: "text.primary", display: "block", mb: 1.5 }}>
-                  🔥 Mais Vendidos
-                </Typography>
-                <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-                  {bestSellers.map(renderProduct)}
-                </Grid>
-              </Box>
-            )}
-
-            {/* Categories */}
-            {categories.length > 0 && (
-              <Box>
-                <Typography variant="overline" sx={{ fontWeight: 800, color: "text.primary", display: "block", mb: 1.5 }}>
-                  Categorias
-                </Typography>
-                <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                  <Chip label="Todos" onClick={() => onSearchChange("")} sx={{ fontWeight: 700 }} color="primary" />
-                  {categories.map(c => (
-                    <Chip key={c} label={c} onClick={() => onSearchChange(c)} variant="outlined" sx={{ fontWeight: 600, bgcolor: "background.paper" }} />
-                  ))}
-                </Box>
-              </Box>
-            )}
-          </Box>
-        ) : (
+        ) : products.length > 0 ? (
           <Box>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
               <Typography variant="overline" sx={{ fontWeight: 800, color: "primary.main", display: "block" }}>
-                {products.length > 0 ? `Resultados para "${searchTerm}"` : "Nenhum produto encontrado"}
+                {searchTerm ? `Resultados para "${searchTerm}"` : "Produtos"}
               </Typography>
               <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
             </Box>
-            {products.length > 0 ? (
+            <Box>
               <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-                {products.map(renderProduct)}
+                {products.slice(0, productLimit).map(renderProduct)}
               </Grid>
-            ) : (
-              <Box sx={{ textAlign: "center", mt: 6 }}>
-                <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
-                <Typography variant="h6" color="text.primary">Nenhum produto encontrado</Typography>
-                <Typography variant="body2" color="text.primary">Tente mudar sua busca</Typography>
-              </Box>
-            )}
+            </Box>
+          </Box>
+        ) : (
+          <Box sx={{ textAlign: "center", mt: 10 }}>
+            <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
+            <Typography variant="h6" color="text.primary">Nenhum produto encontrado</Typography>
+            <Typography variant="body2" color="text.primary">Tente mudar sua busca</Typography>
           </Box>
         )
       )}
@@ -461,7 +529,7 @@ export default function POSCatalogPanel({
               <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
             </Box>
             <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-              {services.map((service) => (
+              {services.slice(0, productLimit).map((service) => (
                 <Grid
                   size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
                   key={`serv-${service.id}`}
@@ -540,7 +608,7 @@ export default function POSCatalogPanel({
               <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
             </Box>
             <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-              {packages.map((pkg) => (
+              {packages.slice(0, productLimit).map((pkg) => (
                 <Grid
                   size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
                   key={`pkg-${pkg.id}`}
@@ -588,6 +656,7 @@ export default function POSCatalogPanel({
           </Box>
         )
       )}
+      </Box>
     </Box>
   );
 }

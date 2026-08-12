@@ -16,6 +16,7 @@ import { petSchema } from "./schemas";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useEffect, useState } from "react";
+import { usePets } from "../../hooks/usePets";
 import { maskBirthDate } from "../../utils/masks";
 import { Button } from "../../components/Button/Button";
 import type { Client } from "../clients/types";
@@ -69,6 +70,8 @@ const PetForm = ({
   } = form;
   const species = useWatch({ control, name: "species" });
   const [showAgeField, setShowAgeField] = useState(false);
+  const [clientListLimit, setClientListLimit] = useState(20);
+  const { pets: allPets } = usePets();
 
   const applyMasksOnEdit = (data?: Partial<PetFormData>) => {
     if (!data) return data;
@@ -139,6 +142,17 @@ const PetForm = ({
                   <Autocomplete<Client>
                     disabled={selectedClient !== undefined}
                     options={clients ?? []}
+                    filterOptions={(options, state) => {
+                      const input = state.inputValue.toLowerCase();
+                      return options
+                        .filter((option) => {
+                          const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                          const matchName = option.name.toLowerCase().includes(input);
+                          const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
+                          return matchName || matchPet;
+                        })
+                        .slice(0, clientListLimit);
+                    }}
                     noOptionsText="Nenhum cliente cadastrado"
                     size="small"
                     value={
@@ -147,9 +161,35 @@ const PetForm = ({
                       null
                     }
                     getOptionLabel={(option) => option.name}
-                    isOptionEqualToValue={(option, value) =>
-                      option.id === value.id
-                    }
+                    isOptionEqualToValue={(option, value) => option.id === value?.id}
+                    onInputChange={(_, __, reason) => {
+                      if (reason === 'input') setClientListLimit(20);
+                    }}
+                    ListboxProps={{
+                      onScroll: (event: React.SyntheticEvent) => {
+                        const listboxNode = event.currentTarget;
+                        if (
+                          listboxNode.scrollTop + listboxNode.clientHeight >=
+                          listboxNode.scrollHeight - 10
+                        ) {
+                          setClientListLimit((prev) => prev + 20);
+                        }
+                      }
+                    }}
+                    renderOption={(props, option) => {
+                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                      const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
+                      return (
+                        <li {...props} key={option.id}>
+                          <Box sx={{ display: "flex", flexDirection: "column" }}>
+                            <Typography variant="body2">{option.name}</Typography>
+                            <Typography variant="caption" color="text.primary">
+                              Pets: {petsText}
+                            </Typography>
+                          </Box>
+                        </li>
+                      );
+                    }}
                     onChange={(_, value) => field.onChange(value?.id)}
                     renderInput={(params) => (
                       <TextField

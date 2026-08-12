@@ -162,7 +162,7 @@ export default function POSClientDashboard({
                 variant="overline"
                 sx={{ fontWeight: 800, color: "text.primary", mb: 1, display: "block", letterSpacing: 1.2, fontSize: "0.65rem" }}
               >
-                Pendências do Cliente
+                Comandas em Aberto
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                 {pendingToPay.map((apt) => {

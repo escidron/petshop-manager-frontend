@@ -14,7 +14,10 @@ import {
   Chip,
   LinearProgress,
   Skeleton,
+  TableFooter,
+  TablePagination,
 } from "@mui/material";
+import { TablePaginationActions } from "../components/TablePaginationActions";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2, MessageCircle } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
@@ -43,6 +46,22 @@ export default function EmployeesPage() {
   const [employeeToEdit, setEmployeeToEdit] = useState<Employee | undefined>(undefined);
   const [employeeToDelete, setEmployeeToDelete] = useState<Employee | undefined>(undefined);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const handleChangePage = (
+    _event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number,
+  ) => setPage(newPage);
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
 
   const handleShareCalendar = (employee: Employee) => {
     if (!employee.schedule_token) {
@@ -95,6 +114,13 @@ export default function EmployeesPage() {
       );
     });
   }, [employees, search]);
+
+  const emptyRows =
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredRows.length) : 0;
+
+  useEffect(() => {
+    setPage(0);
+  }, [search, employees]);
 
   const handleDeleteClick = (employee: Employee) => {
     setEmployeeToDelete(employee);
@@ -179,7 +205,13 @@ export default function EmployeesPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRows.map((row) => (
+            {(rowsPerPage > 0
+              ? filteredRows.slice(
+                  page * rowsPerPage,
+                  page * rowsPerPage + rowsPerPage,
+                )
+              : filteredRows
+            ).map((row) => (
               <TableRow
                 key={row.id}
                 sx={{
@@ -253,7 +285,32 @@ export default function EmployeesPage() {
                 </TableRow>
               ))
             )}
+            {emptyRows > 0 && (
+              <TableRow style={{ height: 53 * emptyRows }}>
+                <TableCell colSpan={5} />
+              </TableRow>
+            )}
           </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, { label: "All", value: -1 }]}
+                colSpan={5}
+                count={filteredRows.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                ActionsComponent={TablePaginationActions}
+                slotProps={{
+                  select: {
+                    inputProps: { "aria-label": "rows per page" },
+                    native: true,
+                  },
+                }}
+              />
+            </TableRow>
+          </TableFooter>
         </Table>
       </TableContainer>
 
