@@ -35,10 +35,11 @@ export default function PullAppointmentDialog({
     queryFn: () => getAppointmentsByTenant(),
   });
 
-  const { data: unpaidPkgs = [], isLoading: isLoadingPkgs } = useQuery({
+  const { data: unpaidPkgsData, isLoading: isLoadingPkgs } = useQuery({
     queryKey: ["unpaid-packages"],
-    queryFn: listUnpaidPackages,
+    queryFn: () => listUnpaidPackages(),
   });
+  const unpaidPkgs = unpaidPkgsData?.items || [];
 
   const { data: allPackages = [], isLoading: isLoadingAllPkgs } = useQuery({
     queryKey: ["packages"],

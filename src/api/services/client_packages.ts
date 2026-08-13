@@ -33,8 +33,14 @@ export const listClientPackagesByClient = async (
   return response.data;
 };
 
-export const listUnpaidPackages = async (): Promise<ClientPackage[]> => {
-  const response = await apiClient.get<ClientPackage[]>("/api/v1/client-packages/unpaid");
+export const listUnpaidPackages = async (params?: { limit?: number, offset?: number, search?: string }): Promise<{ items: ClientPackage[], total: number }> => {
+  const response = await apiClient.get<{ items: ClientPackage[], total: number }>("/api/v1/client-packages/unpaid", {
+    params: {
+      limit: params?.limit,
+      offset: params?.offset,
+      search: params?.search || undefined,
+    }
+  });
   return response.data;
 };
 
