@@ -64,6 +64,8 @@ export default function CommissionRuleFormModal({
 }: Props) {
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [employeeLimit, setEmployeeLimit] = useState(20);
+  const [serviceLimit, setServiceLimit] = useState(20);
 
   const { control, handleSubmit, reset, watch } = useForm<CommissionRuleFormData>({
     resolver: zodResolver(schema),
@@ -281,9 +283,34 @@ export default function CommissionRuleFormModal({
                   render={({ field }) => (
                     <Autocomplete<Employee>
                       options={employees.filter((e) => e.is_active)}
+                      filterOptions={(options, state) => {
+                        const input = state.inputValue.toLowerCase();
+                        return options.filter((option) =>
+                          option.name.toLowerCase().includes(input)
+                        ).slice(0, employeeLimit);
+                      }}
+                      onInputChange={(_, __, reason) => {
+                        if (reason === "input") setEmployeeLimit(20);
+                      }}
+                      ListboxProps={{
+                        onScroll: (event: React.SyntheticEvent) => {
+                          const listboxNode = event.currentTarget;
+                          if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                            setEmployeeLimit((prev) => prev + 20);
+                          }
+                        }
+                      }}
                       size="small"
                       value={employees.find((e) => e.id === field.value) ?? null}
                       getOptionLabel={(o) => o.name}
+                      renderOption={(props, option) => {
+                        const { key, ...restProps } = props as any;
+                        return (
+                          <li key={option.id} {...restProps}>
+                            {option.name}
+                          </li>
+                        );
+                      }}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
                       onChange={(_, v) => field.onChange(v?.id ?? null)}
                       noOptionsText="Nenhum funcionário cadastrado"
@@ -309,6 +336,25 @@ export default function CommissionRuleFormModal({
                     <Autocomplete<Service, true>
                       multiple
                       options={services}
+                      filterOptions={(options, state) => {
+                        const input = state.inputValue.toLowerCase();
+                        return options.filter((option) =>
+                          `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                            .toLowerCase()
+                            .includes(input)
+                        ).slice(0, serviceLimit);
+                      }}
+                      onInputChange={(_, __, reason) => {
+                        if (reason === "input") setServiceLimit(20);
+                      }}
+                      ListboxProps={{
+                        onScroll: (event: React.SyntheticEvent) => {
+                          const listboxNode = event.currentTarget;
+                          if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                            setServiceLimit((prev) => prev + 20);
+                          }
+                        }
+                      }}
                       size="small"
                       value={services.filter((s) => field.value.includes(s.id))}
                       getOptionLabel={(o) => formatServiceLabel(o)}

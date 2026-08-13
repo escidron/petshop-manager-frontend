@@ -1,4 +1,4 @@
-import { Box, Paper, Autocomplete, TextField, InputAdornment, Button } from "@mui/material";
+import { Box, Paper, Autocomplete, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, Typography, alpha } from "@mui/material";
 import { User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
@@ -8,7 +8,7 @@ import { fetchClients } from "../../api/services/clients";
 import { getTenantServices } from "../../api/services/tenant_services";
 import { listPackages } from "../../api/services/packages";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
-import { fetchPetsByClient } from "../../api/services/pets";
+import { fetchPetsByClient, fetchPets } from "../../api/services/pets";
 import { getAppointmentsByTenant, listAppointmentsByClient } from "../../api/services/appointments";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
@@ -23,12 +23,12 @@ import type { Service } from "../tenant_services/types";
 import { isServiceCompatibleWithPet } from "../../utils/serviceMatcher";
 
 // Sub-components
-import POSSelectionState from "./components/POSSelectionState";
 import POSSessionHeader from "./components/POSSessionHeader";
 import POSCatalogPanel from "./components/POSCatalogPanel";
 import POSTicket from "./components/POSTicket";
 import POSClientDashboard from "./components/POSClientDashboard";
 import POSPackagePetDialog from "./components/POSPackagePetDialog";
+import { Button } from "../../components/Button/Button";
 
 
 export default function POSInterface() {
@@ -48,16 +48,13 @@ export default function POSInterface() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
 
-  // Session state: "none" | "selecting-client" | "in-session"
-  // "none" = tela inicial, "selecting-client" = escolheu "novo atendimento sem agendamento",
-  // "in-session" = cliente/agendamento selecionado, atendimento em curso
-  const [sessionMode, setSessionMode] = useState<"none" | "selecting-client" | "in-session">("none");
-
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
+  const [isClientModalOpen, setIsClientModalOpen] = useState(false);
+  const [clientListLimit, setClientListLimit] = useState(20);
 
-  const [catalogTab, setCatalogTab] = useState<"products" | "services" | "packages" | null>(null);
-  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [catalogTab, setCatalogTab] = useState<"appointments" | "products" | "services" | "packages" | null>("appointments");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [lowStockExpanded, setLowStockExpanded] = useState(false);
 
   const [pendingPackageItem, setPendingPackageItem] = useState<{
@@ -84,6 +81,11 @@ export default function POSInterface() {
     queryFn: fetchClients,
     staleTime: 1000 * 60 * 10,
   });
+  const { data: allPets = [] } = useQuery({
+    queryKey: ["pets"],
+    queryFn: fetchPets,
+    staleTime: 1000 * 60 * 10,
+  });
   const { data: packages = [], isLoading: packagesLoading } = useQuery({
     queryKey: ["packages"],
     queryFn: listPackages,
@@ -104,7 +106,7 @@ export default function POSInterface() {
     queryFn: () => listAppointmentsByClient(selectedClientId!),
     enabled: !!selectedClientId,
   });
-  const { data: allAppointments = [], isLoading: isLoadingApts } = useQuery({
+  const { data: allAppointments = [], isLoading: appointmentsLoading } = useQuery({
     queryKey: ["appointments", "pos-pending"],
     queryFn: () => getAppointmentsByTenant(),
     staleTime: 1000 * 60 * 2,
@@ -112,7 +114,6 @@ export default function POSInterface() {
 
   // ── Derived State ────────────────────────────────────────────────────────
   const selectedClient = clients.find((c) => c.id === selectedClientId);
-  const inSession = sessionMode === "in-session" || selectedAppointmentId !== null;
 
   const pendingAppointments = useMemo(() => {
     const pending = allAppointments.filter(
@@ -150,7 +151,7 @@ export default function POSInterface() {
       ? discountAmount > 0
       : discountPercentage > (tenant?.max_discount_percentage ?? 100);
 
-  const isLoadingItems = productsLoading || servicesLoading || packagesLoading;
+  const isLoadingItems = productsLoading || servicesLoading || packagesLoading || appointmentsLoading;
 
   const lowStockProducts = useMemo(
     () => products.filter((p) => p.is_active && p.quantity <= p.min_stock),
@@ -195,8 +196,8 @@ export default function POSInterface() {
     setDiscountPctInput("0");
     setSelectedAppointmentId(null);
     setSelectedClientId(clientId ?? null);
-    setSessionMode("in-session");
     setSearchTerm("");
+    setIsClientModalOpen(false);
   };
 
   const endSession = () => {
@@ -205,7 +206,6 @@ export default function POSInterface() {
     setDiscountPctInput("0");
     setSelectedClientId(null);
     setSelectedAppointmentId(null);
-    setSessionMode("none");
     setSearchTerm("");
   };
 
@@ -343,7 +343,6 @@ export default function POSInterface() {
     setSelectedClientId(appointment.client.id);
     setSelectedAppointmentId(appointment.id);
     setCart(pulledItems);
-    setSessionMode("in-session");
     setIsPullDialogOpen(false);
     setSearchTerm("");
     
@@ -366,7 +365,6 @@ export default function POSInterface() {
     };
     setSelectedClientId(pkg.client_id);
     setCart([item]);
-    setSessionMode("in-session");
     setIsPullDialogOpen(false);
     toast.success("Venda de pacote pendente carregada.");
   };
@@ -415,96 +413,52 @@ export default function POSInterface() {
       }}
     >
       {/* ── Left Column ── */}
-      <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0, overflowY: "auto" }}>
-
-        {/* ── STATE 1: Selection screen (no active session) ── */}
-        {!inSession && (
-          <POSSelectionState
-            searchTerm={searchTerm}
-            appointments={filteredAppointments}
-            isLoading={isLoadingApts}
-            getAppointmentPrice={getAppointmentPrice}
-            onSearchChange={setSearchTerm}
-            onSelectAppointment={handlePullAppointment}
-            onNewSession={() => startNewSession()}
-          />
-        )}
-
-        {/* ── STATE 2: Active session ── */}
-        {inSession && (
-          <Box sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-            {/* Fixed session header */}
-            {selectedClient ? (
-              <Paper
-                elevation={0}
-                sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", mb: 2, flexShrink: 0 }}
-              >
-                <POSSessionHeader
-                  client={selectedClient}
-                  clientPets={clientPets}
-                  onBack={endSession}
-                />
-
-                {/* Client dashboard info (pending, packages, upcoming) */}
-                <POSClientDashboard
-                  client={selectedClient}
-                  clientPets={clientPets}
-                  clientAppointments={clientAppointments}
-                  clientActivePackages={clientActivePackages}
-                  selectedAppointmentId={selectedAppointmentId}
-                  getAppointmentPrice={getAppointmentPrice}
-                  onPullAppointment={handlePullAppointment}
-                  onClearClient={endSession}
-                  hideHeader
-                />
-              </Paper>
-            ) : (
-              <Box sx={{ mb: 2, display: "flex", alignItems: "center", gap: 2 }}>
-                <Autocomplete
-                  options={clients}
-                  getOptionLabel={(option) => option.name}
-                  value={null}
-                  onChange={(_, newValue) => {
-                    if (newValue) {
-                      startNewSession(newValue.id);
-                    }
-                  }}
-                  sx={{ flex: 1 }}
-                  renderInput={(params) => (
-                    <TextField
-                      {...params}
-                      placeholder="Vincular cliente a esta venda..."
-                      variant="outlined"
-                      size="small"
-                      InputProps={{
-                        ...params.InputProps,
-                        startAdornment: (
-                          <InputAdornment position="start">
-                            <User size={18} style={{ opacity: 0.5 }} />
-                          </InputAdornment>
-                        ),
-                      }}
-                      sx={{
-                        "& .MuiOutlinedInput-root": {
-                          borderRadius: 2,
-                          bgcolor: "background.paper"
-                        },
-                      }}
-                    />
-                  )}
-                />
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  onClick={endSession}
-                  sx={{ fontWeight: 700, borderRadius: 2, borderColor: "divider", "&:hover": { borderColor: "primary.main" } }}
-                >
-                  CANCELAR
-                </Button>
+      <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0, overflowY: "hidden", height: "100%" }}>
+        
+        <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+          {selectedClient ? (
+            <Paper
+              elevation={0}
+              sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 2 }}
+            >
+              <POSSessionHeader
+                client={selectedClient}
+                clientPets={clientPets}
+                onBack={endSession}
+              />
+              <POSClientDashboard
+                client={selectedClient}
+                clientPets={clientPets}
+                clientAppointments={clientAppointments}
+                clientActivePackages={clientActivePackages}
+                selectedAppointmentId={selectedAppointmentId}
+                getAppointmentPrice={getAppointmentPrice}
+                onPullAppointment={handlePullAppointment}
+                onClearClient={endSession}
+                hideHeader
+              />
+            </Paper>
+          ) : (
+            <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: "1px dashed", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "background.paper", flexShrink: 0 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
+                <Box sx={{ width: 42, height: 42, borderRadius: "50%", bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04), display: "flex", alignItems: "center", justifyContent: "center", color: "text.primary" }}>
+                  <User size={20} />
+                </Box>
+                <Box>
+                  <Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary" }}>Cliente Avulso</Typography>
+                  <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.8, display: "block", mt: 0.2 }}>
+                    A seleção de cliente é opcional. Obrigatória apenas para venda de pacotes.
+                  </Typography>
+                </Box>
               </Box>
-            )}
+              <Button variant="outlined" size="small" onClick={() => setIsClientModalOpen(true)} sx={{ color: "text.primary", flexShrink: 0, ml: 2, "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) } }}>
+                Selecionar Cliente
+              </Button>
+            </Paper>
+          )}
 
-            {/* Catalog to add items to the ticket */}
+          {/* Catalog to add items to the ticket */}
+          <Box sx={{ flexGrow: 1, minHeight: 0 }}>
             <POSCatalogPanel
               activeTab={catalogTab}
               searchTerm={searchTerm}
@@ -513,6 +467,9 @@ export default function POSInterface() {
               products={filteredProducts}
               services={filteredServices as any}
               packages={filteredPackages as any}
+              appointments={filteredAppointments}
+              getAppointmentPrice={getAppointmentPrice}
+              onPullAppointment={handlePullAppointment}
               lowStockProducts={lowStockProducts}
               lowStockExpanded={lowStockExpanded}
               onTabChange={setCatalogTab}
@@ -522,15 +479,18 @@ export default function POSInterface() {
               onAddItem={handleAddItem}
             />
           </Box>
-        )}
+          </Box>
       </Box>
 
       {/* ── Right Column: Ticket (always visible) ── */}
       <Box
         sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
           maxHeight: "800px",
-          width: { lg: "400px", xs: "100%" },
-          minWidth: { lg: "360px", xs: "100%" },
+          width: { xl: "480px", lg: "440px", xs: "100%" },
+          minWidth: { xl: "420px", lg: "400px", xs: "100%" },
           flexShrink: 0,
         }}
       >
@@ -566,6 +526,79 @@ export default function POSInterface() {
           onSuccess={endSession}
         />
       )}
+
+      <Dialog open={isClientModalOpen} onClose={() => setIsClientModalOpen(false)} maxWidth="sm" fullWidth>
+        <DialogTitle sx={{ fontWeight: 800, pb: 1 }}>Vincular Cliente</DialogTitle>
+        <DialogContent sx={{ pt: 1, pb: 3, display: "flex", flexDirection: "column", gap: 1 }}>
+          <Typography variant="body2" color="text.primary" sx={{ mb: 2 }}>
+            A seleção de cliente é opcional. Obrigatória apenas para venda de pacotes.
+          </Typography>
+          <Autocomplete
+            options={clients}
+            filterOptions={(options, state) => {
+              const input = state.inputValue.toLowerCase();
+              return options
+                .filter((option) => {
+                  const clientPets = allPets.filter(p => p.client_id === option.id) || [];
+                  const matchName = option.name.toLowerCase().includes(input);
+                  const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
+                  return matchName || matchPet;
+                })
+                .slice(0, clientListLimit);
+            }}
+            getOptionLabel={(option) => option.name}
+            isOptionEqualToValue={(option, value) => option.id === value?.id}
+            renderOption={(props, option) => {
+              const clientPets = allPets.filter(p => p.client_id === option.id) || [];
+              const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
+              return (
+                <li {...props} key={option.id}>
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Typography variant="body2">{option.name}</Typography>
+                    <Typography variant="caption" color="text.primary">
+                      Pets: {petsText}
+                    </Typography>
+                  </Box>
+                </li>
+              );
+            }}
+            value={null}
+            onChange={(_, newValue) => {
+              if (newValue) startNewSession(newValue.id);
+            }}
+            onInputChange={(_, __, reason) => {
+              if (reason === "input") setClientListLimit(20);
+            }}
+            ListboxProps={{
+              onScroll: (event: React.SyntheticEvent) => {
+                const listboxNode = event.currentTarget;
+                if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                  setClientListLimit((prev) => prev + 20);
+                }
+              }
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                placeholder="Pesquisar cliente ou pet por nome..."
+                variant="outlined"
+                autoFocus
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <User size={18} style={{ opacity: 0.5 }} />
+                    </InputAdornment>
+                  ),
+                }}
+              />
+            )}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 2, pt: 0 }}>
+          <Button onClick={() => setIsClientModalOpen(false)}>Cancelar</Button>
+        </DialogActions>
+      </Dialog>
 
       {isPullDialogOpen && (
         <PullAppointmentDialog

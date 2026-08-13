@@ -65,7 +65,7 @@ const SummaryCard = ({
 
 export default function DashboardSummaryCards({ appointments, isFetching = false }: Props) {
   const { user } = useAuth();
-  const isOwner = user?.role === "owner";
+  const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin";
 
   const totalAppointments = appointments.length;
 
@@ -124,7 +124,7 @@ export default function DashboardSummaryCards({ appointments, isFetching = false
             bgColor="rgba(211, 47, 47, 0.1)"
           />
         </Grid>
-        {isOwner && (
+        {isOwnerOrAdmin && (
           <Grid size={{ xs: 12, sm: 6, lg: 3 }}>
             <SummaryCard
               icon={<DollarSign size={24} />}

@@ -17,6 +17,7 @@ import { toast } from "react-toastify";
 import { InventoryAdjustmentSchema, type InventoryAdjustment } from "./schemas";
 import { type Product } from "../products/types";
 import { Button } from "../../components/Button/Button";
+import { useState } from "react";
 
 type AdjustStockModalProps = {
   open: boolean;
@@ -30,6 +31,7 @@ export default function AdjustStockModal({
   product,
 }: AdjustStockModalProps) {
   const queryClient = useQueryClient();
+  const [productLimit, setProductLimit] = useState(20);
 
   const { data: products = [], isLoading: isLoadingProducts } = useQuery<Product[]>({
     queryKey: ["products"],
@@ -98,6 +100,23 @@ export default function AdjustStockModal({
                       {...field}
                       size="small"
                       options={products}
+                      filterOptions={(options, state) => {
+                        const input = state.inputValue.toLowerCase();
+                        return options.filter((option) =>
+                          option.name.toLowerCase().includes(input)
+                        ).slice(0, productLimit);
+                      }}
+                      onInputChange={(_, __, reason) => {
+                        if (reason === "input") setProductLimit(20);
+                      }}
+                      ListboxProps={{
+                        onScroll: (event: React.SyntheticEvent) => {
+                          const listboxNode = event.currentTarget;
+                          if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                            setProductLimit((prev) => prev + 20);
+                          }
+                        }
+                      }}
                       getOptionLabel={(option) =>
                         `${option.name} (Estoque: ${option.quantity})`
                       }

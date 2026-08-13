@@ -30,7 +30,7 @@ import { createPackage, updatePackage } from "../../api/services/packages";
 import { fetchServices } from "../../api/services/tenant_services";
 import { fetchProducts } from "../../api/services/products";
 import type { Package } from "./types";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import type { Service } from "../tenant_services/types";
 import type { Product } from "../products/types";
 import { packageSchema, type PackageFormData } from "./schemas";
@@ -72,6 +72,9 @@ export default function PackageForm({
       ],
     },
   });
+
+  const [serviceListLimit, setServiceListLimit] = useState(20);
+  const [productListLimit, setProductListLimit] = useState(20);
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -458,6 +461,25 @@ export default function PackageForm({
                             <Autocomplete
                               options={services}
                               size="small"
+                              filterOptions={(options, state) => {
+                                const input = state.inputValue.toLowerCase();
+                                return options.filter((option) =>
+                                  `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                                    .toLowerCase()
+                                    .includes(input)
+                                ).slice(0, serviceListLimit);
+                              }}
+                              onInputChange={(_, __, reason) => {
+                                if (reason === 'input') setServiceListLimit(20);
+                              }}
+                              ListboxProps={{
+                                onScroll: (event: React.SyntheticEvent) => {
+                                  const listboxNode = event.currentTarget;
+                                  if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                                    setServiceListLimit((prev) => prev + 20);
+                                  }
+                                }
+                              }}
                               value={
                                 services.find(
                                   (s) => s.id === serviceField.value,
@@ -607,6 +629,23 @@ export default function PackageForm({
                             <Autocomplete
                               options={products}
                               size="small"
+                              filterOptions={(options, state) => {
+                                const input = state.inputValue.toLowerCase();
+                                return options.filter((option) =>
+                                  option.name.toLowerCase().includes(input)
+                                ).slice(0, productListLimit);
+                              }}
+                              onInputChange={(_, __, reason) => {
+                                if (reason === 'input') setProductListLimit(20);
+                              }}
+                              ListboxProps={{
+                                onScroll: (event: React.SyntheticEvent) => {
+                                  const listboxNode = event.currentTarget;
+                                  if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                                    setProductListLimit((prev) => prev + 20);
+                                  }
+                                }
+                              }}
                               value={
                                 products.find(
                                   (p) => p.id === productField.value,

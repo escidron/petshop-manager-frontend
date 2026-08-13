@@ -82,8 +82,19 @@ export const assignAppointmentEmployees = async (
   return response.data;
 };
 
-export const getOpenInvoices = async (): Promise<Appointment[]> => {
-  const response = await apiClient.get<Appointment[]>("/api/v1/appointments/open-invoices");
+export interface PaginatedAppointmentsResponse {
+  items: Appointment[];
+  total: number;
+}
+
+export const getOpenInvoices = async (params?: { limit?: number, offset?: number, search?: string }): Promise<{ items: Appointment[], total: number }> => {
+  const response = await apiClient.get<{ items: Appointment[], total: number }>("/api/v1/appointments/open-invoices", {
+    params: {
+      limit: params?.limit,
+      offset: params?.offset,
+      search: params?.search || undefined,
+    }
+  });
   return response.data;
 };
 

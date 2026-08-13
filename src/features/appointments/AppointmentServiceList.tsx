@@ -20,6 +20,7 @@ const AppointmentServiceList = ({
   const { data: clientPackages = [] } = useQuery({
     queryKey: ["clientPackages", "client", appointment.client.id],
     queryFn: () => listClientPackagesByClient(appointment.client.id),
+    enabled: open,
   });
 
   // Calculate dynamic coverage per pet/service

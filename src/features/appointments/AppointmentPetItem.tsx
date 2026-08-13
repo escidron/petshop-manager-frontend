@@ -10,13 +10,12 @@ import {
 import { Button } from "../../components/Button/Button";
 import { Plus, Trash } from "lucide-react";
 import { Controller, type Control, type UseFormSetValue } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
 import type { Pet } from "../pets/types";
 import type { Service } from "../tenant_services/types";
 import type { AppointmentFormData } from "./types";
 import { getServicesForPet } from "../../utils/serviceMatcher";
 import { formatPrice, formatServiceLabel } from "../../utils/formatServiceLabel";
-import { listClientPackagesByPet } from "../../api/services/client_packages";
+import type { ClientPackage } from "../client_packages/types";
 
 type Props = {
   index: number;
@@ -27,6 +26,7 @@ type Props = {
   pets: Pet[];
   services: Service[];
   items: { pet_id: number; service_ids: number[] }[];
+  clientPackages: ClientPackage[];
   onCreatePet?: (index: number, clientId: number) => void;
   onCreateService?: (index: number) => void;
   onRemove: () => void;
@@ -42,11 +42,14 @@ export default function AppointmentPetItem({
   pets,
   services,
   items,
+  clientPackages,
   onCreatePet,
   onCreateService,
   onRemove,
   isOnlyPet,
 }: Props) {
+  const [petListLimit, setPetListLimit] = useState(20);
+  const [serviceListLimit, setServiceListLimit] = useState(20);
   const [showAllServices, setShowAllServices] = useState(false);
   const itemError = errors.items?.[index];
 
@@ -54,28 +57,56 @@ export default function AppointmentPetItem({
   const currentPetId = items[index]?.pet_id;
   const currentPet = pets?.find((p) => p.id === currentPetId);
 
-  // Fetch packages for the selected pet
-  const { data: petPackages = [] } = useQuery({
-    queryKey: ["clientPackages", "pet", currentPetId],
-    queryFn: () => listClientPackagesByPet(currentPetId!),
-    enabled: !!currentPetId,
-  });
-
-  // Calculate available packages and credits
+  // Calculate available packages and credits dynamically
   const packageCreditsByServiceId = useMemo(() => {
-    const map = new Map<number, number>();
-    petPackages.forEach((pkg) => {
-      // Only consider active unexpired packages
+    // 1. Initialize global available credits map: credit.id -> remaining_qty
+    const globalCredits = new Map<number, number>();
+    clientPackages.forEach((pkg) => {
       if (!pkg.is_active) return;
       pkg.credits.forEach((credit) => {
         if (credit.service_id && credit.remaining_qty > 0) {
-          const current = map.get(credit.service_id) || 0;
-          map.set(credit.service_id, current + credit.remaining_qty);
+          globalCredits.set(credit.id, credit.remaining_qty);
         }
       });
     });
+
+    // 2. Simulate consumption for all pets EXCEPT this one, up to the current index
+    for (let i = 0; i < index; i++) {
+      const prevItem = items[i];
+      if (!prevItem || !prevItem.pet_id) continue;
+      
+      const prevPetPkgs = clientPackages.filter((pkg) => pkg.is_active && pkg.pets.some((p) => p.id === prevItem.pet_id));
+      const prevServices = prevItem.service_ids || [];
+      
+      prevServices.forEach((serviceId) => {
+        for (const pkg of prevPetPkgs) {
+          const credit = pkg.credits.find((c) => c.service_id === serviceId && globalCredits.has(c.id) && globalCredits.get(c.id)! > 0);
+          if (credit) {
+            globalCredits.set(credit.id, globalCredits.get(credit.id)! - 1);
+            break; 
+          }
+        }
+      });
+    }
+
+    // 3. Sum up what's available for THIS pet
+    const map = new Map<number, number>();
+    const thisPetPkgs = clientPackages.filter((pkg) => pkg.is_active && pkg.pets.some((p) => p.id === currentPetId));
+    
+    thisPetPkgs.forEach((pkg) => {
+      pkg.credits.forEach((credit) => {
+        if (credit.service_id) {
+          const available = globalCredits.get(credit.id) || 0;
+          if (available > 0) {
+            const current = map.get(credit.service_id) || 0;
+            map.set(credit.service_id, current + available);
+          }
+        }
+      });
+    });
+    
     return map;
-  }, [petPackages]);
+  }, [clientPackages, items, index, currentPetId]);
 
   // Derived filtered services (matching size/coat type + prioritizing packages)
   const sortedAndFilteredServices = useMemo(() => {
@@ -129,11 +160,46 @@ export default function AppointmentPetItem({
               <Autocomplete<Pet>
                 sx={{ flex: 1 }}
                 options={availablePets}
+                filterOptions={(options, state) => {
+                  const input = state.inputValue.toLowerCase();
+                  return options
+                    .filter((option) => option.name.toLowerCase().includes(input))
+                    .slice(0, petListLimit);
+                }}
                 noOptionsText="Nenhum pet cadastrado"
                 size="small"
                 value={pets?.find((p) => p.id === field.value) ?? null}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(o, v) => o.id === v.id}
+                onInputChange={(_, __, reason) => {
+                  if (reason === 'input') setPetListLimit(20);
+                }}
+                ListboxProps={{
+                  onScroll: (event: React.SyntheticEvent) => {
+                    const listboxNode = event.currentTarget;
+                    if (
+                      listboxNode.scrollTop + listboxNode.clientHeight >=
+                      listboxNode.scrollHeight - 10
+                    ) {
+                      setPetListLimit((prev) => prev + 20);
+                    }
+                  }
+                }}
+                renderOption={(props, option) => {
+                  const sizeText = option.size ? `Porte ${option.size}` : null;
+                  const details = [option.breed, sizeText].filter(Boolean).join(" - ");
+                  
+                  return (
+                    <li {...props} key={option.id}>
+                      <Box sx={{ display: "flex", flexDirection: "column" }}>
+                        <Typography variant="body2" color="text.primary">{option.name}</Typography>
+                        <Typography variant="caption" color="text.primary">
+                          {details || "Sem raça"}
+                        </Typography>
+                      </Box>
+                    </li>
+                  );
+                }}
                 onChange={(_, value) => {
                   field.onChange(value?.id ?? 0);
                   setValue(`items.${index}.service_ids`, []);
@@ -186,7 +252,7 @@ export default function AppointmentPetItem({
                   `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
                     .toLowerCase()
                     .includes(input)
-                );
+                ).slice(0, serviceListLimit);
               }}
               disableCloseOnSelect
               size="small"
@@ -195,6 +261,20 @@ export default function AppointmentPetItem({
               }
               getOptionLabel={(option) => formatServiceLabel(option)}
               isOptionEqualToValue={(option, value) => option.id === value.id}
+              onInputChange={(_, __, reason) => {
+                if (reason === 'input') setServiceListLimit(20);
+              }}
+              ListboxProps={{
+                onScroll: (event: React.SyntheticEvent) => {
+                  const listboxNode = event.currentTarget;
+                  if (
+                    listboxNode.scrollTop + listboxNode.clientHeight >=
+                    listboxNode.scrollHeight - 10
+                  ) {
+                    setServiceListLimit((prev) => prev + 20);
+                  }
+                }
+              }}
               slotProps={{ paper: { sx: { width: "635px", maxWidth: "90vw" } } }}
               onChange={(_, value) => field.onChange(value.map((v) => v.id))}
               renderOption={(props, option, { selected }) => {

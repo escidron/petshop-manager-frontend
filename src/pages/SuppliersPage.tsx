@@ -13,7 +13,10 @@ import {
   Typography,
   LinearProgress,
   Skeleton,
+  TableFooter,
+  TablePagination,
 } from "@mui/material";
+import { TablePaginationActions } from "../components/TablePaginationActions";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
 import { useSuppliers } from "../hooks/useSuppliers";
@@ -37,6 +40,22 @@ export default function SuppliersPage() {
     undefined,
   );
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
+
+  const handleChangePage = (
+    _event: React.MouseEvent<HTMLButtonElement> | null,
+    newPage: number,
+  ) => setPage(newPage);
+
+  const handleChangeRowsPerPage = (
+    event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+  ) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
+    setPage(0);
+  };
+
 
   useEffect(() => {
     getSuppliers();
@@ -63,6 +82,13 @@ export default function SuppliersPage() {
       return nameMatch || cnpjMatch || s.cnpj?.toLowerCase().includes(term) || phone1Match || phone2Match || emailMatch;
     });
   }, [suppliers, search]);
+
+  const emptyRows =
+    page > 0 ? Math.max(0, (1 + page) * rowsPerPage - filteredRows.length) : 0;
+
+  useEffect(() => {
+    setPage(0);
+  }, [search, suppliers]);
 
   const handleDeleteClick = (supplier: Supplier) => {
     setSupplierToDelete(supplier);
@@ -212,7 +238,13 @@ export default function SuppliersPage() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filteredRows.map((row) => (
+            {(rowsPerPage > 0
+              ? filteredRows.slice(
+                  page * rowsPerPage,
+                  page * rowsPerPage + rowsPerPage,
+                )
+              : filteredRows
+            ).map((row) => (
               <TableRow key={row.id}>
                 <TableCell>{row.name}</TableCell>
                 <TableCell>{row.cnpj || "-"}</TableCell>
@@ -258,7 +290,32 @@ export default function SuppliersPage() {
                 </TableRow>
               ))
             )}
+            {emptyRows > 0 && (
+              <TableRow style={{ height: 53 * emptyRows }}>
+                <TableCell colSpan={6} />
+              </TableRow>
+            )}
           </TableBody>
+          <TableFooter>
+            <TableRow>
+              <TablePagination
+                rowsPerPageOptions={[5, 10, 25, { label: "All", value: -1 }]}
+                colSpan={6}
+                count={filteredRows.length}
+                rowsPerPage={rowsPerPage}
+                page={page}
+                onPageChange={handleChangePage}
+                onRowsPerPageChange={handleChangeRowsPerPage}
+                ActionsComponent={TablePaginationActions}
+                slotProps={{
+                  select: {
+                    inputProps: { "aria-label": "rows per page" },
+                    native: true,
+                  },
+                }}
+              />
+            </TableRow>
+          </TableFooter>
         </Table>
       </TableContainer>
 

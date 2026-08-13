@@ -6,9 +6,6 @@ import { useClients } from "../../../hooks/useClients";
 import { useServices } from "../../../hooks/useServices";
 import { useClient } from "../../../hooks/useClient";
 import WaitingListForm from "./WaitingListForm";
-import ClientFormModal from "../../clients/ClientFormModal";
-import PetFormModal from "../../pets/PetFormModal";
-import ServiceFormModal from "../../tenant_services/ServiceFormModal";
 import type { WaitingListFormData } from "./schemas";
 import type { WaitingListEntry } from "./types";
 
@@ -21,20 +18,16 @@ type Props = {
 
 export default function WaitingListModal({ open, onClose, onSuccess, initialEntry }: Props) {
   const { createEntry, updateEntry } = useWaitingList();
-  const { clients, getClients } = useClients();
-  const { services, getServices } = useServices();
+  const { clients } = useClients();
+  const { services } = useServices();
   
-  const { pets, setClientId, refetchPets } = useClient(initialEntry?.client_id);
-  const [currentClientId, setCurrentClientId] = useState<number | undefined>(initialEntry?.client_id);
+  const { pets, setClientId } = useClient(initialEntry?.client_id);
 
   const handleClientIdChange = (id: number) => {
     setClientId(id);
-    setCurrentClientId(id);
   };
 
-  const [clientModalOpen, setClientModalOpen] = useState(false);
-  const [petModalOpen, setPetModalOpen] = useState(false);
-  const [serviceModalOpen, setServiceModalOpen] = useState(false);
+
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -60,7 +53,7 @@ export default function WaitingListModal({ open, onClose, onSuccess, initialEntr
     <>
       <Dialog open={open} maxWidth="sm" fullWidth>
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography variant="h6">
+          <Typography variant="h6" component="div">
             {initialEntry ? "Editar Fila de Espera" : "Adicionar à Fila de Espera"}
           </Typography>
           <Box sx={{ cursor: "pointer" }} onClick={onClose}>
@@ -76,37 +69,9 @@ export default function WaitingListModal({ open, onClose, onSuccess, initialEntr
             onClientIdChange={handleClientIdChange}
             onSubmit={handleSubmit}
             isSubmitting={isSubmitting}
-            onCreateClient={() => setClientModalOpen(true)}
-            onCreatePet={() => setPetModalOpen(true)}
-            onCreateService={() => setServiceModalOpen(true)}
           />
         </DialogContent>
       </Dialog>
-
-      <ClientFormModal
-        open={clientModalOpen}
-        mode="create"
-        onClose={() => setClientModalOpen(false)}
-        onSuccess={async (client) => {
-          await getClients();
-          setClientId(client.id);
-        }}
-      />
-
-      <PetFormModal
-        open={petModalOpen}
-        mode="create"
-        client={clients.find(c => c.id === currentClientId)}
-        onClose={() => setPetModalOpen(false)}
-        onSuccess={refetchPets}
-      />
-
-      <ServiceFormModal
-        open={serviceModalOpen}
-        mode="create"
-        onClose={() => setServiceModalOpen(false)}
-        onSuccess={getServices}
-      />
     </>
   );
 }

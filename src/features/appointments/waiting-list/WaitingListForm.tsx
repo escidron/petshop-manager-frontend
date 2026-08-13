@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Autocomplete,
   Box,
@@ -7,6 +8,7 @@ import {
   TextField,
   MenuItem,
   Select,
+  Typography,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -24,6 +26,7 @@ import type { Service } from "../../tenant_services/types";
 import type { WaitingListEntry, WaitingListPeriod } from "./types";
 import WaitingListPetItem from "./WaitingListPetItem";
 import { useAuth } from "../../../hooks/useAuth";
+import { usePets } from "../../../hooks/usePets";
 
 type Props = {
   initialData?: WaitingListEntry;
@@ -33,9 +36,6 @@ type Props = {
   onClientIdChange: (id: number) => void;
   onSubmit: (data: WaitingListFormData) => void;
   isSubmitting: boolean;
-  onCreateClient: () => void;
-  onCreatePet: () => void;
-  onCreateService: () => void;
 };
 
 export default function WaitingListForm({
@@ -46,11 +46,10 @@ export default function WaitingListForm({
   onClientIdChange,
   onSubmit,
   isSubmitting,
-  onCreateClient,
-  onCreatePet,
-  onCreateService,
 }: Props) {
   const { tenant } = useAuth();
+  const [clientListLimit, setClientListLimit] = useState(20);
+  const { pets: allPets } = usePets();
   const workingHours = tenant?.working_hours ?? null;
   const {
     control,
@@ -91,10 +90,50 @@ export default function WaitingListForm({
               <Autocomplete<Client>
                 sx={{ flex: 1 }}
                 options={clients}
+                filterOptions={(options, state) => {
+                  const input = state.inputValue.toLowerCase();
+                  return options
+                    .filter((option) => {
+                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                      const matchName = option.name.toLowerCase().includes(input);
+                      const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
+                      return matchName || matchPet;
+                    })
+                    .slice(0, clientListLimit);
+                }}
                 size="small"
                 noOptionsText="Nenhum cliente cadastrado"
                 value={clients.find((c) => c.id === field.value) || null}
                 getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) => option.id === value?.id}
+                onInputChange={(_, __, reason) => {
+                  if (reason === 'input') setClientListLimit(20);
+                }}
+                ListboxProps={{
+                  onScroll: (event: React.SyntheticEvent) => {
+                    const listboxNode = event.currentTarget;
+                    if (
+                      listboxNode.scrollTop + listboxNode.clientHeight >=
+                      listboxNode.scrollHeight - 10
+                    ) {
+                      setClientListLimit((prev) => prev + 20);
+                    }
+                  }
+                }}
+                renderOption={(props, option) => {
+                  const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                  const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
+                  return (
+                    <li {...props} key={option.id}>
+                      <Box sx={{ display: "flex", flexDirection: "column" }}>
+                        <Typography variant="body2">{option.name}</Typography>
+                        <Typography variant="caption" color="text.primary">
+                          Pets: {petsText}
+                        </Typography>
+                      </Box>
+                    </li>
+                  );
+                }}
                 onChange={(_, value) => {
                   const id = value?.id || 0;
                   field.onChange(id);
@@ -112,14 +151,6 @@ export default function WaitingListForm({
               />
             )}
           />
-          <Button 
-            variant="outlined" 
-            startIcon={<Plus size={16} />} 
-            onClick={onCreateClient} 
-            sx={{ minWidth: "140px", height: "40px" }}
-          >
-            Criar Cliente
-          </Button>
         </Box>
       </FormControl>
 
@@ -136,8 +167,6 @@ export default function WaitingListForm({
             pets={pets}
             services={services}
             items={watchedItems}
-            onCreatePet={onCreatePet}
-            onCreateService={onCreateService}
             onRemove={() => remove(index)}
             isOnlyPet={fields.length <= 1}
           />

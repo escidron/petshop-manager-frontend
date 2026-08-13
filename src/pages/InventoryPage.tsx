@@ -14,9 +14,10 @@ import {
   CircularProgress,
   TextField,
   InputAdornment,
+  TablePagination,
 } from "@mui/material";
 import { Plus, AlertTriangle, Search } from "lucide-react";
-import { useState } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import {
   fetchProducts,
@@ -46,6 +47,8 @@ function TabPanel(props: {
         height: "100%",
         flexGrow: value === index ? 1 : 0,
         overflow: "hidden",
+        display: value === index ? "flex" : "none",
+        flexDirection: "column",
       }}
     >
       {value === index && (
@@ -55,6 +58,7 @@ function TabPanel(props: {
             height: "100%",
             display: "flex",
             flexDirection: "column",
+            minHeight: 0,
           }}
         >
           {children}
@@ -70,6 +74,16 @@ export default function InventoryPage() {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [stockSearch, setStockSearch] = useState("");
 
+  const [productPage, setProductPage] = useState(0);
+  const [productRowsPerPage, setProductRowsPerPage] = useState(15);
+  const [logPage, setLogPage] = useState(0);
+  const [logRowsPerPage, setLogRowsPerPage] = useState(15);
+
+  // Reset page when search changes
+  useEffect(() => {
+    setProductPage(0);
+  }, [stockSearch]);
+
   // Queries
   const { data: productsData, isLoading: loadingProducts } = useQuery({
     queryKey: ["products"],
@@ -82,6 +96,26 @@ export default function InventoryPage() {
     queryFn: () => fetchGlobalInventoryLogs(),
   });
   const logs: InventoryLog[] = logsData || [];
+
+  const filteredProducts = useMemo(() => {
+    return [...products]
+      .filter((p) => p.name.toLowerCase().includes(stockSearch.toLowerCase()))
+      .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
+  }, [products, stockSearch]);
+
+  const paginatedProducts = useMemo(() => {
+    return filteredProducts.slice(
+      productPage * productRowsPerPage,
+      productPage * productRowsPerPage + productRowsPerPage
+    );
+  }, [filteredProducts, productPage, productRowsPerPage]);
+
+  const paginatedLogs = useMemo(() => {
+    return logs.slice(
+      logPage * logRowsPerPage,
+      logPage * logRowsPerPage + logRowsPerPage
+    );
+  }, [logs, logPage, logRowsPerPage]);
 
   const handleOpenAdjust = (product?: Product) => {
     setSelectedProduct(product || null);
@@ -183,7 +217,8 @@ export default function InventoryPage() {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer sx={{ flexGrow: 1 }}>
+            <>
+              <TableContainer sx={{ flexGrow: 1 }}>
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
@@ -195,12 +230,7 @@ export default function InventoryPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {[...products]
-                    .filter((p) =>
-                      p.name.toLowerCase().includes(stockSearch.toLowerCase()),
-                    )
-                    .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"))
-                    .map((product: Product) => {
+                  {paginatedProducts.map((product: Product) => {
                     const isLow = product.quantity <= (product.min_stock || 0);
                     return (
                       <TableRow key={product.id}>
@@ -248,7 +278,7 @@ export default function InventoryPage() {
                     );
                   })}
 
-                  {products.length === 0 && (
+                  {filteredProducts.length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
                         <Typography color="text.primary">
@@ -260,6 +290,20 @@ export default function InventoryPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={filteredProducts.length}
+              page={productPage}
+              onPageChange={(_, newPage) => setProductPage(newPage)}
+              rowsPerPage={productRowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setProductRowsPerPage(parseInt(e.target.value, 10));
+                setProductPage(0);
+              }}
+              labelRowsPerPage="Linhas por página:"
+              labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais que ${to}`}`}
+            />
+          </>
           )}
         </TabPanel>
 
@@ -270,7 +314,8 @@ export default function InventoryPage() {
               <CircularProgress />
             </Box>
           ) : (
-            <TableContainer sx={{ flexGrow: 1 }}>
+            <>
+              <TableContainer sx={{ flexGrow: 1 }}>
               <Table stickyHeader>
                 <TableHead>
                   <TableRow>
@@ -282,7 +327,7 @@ export default function InventoryPage() {
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {logs.map((log: InventoryLog) => (
+                  {paginatedLogs.map((log: InventoryLog) => (
                     <TableRow key={log.id}>
                       <TableCell>
                         {dayjs(log.created_at).format("DD/MM/YYYY HH:mm")}
@@ -322,6 +367,20 @@ export default function InventoryPage() {
                 </TableBody>
               </Table>
             </TableContainer>
+            <TablePagination
+              component="div"
+              count={logs.length}
+              page={logPage}
+              onPageChange={(_, newPage) => setLogPage(newPage)}
+              rowsPerPage={logRowsPerPage}
+              onRowsPerPageChange={(e) => {
+                setLogRowsPerPage(parseInt(e.target.value, 10));
+                setLogPage(0);
+              }}
+              labelRowsPerPage="Linhas por página:"
+              labelDisplayedRows={({ from, to, count }) => `${from}–${to} de ${count !== -1 ? count : `mais que ${to}`}`}
+            />
+          </>
           )}
         </TabPanel>
       </Paper>

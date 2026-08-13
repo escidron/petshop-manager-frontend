@@ -98,6 +98,7 @@ export default function CommissionReportPage({
   const [entries, setEntries] = useState<CommissionEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [employeeLimit, setEmployeeLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
   const [filterEmployee, setFilterEmployee] = useState<string>("");
@@ -266,7 +267,32 @@ export default function CommissionReportPage({
             size="small"
             sx={{ minWidth: 220 }}
             options={employees}
+            filterOptions={(options, state) => {
+              const input = state.inputValue.toLowerCase();
+              return options.filter((option) =>
+                option.name.toLowerCase().includes(input)
+              ).slice(0, employeeLimit);
+            }}
+            onInputChange={(_, __, reason) => {
+              if (reason === "input") setEmployeeLimit(20);
+            }}
+            ListboxProps={{
+              onScroll: (event: React.SyntheticEvent) => {
+                const listboxNode = event.currentTarget;
+                if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                  setEmployeeLimit((prev) => prev + 20);
+                }
+              }
+            }}
             getOptionLabel={(option) => option.name}
+            renderOption={(props, option) => {
+              const { key, ...restProps } = props as any;
+              return (
+                <li key={option.id} {...restProps}>
+                  {option.name}
+                </li>
+              );
+            }}
             isOptionEqualToValue={(option, value) =>
               String(option.id) === String(value.id)
             }

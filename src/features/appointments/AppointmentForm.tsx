@@ -33,6 +33,9 @@ import "dayjs/locale/pt-br";
 import theme from "../../theme";
 import AppointmentPetItem from "./AppointmentPetItem";
 import { useAuth } from "../../hooks/useAuth";
+import { usePets } from "../../hooks/usePets";
+import { useQuery } from "@tanstack/react-query";
+import { listClientPackagesByClient } from "../../api/services/client_packages";
 dayjs.locale("pt-br");
 
 type Props = {
@@ -77,7 +80,11 @@ export default function AppointmentForm({
   loadedClientId,
 }: Props) {
   const { tenant } = useAuth();
+  const { pets: allPets } = usePets();
   const workingHours = tenant?.working_hours ?? null;
+
+
+  const [clientListLimit, setClientListLimit] = useState(20);
 
   const [scheduledDate, setScheduledDate] = useState<dayjs.Dayjs | null>(
     defaultValues?.scheduled_at
@@ -116,6 +123,12 @@ export default function AppointmentForm({
   const items = useWatch({ control, name: "items" });
   const watchedClientId = useWatch({ control, name: "client_id" });
   const { fields, append, remove, replace } = useFieldArray({ control, name: "items" });
+
+  const { data: clientPackages = [] } = useQuery({
+    queryKey: ["clientPackages", "client", watchedClientId],
+    queryFn: () => listClientPackagesByClient(watchedClientId!),
+    enabled: !!watchedClientId,
+  });
 
   const populatedClientIdRef = useRef<number | undefined>(defaultValues?.client_id);
 
@@ -438,6 +451,17 @@ export default function AppointmentForm({
               <Autocomplete<Client>
                 sx={{ flex: 1 }}
                 options={clients ?? []}
+                filterOptions={(options, state) => {
+                  const input = state.inputValue.toLowerCase();
+                  return options
+                    .filter((option) => {
+                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                      const matchName = option.name.toLowerCase().includes(input);
+                      const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
+                      return matchName || matchPet;
+                    })
+                    .slice(0, clientListLimit);
+                }}
                 noOptionsText="Nenhum cliente cadastrado"
                 size="small"
                 value={
@@ -447,6 +471,34 @@ export default function AppointmentForm({
                 }
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, value) => option.id === value.id}
+                onInputChange={(_, __, reason) => {
+                  if (reason === 'input') setClientListLimit(20);
+                }}
+                ListboxProps={{
+                  onScroll: (event: React.SyntheticEvent) => {
+                    const listboxNode = event.currentTarget;
+                    if (
+                      listboxNode.scrollTop + listboxNode.clientHeight >=
+                      listboxNode.scrollHeight - 10
+                    ) {
+                      setClientListLimit((prev) => prev + 20);
+                    }
+                  }
+                }}
+                renderOption={(props, option) => {
+                  const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                  const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
+                  return (
+                    <li {...props} key={option.id}>
+                      <Box sx={{ display: "flex", flexDirection: "column" }}>
+                        <Typography variant="body2">{option.name}</Typography>
+                        <Typography variant="caption" color="text.primary">
+                          Pets: {petsText}
+                        </Typography>
+                      </Box>
+                    </li>
+                  );
+                }}
                 onChange={(_, value) => {
                   const clientId = value?.id ?? 0;
                   field.onChange(clientId);
@@ -492,10 +544,11 @@ export default function AppointmentForm({
             pets={pets ?? []}
             services={services ?? []}
             items={items}
+            clientPackages={clientPackages}
             onCreatePet={onCreatePet}
             onCreateService={onCreateService}
             onRemove={() => remove(index)}
-            isOnlyPet={fields.length <= 1}
+            isOnlyPet={fields.length === 1}
           />
         ))}
 

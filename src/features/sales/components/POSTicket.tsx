@@ -248,7 +248,7 @@ export default function POSTicket({
           >
             {clientMode ? <Eye size={14} /> : <EyeOff size={14} />}
             <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", whiteSpace: "nowrap" }}>
-              {clientMode ? "Cliente" : "Cliente"}
+              Vista do Cliente
             </Typography>
             <Switch
               size="small"

@@ -250,34 +250,7 @@ const ProductForm = ({
               </FormControl>
             </Box>
 
-            <Box sx={{ display: "flex", gap: 2 }}>
-              <FormControl fullWidth>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Código de Barras</FormLabel>
-                  <Typography 
-                    variant="caption" 
-                    color="primary" 
-                    sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
-                    onClick={() => formObj.setValue("barcode", "SEM GTIN", { shouldValidate: true })}
-                  >
-                    Não possui?
-                  </Typography>
-                </Box>
-                <Controller
-                  name="barcode"
-                  control={control}
-                  render={({ field, fieldState }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 7891020304050" inputProps={{ maxLength: 100 }} error={!!fieldState.error} helperText={fieldState.error?.message} />}
-                />
-              </FormControl>
-              <FormControl fullWidth>
-                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>NCM</FormLabel>
-                <Controller
-                  name="ncm"
-                  control={control}
-                  render={({ field, fieldState }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="00000000" inputProps={{ maxLength: 8 }} error={!!fieldState.error} helperText={fieldState.error?.message} />}
-                />
-              </FormControl>
-            </Box>
+
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <FormControl fullWidth>
@@ -472,8 +445,34 @@ const ProductForm = ({
                 </FormControl>
               </Box>
               
-
-
+              <Box sx={{ display: "flex", gap: 2 }}>
+                <FormControl fullWidth>
+                  <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Código de Barras</FormLabel>
+                    <Typography 
+                      variant="caption" 
+                      color="primary" 
+                      sx={{ cursor: "pointer", "&:hover": { textDecoration: "underline" } }}
+                      onClick={() => formObj.setValue("barcode", "SEM GTIN", { shouldValidate: true })}
+                    >
+                      Não possui?
+                    </Typography>
+                  </Box>
+                  <Controller
+                    name="barcode"
+                    control={control}
+                    render={({ field, fieldState }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="Ex: 7891020304050" inputProps={{ maxLength: 100 }} error={!!fieldState.error} helperText={fieldState.error?.message} />}
+                  />
+                </FormControl>
+                <FormControl fullWidth>
+                  <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>NCM</FormLabel>
+                  <Controller
+                    name="ncm"
+                    control={control}
+                    render={({ field, fieldState }) => <CustomTextField {...field} value={field.value ?? ""} placeholder="00000000" inputProps={{ maxLength: 8 }} error={!!fieldState.error} helperText={fieldState.error?.message} />}
+                  />
+                </FormControl>
+              </Box>
               <Box sx={{ display: "flex", gap: 2 }}>
                 <FormControl fullWidth>
                   <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>CEST</FormLabel>

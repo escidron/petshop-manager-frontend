@@ -19,22 +19,34 @@ import "dayjs/locale/pt-br";
 dayjs.extend(relativeTime);
 dayjs.locale("pt-br");
 
+import useDebounce from "../../hooks/useDebounce";
+import { TextField, InputAdornment } from "@mui/material";
+import { Search } from "lucide-react";
+import OpenInvoicesModal from "./OpenInvoicesModal";
+
 export default function OpenInvoices() {
   const navigate = useNavigate();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearch = useDebounce(searchTerm, 300);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: appointments = [], isLoading: isLoadingApts, refetch: refetchApts } = useQuery({
-    queryKey: ["open-invoices"],
-    queryFn: getOpenInvoices,
+  const { data: appointmentsData, isLoading: isLoadingApts, refetch: refetchApts } = useQuery({
+    queryKey: ["open-invoices", { limit: 15, search: debouncedSearch }],
+    queryFn: () => getOpenInvoices({ limit: 15, search: debouncedSearch }),
     refetchInterval: 60_000, // refresh every minute
   });
 
-  const { data: unpaidPkgs = [], isLoading: isLoadingPkgs } = useQuery({
-    queryKey: ["unpaid-packages"],
-    queryFn: listUnpaidPackages,
+  const { data: unpaidPkgsData, isLoading: isLoadingPkgs } = useQuery({
+    queryKey: ["unpaid-packages", { limit: 15, search: debouncedSearch }],
+    queryFn: () => listUnpaidPackages({ limit: 15, search: debouncedSearch }),
     refetchInterval: 60_000,
   });
+
+  const appointments = appointmentsData?.items || [];
+  const unpaidPkgs = unpaidPkgsData?.items || [];
+  const totalInvoices = (appointmentsData?.total || 0) + (unpaidPkgsData?.total || 0);
 
   const { data: allPackages = [], isLoading: isLoadingAllPkgs } = useQuery({
     queryKey: ["packages"],
@@ -47,7 +59,7 @@ export default function OpenInvoices() {
     const arr: Array<{ type: "appointment" | "package", data: Appointment | ClientPackage, date: string }> = [];
     appointments.forEach((apt) => arr.push({ type: "appointment", data: apt, date: apt.scheduled_at }));
     unpaidPkgs.forEach((pkg) => arr.push({ type: "package", data: pkg, date: pkg.created_at }));
-    return arr.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+    return arr.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()).slice(0, 15);
   }, [appointments, unpaidPkgs]);
 
   const handleAction = async (appointment: Appointment, action: AppointmentAction) => {
@@ -71,15 +83,31 @@ export default function OpenInvoices() {
             Comandas em Aberto
           </Typography>
         </Box>
-        {!isLoading && invoices.length > 0 && (
+        {!isLoading && totalInvoices > 0 && (
           <Chip
-            label={invoices.length}
+            label={totalInvoices}
             color="warning"
             size="small"
             sx={{ fontWeight: 700, minWidth: 28 }}
           />
         )}
       </Box>
+
+      <TextField
+        placeholder="Buscar cliente ou pet..."
+        size="small"
+        fullWidth
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        sx={{ mb: 2 }}
+        InputProps={{
+          startAdornment: (
+            <InputAdornment position="start">
+              <Search size={18} color="#9aa0a6" />
+            </InputAdornment>
+          ),
+        }}
+      />
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
         {isLoading ? (
@@ -210,6 +238,27 @@ export default function OpenInvoices() {
             );
           })
         )}
+
+        {!isLoading && invoices.length > 0 && totalInvoices > invoices.length && (
+          <Box
+            onClick={() => setIsModalOpen(true)}
+            sx={{
+              p: 1.5,
+              mt: 1,
+              textAlign: "center",
+              bgcolor: "grey.100",
+              color: "primary.main",
+              borderRadius: 1,
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              cursor: "pointer",
+              transition: "background-color 0.2s",
+              "&:hover": { bgcolor: "grey.200" },
+            }}
+          >
+            Ver todas as {totalInvoices} comandas
+          </Box>
+        )}
       </Box>
 
       {selectedAppointment && (
@@ -220,6 +269,13 @@ export default function OpenInvoices() {
           handleAction={handleAction}
           loadingAction={loadingAction}
           onEdit={() => {}} // read-only from here
+        />
+      )}
+
+      {isModalOpen && (
+        <OpenInvoicesModal
+          open={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
       )}
     </Box>
