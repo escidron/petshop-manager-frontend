@@ -11,7 +11,7 @@ import AppointmentServiceList from "./AppointmentServiceList";
 import { Info, ShoppingBag } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import AppointmentObservationList from "./AppointmentObservationList";
-import { useQuery } from "@tanstack/react-query";
+
 
 type Props = {
   appointment: Appointment;
