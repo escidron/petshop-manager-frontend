@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
   Box,
   Typography,
@@ -20,6 +20,7 @@ import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../sales/schemas";
 import type { ClientPackage } from "../client_packages/types";
 import { APPOINTMENT_STATUS_LABEL } from "../../api/services/appointments";
+import { useQuery } from "@tanstack/react-query";
 type Props = {
   clientId: number;
   refreshTrigger?: number;
@@ -47,34 +48,26 @@ function CustomTabPanel(props: TabPanelProps) {
   );
 }
 
-export default function ClientHistory({ clientId, refreshTrigger = 0 }: Props) {
+export default function ClientHistory({ clientId }: Props) {
   const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [sales, setSales] = useState<SaleResponse[]>([]);
-  const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        setLoading(true);
-        const [appts, sls, pkgs] = await Promise.all([
-          listAppointmentsByClient(clientId),
-          listSales(undefined, undefined, clientId),
-          listClientPackagesByClient(clientId),
-        ]);
-        setAppointments(appts);
-        setSales(sls);
-        setClientPackages(pkgs);
-      } catch (error) {
-        console.error("Error fetching client history:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { data: appointments = [], isLoading: loadingAppts } = useQuery<Appointment[]>({
+    queryKey: ["appointments", "client", clientId],
+    queryFn: () => listAppointmentsByClient(clientId),
+  });
 
-    fetchData();
-  }, [clientId, refreshTrigger]);
+  const { data: sales = [], isLoading: loadingSales } = useQuery<SaleResponse[]>({
+    queryKey: ["sales", "client", clientId],
+    queryFn: () => listSales(undefined, undefined, clientId),
+  });
+
+  // Shares cache with ClientDetailsPage — no double fetch!
+  const { data: clientPackages = [], isLoading: loadingPkgs } = useQuery<ClientPackage[]>({
+    queryKey: ["clientPackages", clientId],
+    queryFn: () => listClientPackagesByClient(clientId),
+  });
+
+  const loading = loadingAppts || loadingSales || loadingPkgs;
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
