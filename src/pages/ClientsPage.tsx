@@ -10,7 +10,6 @@ import { deleteClient } from "../api/services/clients";
 import PetFormModal from "../features/pets/PetFormModal";
 import type { Client } from "../features/clients/types";
 import type { Pet } from "../features/pets/types";
-import { usePets } from "../hooks/usePets";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
 import { useQueryClient } from "@tanstack/react-query";
@@ -26,7 +25,6 @@ export default function ClientsPage() {
   const [activeJobId, setActiveJobId] = useState<string | null>(null);
 
   const [clientToDelete, setClientToDelete] = useState<Client | null>(null);
-  const { getPets } = usePets();
   const [clientModal, setClientModal] = useState<{
     open: boolean;
     mode: "create" | "edit";
@@ -143,7 +141,7 @@ export default function ClientsPage() {
         client={clientModal.client}
         onClose={() => setPetModal({ open: false, mode: "create" })}
         onSuccess={async () => {
-          await getPets();
+          queryClient.invalidateQueries({ queryKey: ["pets"] });
           setPetModal({ open: false, mode: "create" });
         }}
       />
