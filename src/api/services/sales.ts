@@ -1,5 +1,5 @@
 import apiClient from "../apiClient";
-import type { SaleCreate, SaleResponse } from "../../features/sales/schemas";
+import type { SaleCreate, SaleResponse, POSStartupResponse, POSClientDetailsResponse } from "../../features/sales/schemas";
 
 export const createSale = async (data: SaleCreate): Promise<SaleResponse> => {
   const response = await apiClient.post<SaleResponse>("/api/v1/sales/", data);
@@ -26,5 +26,15 @@ export const cancelSale = async (saleId: number): Promise<SaleResponse> => {
   const response = await apiClient.post<SaleResponse>(
     `/api/v1/sales/${saleId}/cancel`,
   );
+  return response.data;
+};
+
+export const fetchPOSStartup = async (): Promise<POSStartupResponse> => {
+  const response = await apiClient.get<POSStartupResponse>("/api/v1/sales/pos-startup");
+  return response.data;
+};
+
+export const fetchPOSClientDetails = async (clientId: number): Promise<POSClientDetailsResponse> => {
+  const response = await apiClient.get<POSClientDetailsResponse>(`/api/v1/sales/pos-client/${clientId}`);
   return response.data;
 };
