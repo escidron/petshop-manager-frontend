@@ -158,6 +158,18 @@ export default function ClientsTable({
                 Telefone
               </TableCell>
               <TableCell
+                align="left"
+                sx={{
+                  backgroundColor: "secondary.main",
+                  fontWeight: 600,
+                  color: "text.primary",
+                  py: 1.25,
+                  fontSize: "0.875rem",
+                }}
+              >
+                Pets
+              </TableCell>
+              <TableCell
                 align="right"
                 sx={{
                   backgroundColor: "secondary.main",
@@ -189,6 +201,7 @@ export default function ClientsTable({
                 <TableRow key={`skeleton-${i}`}>
                   <TableCell><Skeleton variant="text" /></TableCell>
                   <TableCell><Skeleton variant="text" /></TableCell>
+                  <TableCell><Skeleton variant="text" width={120} /></TableCell>
                   <TableCell align="right"><Skeleton variant="rectangular" width={60} height={20} sx={{ borderRadius: 1, display: "inline-block" }} /></TableCell>
                   <TableCell align="right"><Skeleton variant="rectangular" width={60} height={24} sx={{ display: "inline-block" }} /></TableCell>
                 </TableRow>
@@ -214,6 +227,12 @@ export default function ClientsTable({
                 </TableCell>
                 <TableCell align="left">
                   {row.phone ? maskPhone(row.phone) : "-"}
+                </TableCell>
+                <TableCell align="left" sx={{ color: "text.primary", fontSize: "0.8rem", maxWidth: 220 }}>
+                  {row.pet_names && row.pet_names.length > 0
+                    ? row.pet_names.join(", ")
+                    : <Typography variant="caption" color="text.disabled">—</Typography>
+                  }
                 </TableCell>
                 <TableCell align="right">
                   <Chip
@@ -264,12 +283,12 @@ export default function ClientsTable({
             )))}
             {emptyRows > 0 && (
               <TableRow style={{ height: 53 * emptyRows }}>
-                <TableCell colSpan={4} />
+                <TableCell colSpan={5} />
               </TableRow>
             )}
             {!loading && rows.length === 0 && (
               <TableRow>
-                <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
                   <Typography color="text.disabled" variant="body1">
                     Nenhum cliente cadastrado ainda.
                   </Typography>
@@ -281,7 +300,7 @@ export default function ClientsTable({
             <TableRow>
               <TablePagination
                 rowsPerPageOptions={[5, 10, 25, { label: "All", value: -1 }]}
-                colSpan={4}
+                colSpan={5}
                 count={rows.length}
                 rowsPerPage={rowsPerPage}
                 page={page}

@@ -52,10 +52,16 @@ type Props = {
 
 const TARGET_CLIENT_FIELDS = [
   { key: "cliente_nome", label: "Nome do Cliente", required: true },
-  { key: "cliente_telefone", label: "Telefone do Cliente", required: true },
+  { key: "cliente_telefone", label: "Telefone Principal", required: true },
   { key: "cliente_email", label: "E-mail do Cliente" },
   { key: "cliente_documento", label: "CPF / CNPJ do Cliente" },
   { key: "cliente_data_nascimento", label: "Data de Nascimento" },
+  { key: "cliente_telefone_2", label: "Telefone 2 (Secundário)" },
+  { key: "cliente_nome_contato_2", label: "Nome do Contato 2 (ex: Esposa)" },
+  { key: "cliente_telefone_3", label: "Telefone 3 (Terciário)" },
+  { key: "cliente_nome_contato_3", label: "Nome do Contato 3" },
+  { key: "cliente_instagram", label: "Instagram" },
+  { key: "cliente_facebook", label: "Facebook" },
   { key: "cliente_cep", label: "CEP do Endereço" },
   { key: "cliente_logradouro", label: "Rua / Logradouro" },
   { key: "cliente_numero", label: "Número" },
@@ -74,36 +80,50 @@ const TARGET_PET_FIELDS = [
   { key: "pet_tipo_pelagem", label: "Pelagem (Curta, Média, Longa)" },
   { key: "pet_cor_pelagem", label: "Cor da Pelagem" },
   { key: "pet_castrado", label: "Castrado (Sim, Não)" },
+  { key: "pet_obito", label: "Falecido / Óbito (0=Não, 1=Sim)" },
   { key: "pet_data_nascimento", label: "Data de Nasc. do Pet" },
   { key: "pet_idade_aproximada", label: "Idade Aproximada" },
+  { key: "pet_unidade_idade", label: "Unidade da Idade (Meses/Anos)" },
   { key: "pet_observacoes", label: "Observações do Pet" },
 ];
 
 // Dictionary of keywords to smartly match competitor column names to system fields
 const KEYWORD_MAP: Record<string, string[]> = {
-  cliente_nome: ["nome", "razao", "razão", "cliente", "tutor", "proprietario", "proprietário", "dono"],
-  cliente_telefone: ["tel", "telefone", "celular", "cel", "phone", "contato", "fone", "whatsapp"],
-  cliente_email: ["email", "e-mail", "mail"],
-  cliente_documento: ["cpf", "cnpj", "doc", "documento"],
-  cliente_data_nascimento: ["nasc", "nascimento", "aniversario", "aniversário"],
-  cliente_cep: ["cep", "zip"],
-  cliente_logradouro: ["rua", "logradouro", "endereco", "endereço", "end"],
-  cliente_numero: ["nº", "numero", "número", "num"],
-  cliente_complemento: ["compl", "complemento"],
-  cliente_bairro: ["bairro"],
-  cliente_cidade: ["cidade", "municipio", "município"],
-  cliente_estado: ["uf", "estado"],
-  pet_nome: ["animal", "pet", "bicho", "nome do animal", "nome pet", "nome do pet"],
-  pet_especie: ["especie", "espécie", "tipo animal", "especie animal"],
-  pet_raca: ["raça", "raca"],
-  pet_genero: ["genero", "gênero", "sexo"],
-  pet_porte: ["porte", "tamanho"],
-  pet_tipo_pelagem: ["pelagem", "pelo"],
-  pet_cor_pelagem: ["cor", "pelagem cor"],
-  pet_castrado: ["castrado", "castrada", "castra"],
-  pet_data_nascimento: ["nasc pet", "data pet"],
-  pet_idade_aproximada: ["idade"],
-  pet_observacoes: ["obs", "observacao", "observação", "observacoes", "observações"],
+  cliente_nome: ["nome", "razao", "razão", "cliente", "tutor", "proprietario", "proprietário", "dono", "razão social"],
+  cliente_telefone: ["tel1", "tel 1", "telefone 1", "celular 1", "cel1", "fone1", "fone 1", "whatsapp", "telefone principal", "celular principal", "tel/cel"],
+  cliente_email: ["email", "e-mail", "mail", "e-mail principal", "email principal"],
+  cliente_documento: ["cpf", "cnpj", "doc", "documento", "cpf/cnpj", "doc cpf/cnpj"],
+  cliente_data_nascimento: ["nasc", "nascimento", "aniversario", "aniversário", "data nasc", "dt nasc"],
+  // Telefones extras
+  cliente_telefone_2: ["tel2", "tel 2", "telefone 2", "celular 2", "cel2", "fone2", "fone 2", "telefone secundario", "whatsapp 2", "contato 2"],
+  cliente_nome_contato_2: ["contato2", "nome contato 2", "responsavel 2", "nome tel 2", "contato secundario"],
+  cliente_telefone_3: ["tel3", "tel 3", "telefone 3", "celular 3", "cel3", "fone3", "fone 3", "contato 3"],
+  cliente_nome_contato_3: ["contato3", "nome contato 3", "responsavel 3", "nome tel 3"],
+  // Redes sociais
+  cliente_instagram: ["instagram", "insta", "@instagram"],
+  cliente_facebook: ["facebook", "fb", "face"],
+  // Endereço
+  cliente_cep: ["cep", "zip", "cod postal", "código postal"],
+  cliente_logradouro: ["rua", "logradouro", "endereco", "endereço", "end", "lograd"],
+  cliente_numero: ["nº", "numero", "número", "num", "n°"],
+  cliente_complemento: ["compl", "complemento", "apto", "apartamento"],
+  cliente_bairro: ["bairro", "district"],
+  cliente_cidade: ["cidade", "municipio", "município", "city"],
+  cliente_estado: ["uf", "estado", "state"],
+  // Pet
+  pet_nome: ["animal", "pet", "bicho", "nome do animal", "nome pet", "nome do pet", "pete"],
+  pet_especie: ["especie", "espécie", "tipo animal", "especie animal", "sp", "species"],
+  pet_raca: ["raça", "raca", "breed", "rça"],
+  pet_genero: ["genero", "gênero", "sexo", "sex", "gender"],
+  pet_porte: ["porte", "tamanho", "size"],
+  pet_tipo_pelagem: ["pelagem", "pelo", "tipo pelo", "tipo pelagem", "coat"],
+  pet_cor_pelagem: ["cor", "pelagem cor", "cor pelo", "cor do pelo"],
+  pet_castrado: ["castrado", "castrada", "castra", "castration", "neutered"],
+  pet_obito: ["obito", "óbito", "falecido", "falecimento", "deceased", "morto", "morte"],
+  pet_data_nascimento: ["nasc pet", "data pet", "data nasc pet", "nascimento pet", "data nascimento animal", "dt nasc"],
+  pet_idade_aproximada: ["idade", "age", "idade aprox"],
+  pet_unidade_idade: ["unidade idade", "unit", "unidade", "anos/meses", "meses/anos"],
+  pet_observacoes: ["obs", "observacao", "observação", "observacoes", "observações", "notas", "notes", "descricao", "descrição"],
 };
 
 export default function MigrationWizardModal({ open, onClose, onJobStarted }: Props) {
@@ -306,7 +326,7 @@ export default function MigrationWizardModal({ open, onClose, onJobStarted }: Pr
   };
 
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={(_, reason) => { if (reason !== "backdropClick" && reason !== "escapeKeyDown") handleClose(); }} disableEscapeKeyDown maxWidth="md" fullWidth>
       <DialogTitle sx={{ m: 0, p: 2, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <Box display="flex" alignItems="center" gap={1}>
           <Wand2 size={22} color="#1976d2" />

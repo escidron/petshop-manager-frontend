@@ -55,11 +55,16 @@ export default function ClientsPage() {
         ? normalizedPhone.includes(normalizedTerm)
         : false;
 
+      const petMatch = c.pet_names?.some((p) =>
+        p.toLowerCase().includes(term)
+      );
+
       return (
         nameMatch ||
         emailMatch ||
         phoneMatch ||
-        c.phone?.toLowerCase().includes(term)
+        c.phone?.toLowerCase().includes(term) ||
+        petMatch
       );
     });
   }, [search, clients]);

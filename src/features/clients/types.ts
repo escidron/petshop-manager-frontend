@@ -37,6 +37,9 @@ export type Client = {
   facebook?: string | null;
   created_at?: string;
   updated_at?: string;
+
+  // Pets (summary list — nomes dos pets ativos)
+  pet_names?: string[];
 };
 
 export type ClientFormData = z.infer<typeof clientSchema>;

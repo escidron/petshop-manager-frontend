@@ -81,6 +81,7 @@ const AppointmentsDailyList = ({
     try {
       await applyAppointmentAction(appointment.id, action, cancelAllFuture);
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
     } finally {
       setLoadingAction(null);
     }

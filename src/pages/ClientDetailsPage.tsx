@@ -35,6 +35,9 @@ export default function ClientDetailsPage() {
   }>({ open: false, mode: "create" });
 
   const [clientModal, setClientModal] = useState({ open: false });
+  const [refreshHistoryTrigger] = useState(0);
+  const [selectedPetForPhotos, setSelectedPetForPhotos] = useState<Pet | null>(null);
+  const [photosModalOpen, setPhotosModalOpen] = useState(false);
 
   const clientId = parseInt(id!);
   const queryClient = useQueryClient();

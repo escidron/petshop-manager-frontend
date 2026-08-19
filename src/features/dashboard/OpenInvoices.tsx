@@ -1,5 +1,5 @@
 import { Box, Typography, Skeleton, Chip } from "@mui/material";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Receipt, ShoppingCart, Clock } from "lucide-react";
@@ -10,8 +10,8 @@ import { applyAppointmentAction } from "../../api/services/appointments";
 import type { Appointment, AppointmentAction } from "../appointments/types";
 import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import { listUnpaidPackages } from "../../api/services/client_packages";
-import { listPackages } from "../../api/services/packages";
 import type { ClientPackage } from "../client_packages/types";
+import type { Package } from "../packages/types";
 import dayjs from "dayjs";
 import relativeTime from "dayjs/plugin/relativeTime";
 import "dayjs/locale/pt-br";
@@ -24,36 +24,58 @@ import { TextField, InputAdornment } from "@mui/material";
 import { Search } from "lucide-react";
 import OpenInvoicesModal from "./OpenInvoicesModal";
 
-export default function OpenInvoices() {
+type OpenInvoicesProps = {
+  initialOpenInvoices?: { items: Appointment[]; total: number };
+  initialUnpaidPackages?: { items: ClientPackage[]; total: number };
+  packagesCatalog?: Package[];
+  isFetching?: boolean;
+};
+
+export default function OpenInvoices({
+  initialOpenInvoices,
+  initialUnpaidPackages,
+  packagesCatalog,
+  isFetching: propIsFetching,
+}: OpenInvoicesProps) {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
   const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const debouncedSearch = useDebounce(searchTerm, 300);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const { data: appointmentsData, isLoading: isLoadingApts, refetch: refetchApts } = useQuery({
+  const isSearching = debouncedSearch.trim().length > 0;
+
+  const { data: searchAppointmentsData, isLoading: isLoadingSearchApts } = useQuery({
     queryKey: ["open-invoices", { limit: 15, search: debouncedSearch }],
     queryFn: () => getOpenInvoices({ limit: 15, search: debouncedSearch }),
-    refetchInterval: 60_000, // refresh every minute
+    enabled: isSearching,
   });
 
-  const { data: unpaidPkgsData, isLoading: isLoadingPkgs } = useQuery({
+  const { data: searchUnpaidPkgsData, isLoading: isLoadingSearchPkgs } = useQuery({
     queryKey: ["unpaid-packages", { limit: 15, search: debouncedSearch }],
     queryFn: () => listUnpaidPackages({ limit: 15, search: debouncedSearch }),
-    refetchInterval: 60_000,
+    enabled: isSearching,
   });
 
-  const appointments = appointmentsData?.items || [];
-  const unpaidPkgs = unpaidPkgsData?.items || [];
-  const totalInvoices = (appointmentsData?.total || 0) + (unpaidPkgsData?.total || 0);
+  const appointments = isSearching
+    ? searchAppointmentsData?.items || []
+    : initialOpenInvoices?.items || [];
 
-  const { data: allPackages = [], isLoading: isLoadingAllPkgs } = useQuery({
-    queryKey: ["packages"],
-    queryFn: listPackages,
-  });
+  const unpaidPkgs = isSearching
+    ? searchUnpaidPkgsData?.items || []
+    : initialUnpaidPackages?.items || [];
 
-  const isLoading = isLoadingApts || isLoadingPkgs || isLoadingAllPkgs;
+  const allPackages = packagesCatalog || [];
+
+  const totalInvoices = isSearching
+    ? (searchAppointmentsData?.total || 0) + (searchUnpaidPkgsData?.total || 0)
+    : (initialOpenInvoices?.total || 0) + (initialUnpaidPackages?.total || 0);
+
+  const isLoading = isSearching
+    ? isLoadingSearchApts || isLoadingSearchPkgs
+    : propIsFetching && !initialOpenInvoices;
 
   const invoices = useMemo(() => {
     const arr: Array<{ type: "appointment" | "package", data: Appointment | ClientPackage, date: string }> = [];
@@ -66,12 +88,14 @@ export default function OpenInvoices() {
     try {
       setLoadingAction(action);
       await applyAppointmentAction(appointment.id, action);
-      refetchApts();
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
       setSelectedAppointment(null);
     } finally {
       setLoadingAction(null);
     }
   };
+
 
   return (
     <Box>

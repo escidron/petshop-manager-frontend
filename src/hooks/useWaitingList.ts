@@ -3,19 +3,15 @@ import { waitingListService } from "../api/services/waiting_list";
 import type { WaitingListStatus, WaitingListEntryUpdate } from "../features/appointments/waiting-list/types";
 import { useToast } from "./useToast";
 
-export function useWaitingList(status?: WaitingListStatus) {
+export function useWaitingListMutations() {
   const queryClient = useQueryClient();
   const { success, error } = useToast();
-
-  const query = useQuery({
-    queryKey: ["waiting-list", status],
-    queryFn: () => waitingListService.list(status),
-  });
 
   const createMutation = useMutation({
     mutationFn: waitingListService.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["waiting-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       success("Adicionado à lista de espera com sucesso!");
     },
     onError: () => {
@@ -28,6 +24,7 @@ export function useWaitingList(status?: WaitingListStatus) {
       waitingListService.update(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["waiting-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
     },
   });
 
@@ -35,14 +32,34 @@ export function useWaitingList(status?: WaitingListStatus) {
     mutationFn: waitingListService.delete,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["waiting-list"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       success("Entrada removida com sucesso!");
     },
   });
 
   return {
-    ...query,
     createEntry: createMutation.mutateAsync,
     updateEntry: updateMutation.mutateAsync,
     deleteEntry: deleteMutation.mutateAsync,
   };
 }
+
+export function useWaitingList(
+  status?: WaitingListStatus,
+  options?: { enabled?: boolean }
+) {
+  const mutations = useWaitingListMutations();
+
+  const query = useQuery({
+    queryKey: ["waiting-list", status],
+    queryFn: () => waitingListService.list(status),
+    staleTime: 60_000,
+    enabled: options?.enabled ?? true,
+  });
+
+  return {
+    ...query,
+    ...mutations,
+  };
+}
+

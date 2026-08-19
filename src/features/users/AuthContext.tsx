@@ -1,4 +1,5 @@
 import { createContext, useState, type ReactNode, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "../../api/services/users";
 import apiClient from "../../api/apiClient";
 import { useNavigate } from "react-router-dom";
@@ -31,6 +32,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [tenant, setTenant] = useState<Tenant | null>(null);
   const [checking, setChecking] = useState(true);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // 🧹 Limpa o cache do React Query apenas quando há uma TROCA real de tenant,
+  // ou seja, quando passamos de um tenant válido para outro.
+  // Isso evita cancelar as chamadas de inicialização (causando loading infinito).
+  useEffect(() => {
+    const prevTenant = sessionStorage.getItem("active_tenant_id");
+    const currentTenant = tenant?.id?.toString();
+
+    if (currentTenant && prevTenant && currentTenant !== prevTenant) {
+      queryClient.resetQueries();
+    }
+    
+    if (currentTenant) {
+      sessionStorage.setItem("active_tenant_id", currentTenant);
+    }
+  }, [tenant?.id, queryClient]);
 
   const subscriptionStatus = tenant?.subscription?.status ?? null;
 
