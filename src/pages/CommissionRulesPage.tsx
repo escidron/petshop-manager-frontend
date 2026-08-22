@@ -16,8 +16,6 @@ import {
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
 import { Plus, Search, Edit2, Trash2 } from "lucide-react";
-import { useEmployees } from "../hooks/useEmployees";
-import { useServices } from "../hooks/useServices";
 import CommissionRuleFormModal from "../features/commissions/CommissionRuleFormModal";
 import CommissionRuleDeleteModal from "../features/commissions/CommissionRuleDeleteModal";
 import { deleteCommissionRule, getCommissionRules } from "../api/services/commissions";
@@ -42,8 +40,6 @@ export default function CommissionRulesPage() {
   const [ruleToEdit, setRuleToEdit] = useState<CommissionRule | undefined>(undefined);
   const [ruleToDelete, setRuleToDelete] = useState<CommissionRule | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const { employees, getEmployees } = useEmployees();
-  const { services, getServices } = useServices();
   const toast = useToast();
 
   const loadRules = async () => {
@@ -60,20 +56,8 @@ export default function CommissionRulesPage() {
 
   useEffect(() => {
     loadRules();
-    getEmployees();
-    getServices();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  const employeeMap = useMemo(
-    () => Object.fromEntries(employees.map((e) => [e.id, e.name])),
-    [employees],
-  );
-
-  const serviceById = useMemo(
-    () => Object.fromEntries(services.map((s) => [s.id, s])),
-    [services],
-  );
 
   const filteredRows = useMemo(() => {
     if (!search) return rules;
@@ -149,15 +133,14 @@ export default function CommissionRulesPage() {
                 }}
               >
                 <TableCell>{row.name}</TableCell>
-                <TableCell>{row.employee_id ? (employeeMap[row.employee_id] ?? "-") : <em style={{ color: "gray" }}>Qualquer</em>}</TableCell>
                 <TableCell>
-                  {row.service_ids?.length
-                    ? row.service_ids.map((id) => {
-                        const svc = serviceById[id];
-                        return svc ? (
-                          <Chip key={id} label={formatServiceLabel(svc)} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
-                        ) : null;
-                      })
+                  {row.employee_name || (row.employee_id ? `#${row.employee_id}` : <em style={{ color: "gray" }}>Qualquer</em>)}
+                </TableCell>
+                <TableCell>
+                  {row.services?.length
+                    ? row.services.map((svc) => (
+                        <Chip key={svc.id} label={formatServiceLabel(svc)} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                      ))
                     : <em style={{ color: "gray" }}>Qualquer</em>}
                 </TableCell>
                 <TableCell>
@@ -225,8 +208,6 @@ export default function CommissionRulesPage() {
         open={modalOpen}
         mode={ruleToEdit ? "edit" : "create"}
         rule={ruleToEdit}
-        employees={employees}
-        services={services}
         onClose={() => setModalOpen(false)}
         onSuccess={() => { setModalOpen(false); loadRules(); }}
       />
@@ -243,3 +224,4 @@ export default function CommissionRulesPage() {
     </Box>
   );
 }
+

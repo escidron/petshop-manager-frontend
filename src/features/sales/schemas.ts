@@ -1,4 +1,11 @@
 import { z } from "zod";
+import type { Client } from "../clients/types";
+import type { Pet } from "../pets/types";
+import type { Product } from "../products/types";
+import type { Service } from "../tenant_services/types";
+import type { Package } from "../packages/types";
+import type { Appointment } from "../appointments/types";
+import type { ClientPackage } from "../client_packages/types";
 
 export const SaleItemSchema = z.object({
   item_type: z.enum(["product", "service", "package"]),
@@ -40,4 +47,19 @@ export interface SaleResponse extends SaleCreate {
     client: { id: number; name: string };
     items: { services: { id: number; price_cents: number }[] }[];
   } | null;
+}
+
+export interface POSStartupResponse {
+  products: Product[];
+  services: Service[];
+  packages: Package[];
+  clients: Client[];
+  appointments: Appointment[];
+  pets: Pet[];
+}
+
+export interface POSClientDetailsResponse {
+  client_pets: Pet[];
+  client_packages: ClientPackage[];
+  client_appointments: Appointment[];
 }

@@ -1,8 +1,14 @@
 import type { CoatType } from "../features/pets/types";
-import type { Service } from "../features/tenant_services/types";
 import { getCoatTypeLabel } from "./formatCoatType";
 
-export const formatServiceLabel = (service:Service) => {
+export interface ServiceLabelProps {
+  name: string;
+  size?: string | null;
+  coat_type?: string | null;
+  species?: string | null;
+}
+
+export const formatServiceLabel = (service: ServiceLabelProps) => {
   const parts = [service.name];
 
   if (service.size) parts.push(service.size);
@@ -10,6 +16,7 @@ export const formatServiceLabel = (service:Service) => {
 
   return parts.join(" - ");
 };
+
 
 export const formatPrice = (priceCents: number) =>
   (priceCents / 100).toLocaleString("pt-BR", {

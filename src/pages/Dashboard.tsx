@@ -7,7 +7,7 @@ import GroomingQueue from "../features/dashboard/GroomingQueue";
 import OpenInvoices from "../features/dashboard/OpenInvoices";
 import WaitingListCard from "../features/dashboard/WaitingListCard";
 import type { WaitingListEntry } from "../features/appointments/waiting-list/types";
-import { useWaitingList } from "../hooks/useWaitingList";
+import { useWaitingListMutations } from "../hooks/useWaitingList";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
@@ -19,7 +19,7 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getAppointmentsByDay, getHighlightedDays } from "../api/services/appointments";
+import { getDashboardStartup } from "../api/services/dashboard";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";
@@ -61,29 +61,38 @@ const Dashboard = () => {
   const [isCalendarExpanded, setIsCalendarExpanded] = useState(true);
   const queryClient = useQueryClient();
   const { tenant, checkAuth } = useAuth();
-  const { deleteEntry: deleteWaitingListEntry } = useWaitingList();
+  const { deleteEntry: deleteWaitingListEntry } = useWaitingListMutations();
   const isOnboarding = tenant?.onboarding_step !== "completed";
 
   const [date, setDate] = useState<dayjs.Dayjs>(dayjs());
   const [calendarMonth, setCalendarMonth] = useState<dayjs.Dayjs>(dayjs().startOf("month"));
   const formattedDate = date.format("YYYY-MM-DD");
 
-  const { data: dailyAppointments = [], isFetching } = useQuery({
-    queryKey: ["appointments", formattedDate],
-    queryFn: () => getAppointmentsByDay(formattedDate),
+  const startDate = calendarMonth.subtract(1, "month").startOf("month").format("YYYY-MM-DD");
+  const endDate = calendarMonth.add(1, "month").endOf("month").format("YYYY-MM-DD");
+
+  const { data: startupData, isFetching } = useQuery({
+    queryKey: ["dashboard-startup", formattedDate, calendarMonth.format("YYYY-MM")],
+    queryFn: async () => {
+      const data = await getDashboardStartup(formattedDate, startDate, endDate);
+      
+      // Seed React Query cache with the startup data so individual components don't fetch again
+      queryClient.setQueryData(["appointments", formattedDate], data.appointments_today);
+      queryClient.setQueryData(["appointments", "highlights", calendarMonth.format("YYYY-MM")], data.highlighted_days);
+      queryClient.setQueryData(["open-invoices", { limit: 15, search: "" }], data.open_invoices);
+      queryClient.setQueryData(["unpaid-packages", { limit: 15, search: "" }], data.unpaid_packages);
+      queryClient.setQueryData(["packages"], data.packages_catalog);
+      queryClient.setQueryData(["waiting-list", "pending"], data.waiting_list_pending);
+      queryClient.setQueryData(["waiting-list", undefined], data.waiting_list_pending);
+      
+      return data;
+    },
     placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const { data: monthlyHighlights = [] } = useQuery({
-    queryKey: ["appointments", "highlights", calendarMonth.format("YYYY-MM")],
-    queryFn: () =>
-      getHighlightedDays(
-        calendarMonth.subtract(1, "month").startOf("month").format("YYYY-MM-DD"),
-        calendarMonth.add(1, "month").endOf("month").format("YYYY-MM-DD")
-      ),
-    placeholderData: keepPreviousData,
-    staleTime: 1000 * 60 * 5, // Keep cached data fresh for 5 minutes
-  });
+  const dailyAppointments = startupData?.appointments_today || [];
+  const monthlyHighlights = startupData?.highlighted_days || [];
 
   const highlightedDays = useMemo(() => {
     return new Set<string>(monthlyHighlights);
@@ -345,8 +354,15 @@ const Dashboard = () => {
                     gap: 3,
                   }}
                 >
-                  <OpenInvoices />
+                  <OpenInvoices
+                    initialOpenInvoices={startupData?.open_invoices}
+                    initialUnpaidPackages={startupData?.unpaid_packages}
+                    packagesCatalog={startupData?.packages_catalog}
+                    isFetching={isFetching}
+                  />
                   <WaitingListCard
+                    entries={startupData?.waiting_list_pending}
+                    isFetching={isFetching}
                     onScheduleEntry={(entry: WaitingListEntry) => {
                       setFlow({
                         open: true,
@@ -383,6 +399,9 @@ const Dashboard = () => {
           initialDate={flow.initialDate}
           prefill={flow.prefill}
           onSuccess={() => {
+            queryClient.invalidateQueries({
+              queryKey: ["dashboard-startup"],
+            });
             queryClient.invalidateQueries({
               queryKey: ["appointments"],
             });

@@ -11,6 +11,12 @@ import { Calendar, User, X, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { useState } from "react";
 import dayjs from "dayjs";
 import { Button } from "../../../components/Button/Button";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 import type { Appointment } from "../../appointments/types";
 import type { ClientPackage } from "../../client_packages/types";
 import type { Pet } from "../../pets/types";
@@ -45,6 +51,7 @@ export default function POSClientDashboard({
 }: POSClientDashboardProps) {
   const [packagesOpen, setPackagesOpen] = useState(false);
   const [upcomingOpen, setUpcomingOpen] = useState(false);
+  const [showAllPending, setShowAllPending] = useState(false);
 
   // 1. Pending to Pay
   const pendingToPay = clientAppointments
@@ -78,6 +85,9 @@ export default function POSClientDashboard({
   const upcomingCount = allUpcoming.length;
   const upcoming = allUpcoming.slice(0, 3);
   const remainingUpcoming = upcomingCount > 3 ? upcomingCount - 3 : 0;
+
+  const displayedPendingToPay = showAllPending ? pendingToPay : pendingToPay.slice(0, 4);
+  const hiddenPendingCount = pendingToPay.length - displayedPendingToPay.length;
 
   return (
     <Box sx={{ p: { xs: 2, md: 2.5 } }}>
@@ -165,7 +175,7 @@ export default function POSClientDashboard({
                 Comandas em Aberto
               </Typography>
               <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {pendingToPay.map((apt) => {
+                {displayedPendingToPay.map((apt) => {
                   const isSelected = selectedAppointmentId === apt.id;
                   return (
                     <Paper
@@ -237,9 +247,109 @@ export default function POSClientDashboard({
                     </Paper>
                   );
                 })}
+                {hiddenPendingCount > 0 && (
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => setShowAllPending(true)}
+                    sx={{ color: "primary.main", fontWeight: 800, fontSize: "0.7rem", py: 0.5, mt: 0.5 }}
+                  >
+                    Ver todas as {pendingToPay.length} comandas pendentes
+                  </Button>
+                )}
               </Box>
             </Box>
           )}
+
+        {/* Pending Commands Modal */}
+        <Dialog open={showAllPending} onClose={() => setShowAllPending(false)} maxWidth="sm" fullWidth>
+          <DialogTitle sx={{ fontWeight: 800, pb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            Comandas Pendentes ({pendingToPay.length})
+            <IconButton onClick={() => setShowAllPending(false)} size="small">
+              <X size={20} />
+            </IconButton>
+          </DialogTitle>
+          <DialogContent sx={{ pt: 1, pb: 3, display: "flex", flexDirection: "column", gap: 1, maxHeight: "60vh" }}>
+            {pendingToPay.map((apt) => {
+              const isSelected = selectedAppointmentId === apt.id;
+              return (
+                <Paper
+                  key={apt.id}
+                  elevation={0}
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    p: 1.5,
+                    border: "1px solid",
+                    borderColor: isSelected ? "success.main" : (theme) => alpha(theme.palette.primary.main, 0.35),
+                    borderRadius: 2.5,
+                    bgcolor: isSelected ? (theme) => alpha(theme.palette.success.main, 0.05) : (theme) => alpha(theme.palette.primary.main, 0.04),
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
+                    <Box
+                      sx={{
+                        width: 32,
+                        height: 32,
+                        borderRadius: 1.5,
+                        bgcolor: isSelected ? (theme) => alpha(theme.palette.success.main, 0.1) : (theme) => alpha(theme.palette.primary.main, 0.1),
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: isSelected ? "success.main" : "primary.main",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <Calendar size={16} />
+                    </Box>
+                    <Box sx={{ minWidth: 0, flex: 1, pr: 2 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2, mb: 0.5 }}>
+                        {dayjs(apt.scheduled_at).format("DD/MM")} · {dayjs(apt.scheduled_at).format("HH:mm")}
+                      </Typography>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "nowrap", overflow: "hidden" }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: isSelected ? "success.dark" : "primary.main", fontSize: "0.7rem", whiteSpace: "nowrap" }}>
+                          {apt.items.map((i) => i.pet.name).join(", ")}
+                        </Typography>
+                        <Box component="span" sx={{ width: 3, height: 3, borderRadius: "50%", bgcolor: "text.primary", opacity: 0.3, flexShrink: 0 }} />
+                        <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.6, fontSize: "0.65rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {[...new Set(apt.items.flatMap((i) => i.services.map((s) => s.name)))].join(", ")}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
+                    <Typography variant="body2" sx={{ fontWeight: 800, color: isSelected ? "success.main" : "primary.main" }}>
+                      R$ {(getAppointmentPrice(apt) / 100).toFixed(2)}
+                    </Typography>
+                    {isSelected ? (
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "success.main", px: 1 }}>
+                        <Check size={18} />
+                        <Typography variant="caption" sx={{ fontWeight: 800 }}>Adicionado</Typography>
+                      </Box>
+                    ) : (
+                      <Button
+                        variant="contained"
+                        size="small"
+                        onClick={() => {
+                          onPullAppointment(apt);
+                          setShowAllPending(false);
+                        }}
+                        sx={{ bgcolor: "primary.main", color: "white", fontWeight: 700, borderRadius: 1.5, px: 1.5, boxShadow: "none", minWidth: 0, fontSize: "0.75rem", "&:hover": { bgcolor: "primary.dark", boxShadow: "none" } }}
+                      >
+                        Adicionar
+                      </Button>
+                    )}
+                  </Box>
+                </Paper>
+              );
+            })}
+          </DialogContent>
+          <DialogActions sx={{ p: 2.5, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
+            <Button onClick={() => setShowAllPending(false)}>Fechar</Button>
+          </DialogActions>
+        </Dialog>
 
         {/* 2. Packages */}
         <Box>

@@ -1,7 +1,7 @@
 import { Box, Typography, Chip, Tooltip, IconButton, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
 import { User, Dog, Calendar, Clock, Scissors, Plus, Trash2, Pencil, CalendarCheck } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
-import { useWaitingList } from "../../hooks/useWaitingList";
+import { useWaitingListMutations } from "../../hooks/useWaitingList";
 import { useState } from "react";
 import WaitingListModal from "../appointments/waiting-list/WaitingListModal";
 import dayjs from "dayjs";
@@ -11,10 +11,13 @@ import { Button } from "../../components/Button/Button";
 
 type Props = {
   onScheduleEntry: (entry: WaitingListEntry) => void;
+  entries?: WaitingListEntry[];
+  isFetching?: boolean;
 };
 
-export default function WaitingListCard({ onScheduleEntry }: Props) {
-  const { data: entries, isLoading, deleteEntry } = useWaitingList("pending");
+export default function WaitingListCard({ onScheduleEntry, entries = [], isFetching = false }: Props) {
+  const { deleteEntry } = useWaitingListMutations();
+  const isLoading = isFetching && entries.length === 0;
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntry, setEditingEntry] = useState<WaitingListEntry | undefined>(undefined);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
@@ -170,12 +173,18 @@ export default function WaitingListCard({ onScheduleEntry }: Props) {
         )}
       </Box>
 
-      <WaitingListModal
-        key={editingEntry?.id ?? "new"}
-        open={modalOpen}
-        onClose={() => { setModalOpen(false); setEditingEntry(undefined); }}
-        initialEntry={editingEntry}
-      />
+      {modalOpen && (
+        <WaitingListModal
+          key={editingEntry?.id ?? "new"}
+          open={modalOpen}
+          onClose={() => { setModalOpen(false); setEditingEntry(undefined); }}
+          initialEntry={editingEntry}
+          onSuccess={() => {
+            setModalOpen(false);
+            setEditingEntry(undefined);
+          }}
+        />
+      )}
 
       <Dialog open={confirmDeleteId !== null} onClose={() => setConfirmDeleteId(null)}>
         <DialogTitle>Remover da Lista de Espera</DialogTitle>

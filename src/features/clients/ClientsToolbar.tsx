@@ -22,7 +22,7 @@ export default function ClientsToolbar({
     <Box mb={2} display="flex" justifyContent="space-between" gap={2}>
       <CustomTextField
         icon={<Search size={18} />}
-        placeholder="Pesquisar cliente"
+        placeholder="Pesquisar cliente ou pet..."
         value={search}
         onChange={(e) => onSearchChange(e.target.value)}
       />

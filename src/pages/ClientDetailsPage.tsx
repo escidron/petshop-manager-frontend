@@ -1,6 +1,7 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { useParams } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button/Button";
 import ClientePersonalInfo from "../features/clients/ClientePersonalInfo";
 import PetDetailsCard from "../features/pets/PetDetailsCard";
@@ -34,25 +35,22 @@ export default function ClientDetailsPage() {
   }>({ open: false, mode: "create" });
 
   const [clientModal, setClientModal] = useState({ open: false });
-
-  const [clientPackages, setClientPackages] = useState<ClientPackage[]>([]);
   const [refreshHistoryTrigger] = useState(0);
-  const [photosModalOpen, setPhotosModalOpen] = useState(false);
   const [selectedPetForPhotos, setSelectedPetForPhotos] = useState<Pet | null>(null);
+  const [photosModalOpen, setPhotosModalOpen] = useState(false);
 
-  const fetchClientPackages = useCallback(async () => {
-    if (!id) return;
-    try {
-      const pkgs = await listClientPackagesByClient(parseInt(id));
-      setClientPackages(pkgs);
-    } catch (e) {
-      console.error(e);
-    }
-  }, [id]);
+  const clientId = parseInt(id!);
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    fetchClientPackages();
-  }, [fetchClientPackages]);
+  const { data: clientPackages = [] } = useQuery<ClientPackage[]>({
+    queryKey: ["clientPackages", clientId],
+    queryFn: () => listClientPackagesByClient(clientId),
+    enabled: !!id,
+  });
+
+  const fetchClientPackages = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: ["clientPackages", clientId] });
+  }, [queryClient, clientId]);
 
   const toast = useToast();
 

@@ -10,7 +10,6 @@ import {
   Divider,
   Grid,
   Chip,
-  LinearProgress,
   CircularProgress,
   IconButton,
   FormControl,
@@ -41,6 +40,9 @@ import {
   Download,
   Package as PackageIcon,
   Truck,
+  Gift,
+  Calendar,
+  MessageCircle,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
@@ -64,6 +66,8 @@ import { useToast } from "../hooks/useToast";
 import { maskPhone, maskDocument } from "../utils/masks";
 import {
   listPaymentMethods,
+  setDefaultPaymentMethod,
+  removePaymentMethod,
   cancelSubscription,
   refundAndCancelSubscription,
   listCharges,
@@ -73,6 +77,7 @@ import {
 import CheckoutForm from "../features/billing/CheckoutForm";
 import CheckoutStepper from "../features/billing/CheckoutStepper";
 import UpdateCardModal from "../features/billing/UpdateCardModal";
+import PaymentMethodCard from "../features/billing/PaymentMethodCard";
 import type { PaymentMethod, CheckoutPixResponse, SubscriptionCharge } from "../features/billing/types";
 import { Button } from "../components/Button/Button";
 import WorkingHoursSettings from "../features/tenants/WorkingHoursSettings";
@@ -82,6 +87,7 @@ import { exportServices } from "../api/services/tenant_services";
 import { exportPackages } from "../api/services/packages";
 import { exportSuppliers } from "../api/services/suppliers";
 import { exportEmployees } from "../api/services/employees";
+import BillingAddonsSection from "../features/billing/BillingAddonsSection";
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -329,6 +335,20 @@ const SettingsPage = () => {
 
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState<"card" | "pix" | null>(null);
   const [checkoutStartAt, setCheckoutStartAt] = useState<string | null>(null);
+  const [selectedAddonPkg, setSelectedAddonPkg] = useState<string | null>(null);
+
+  const getCheckoutTitle = () => {
+    if (selectedAddonPkg) {
+      const pkgNames: Record<string, string> = {
+        pkg_200: "Contratar Pacote 200 Mensagens - R$ 37,90/mês",
+        pkg_500: "Contratar Pacote 500 Mensagens - R$ 69,90/mês",
+        pkg_1000: "Contratar Pacote 1.000 Mensagens - R$ 119,90/mês",
+        pkg_2000: "Contratar Pacote 2.000 Mensagens - R$ 199,90/mês",
+      };
+      return pkgNames[selectedAddonPkg] || "Contratar Pacote de WhatsApp";
+    }
+    return "PetControle Pro - Pagamento";
+  };
 
   const confirmPaymentMethodChange = async (method: "card" | "pix") => {
     if (!tenant?.id) return;
@@ -433,6 +453,28 @@ const SettingsPage = () => {
     }
   };
 
+  const handleSetDefaultCard = async (cardId: string) => {
+    try {
+      await setDefaultPaymentMethod(cardId);
+      toast.success("Cartão padrão atualizado com sucesso!");
+      await fetchCards();
+      await checkAuth();
+    } catch {
+      toast.error("Erro ao definir cartão padrão.");
+    }
+  };
+
+  const handleRemoveCard = async (cardId: string) => {
+    try {
+      await removePaymentMethod(cardId);
+      toast.success("Cartão removido com sucesso!");
+      await fetchCards();
+      await checkAuth();
+    } catch {
+      toast.error("Erro ao remover cartão.");
+    }
+  };
+
   // Limpa os dados sensíveis imediatamente ao trocar de tenant,
   // evitando que cartões/cobranças de um tenant apareçam em outro.
   useEffect(() => {
@@ -479,14 +521,6 @@ const SettingsPage = () => {
     setValue(newValue);
   };
 
-  const getTrialDays = () => {
-    if (!tenant?.subscription?.trial_ends_at) return 0;
-    const expiryDate = dayjs(tenant.subscription.trial_ends_at);
-    const daysLeft = Math.ceil(expiryDate.diff(dayjs(), "hour") / 24);
-    return daysLeft > 0 ? daysLeft : 0;
-  };
-
-  const trialDays = getTrialDays();
   const isTrialing = !tenant?.feature_flags?.free_access && (tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing");
 
   const activePendingPixCharge = useMemo(() => {
@@ -877,13 +911,11 @@ const SettingsPage = () => {
 
             {/* ---- Cabeçalho ---- */}
             <Box>
-              <Typography variant="h5" fontWeight={800} gutterBottom>
-                {tenant?.subscription?.status === "active" ? "Planos disponíveis" : "Escolha um plano"}
+              <Typography variant="h5" fontWeight={800} color="#0F172A" gutterBottom>
+                Planos e Pacotes
               </Typography>
-              <Typography variant="body2" color="text.primary">
-                {tenant?.subscription?.status === "active" 
-                  ? "Confira nossos planos. Em breve teremos novidades!" 
-                  : "Escolha o plano ideal para o tamanho do seu pet shop."}
+              <Typography variant="body2" sx={{ color: "#475569" }}>
+                Gerencie sua assinatura e adicione recursos extras ao seu petshop.
               </Typography>
             </Box>
 
@@ -900,12 +932,12 @@ const SettingsPage = () => {
               >
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1.5, flexWrap: "wrap", gap: 1 }}>
                   <Box>
-                    <Typography variant="h6" fontWeight={800}>
+                    <Typography variant="h6" fontWeight={800} color="#0F172A">
                       {tenant?.subscription?.plan?.name || "Plano Mensal"}
                     </Typography>
                     <Chip label="Aguardando pagamento" color="warning" size="small" sx={{ fontWeight: 700, mt: 0.5 }} />
                   </Box>
-                  <Typography variant="caption" color="text.primary">
+                  <Typography variant="caption" sx={{ color: "#475569" }}>
                     PIX gerado em {dayjs(activePendingPixCharge.created_at).format("DD/MM/YYYY [às] HH:mm")}
                   </Typography>
                 </Box>
@@ -951,114 +983,213 @@ const SettingsPage = () => {
               </Box>
             )}
 
-            {/* ---- Estado: Assinatura Ativa ---- */}
-            {!activePendingPixCharge && tenant?.subscription?.plan?.code === "MONTHLY" &&
-              tenant?.subscription?.status === "active" &&
-              tenant.subscription.current_period_end &&
-              new Date(tenant.subscription.current_period_end) >= new Date() && (
+            {/* ---- 1. Card de Visão Geral da Assinatura e Status de Cobrança ---- */}
+            {!activePendingPixCharge && (
               <Box
                 sx={{
-                  p: 3,
-                  borderRadius: 3,
-                  border: "2px solid",
-                  borderColor: "success.light",
-                  bgcolor: "rgba(76,175,80,0.04)",
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: 4,
+                  border: "1.5px solid #E2E8F0",
+                  bgcolor: "white",
+                  boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
                 }}
               >
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 1 }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
                   <Box>
-                    <Typography variant="h6" fontWeight={800}>
-                      {tenant.subscription.plan.name}
-                    </Typography>
-                    <Chip label="Ativo" color="success" size="small" sx={{ fontWeight: 700, mt: 0.5 }} />
-                  </Box>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={(e) => setManageAnchorEl(e.currentTarget)}
-                    sx={{ fontWeight: 600, color: "text.primary" }}
-                  >
-                    Gerenciar assinatura
-                  </Button>
-                  <Menu
-                    anchorEl={manageAnchorEl}
-                    open={Boolean(manageAnchorEl)}
-                    onClose={() => setManageAnchorEl(null)}
-                  >
-                    <MenuItem onClick={() => { 
-                      setManageAnchorEl(null); 
-                      if (tenant.subscription?.payment_method === "pix") {
-                        confirmPaymentMethodChange("card");
-                      } else {
-                        setOpenUpdateCard(true); 
-                      }
-                    }}>
-                      {tenant.subscription.payment_method === "pix" ? "Mudar para Cartão de Crédito" : "Alterar cartão de crédito"}
-                    </MenuItem>
-                    {tenant.subscription.payment_method !== "pix" && (
-                      <MenuItem onClick={() => { setManageAnchorEl(null); setOpenPixConfirmation(true); }}>
-                        Mudar para PIX
-                      </MenuItem>
-                    )}
-                    <MenuItem onClick={() => { setManageAnchorEl(null); setOpenCancelModal(true); }}>
-                      Cancelar assinatura
-                    </MenuItem>
-                  </Menu>
-                </Box>
-                <Stack spacing={0.5} sx={{ mt: 2 }}>
-                  <Typography variant="body2" color="text.primary">
-                    Próxima renovação: <strong>{dayjs(tenant.subscription.current_period_end).format("DD/MM/YYYY")}</strong>
-                  </Typography>
-                  <Typography variant="body2" color="text.primary">
-                    Forma de pagamento: <strong>
-                      {tenant.subscription.payment_method === "pix" 
-                        ? "PIX" 
-                        : (() => {
-                            const defaultCard = savedCards.find((c) => c.is_default);
-                            return defaultCard 
-                              ? `Cartão de Crédito (${defaultCard.brand.toUpperCase()} •••• ${defaultCard.last4})` 
-                              : "Cartão de Crédito";
-                          })()}
-                    </strong>
-                  </Typography>
-                </Stack>
-              </Box>
-            )}
-
-            {/* ---- Período de trial ---- */}
-            {isTrialing && !activePendingPixCharge && (
-              <Box
-                sx={{
-                  p: 3,
-                  borderRadius: 3,
-                  bgcolor: "rgba(111,66,193,0.03)",
-                  border: "1px solid rgba(111,66,193,0.12)",
-                }}
-              >
-                <Stack spacing={1.5}>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <Typography variant="body2" fontWeight={700} color={trialDays === 0 ? "error" : "inherit"}>
-                      {trialDays === 0
-                        ? dayjs(tenant?.subscription?.trial_ends_at).isBefore(dayjs())
-                          ? "Seu período de teste expirou"
-                          : `Seu teste grátis acaba hoje às ${dayjs(tenant?.subscription?.trial_ends_at).format("HH:mm")}`
-                        : `Faltam ${trialDays} ${trialDays === 1 ? "dia" : "dias"} para o fim do teste`}
-                    </Typography>
-                    {trialDays > 0 && (
-                      <Typography variant="caption" color="text.primary">
-                        {dayjs(tenant?.subscription?.trial_ends_at).format("DD/MM/YYYY")}
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, flexWrap: "wrap" }}>
+                      <Typography variant="h5" fontWeight={900} color="#0F172A">
+                        PetControle Pro
                       </Typography>
-                    )}
+                      {isTrialing ? (
+                        <Chip
+                          icon={<Gift size={15} color="#047857" />}
+                          label="6 Meses Grátis Ativo"
+                          size="small"
+                          sx={{
+                            fontWeight: 800,
+                            bgcolor: "#ECFDF5",
+                            color: "#047857",
+                            border: "1px solid #A7F3D0",
+                            px: 0.5,
+                          }}
+                        />
+                      ) : (
+                        <Chip
+                          label="Assinatura Ativa"
+                          color="success"
+                          size="small"
+                          sx={{ fontWeight: 800 }}
+                        />
+                      )}
+                    </Box>
+                    <Typography variant="body2" sx={{ mt: 0.8, fontSize: "0.9rem", color: "#334155" }}>
+                      {isTrialing
+                        ? `Você está no período de gratuidade de 6 meses válido até ${dayjs(
+                            tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end
+                          ).format("DD/MM/YYYY")}. Ao término, a mensalidade será de R$ 99,90/mês.`
+                        : `Sua assinatura está ativa e renova em ${dayjs(
+                            tenant?.subscription?.current_period_end
+                          ).format("DD/MM/YYYY")} via ${
+                            tenant?.subscription?.payment_method === "pix"
+                              ? "PIX"
+                              : (() => {
+                                  const defaultCard = savedCards.find((c) => c.is_default);
+                                  return defaultCard
+                                    ? `Cartão de Crédito (${defaultCard.brand.toUpperCase()} •••• ${defaultCard.last4})`
+                                    : "Cartão de Crédito";
+                                })()
+                          }.`}
+                    </Typography>
                   </Box>
-                  <LinearProgress
-                    variant="determinate"
-                    value={(trialDays / 14) * 100}
-                    sx={{ height: 8, borderRadius: 4, bgcolor: "rgba(0,0,0,0.05)" }}
-                  />
-                  <Typography variant="caption" color="text.primary">
-                    Ao final desse período, você precisará escolher um plano para continuar usando o PetControle.
-                  </Typography>
-                </Stack>
+
+                  {/* Ações de Gerenciamento para Assinatura Paga */}
+                  {!isTrialing && tenant?.subscription?.status === "active" && (
+                    <Box>
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={(e) => setManageAnchorEl(e.currentTarget)}
+                        sx={{ fontWeight: 700, color: "#0F172A", borderRadius: 2 }}
+                      >
+                        Gerenciar assinatura
+                      </Button>
+                      <Menu
+                        anchorEl={manageAnchorEl}
+                        open={Boolean(manageAnchorEl)}
+                        onClose={() => setManageAnchorEl(null)}
+                      >
+                        <MenuItem
+                          onClick={() => {
+                            setManageAnchorEl(null);
+                            if (tenant?.subscription?.payment_method === "pix") {
+                              confirmPaymentMethodChange("card");
+                            } else {
+                              setOpenCheckout(true);
+                            }
+                          }}
+                        >
+                          {tenant?.subscription?.payment_method === "pix"
+                            ? "Mudar para Cartão de Crédito"
+                            : "Alterar cartão de crédito"}
+                        </MenuItem>
+                        {tenant?.subscription?.payment_method !== "pix" && (
+                          <MenuItem
+                            onClick={() => {
+                              setManageAnchorEl(null);
+                              setOpenPixConfirmation(true);
+                            }}
+                          >
+                            Mudar para PIX
+                          </MenuItem>
+                        )}
+                        <MenuItem
+                          onClick={() => {
+                            setManageAnchorEl(null);
+                            setOpenCancelModal(true);
+                          }}
+                        >
+                          Cancelar assinatura
+                        </MenuItem>
+                      </Menu>
+                    </Box>
+                  )}
+                </Box>
+
+                <Divider sx={{ my: 2.5 }} />
+
+                {/* Detalhamento dos Componentes de Faturamento */}
+                <Grid container spacing={2}>
+                  {/* 1. Sistema */}
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        bgcolor: "white",
+                        border: "1px solid #E2E8F0",
+                        height: "100%",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                        <Calendar size={16} color="#313485" />
+                        <Typography variant="caption" fontWeight={700} sx={{ color: "#475569" }} textTransform="uppercase">
+                          Sistema PetControle
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" fontWeight={900} color="#0F172A">
+                        {isTrialing ? "R$ 0,00" : "R$ 99,90"}
+                        <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
+                          /mês
+                        </Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
+                        {isTrialing
+                          ? "100% Gratuito (1º ao 6º mês)"
+                          : "Cobrança mensal regular"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  {/* 2. WhatsApp Addon */}
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        bgcolor: "white",
+                        border: "1px solid #E2E8F0",
+                        height: "100%",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                        <MessageCircle size={16} color="#16A34A" />
+                        <Typography variant="caption" fontWeight={700} sx={{ color: "#475569" }} textTransform="uppercase">
+                          Mensagens WhatsApp
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" fontWeight={900} color="#0F172A">
+                        R$ 0,00
+                        <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
+                          /mês
+                        </Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
+                        Nenhum pacote contratado (opcional)
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  {/* 3. Total Atual */}
+                  <Grid size={{ xs: 12, md: 4 }}>
+                    <Box
+                      sx={{
+                        p: 2,
+                        borderRadius: 3,
+                        bgcolor: "white",
+                        border: "1.5px solid #C7D2FE",
+                        height: "100%",
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                        <CreditCard size={16} color="#313485" />
+                        <Typography variant="caption" fontWeight={700} sx={{ color: "#313485" }} textTransform="uppercase">
+                          Total Mensal Atual
+                        </Typography>
+                      </Box>
+                      <Typography variant="h6" fontWeight={900} color="#313485">
+                        {isTrialing ? "R$ 0,00" : "R$ 99,90"}
+                        <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
+                          /mês
+                        </Typography>
+                      </Typography>
+                      <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
+                        {isTrialing
+                          ? "R$ 99,90/mês a partir do 7º mês"
+                          : `Próximo vencimento: ${dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}`}
+                      </Typography>
+                    </Box>
+                  </Grid>
+                </Grid>
               </Box>
             )}
 
@@ -1067,142 +1198,281 @@ const SettingsPage = () => {
               <Box sx={{ p: 2.5, borderRadius: 3, bgcolor: "rgba(111,66,193,0.04)", border: "1px solid rgba(111,66,193,0.15)", display: "flex", alignItems: "center", gap: 2 }}>
                 <CircularProgress size={20} />
                 <Box>
-                  <Typography variant="subtitle2" fontWeight={700}>Aguardando confirmação do pagamento</Typography>
-                  <Typography variant="caption" color="text.primary">Isso pode levar alguns segundos...</Typography>
+                  <Typography variant="subtitle2" fontWeight={700} color="#0F172A">Aguardando confirmação do pagamento</Typography>
+                  <Typography variant="caption" sx={{ color: "#475569" }}>Isso pode levar alguns segundos...</Typography>
                 </Box>
               </Box>
             )}
 
-            {/* ---- Plan cards ---- */}
+            {/* ---- 2. Card de Forma de Pagamento ---- */}
             {!activePendingPixCharge && !awaitingConfirmation && (
-              <Grid container spacing={2} alignItems="stretch">
-                {/* Plano Mensal — único funcional */}
-                {([
-                  {
-                    id: "MONTHLY",
-                    name: "Plano Mensal",
-                    price: "R$ 99,90",
-                    description: "Ideal para pet shops que estão começando.",
-                    features: ["Clientes e pets ilimitados", "Agenda inteligente", "Relatórios financeiros", "Suporte via chat"],
-                    highlight: false,
-                    disabled: false,
-                  },
-                  {
-                    id: "PROFESSIONAL",
-                    name: "Plano Profissional",
-                    price: "R$ 159,90",
-                    description: "Recursos avançados para pet shops em crescimento.",
-                    features: ["Tudo do Plano Mensal", "WhatsApp automático", "Backup diário", "Suporte prioritário"],
-                    highlight: true,
-                    disabled: true,
-                  },
-                  {
-                    id: "PREMIUM",
-                    name: "Plano Premium",
-                    price: "R$ 239,90",
-                    description: "Para pet shops que querem o máximo.",
-                    features: ["Tudo do Plano Profissional", "Multiunidades", "Relatórios avançados", "Onboarding personalizado"],
-                    highlight: false,
-                    disabled: true,
-                  },
-                ] as const).map((plan) => (
-                  <Grid key={plan.id} size={{ xs: 12, md: 4 }}>
+              <Box
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: 4,
+                  border: "1.5px solid #E2E8F0",
+                  bgcolor: "white",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
                     <Box
                       sx={{
-                        height: "100%",
-                        border: "1.5px solid",
-                        borderColor: plan.highlight ? "primary.main" : "divider",
-                        borderRadius: 3,
-                        p: 3,
-                        position: "relative",
+                        width: 38,
+                        height: 38,
+                        borderRadius: 2,
+                        bgcolor: "rgba(49, 52, 133, 0.08)",
                         display: "flex",
-                        flexDirection: "column",
-                        gap: 2,
-                        transition: "box-shadow 0.2s",
-                        boxShadow: plan.highlight ? "0 0 0 3px rgba(49,52,133,0.08)" : "none",
-                        opacity: plan.disabled ? 0.7 : 1,
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#313485",
                       }}
                     >
-                      {plan.highlight && (
-                        <Chip
-                          label="Mais escolhido"
-                          size="small"
-                          sx={{
-                            position: "absolute",
-                            top: -12,
-                            left: "50%",
-                            transform: "translateX(-50%)",
-                            bgcolor: "primary.main",
-                            color: "white",
-                            fontWeight: 700,
-                            fontSize: "0.7rem",
-                          }}
-                        />
-                      )}
-                      {plan.disabled && (
-                        <Chip
-                          label="Em breve"
-                          size="small"
-                          sx={{
-                            position: "absolute",
-                            top: 12,
-                            right: 12,
-                            bgcolor: "rgba(0,0,0,0.06)",
-                            fontWeight: 700,
-                            fontSize: "0.68rem",
-                          }}
-                        />
-                      )}
-
-                      <Box>
-                        <Typography variant="subtitle1" fontWeight={800}>
-                          {plan.name}
-                        </Typography>
-                        <Typography variant="caption" color="text.primary">
-                          {plan.description}
-                        </Typography>
-                      </Box>
-
-                      <Box>
-                        <Typography variant="h5" fontWeight={900} color="primary.main">
-                          {plan.price}
-                          <Typography component="span" variant="body2" color="text.primary" fontWeight={400}> /mês</Typography>
-                        </Typography>
-                      </Box>
-
-                      <Stack spacing={0.75} sx={{ flex: 1 }}>
-                        {plan.features.map((f, i) => (
-                          <Box key={i} sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                            <CheckCircle2 size={15} color="#4caf50" />
-                            <Typography variant="caption" color="text.primary">{f}</Typography>
-                          </Box>
-                        ))}
-                      </Stack>
-
-                      <Button
-                        variant={plan.highlight ? "contained" : "outlined"}
-                        fullWidth
-                        disabled={plan.disabled || (plan.id === "MONTHLY" && tenant?.subscription?.status === "active")}
-                        onClick={() => {
-                          setCheckoutStartAt(null);
-                          setOpenCheckout(true);
-                        }}
-                        sx={{ fontWeight: 700, borderRadius: 2, mt: "auto" }}
-                      >
-                        {plan.id === "MONTHLY" && tenant?.subscription?.status === "active" ? "Plano atual" : "Escolher plano"}
-                      </Button>
+                      <CreditCard size={20} />
                     </Box>
-                  </Grid>
-                ))}
-              </Grid>
+                    <Box>
+                      <Typography variant="h6" fontWeight={800} color="#0F172A">
+                        Forma de Pagamento
+                      </Typography>
+                      <Typography variant="body2" sx={{ fontSize: "0.85rem", color: "#475569" }}>
+                        Gerencie os dados de pagamento da sua assinatura e pacotes adicionais.
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Top Action Buttons */}
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                    {savedCards.length > 0 && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => setOpenCheckout(true)}
+                        startIcon={<Plus size={16} />}
+                        sx={{ fontWeight: 700, borderRadius: 2, color: "#313485", borderColor: "#C7D2FE" }}
+                      >
+                        Novo Cartão
+                      </Button>
+                    )}
+                    {savedCards.length > 0 && tenant?.subscription?.payment_method !== "pix" && (
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => setOpenPixConfirmation(true)}
+                        startIcon={<QrCode size={16} />}
+                        sx={{ fontWeight: 700, color: "#475569" }}
+                      >
+                        Mudar para PIX
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Body Content */}
+                {savedCards.length > 0 ? (
+                  <Stack spacing={2}>
+                    <Grid container spacing={2}>
+                      {savedCards.map((card) => (
+                        <Grid key={card.id} size={{ xs: 12, sm: 6 }}>
+                          <PaymentMethodCard
+                            card={card}
+                            onSetDefault={handleSetDefaultCard}
+                            onRemove={handleRemoveCard}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                    <Box
+                      sx={{
+                        p: 1.5,
+                        borderRadius: 2.5,
+                        bgcolor: "#F0FDF4",
+                        border: "1px solid #DCFCE7",
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.2,
+                      }}
+                    >
+                      <CheckCircle2 size={16} color="#16A34A" />
+                      <Typography variant="caption" sx={{ color: "#166534", fontWeight: 600 }}>
+                        {isTrialing
+                          ? `Renovação automática programada para o término dos 6 meses gratuitos (${dayjs(
+                              tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end
+                            ).format("DD/MM/YYYY")}). Nenhuma cobrança do sistema será realizada agora.`
+                          : `Sua assinatura será renovada automaticamente no cartão padrão em ${dayjs(
+                              tenant?.subscription?.current_period_end
+                            ).format("DD/MM/YYYY")}.`}
+                      </Typography>
+                    </Box>
+                  </Stack>
+                ) : tenant?.subscription?.payment_method === "pix" ? (
+                  <Box
+                    sx={{
+                      p: 2.5,
+                      borderRadius: 3,
+                      bgcolor: "rgba(255, 193, 7, 0.05)",
+                      border: "1px solid rgba(255, 193, 7, 0.3)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 2,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                      <QrCode size={24} color="#D97706" />
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={800} color="#0F172A">
+                          Pagamento configurado via PIX
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "#475569", fontSize: "0.85rem" }}>
+                          {isTrialing
+                            ? `Ao término do período gratuito em ${dayjs(tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}, geraremos o QR Code PIX para renovação da mensalidade.`
+                            : `A cada vencimento, o código PIX será exibido nesta tela para renovação.`}
+                        </Typography>
+                      </Box>
+                    </Box>
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setOpenCheckout(true)}
+                      startIcon={<CreditCard size={16} />}
+                      sx={{ fontWeight: 700, borderRadius: 2 }}
+                    >
+                      Cadastrar Cartão de Crédito
+                    </Button>
+                  </Box>
+                ) : (
+                  <Box
+                    sx={{
+                      p: { xs: 2, sm: 2.5 },
+                      borderRadius: 3,
+                      bgcolor: "#F8FAFC",
+                      border: "1px solid #E2E8F0",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      flexWrap: "wrap",
+                      gap: 2,
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.8, minWidth: 280, flex: 1 }}>
+                      <Box
+                        sx={{
+                          width: 44,
+                          height: 44,
+                          borderRadius: "50%",
+                          bgcolor: "#EEF2FF",
+                          border: "1px solid #E0E7FF",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: "#313485",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <CreditCard size={22} />
+                      </Box>
+                      <Box>
+                        <Typography variant="subtitle2" fontWeight={800} color="#0F172A">
+                          Nenhuma forma de pagamento cadastrada
+                        </Typography>
+                        <Typography variant="body2" sx={{ color: "#475569", fontSize: "0.85rem", mt: 0.3 }}>
+                          Você está aproveitando o período de 6 meses 100% gratuito. Cadastre sua forma de pagamento para contratar pacotes de mensagens ou antecipar a renovação.
+                        </Typography>
+                      </Box>
+                    </Box>
+
+                    <Button
+                      variant="contained"
+                      onClick={() => setOpenCheckout(true)}
+                      startIcon={<Plus size={16} />}
+                      sx={{
+                        fontWeight: 700,
+                        borderRadius: 2.5,
+                        bgcolor: "#313485",
+                        px: 2.5,
+                        py: 1,
+                        whiteSpace: "nowrap",
+                        "&:hover": { bgcolor: "#24276A" },
+                      }}
+                    >
+                      Cadastrar Forma de Pagamento
+                    </Button>
+                  </Box>
+                )}
+              </Box>
+            )}
+
+            {/* ---- 3. Card de Recursos Inclusos no PetControle Pro ---- */}
+            {!activePendingPixCharge && !awaitingConfirmation && (
+              <Box
+                sx={{
+                  p: { xs: 2.5, sm: 3.5 },
+                  borderRadius: 4,
+                  border: "1.5px solid #E2E8F0",
+                  bgcolor: "white",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.02)",
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1 }}>
+                  <Box>
+                    <Typography variant="h6" fontWeight={800} color="#0F172A">
+                      Recursos Inclusos no PetControle Pro
+                    </Typography>
+                    <Typography variant="body2" sx={{ fontSize: "0.88rem", color: "#475569" }}>
+                      Tudo liberado para seu petshop operar com total controle e produtividade.
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: "flex", alignItems: "baseline", gap: 0.6 }}>
+                    <Typography variant="h5" fontWeight={900} color="#0F172A">
+                      R$ 99,90
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 600 }}>
+                      /mês (após 6 meses grátis)
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Grid container spacing={2}>
+                  {[
+                    "Agenda inteligente com lembretes automáticos",
+                    "Cadastro de clientes e pets ilimitados",
+                    "Controle de caixa, vendas e emissão de comprovantes",
+                    "Gestão completa de estoque, produtos e serviços",
+                    "Relatórios financeiros e comissões de equipe",
+                    "Suporte técnico prioritário e atualizações contínuas",
+                  ].map((item, idx) => (
+                    <Grid key={idx} size={{ xs: 12, sm: 6 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                        <CheckCircle2 size={18} color="#313485" strokeWidth={2.5} />
+                        <Typography variant="body2" sx={{ color: "#334155", fontWeight: 600 }}>
+                          {item}
+                        </Typography>
+                      </Box>
+                    </Grid>
+                  ))}
+                </Grid>
+              </Box>
             )}
 
             {/* ---- Security note ---- */}
             <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
-              <Lock size={14} color="#9CA3AF" />
-              <Typography variant="caption" color="text.disabled">
+              <Lock size={14} color="#64748B" />
+              <Typography variant="caption" sx={{ color: "#64748B" }}>
                 Ambiente seguro. Seus dados estão protegidos.
               </Typography>
+            </Box>
+
+            {/* ---- Add-ons / Pacotes ---- */}
+            <Box sx={{ pt: 1 }}>
+              <BillingAddonsSection
+                activePackageId={tenant?.subscription?.whatsapp_package_id}
+                onHirePackage={(pkgId) => {
+                  setSelectedAddonPkg(pkgId);
+                  setOpenCheckout(true);
+                }}
+              />
             </Box>
 
           </Stack>
@@ -2417,6 +2687,32 @@ const SettingsPage = () => {
           </Box>
         </DialogContent>
       </Dialog>
+
+      {/* --- STEPPER DE CHECKOUT COMPLETO (Passo a Passo: 1. Pagamento -> 2. Dados -> 3. Concluído) --- */}
+      <CheckoutStepper
+        open={openCheckout}
+        onClose={() => {
+          setOpenCheckout(false);
+          setSelectedAddonPkg(null);
+        }}
+        onSuccess={async () => {
+          await checkAuth();
+          await fetchCards();
+          await fetchCharges();
+          setOpenCheckout(false);
+          setSelectedAddonPkg(null);
+        }}
+        title={getCheckoutTitle()}
+        planId={selectedAddonPkg || tenant?.subscription?.plan?.code || "PLAN_MONTHLY"}
+        tenantDocument={tenant?.document}
+        savedCards={savedCards}
+        existingPixData={pixData ? {
+          pix_qr_code: pixData.pix_qr_code,
+          pix_qr_code_url: pixData.pix_qr_code_url,
+          expires_at: pixData.expires_at,
+        } : null}
+        startAt={checkoutStartAt}
+      />
     </Box>
   );
 };

@@ -1,22 +1,20 @@
-import { useCallback, useEffect, useState } from "react"
-import { fetchPets } from "../api/services/pets"
-import type { Pet } from "../features/pets/types"
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { fetchPets } from "../api/services/pets";
+import type { Pet } from "../features/pets/types";
+
+export const PETS_QUERY_KEY = ["pets"] as const;
 
 export function usePets() {
-  const [pets, setPets] = useState<Pet[]>([])
-  const [loading, setLoading] = useState(false)
-  const loadPets = useCallback(async () => {
-    setLoading(true)
-    try {
-      setPets(await fetchPets())
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+  const queryClient = useQueryClient();
 
-  useEffect(() => {
-    loadPets()
-  }, [loadPets])
+  const { data: pets = [], isLoading: loading } = useQuery<Pet[]>({
+    queryKey: PETS_QUERY_KEY,
+    queryFn: fetchPets,
+    staleTime: 30_000, // 30s — evita refetch desnecessário ao trocar de aba
+  });
 
-  return { pets, loading, getPets: loadPets }
+  // Compatibilidade com chamadas existentes de getPets()
+  const getPets = () => queryClient.invalidateQueries({ queryKey: PETS_QUERY_KEY });
+
+  return { pets, loading, getPets };
 }

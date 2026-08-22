@@ -1,4 +1,4 @@
-import { List, Box, Typography, LinearProgress } from "@mui/material";
+import { List, Box, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
@@ -19,6 +19,7 @@ import {
   BarChart2,
   Percent,
   ShoppingBag,
+  Gift,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -150,10 +151,8 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     }
     const expiryDate = dayjs(subscription.trial_ends_at);
     const daysLeft = Math.ceil(expiryDate.diff(dayjs(), "hour") / 24);
-    const totalDays = subscription.plan?.trial_days || 14;
-    const progress = Math.max(0, Math.min(100, (daysLeft / totalDays) * 100));
 
-    return { daysLeft: daysLeft > 0 ? daysLeft : 0, progress, expiryDate };
+    return { daysLeft: daysLeft > 0 ? daysLeft : 0, expiryDate };
   };
 
   const trialInfo = getTrialInfo();
@@ -247,55 +246,80 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
 
       {!collapsed && trialInfo && isOwner && (
         <Box
+          onClick={() => navigate("/settings?tab=billing")}
           sx={{
             mx: 2,
             mb: 1,
-            p: 1.5,
+            p: 1.25,
             bgcolor: "rgba(255, 255, 255, 0.08)",
             borderRadius: 2,
-            border: "1px solid rgba(255, 255, 255, 0.1)",
-            flexShrink: 0,
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            cursor: "pointer",
+            transition: "all 0.2s ease",
+            "&:hover": {
+              bgcolor: "rgba(255, 255, 255, 0.14)",
+              borderColor: "rgba(255, 255, 255, 0.25)",
+            },
           }}
         >
-          <Box
-            sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}
-          >
-            <Typography
-              variant="caption"
-              sx={{ color: "white", fontWeight: 700 }}
-            >
-              {trialInfo.daysLeft === 0
-                ? trialInfo.expiryDate.isBefore(dayjs())
-                  ? "Teste expirado"
-                  : `Acaba hoje às ${trialInfo.expiryDate.format("HH:mm")}`
-                : `${trialInfo.daysLeft} ${trialInfo.daysLeft === 1 ? "dia" : "dias"} restantes`}
-            </Typography>
-            <Typography
-              variant="caption"
-              onClick={() => navigate("/settings?tab=billing")}
-              sx={{
-                color: "secondary.main",
-                fontWeight: 800,
-                cursor: "pointer",
-                "&:hover": { textDecoration: "underline" },
-              }}
-            >
-              Assinar
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={trialInfo.progress}
-            sx={{
-              height: 5,
-              borderRadius: 3,
-              bgcolor: "rgba(255, 255, 255, 0.1)",
-              "& .MuiLinearProgress-bar": {
-                bgcolor: "secondary.main",
-                borderRadius: 3,
-              },
-            }}
-          />
+          {trialInfo.daysLeft === 0 ? (
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography variant="caption" sx={{ color: "#FCA5A5", fontWeight: 700 }}>
+                Período gratuito expirado
+              </Typography>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: "secondary.main",
+                  fontWeight: 800,
+                }}
+              >
+                Ativar
+              </Typography>
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+              <Box
+                sx={{
+                  width: 28,
+                  height: 28,
+                  borderRadius: "50%",
+                  bgcolor: "rgba(255, 255, 255, 0.12)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "#FBBF24",
+                  flexShrink: 0,
+                }}
+              >
+                <Gift size={15} strokeWidth={2.5} />
+              </Box>
+              <Box sx={{ overflow: "hidden", flex: 1 }}>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "white",
+                    fontWeight: 800,
+                    display: "block",
+                    lineHeight: 1.2,
+                    fontSize: "0.78rem",
+                  }}
+                >
+                  PetControle Pro
+                </Typography>
+                <Typography
+                  variant="caption"
+                  sx={{
+                    color: "rgba(255, 255, 255, 0.7)",
+                    fontSize: "0.68rem",
+                    display: "block",
+                  }}
+                >
+                  6 meses grátis
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Box>
       )}
     </Box>

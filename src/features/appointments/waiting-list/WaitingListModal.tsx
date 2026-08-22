@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Box, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
 import { X } from "lucide-react";
-import { useWaitingList } from "../../../hooks/useWaitingList";
+import { useWaitingListMutations } from "../../../hooks/useWaitingList";
 import { useClients } from "../../../hooks/useClients";
 import { useServices } from "../../../hooks/useServices";
 import { useClient } from "../../../hooks/useClient";
@@ -17,7 +17,7 @@ type Props = {
 };
 
 export default function WaitingListModal({ open, onClose, onSuccess, initialEntry }: Props) {
-  const { createEntry, updateEntry } = useWaitingList();
+  const { createEntry, updateEntry } = useWaitingListMutations();
   const { clients } = useClients();
   const { services } = useServices();
   

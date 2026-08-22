@@ -10,13 +10,14 @@ import {
   StepLabel,
   Divider,
   TextField,
+  Chip,
 } from "@mui/material";
 import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
 import { QRCodeSVG } from "qrcode.react";
 import { createCheckout, cancelCharge } from "../../api/services/subscriptions";
-import type { CheckoutPixResponse } from "./types";
+import type { CheckoutPixResponse, PaymentMethod } from "./types";
 import { maskDocument } from "../../utils/masks";
 import dayjs from "dayjs";
 
@@ -34,6 +35,8 @@ interface Props {
   } | null;
   /** If provided, creates a card subscription starting at this date (for PIX→Card transitions) */
   startAt?: string | null;
+  title?: string;
+  savedCards?: PaymentMethod[];
 }
 
 type PayMethod = "card" | "pix";
@@ -93,6 +96,8 @@ const CheckoutStepper = ({
   tenantDocument,
   existingPixData,
   startAt,
+  title = "Pagamento & Assinatura",
+  savedCards,
 }: Props) => {
   const [step, setStep] = useState<Step>(existingPixData ? 2 : 1);
   const [payMethod, setPayMethod] = useState<PayMethod | null>(existingPixData ? "pix" : null);
@@ -122,6 +127,10 @@ const CheckoutStepper = ({
     method: string;
   } | null>(null);
 
+  const [selectedSavedCardId, setSelectedSavedCardId] = useState<string | "new">(
+    savedCards && savedCards.length > 0 ? (savedCards.find((c) => c.is_default)?.id || savedCards[0].id) : "new"
+  );
+
   // Reset when opened
   useEffect(() => {
     if (open) {
@@ -144,8 +153,13 @@ const CheckoutStepper = ({
       setPixDocument(tenantDocument ? maskDocument(tenantDocument) : "");
       setCopied(false);
       setConfirmationData(null);
+      if (savedCards && savedCards.length > 0) {
+        setSelectedSavedCardId(savedCards.find((c) => c.is_default)?.id || savedCards[0].id);
+      } else {
+        setSelectedSavedCardId("new");
+      }
     }
-  }, [open, existingPixData, tenantDocument]);
+  }, [open, existingPixData, tenantDocument, savedCards]);
 
   const handleSelectPix = () => {
     setPayMethod("pix");
@@ -184,6 +198,35 @@ const CheckoutStepper = ({
     } catch { /* ignore */ } finally {
       setCancelLoading(false);
       onClose();
+    }
+  };
+
+  const handleUseSavedCard = async (cardId: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      await createCheckout(
+        planId,
+        "credit_card",
+        undefined,
+        undefined,
+        undefined,
+        startAt ?? undefined,
+        cardId
+      );
+      const chosenCard = savedCards?.find((c) => c.id === cardId);
+      setConfirmationData({
+        plan: "Plano PetControle Pro",
+        value: "R$ 99,90/mês",
+        nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
+        method: chosenCard ? `Cartão •••• ${chosenCard.last4}` : "Cartão de Crédito",
+      });
+      setStep(3);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || "Erro ao processar pagamento.";
+      setError(typeof detail === "string" ? detail : JSON.stringify(detail));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -248,10 +291,10 @@ const CheckoutStepper = ({
     >
       <Box
         sx={{
-          bgcolor: "background.paper",
-          borderRadius: 4,
+          bgcolor: "#313485",
+          borderRadius: "16px",
           width: "100%",
-          maxWidth: 760, // Aumentado para acomodar duas colunas confortavelmente
+          maxWidth: 760,
           overflow: "hidden",
           boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
         }}
@@ -259,7 +302,7 @@ const CheckoutStepper = ({
         {/* Header */}
         <Box
           sx={{
-            bgcolor: "#1E2A6E",
+            bgcolor: "#313485",
             p: "20px 24px",
             display: "flex",
             alignItems: "center",
@@ -267,19 +310,28 @@ const CheckoutStepper = ({
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Lock size={18} color="rgba(255,255,255,0.8)" />
+            <Lock size={18} color="rgba(255,255,255,0.9)" />
             <Typography variant="subtitle1" fontWeight={700} color="white">
-              Assinar Plano Mensal
+              {title}
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small" sx={{ color: "rgba(255,255,255,0.8)" }}>
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: "rgba(255,255,255,0.85)",
+              "&:hover": { bgcolor: "rgba(255,255,255,0.12)", color: "white" },
+            }}
+          >
             <X size={20} />
           </IconButton>
         </Box>
 
-        {/* Stepper */}
-        <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
-          <Stepper activeStep={activeStepIdx} alternativeLabel>
+        {/* Modal Body Container */}
+        <Box sx={{ bgcolor: "#FFFFFF", width: "100%" }}>
+          {/* Stepper */}
+          <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
+            <Stepper activeStep={activeStepIdx} alternativeLabel>
             {STEPS.map((label) => (
               <Step key={label}>
                 <StepLabel
@@ -403,7 +455,7 @@ const CheckoutStepper = ({
           </Box>
         )}
 
-        {/* Step 2 — Card form */}
+        {/* Step 2 — Card form / Saved Card Selection */}
         {step === 2 && payMethod === "card" && (
           <Box sx={{ p: 3 }}>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2.5 }}>
@@ -415,7 +467,7 @@ const CheckoutStepper = ({
                 <ArrowLeft size={18} />
               </IconButton>
               <Typography variant="subtitle1" fontWeight={700}>
-                Dados do Cartão
+                {savedCards && savedCards.length > 0 ? "Escolha o Cartão" : "Dados do Cartão"}
               </Typography>
             </Box>
 
@@ -425,11 +477,133 @@ const CheckoutStepper = ({
               </Box>
             )}
 
-            <CheckoutForm
-              onSuccess={handleCardSuccess}
-              buttonLabel="Confirmar pagamento"
-              defaultDocument={tenantDocument}
-            />
+            {savedCards && savedCards.length > 0 && selectedSavedCardId !== "new" ? (
+              <Stack spacing={2}>
+                <Typography variant="body2" sx={{ color: "#475569", fontWeight: 500 }}>
+                  Selecione um dos seus cartões cadastrados ou adicione um novo:
+                </Typography>
+
+                <Stack spacing={1.5}>
+                  {savedCards.map((card) => {
+                    const isSelected = selectedSavedCardId === card.id;
+                    return (
+                      <Box
+                        key={card.id}
+                        onClick={() => setSelectedSavedCardId(card.id)}
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          p: 2,
+                          borderRadius: 3,
+                          border: "1.5px solid",
+                          borderColor: isSelected ? "#313485" : "#E2E8F0",
+                          bgcolor: isSelected ? "rgba(49, 52, 133, 0.04)" : "white",
+                          cursor: "pointer",
+                          transition: "all 0.15s ease",
+                          "&:hover": {
+                            borderColor: "#313485",
+                          },
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                          <CreditCard size={20} color="#313485" />
+                          <Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Typography variant="body2" fontWeight={800} color="#0F172A">
+                                {card.brand.toUpperCase()} •••• {card.last4}
+                              </Typography>
+                              {card.is_default && (
+                                <Chip
+                                  label="Padrão"
+                                  size="small"
+                                  sx={{
+                                    height: 18,
+                                    fontSize: "0.62rem",
+                                    fontWeight: 800,
+                                    bgcolor: "#313485",
+                                    color: "#fff",
+                                  }}
+                                />
+                              )}
+                            </Box>
+                            <Typography variant="caption" sx={{ color: "#64748B" }}>
+                              Expira {String(card.exp_month).padStart(2, "0")}/{card.exp_year}
+                            </Typography>
+                          </Box>
+                        </Box>
+
+                        <Box
+                          sx={{
+                            width: 20,
+                            height: 20,
+                            borderRadius: "50%",
+                            border: "2px solid",
+                            borderColor: isSelected ? "#313485" : "#CBD5E1",
+                            bgcolor: isSelected ? "#313485" : "transparent",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          {isSelected && (
+                            <Box sx={{ width: 8, height: 8, borderRadius: "50%", bgcolor: "white" }} />
+                          )}
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Stack>
+
+                <Box sx={{ pt: 1, display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1.5 }}>
+                  <Button
+                    variant="text"
+                    size="small"
+                    onClick={() => setSelectedSavedCardId("new")}
+                    sx={{ fontWeight: 700, color: "#313485" }}
+                  >
+                    + Pagar com um novo cartão
+                  </Button>
+
+                  <Button
+                    variant="contained"
+                    onClick={() => handleUseSavedCard(selectedSavedCardId)}
+                    disabled={loading}
+                    sx={{
+                      fontWeight: 800,
+                      borderRadius: 2.5,
+                      px: 3,
+                      py: 1.2,
+                      bgcolor: "#313485",
+                      "&:hover": { bgcolor: "#24276A" },
+                    }}
+                  >
+                    {loading ? <CircularProgress size={22} color="inherit" /> : "Confirmar e Pagar"}
+                  </Button>
+                </Box>
+              </Stack>
+            ) : (
+              <Box>
+                {savedCards && savedCards.length > 0 && (
+                  <Box sx={{ mb: 2 }}>
+                    <Button
+                      variant="text"
+                      size="small"
+                      onClick={() => setSelectedSavedCardId(savedCards.find((c) => c.is_default)?.id || savedCards[0].id)}
+                      startIcon={<ArrowLeft size={16} />}
+                      sx={{ fontWeight: 700, color: "#313485" }}
+                    >
+                      Voltar para cartões salvos
+                    </Button>
+                  </Box>
+                )}
+                <CheckoutForm
+                  onSuccess={handleCardSuccess}
+                  buttonLabel="Confirmar pagamento"
+                  defaultDocument={tenantDocument}
+                />
+              </Box>
+            )}
           </Box>
         )}
 
@@ -657,11 +831,12 @@ const CheckoutStepper = ({
         {step !== 3 && (
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.5, py: 1.5, borderTop: "1px solid", borderColor: "divider" }}>
             <Lock size={11} color="#9CA3AF" />
-            <Typography variant="caption" color="text.disabled" fontSize="0.68rem">
+            <Typography variant="caption" sx={{ color: "#64748B", fontSize: "0.72rem" }}>
               Ambiente seguro. Seus dados estão protegidos.
             </Typography>
           </Box>
         )}
+        </Box>
       </Box>
     </Box>
   );

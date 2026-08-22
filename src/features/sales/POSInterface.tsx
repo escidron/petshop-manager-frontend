@@ -3,13 +3,7 @@ import { User } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { fetchProducts } from "../../api/services/products";
-import { fetchClients } from "../../api/services/clients";
-import { getTenantServices } from "../../api/services/tenant_services";
-import { listPackages } from "../../api/services/packages";
-import { listClientPackagesByClient } from "../../api/services/client_packages";
-import { fetchPetsByClient, fetchPets } from "../../api/services/pets";
-import { getAppointmentsByTenant, listAppointmentsByClient } from "../../api/services/appointments";
+import { fetchPOSStartup, fetchPOSClientDetails } from "../../api/services/sales";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
@@ -66,51 +60,30 @@ export default function POSInterface() {
   const [pendingPackagePetIds, setPendingPackagePetIds] = useState<number[]>([]);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
-  const { data: products = [], isLoading: productsLoading } = useQuery({
-    queryKey: ["products", { excludeInternal: true }],
-    queryFn: () => fetchProducts(true),
-    staleTime: 1000 * 60 * 5,
+  const { data: startupData, isLoading: startupLoading } = useQuery({
+    queryKey: ["pos-startup"],
+    queryFn: fetchPOSStartup,
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache para produtos, pacotes, etc
   });
-  const { data: services = [], isLoading: servicesLoading } = useQuery({
-    queryKey: ["services"],
-    queryFn: getTenantServices,
-    staleTime: 1000 * 60 * 5,
-  });
-  const { data: clients = [] } = useQuery({
-    queryKey: ["clients"],
-    queryFn: fetchClients,
-    staleTime: 1000 * 60 * 10,
-  });
-  const { data: allPets = [] } = useQuery({
-    queryKey: ["pets"],
-    queryFn: fetchPets,
-    staleTime: 1000 * 60 * 10,
-  });
-  const { data: packages = [], isLoading: packagesLoading } = useQuery({
-    queryKey: ["packages"],
-    queryFn: listPackages,
-    staleTime: 1000 * 60 * 5,
-  });
-  const { data: clientPets = [] } = useQuery<Pet[]>({
-    queryKey: ["pets", "client", selectedClientId],
-    queryFn: () => fetchPetsByClient(selectedClientId!),
+
+  const { data: clientDetailsData, isLoading: clientDetailsLoading } = useQuery({
+    queryKey: ["pos-client", selectedClientId],
+    queryFn: () => fetchPOSClientDetails(selectedClientId!),
     enabled: !!selectedClientId,
   });
-  const { data: clientActivePackages = [] } = useQuery<ClientPackage[]>({
-    queryKey: ["clientPackages", "client", selectedClientId],
-    queryFn: () => listClientPackagesByClient(selectedClientId!),
-    enabled: !!selectedClientId,
-  });
-  const { data: clientAppointments = [] } = useQuery<Appointment[]>({
-    queryKey: ["appointments", "client", selectedClientId],
-    queryFn: () => listAppointmentsByClient(selectedClientId!),
-    enabled: !!selectedClientId,
-  });
-  const { data: allAppointments = [], isLoading: appointmentsLoading } = useQuery({
-    queryKey: ["appointments", "pos-pending"],
-    queryFn: () => getAppointmentsByTenant(),
-    staleTime: 1000 * 60 * 2,
-  });
+
+  // Global Data
+  const products = startupData?.products || [];
+  const services = startupData?.services || [];
+  const packages = startupData?.packages || [];
+  const clients = startupData?.clients || [];
+  const allPets = startupData?.pets || [];
+  const allAppointments = startupData?.appointments || [];
+
+  // Client Specific Data
+  const clientPets = clientDetailsData?.client_pets || [];
+  const clientActivePackages = clientDetailsData?.client_packages || [];
+  const clientAppointments = clientDetailsData?.client_appointments || [];
 
   // ── Derived State ────────────────────────────────────────────────────────
   const selectedClient = clients.find((c) => c.id === selectedClientId);
@@ -136,9 +109,9 @@ export default function POSInterface() {
     const term = searchTerm.toLowerCase();
     return pendingAppointments.filter((apt) => {
       const clientMatch = apt.client.name.toLowerCase().includes(term);
-      const petMatch = apt.items.some((item) => item.pet.name.toLowerCase().includes(term));
-      const serviceMatch = apt.items.some((item) =>
-        item.services.some((s) => s.name.toLowerCase().includes(term))
+      const petMatch = apt.items.some((item: any) => item.pet.name.toLowerCase().includes(term));
+      const serviceMatch = apt.items.some((item: any) =>
+        item.services.some((s: any) => s.name.toLowerCase().includes(term))
       );
       return clientMatch || petMatch || serviceMatch;
     });
@@ -151,7 +124,7 @@ export default function POSInterface() {
       ? discountAmount > 0
       : discountPercentage > (tenant?.max_discount_percentage ?? 100);
 
-  const isLoadingItems = productsLoading || servicesLoading || packagesLoading || appointmentsLoading;
+  const isLoadingItems = startupLoading || clientDetailsLoading;
 
   const lowStockProducts = useMemo(
     () => products.filter((p) => p.is_active && p.quantity <= p.min_stock),
@@ -183,8 +156,8 @@ export default function POSInterface() {
     const pkgDef = packages.find((p) => p.id === pendingPackageItem.id);
     if (!pkgDef) return [];
     const pkgServices = pkgDef.items
-      .filter((item) => item.service_id)
-      .map((item) => services.find((s) => s.id === item.service_id))
+      .filter((item: any) => item.service_id)
+      .map((item: any) => services.find((s) => s.id === item.service_id))
       .filter(Boolean) as Service[];
     return pkgServices.filter((s) => !isServiceCompatibleWithPet(s, pet));
   };
