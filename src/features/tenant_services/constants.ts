@@ -7,6 +7,6 @@ export const DEFAULT_SERVICE_FORM: ServiceFormData = {
   description: "",
   species: undefined,
   size: undefined,
-  coat_type: "",
+  coat_type: undefined,
   duration_minutes: undefined,
 };
