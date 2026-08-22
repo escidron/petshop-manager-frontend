@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Autocomplete,
   Box,
@@ -37,17 +38,22 @@ const ServiceForm = ({
 }: Props) => {
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
-    values: defaultValues
-      ? {
-          is_active: true,
-          ...defaultValues,
-        }
-      : undefined,
     defaultValues: {
+      name: "",
       is_active: true,
       ...defaultValues,
     },
   });
+
+  useEffect(() => {
+    if (defaultValues) {
+      form.reset({
+        name: "",
+        is_active: true,
+        ...defaultValues,
+      });
+    }
+  }, [defaultValues, form]);
   const {
     control,
     handleSubmit,
