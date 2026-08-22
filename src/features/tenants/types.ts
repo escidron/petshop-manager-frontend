@@ -9,6 +9,7 @@ export type Subscription = {
   current_period_end: string;
   payment_method?: string | null;
   eligible_for_refund?: boolean;
+  whatsapp_package_id?: string | null;
   plan: {
     id: number;
     code: string;

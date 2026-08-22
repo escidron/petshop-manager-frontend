@@ -25,6 +25,8 @@ import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
 import { createCommissionRule, updateCommissionRule } from "../../api/services/commissions";
+import { getEmployees as fetchEmployees } from "../../api/services/employees";
+import { fetchServices } from "../../api/services/tenant_services";
 import type { CommissionRule, CommissionRuleFormData } from "./types";
 import type { Employee } from "../employees/types";
 import type { Service } from "../tenant_services/types";
@@ -53,16 +55,17 @@ type Props = {
   open: boolean;
   mode: "create" | "edit";
   rule?: CommissionRule;
-  employees: Employee[];
-  services: Service[];
   onClose: () => void;
   onSuccess: () => void;
 };
 
 export default function CommissionRuleFormModal({
-  open, mode, rule, employees, services, onClose, onSuccess,
+  open, mode, rule, onClose, onSuccess,
 }: Props) {
   const toast = useToast();
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [services, setServices] = useState<Service[]>([]);
+  const [loadingOptions, setLoadingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeLimit, setEmployeeLimit] = useState(20);
   const [serviceLimit, setServiceLimit] = useState(20);
@@ -86,6 +89,22 @@ export default function CommissionRuleFormModal({
 
   useEffect(() => {
     if (open) {
+      let isMounted = true;
+      setLoadingOptions(true);
+      Promise.all([fetchEmployees(), fetchServices()])
+        .then(([empData, svcData]) => {
+          if (isMounted) {
+            setEmployees(empData);
+            setServices(svcData);
+          }
+        })
+        .catch(() => {
+          toast.error("Erro ao carregar funcionários e serviços.");
+        })
+        .finally(() => {
+          if (isMounted) setLoadingOptions(false);
+        });
+
       reset({
         name: rule?.name ?? "",
         commission_type: rule?.commission_type ?? "percentage",
@@ -97,8 +116,13 @@ export default function CommissionRuleFormModal({
         valid_until: rule?.valid_until ?? null,
         is_active: rule?.is_active ?? true,
       });
+
+      return () => {
+        isMounted = false;
+      };
     }
   }, [open, rule, reset]);
+
 
   const onSubmit = async (data: CommissionRuleFormData) => {
     if (isSubmitting) return;
@@ -301,6 +325,7 @@ export default function CommissionRuleFormModal({
                         }
                       }}
                       size="small"
+                      loading={loadingOptions}
                       value={employees.find((e) => e.id === field.value) ?? null}
                       getOptionLabel={(o) => o.name}
                       renderOption={(props, option) => {
@@ -313,7 +338,7 @@ export default function CommissionRuleFormModal({
                       }}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
                       onChange={(_, v) => field.onChange(v?.id ?? null)}
-                      noOptionsText="Nenhum funcionário cadastrado"
+                      noOptionsText={loadingOptions ? "Carregando..." : "Nenhum funcionário cadastrado"}
                       renderInput={(params) => (
                         <TextField
                           {...params}
@@ -335,6 +360,7 @@ export default function CommissionRuleFormModal({
                   render={({ field }) => (
                     <Autocomplete<Service, true>
                       multiple
+                      loading={loadingOptions}
                       options={services}
                       filterOptions={(options, state) => {
                         const input = state.inputValue.toLowerCase();

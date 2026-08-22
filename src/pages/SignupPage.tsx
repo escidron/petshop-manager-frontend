@@ -8,6 +8,8 @@ import {
   CheckCircle2,
   ArrowLeft,
   Zap,
+  Calendar,
+  MessageCircle,
 } from "lucide-react";
 import { useToast } from "../hooks/useToast";
 import { useNavigate } from "react-router";
@@ -30,7 +32,11 @@ const SignupPage = () => {
   const stepParam = Number(searchParams.get("step")) as 1 | 2 | 3;
   const step: 1 | 2 | 3 = stepParam || 1;
   const planFromUrl = searchParams.get("plan") as PlanCode | null;
-  const [planCode, setPlanCode] = useState<PlanCode | null>(planFromUrl);
+  const packageFromUrl = searchParams.get("package");
+  const [planCode, setPlanCode] = useState<PlanCode>(planFromUrl || "FREE_TRIAL");
+  const [selectedPackage, setSelectedPackage] = useState<string | null>(
+    packageFromUrl ?? null
+  );
   const [userData, setUserData] = useState<UserFormData | null>(null);
   const [tenantData, setTenantData] = useState<TenantFormData | null>(null);
   const [loading, setLoading] = useState(false);
@@ -44,24 +50,39 @@ const SignupPage = () => {
     type: "terms",
   });
 
-  // Sincronizar estado local com a URL caso mude externamente (ex: botão voltar do navegador)
+  // Sincronizar estado local com a URL caso mude externamente
   useEffect(() => {
     if (planFromUrl && planFromUrl !== planCode) {
       setPlanCode(planFromUrl);
     }
-  }, [planFromUrl, planCode]);
+    if (packageFromUrl !== undefined && packageFromUrl !== selectedPackage) {
+      setSelectedPackage(packageFromUrl ?? null);
+    }
+  }, [planFromUrl, packageFromUrl, planCode, selectedPackage]);
 
   const goToStep = (newStep: 1 | 2 | 3) => {
     const newParams = new URLSearchParams(searchParams);
     newParams.set("step", String(newStep));
+    if (planCode) newParams.set("plan", planCode);
+    if (selectedPackage) {
+      newParams.set("package", selectedPackage);
+    } else {
+      newParams.delete("package");
+    }
     setSearchParams(newParams);
   };
 
-  const handleSelectPlan = (plan: PlanCode) => {
+  const handleSelectPlan = (plan: PlanCode, packageId?: string | null) => {
     setPlanCode(plan);
+    setSelectedPackage(packageId ?? null);
     const newParams = new URLSearchParams(searchParams);
     newParams.set("step", "2");
     newParams.set("plan", plan);
+    if (packageId) {
+      newParams.set("package", packageId);
+    } else {
+      newParams.delete("package");
+    }
     setSearchParams(newParams);
   };
 
@@ -108,6 +129,28 @@ const SignupPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getPackagePrice = (pkgId: string | null) => {
+    switch (pkgId) {
+      case "200":
+        return "R$ 37,90";
+      case "500":
+        return "R$ 69,90";
+      case "1000":
+        return "R$ 119,90";
+      case "2000":
+        return "R$ 199,90";
+      default:
+        return "R$ 0,00";
+    }
+  };
+
+  const formatPackageCount = (pkgId: string | null) => {
+    if (!pkgId) return "";
+    if (pkgId === "1000") return "1.000";
+    if (pkgId === "2000") return "2.000";
+    return pkgId;
   };
 
   return (
@@ -189,7 +232,7 @@ const SignupPage = () => {
             variant="h2"
             sx={{ fontWeight: 800, mb: 2, lineHeight: 1.2, color: "white" }}
           >
-            {step === 1 && "Simplicidade para gerenciar seu tempo."}
+            {step === 1 && "Seu plano e automações ideais."}
             {step === 2 && "Sua conta é a porta para o sucesso."}
             {step === 3 && "Personalize a vitrine do seu negócio."}
           </Typography>
@@ -198,14 +241,17 @@ const SignupPage = () => {
             variant="body1"
             sx={{ opacity: 0.8, mb: 5, fontSize: "1.1rem", maxWidth: 450 }}
           >
-            {step === 1 && "Escolha o plano que melhor se adapta à sua rotina e comece a escalar hoje mesmo."}
-            {step === 2 && "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
-            {step === 3 && "Seus clientes vão notar a diferença desde o primeiro agendamento."}
+            {step === 1 &&
+              "Aproveite 6 meses grátis do PetControle Pro e adicione mensagens automáticas se desejar."}
+            {step === 2 &&
+              "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
+            {step === 3 &&
+              "Seus clientes vão notar a diferença desde o primeiro agendamento."}
           </Typography>
 
           <Stack spacing={2} sx={{ mt: 4 }}>
             {[
-              { idx: 1, label: "Plano Ideal", icon: <Settings size={18} /> },
+              { idx: 1, label: "Plano & Pacotes", icon: <Settings size={18} /> },
               { idx: 2, label: "Dados da Conta", icon: <User size={18} /> },
               { idx: 3, label: "Seu Negócio", icon: <Store size={18} /> },
             ].map((item) => (
@@ -294,25 +340,112 @@ const SignupPage = () => {
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
-            px: { xs: 2, sm: 4, lg: step === 1 ? 4 : 8 },
+            px: { xs: 2, sm: 3, lg: step === 1 ? 3 : 8 },
             pb: 8,
           }}
         >
-          <Box sx={{ width: "100%", maxWidth: step === 1 ? 800 : 650 }}>
-            <Box sx={{ mb: 4, textAlign: { xs: "center", md: "left" } }}>
+          <Box sx={{ width: "100%", maxWidth: step === 1 ? 1080 : 650 }}>
+            <Box sx={{ mb: 3, textAlign: { xs: "center", md: "left" } }}>
               <Typography variant="h4" fontWeight={900} color="primary.main">
-                {step === 1 && "Bem-vindo!"}
+                {step === 1 && "Seu plano PetControle"}
                 {step === 2 && "Sua conta pessoal"}
                 {step === 3 && "Detalhes da empresa"}
               </Typography>
-              <Typography variant="body1" color="text.primary">
+              <Typography variant="body1" color="text.primary" sx={{ mt: 0.5 }}>
                 {step === 1 &&
-                  "Comece selecionando o plano que faz sentido para você."}
+                  "Confirme seu plano e escolha pacotes adicionais se desejar."}
                 {step === 2 && "Preencha seus dados de acesso."}
                 {step === 3 &&
                   "Configure como seus clientes verão seu petshop."}
               </Typography>
             </Box>
+
+            {/* Selected Plan Summary Banner on Step 2 and 3 */}
+            {step > 1 && (
+              <Box
+                sx={{
+                  mb: 3,
+                  p: 2,
+                  borderRadius: "16px",
+                  bgcolor: "white",
+                  border: "1.5px solid",
+                  borderColor: selectedPackage ? "#86EFAC" : "#E2E8F0",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.03)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 2,
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 38,
+                      height: 38,
+                      borderRadius: "10px",
+                      bgcolor: selectedPackage ? "#DCFCE7" : "#EEF2FF",
+                      color: selectedPackage ? "#16A34A" : "#313485",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    {selectedPackage ? (
+                      <MessageCircle size={20} />
+                    ) : (
+                      <Calendar size={20} />
+                    )}
+                  </Box>
+                  <Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
+                      <Typography sx={{ fontWeight: 800, fontSize: "0.92rem", color: "#0F172A" }}>
+                        PetControle Pro
+                      </Typography>
+                      <Box
+                        sx={{
+                          fontSize: "0.72rem",
+                          color: "#15803D",
+                          bgcolor: "#DCFCE7",
+                          px: 1,
+                          py: 0.2,
+                          borderRadius: "4px",
+                          fontWeight: 800,
+                        }}
+                      >
+                        🎁 6 meses grátis
+                      </Box>
+                    </Box>
+                    <Typography sx={{ fontSize: "0.78rem", color: "#64748B", mt: 0.2 }}>
+                      {selectedPackage
+                        ? `+ ${formatPackageCount(selectedPackage)} msgs WhatsApp (${getPackagePrice(selectedPackage)}/mês)`
+                        : "Sem pacote de mensagens (100% gratuito nos 6 primeiros meses)"}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => goToStep(1)}
+                  sx={{
+                    fontSize: "0.78rem",
+                    fontWeight: 700,
+                    borderRadius: "8px",
+                    textTransform: "none",
+                    whiteSpace: "nowrap",
+                    borderColor: "#CBD5E1",
+                    color: "#313485",
+                    "&:hover": {
+                      borderColor: "#313485",
+                      bgcolor: "#EEF2FF",
+                    },
+                  }}
+                >
+                  Alterar
+                </Button>
+              </Box>
+            )}
 
             <Box
               sx={{
@@ -323,7 +456,13 @@ const SignupPage = () => {
                 },
               }}
             >
-              {step === 1 && <PlanForm onSubmit={handleSelectPlan} selectedPlan={planCode || undefined} />}
+              {step === 1 && (
+                <PlanForm
+                  onSubmit={handleSelectPlan}
+                  selectedPlan={planCode || undefined}
+                  selectedPackage={selectedPackage}
+                />
+              )}
 
               {step === 2 && (
                 <CustomCard sx={{ p: 4, borderRadius: 5, boxShadow: "0 20px 40px rgba(0,0,0,0.05)" }}>
