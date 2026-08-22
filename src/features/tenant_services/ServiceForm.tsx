@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import {
   Autocomplete,
   Box,
@@ -45,15 +44,6 @@ const ServiceForm = ({
     },
   });
 
-  useEffect(() => {
-    if (defaultValues) {
-      form.reset({
-        name: "",
-        is_active: true,
-        ...defaultValues,
-      });
-    }
-  }, [defaultValues, form]);
   const {
     control,
     handleSubmit,

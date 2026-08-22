@@ -5,7 +5,7 @@ import {
   DialogTitle,
   Typography,
 } from "@mui/material";
-import {  useState } from "react";
+import { useMemo, useState } from "react";
 
 import { DEFAULT_SERVICE_FORM } from "./constants";
 import { useToast } from "../../hooks/useToast";
@@ -35,9 +35,10 @@ export default function ServiceFormModal({
   onSuccess,
 }: Props) {
   const toast = useToast();
-  const defaultValues = service
-    ? serviceToFormData(service)
-    : DEFAULT_SERVICE_FORM;
+  const defaultValues = useMemo(
+    () => (service ? serviceToFormData(service) : DEFAULT_SERVICE_FORM),
+    [service],
+  );
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -100,6 +101,7 @@ export default function ServiceFormModal({
 
       <DialogContent>
         <ServiceForm
+          key={service?.id ?? "create"}
           defaultValues={defaultValues}
           onSubmit={handleSubmit}
           isSubmitting={isSubmitting}
