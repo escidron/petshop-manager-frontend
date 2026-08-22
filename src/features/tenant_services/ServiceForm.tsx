@@ -37,6 +37,12 @@ const ServiceForm = ({
 }: Props) => {
   const form = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
+    values: defaultValues
+      ? {
+          is_active: true,
+          ...defaultValues,
+        }
+      : undefined,
     defaultValues: {
       is_active: true,
       ...defaultValues,
@@ -298,7 +304,7 @@ const ServiceForm = ({
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Tiempo de duração do serviço
+                  Tempo de duração do serviço
                 </FormLabel>
 
                 <Controller
@@ -307,26 +313,10 @@ const ServiceForm = ({
                   render={({ field }) => (
                     <TextField
                       {...field}
-                      sx={{
-                        "& input[type=number]": {
-                          MozAppearance: "textfield", // Firefox
-                        },
-                        "& input[type=number]::-webkit-outer-spin-button": {
-                          WebkitAppearance: "none",
-                          margin: 0,
-                        },
-                        "& input[type=number]::-webkit-inner-spin-button": {
-                          WebkitAppearance: "none",
-                          margin: 0,
-                        },
-                      }}
+                      value={field.value ?? ""}
                       size="small"
-                      type="number"
                       placeholder="0"
                       slotProps={{
-                        htmlInput: {
-                          min: 0,
-                        },
                         input: {
                           endAdornment: (
                             <InputAdornment position="end">
@@ -343,13 +333,12 @@ const ServiceForm = ({
                           ),
                         },
                       }}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+                        const digits = e.target.value.replace(/\D/g, "");
                         field.onChange(
-                          e.currentTarget.value === ""
-                            ? undefined
-                            : e.currentTarget.valueAsNumber,
-                        )
-                      }
+                          digits === "" ? null : Number(digits)
+                        );
+                      }}
                     />
                   )}
                 />
