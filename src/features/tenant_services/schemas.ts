@@ -29,10 +29,10 @@ export const serviceSchema = z
         message: "Preço é obrigatório",
       }),
 
-    description: z.string().max(255, "Descrição pode ter no máximo 255 caracteres").optional(),
-    species: z.enum(petSpeciesValues).optional(),
-    size: z.enum(petSizeValues).optional(),
-    coat_type: z.string().max(30, "Tipo de pelagem pode ter no máximo 30 caracteres").optional(),
+    description: z.string().max(255, "Descrição pode ter no máximo 255 caracteres").nullable().optional(),
+    species: z.enum(petSpeciesValues).nullable().optional(),
+    size: z.enum(petSizeValues).nullable().optional(),
+    coat_type: z.string().max(30, "Tipo de pelagem pode ter no máximo 30 caracteres").nullable().optional(),
     duration_minutes: z
       .number()
       .int("Duração deve ser um número inteiro")

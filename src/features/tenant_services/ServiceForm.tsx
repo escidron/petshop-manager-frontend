@@ -215,7 +215,7 @@ const ServiceForm = ({
                         null
                       }
                       onChange={(_, specie) =>
-                        field.onChange(specie?.value ?? "")
+                        field.onChange(specie?.value ?? null)
                       }
                       getOptionLabel={(option) => option.label}
                       isOptionEqualToValue={(option, value) =>
@@ -254,7 +254,7 @@ const ServiceForm = ({
                       }
                       getOptionLabel={(option) => option.label}
                       onChange={(_, value) =>
-                        field.onChange(value?.value ?? "")
+                        field.onChange(value?.value ?? null)
                       }
                       renderInput={(params) => (
                         <TextField {...params} placeholder="Selecionar Porte" />
@@ -284,7 +284,7 @@ const ServiceForm = ({
                         option.value === value.value
                       }
                       getOptionLabel={(option) => option.label}
-                      onChange={(_, type) => field.onChange(type?.value ?? "")}
+                      onChange={(_, type) => field.onChange(type?.value ?? null)}
                       renderInput={(params) => (
                         <TextField
                           {...params}
