@@ -37,11 +37,12 @@ export const serviceSchema = z
       .number()
       .int("Duração deve ser um número inteiro")
       .positive("Duração deve ser maior que zero")
+      .nullable()
       .optional(),
   })
   .superRefine((data, ctx) => {
     /* Regra opcional: se preencher duration, precisa ser >0 */
-    if (data.duration_minutes !== undefined && data.duration_minutes <= 0) {
+    if (data.duration_minutes !== undefined && data.duration_minutes !== null && data.duration_minutes <= 0) {
       ctx.addIssue({
         path: ["duration_minutes"],
         message: "A duração deve ser maior que zero",
