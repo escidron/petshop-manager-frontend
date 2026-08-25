@@ -1,3 +1,12 @@
+export interface BillingAddress {
+  zip_code: string;
+  line_1: string;
+  line_2?: string;
+  city: string;
+  state: string;
+  country: string;
+}
+
 export type SubscriptionStatus =
   | "trialing"
   | "active"
@@ -30,6 +39,45 @@ export interface SubscriptionResponse {
   pagarme_subscription_id: string | null;
   plan: Plan;
   eligible_for_refund?: boolean;
+
+  // WhatsApp Add-on Package Tracking
+  whatsapp_package_id?: string | null;
+  whatsapp_package_status?: "inactive" | "pending_payment" | "active" | "canceled";
+  whatsapp_messages_limit?: number;
+  whatsapp_messages_used?: number;
+  whatsapp_period_end?: string | null;
+  pagarme_whatsapp_subscription_id?: string | null;
+  billing_day?: number;
+}
+
+export interface ProrationPreviewResponse {
+  package_code: string;
+  package_name: string;
+  monthly_price_cents: number;
+  prorated_price_cents: number;
+  prorated_messages?: number;
+  total_messages?: number;
+  billing_day: number;
+  days_remaining: number;
+  total_days_in_cycle: number;
+  next_billing_date: string;
+  is_prorated: boolean;
+}
+
+export interface HirePackagePayload {
+  package_code: string;
+  payment_method: "credit_card" | "pix";
+  card_token?: string;
+  card_id?: string;
+  document?: string;
+  billing_address?: {
+    country: string;
+    state: string;
+    city: string;
+    zip_code: string;
+    line_1: string;
+    line_2?: string;
+  };
 }
 
 /** Returned by POST /checkout for paid plans — card */

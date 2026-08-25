@@ -10,15 +10,9 @@ import {
 } from "@mui/material";
 import { CreditCard, Lock, MapPin } from "lucide-react";
 import { Button } from "../../components/Button/Button";
+import type { BillingAddress } from "./types";
 
-export interface BillingAddress {
-  zip_code: string;
-  line_1: string;
-  line_2?: string;
-  city: string;
-  state: string;
-  country: string;
-}
+export type { BillingAddress };
 
 interface Props {
   onSuccess: (cardToken: string, document: string, billingAddress: BillingAddress) => Promise<void> | void;

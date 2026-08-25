@@ -16,8 +16,18 @@ import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft } from "lucide-rea
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
 import { QRCodeSVG } from "qrcode.react";
-import { createCheckout, cancelCharge } from "../../api/services/subscriptions";
-import type { CheckoutPixResponse, PaymentMethod } from "./types";
+import {
+  createCheckout,
+  cancelCharge,
+  previewPackageProration,
+  checkoutPackage,
+} from "../../api/services/subscriptions";
+import type {
+  CheckoutPixResponse,
+  PaymentMethod,
+  ProrationPreviewResponse,
+} from "./types";
+import { MessageCircle } from "lucide-react";
 import { maskDocument } from "../../utils/masks";
 import dayjs from "dayjs";
 
@@ -25,7 +35,8 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onSuccess: () => void;
-  planId: string;
+  planId?: string;
+  packageCode?: string | null;
   tenantDocument?: string | null;
   /** If provided, the PIX charge is already generated - skip to step 2 */
   existingPixData?: {
@@ -88,22 +99,33 @@ const Countdown = ({ expiresAt }: { expiresAt: string }) => {
   );
 };
 
+const formatDateSafe = (dateStr: string | null | undefined) => {
+  if (!dateStr) return "";
+  const clean = dateStr.split("T")[0];
+  return dayjs(clean).format("DD/MM/YYYY");
+};
+
 const CheckoutStepper = ({
   open,
   onClose,
   onSuccess,
   planId,
+  packageCode,
   tenantDocument,
   existingPixData,
   startAt,
-  title = "Pagamento & Assinatura",
+  title,
   savedCards,
 }: Props) => {
+  const isPackage = !!packageCode;
+  const modalTitle = title || (isPackage ? "Ativação do Pacote WhatsApp" : "Pagamento & Assinatura");
+
   const [step, setStep] = useState<Step>(existingPixData ? 2 : 1);
   const [payMethod, setPayMethod] = useState<PayMethod | null>(existingPixData ? "pix" : null);
   const [loading, setLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [prorationData, setProrationData] = useState<ProrationPreviewResponse | null>(null);
   const [pixData, setPixData] = useState<CheckoutPixResponse | null>(
     existingPixData
       ? ({
@@ -131,7 +153,7 @@ const CheckoutStepper = ({
     savedCards && savedCards.length > 0 ? (savedCards.find((c) => c.is_default)?.id || savedCards[0].id) : "new"
   );
 
-  // Reset when opened
+  // Reset and load proration when opened
   useEffect(() => {
     if (open) {
       if (existingPixData) {
@@ -158,8 +180,16 @@ const CheckoutStepper = ({
       } else {
         setSelectedSavedCardId("new");
       }
+
+      if (packageCode) {
+        previewPackageProration(packageCode)
+          .then(setProrationData)
+          .catch((err) => console.error("Erro ao carregar prévia do pacote", err));
+      } else {
+        setProrationData(null);
+      }
     }
-  }, [open, existingPixData, tenantDocument, savedCards]);
+  }, [open, existingPixData, tenantDocument, savedCards, packageCode]);
 
   const handleSelectPix = () => {
     setPayMethod("pix");
@@ -171,24 +201,43 @@ const CheckoutStepper = ({
     setStep(2);
   };
 
+  const effectivePlanCode = (!planId || planId === "FREE_TRIAL") ? "MONTHLY" : planId;
+
   const handleGeneratePix = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
       const doc = pixDocument.replace(/\D/g, "");
-      const data = await createCheckout(planId, "pix", undefined, doc);
-      if ("pix_qr_code" in data && "status" in data) {
-        const pixResp = data as any;
-        setPixData(data as CheckoutPixResponse);
-        if (pixResp.charge_id) setPixChargeId(pixResp.charge_id);
-        setConfirmationData(null);
+      if (packageCode) {
+        const data = await checkoutPackage({
+          package_code: packageCode,
+          payment_method: "pix",
+          document: doc,
+        });
+        setPixData({
+          pagarme_subscription_id: "",
+          status: "pending",
+          pix_qr_code: data.pix_qr_code || "",
+          pix_qr_code_url: data.pix_qr_code_url ?? "",
+          expires_at: data.expires_at ?? "",
+        } as CheckoutPixResponse);
+        if (data.charge_id) setPixChargeId(String(data.charge_id));
+      } else {
+        const data = await createCheckout(effectivePlanCode, "pix", undefined, doc);
+        if ("pix_qr_code" in data && "status" in data) {
+          const pixResp = data as any;
+          setPixData(data as CheckoutPixResponse);
+          if (pixResp.charge_id) setPixChargeId(String(pixResp.charge_id));
+        }
       }
-    } catch {
-      setError("Erro ao gerar PIX. Tente novamente.");
+      setConfirmationData(null);
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || "Erro ao gerar PIX. Tente novamente.";
+      setError(typeof detail === "string" ? detail : JSON.stringify(detail));
     } finally {
       setLoading(false);
     }
-  }, [planId, pixDocument]);
+  }, [effectivePlanCode, packageCode, pixDocument]);
 
   const handleCancelPix = async () => {
     if (!pixChargeId) { onClose(); return; }
@@ -205,22 +254,40 @@ const CheckoutStepper = ({
     setLoading(true);
     setError(null);
     try {
-      await createCheckout(
-        planId,
-        "credit_card",
-        undefined,
-        undefined,
-        undefined,
-        startAt ?? undefined,
-        cardId
-      );
       const chosenCard = savedCards?.find((c) => c.id === cardId);
-      setConfirmationData({
-        plan: "Plano PetControle Pro",
-        value: "R$ 99,90/mês",
-        nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
-        method: chosenCard ? `Cartão •••• ${chosenCard.last4}` : "Cartão de Crédito",
-      });
+      if (packageCode) {
+        await checkoutPackage({
+          package_code: packageCode,
+          payment_method: "credit_card",
+          card_id: cardId,
+        });
+        setConfirmationData({
+          plan: prorationData?.package_name || "Pacote de Mensagens WhatsApp",
+          value: prorationData?.is_prorated
+            ? `R$ ${(prorationData.prorated_price_cents / 100).toFixed(2).replace(".", ",")}`
+            : `R$ ${((prorationData?.monthly_price_cents || 3790) / 100).toFixed(2).replace(".", ",")}/mês`,
+          nextRenewal: prorationData?.next_billing_date
+            ? formatDateSafe(prorationData.next_billing_date)
+            : dayjs().add(30, "day").format("DD/MM/YYYY"),
+          method: chosenCard ? `Cartão (${chosenCard.brand.toUpperCase()} •••• ${chosenCard.last4})` : "Cartão de Crédito",
+        });
+      } else {
+        await createCheckout(
+          effectivePlanCode,
+          "credit_card",
+          undefined,
+          undefined,
+          undefined,
+          startAt ?? undefined,
+          cardId
+        );
+        setConfirmationData({
+          plan: "Plano PetControle Pro",
+          value: "R$ 99,90/mês",
+          nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
+          method: chosenCard ? `Cartão •••• ${chosenCard.last4}` : "Cartão de Crédito",
+        });
+      }
       setStep(3);
     } catch (err: any) {
       const detail = err.response?.data?.detail || "Erro ao processar pagamento.";
@@ -238,20 +305,40 @@ const CheckoutStepper = ({
     setLoading(true);
     setError(null);
     try {
-      await createCheckout(
-        planId,
-        "credit_card",
-        cardToken,
-        document,
-        billingAddress,
-        startAt ?? undefined,
-      );
-      setConfirmationData({
-        plan: "Plano Mensal",
-        value: "R$ 99,90/mês",
-        nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
-        method: "Cartão de Crédito",
-      });
+      if (packageCode) {
+        await checkoutPackage({
+          package_code: packageCode,
+          payment_method: "credit_card",
+          card_token: cardToken,
+          document,
+          billing_address: billingAddress,
+        });
+        setConfirmationData({
+          plan: prorationData?.package_name || "Pacote de Mensagens WhatsApp",
+          value: prorationData?.is_prorated
+            ? `R$ ${(prorationData.prorated_price_cents / 100).toFixed(2).replace(".", ",")}`
+            : `R$ ${((prorationData?.monthly_price_cents || 3790) / 100).toFixed(2).replace(".", ",")}/mês`,
+          nextRenewal: prorationData?.next_billing_date
+            ? formatDateSafe(prorationData.next_billing_date)
+            : dayjs().add(30, "day").format("DD/MM/YYYY"),
+          method: "Cartão de Crédito",
+        });
+      } else {
+        await createCheckout(
+          effectivePlanCode,
+          "credit_card",
+          cardToken,
+          document,
+          billingAddress,
+          startAt ?? undefined,
+        );
+        setConfirmationData({
+          plan: "Plano PetControle Pro",
+          value: "R$ 99,90/mês",
+          nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
+          method: "Cartão de Crédito",
+        });
+      }
       setStep(3);
     } catch (err: any) {
       const detail =
@@ -312,7 +399,7 @@ const CheckoutStepper = ({
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Lock size={18} color="rgba(255,255,255,0.9)" />
             <Typography variant="subtitle1" fontWeight={700} color="white">
-              {title}
+              {modalTitle}
             </Typography>
           </Box>
           <IconButton
@@ -366,6 +453,190 @@ const CheckoutStepper = ({
         {/* Step 1 — Choose method */}
         {step === 1 && (
           <Box sx={{ p: 3 }}>
+            {/* Package Proration Summary if in package mode */}
+            {isPackage && prorationData && (
+              <Box
+                sx={{
+                  mb: 3,
+                  borderRadius: 3,
+                  bgcolor: "#FFFFFF",
+                  border: "1.5px solid #E2E8F0",
+                  overflow: "hidden",
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                }}
+              >
+                {/* Header do Pacote */}
+                <Box
+                  sx={{
+                    p: 2.2,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 1.5,
+                    borderBottom: prorationData.is_prorated ? "1px solid #F1F5F9" : "none",
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                    <Box
+                      sx={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: "12px",
+                        bgcolor: "#DCFCE7",
+                        border: "1px solid #BBF7D0",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        color: "#16A34A",
+                        flexShrink: 0,
+                      }}
+                    >
+                      <MessageCircle size={22} />
+                    </Box>
+                    <Box>
+                      <Typography variant="subtitle1" fontWeight={800} color="#0F172A" lineHeight={1.2}>
+                        {prorationData.package_name}
+                      </Typography>
+                      <Typography variant="caption" color="#475569" fontWeight={500}>
+                        Mensalidade regular: <strong>R$ {(prorationData.monthly_price_cents / 100).toFixed(2).replace(".", ",")}/mês</strong>
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ textAlign: { xs: "left", sm: "right" } }}>
+                    <Typography variant="caption" color="#64748B" display="block" fontWeight={600}>
+                      {prorationData.is_prorated ? "Você paga hoje:" : "Valor da mensalidade:"}
+                    </Typography>
+                    <Typography variant="h5" fontWeight={900} color="#16A34A" lineHeight={1.1}>
+                      R$ {((prorationData.is_prorated ? prorationData.prorated_price_cents : prorationData.monthly_price_cents) / 100).toFixed(2).replace(".", ",")}
+                    </Typography>
+                  </Box>
+                </Box>
+
+                {/* Explicação Didática do Ciclo Proporcional */}
+                {prorationData.is_prorated && (() => {
+                  const packageMsgMap: Record<string, number> = {
+                    pkg_200: 200,
+                    pkg_500: 500,
+                    pkg_1000: 1000,
+                    pkg_2000: 2000,
+                  };
+                  const totalMsgs = prorationData.total_messages || (packageCode ? packageMsgMap[packageCode] : null) || 500;
+                  const proratedMsgs = prorationData.prorated_messages || Math.max(1, Math.round((totalMsgs / (prorationData.total_days_in_cycle || 30)) * prorationData.days_remaining));
+
+                  return (
+                    <Box sx={{ p: 2, bgcolor: "#F8FAFC" }}>
+                      <Stack spacing={1.2}>
+                        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.2 }}>
+                          <Box
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              bgcolor: "#FEF3C7",
+                              color: "#92400E",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "0.75rem",
+                              fontWeight: 800,
+                              flexShrink: 0,
+                              mt: 0.2,
+                            }}
+                          >
+                            1
+                          </Box>
+                          <Typography variant="body2" color="#334155" sx={{ fontSize: "0.84rem" }}>
+                            <strong>Pagamento proporcional hoje:</strong> Você paga apenas <strong>R$ {(prorationData.prorated_price_cents / 100).toFixed(2).replace(".", ",")}</strong> com cota de <strong>{proratedMsgs.toLocaleString("pt-BR")} mensagens</strong> para utilizar nos <strong>{prorationData.days_remaining} dias</strong> restantes até o dia {prorationData.billing_day}.
+                          </Typography>
+                        </Box>
+
+                        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.2 }}>
+                          <Box
+                            sx={{
+                              width: 20,
+                              height: 20,
+                              borderRadius: "50%",
+                              bgcolor: "#E0E7FF",
+                              color: "#3730A3",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              fontSize: "0.75rem",
+                              fontWeight: 800,
+                              flexShrink: 0,
+                              mt: 0.2,
+                            }}
+                          >
+                            2
+                          </Box>
+                          <Typography variant="body2" color="#334155" sx={{ fontSize: "0.84rem" }}>
+                            <strong>Próximas renovações:</strong> A partir de {formatDateSafe(prorationData.next_billing_date)}, a cota é renovada para <strong>{totalMsgs.toLocaleString("pt-BR")} mensagens</strong> no valor regular de <strong>R$ {(prorationData.monthly_price_cents / 100).toFixed(2).replace(".", ",")}/mês</strong>, cobrado automaticamente todo dia {prorationData.billing_day} junto com sua assinatura.
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+                  );
+                })()}
+              </Box>
+            )}
+
+            {/* Base Plan Summary if in subscription mode */}
+            {!isPackage && (
+              <Box
+                sx={{
+                  mb: 3,
+                  p: 2.2,
+                  borderRadius: 3,
+                  bgcolor: "#FFFFFF",
+                  border: "1.5px solid #E2E8F0",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  flexWrap: "wrap",
+                  gap: 1.5,
+                  boxShadow: "0 2px 10px rgba(0,0,0,0.03)",
+                }}
+              >
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                  <Box
+                    sx={{
+                      width: 44,
+                      height: 44,
+                      borderRadius: "12px",
+                      bgcolor: "rgba(49, 52, 133, 0.08)",
+                      border: "1px solid rgba(49, 52, 133, 0.2)",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      color: "#313485",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <CreditCard size={22} />
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight={800} color="#0F172A" lineHeight={1.2}>
+                      Plano PetControle Pro
+                    </Typography>
+                    <Typography variant="caption" color="#475569" fontWeight={500}>
+                      Acesso completo ao sistema, clientes, pets e agendamentos
+                    </Typography>
+                  </Box>
+                </Box>
+
+                <Box sx={{ textAlign: { xs: "left", sm: "right" } }}>
+                  <Typography variant="caption" color="#64748B" display="block" fontWeight={600}>
+                    Valor da assinatura:
+                  </Typography>
+                  <Typography variant="h5" fontWeight={900} color="#313485" lineHeight={1.1}>
+                    R$ 99,90<Typography component="span" variant="caption" sx={{ color: "#64748B", ml: 0.5 }}>/mês</Typography>
+                  </Typography>
+                </Box>
+              </Box>
+            )}
+
             <Typography variant="subtitle1" fontWeight={700} sx={{ mb: 2.5 }}>
               Escolha a forma de pagamento
             </Typography>
@@ -776,10 +1047,12 @@ const CheckoutStepper = ({
               <CheckCircle2 size={40} color="#4caf50" />
             </Box>
             <Typography variant="h6" fontWeight={800} gutterBottom>
-              Pagamento confirmado!
+              {isPackage ? "Pacote WhatsApp ativado!" : "Pagamento confirmado!"}
             </Typography>
             <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
-              Sua assinatura foi ativada com sucesso.
+              {isPackage
+                ? "Seu pacote de mensagens foi ativado com sucesso. Agora os lembretes automáticos estão liberados!"
+                : "Sua assinatura foi ativada com sucesso."}
             </Typography>
 
             {confirmationData && (
@@ -796,7 +1069,9 @@ const CheckoutStepper = ({
               >
                 <Stack spacing={1.5}>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                    <Typography variant="caption" color="text.primary" fontWeight={600}>Plano</Typography>
+                    <Typography variant="caption" color="text.primary" fontWeight={600}>
+                      {isPackage ? "Pacote" : "Plano"}
+                    </Typography>
                     <Typography variant="caption" fontWeight={700}>{confirmationData.plan}</Typography>
                   </Box>
                   <Divider />
@@ -822,7 +1097,7 @@ const CheckoutStepper = ({
               onClick={() => { onSuccess(); onClose(); }}
               sx={{ width: "100%", py: 1.5, fontWeight: 700 }}
             >
-              Ir para o Dashboard
+              {isPackage ? "Concluir" : "Ir para o Dashboard"}
             </Button>
           </Box>
         )}

@@ -73,6 +73,7 @@ import {
   listCharges,
   updateChargeCard,
   changeSubscriptionToPix,
+  cancelPackage,
 } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
 import CheckoutStepper from "../features/billing/CheckoutStepper";
@@ -255,6 +256,9 @@ const SettingsPage = () => {
   const [openUpdateCardDialog, setOpenUpdateCardDialog] = useState(false);
   const [updateCardLoading, setUpdateCardLoading] = useState(false);
   const [chargeToUpdateCard, setChargeToUpdateCard] = useState<SubscriptionCharge | null>(null);
+  const [openCancelPackageModal, setOpenCancelPackageModal] = useState(false);
+  const [cancelingPackage, setCancelingPackage] = useState(false);
+  const [openAddCardModal, setOpenAddCardModal] = useState(false);
 
 
   const [tenantUsers, setTenantUsers] = useState<TenantUserResponse[]>([]);
@@ -336,6 +340,8 @@ const SettingsPage = () => {
   const [pendingPaymentMethod, setPendingPaymentMethod] = useState<"card" | "pix" | null>(null);
   const [checkoutStartAt, setCheckoutStartAt] = useState<string | null>(null);
   const [selectedAddonPkg, setSelectedAddonPkg] = useState<string | null>(null);
+  const [openPackageCheckout, setOpenPackageCheckout] = useState(false);
+  const [selectedPackageForCheckout, setSelectedPackageForCheckout] = useState<string | null>(null);
 
   const getCheckoutTitle = () => {
     if (selectedAddonPkg) {
@@ -347,7 +353,7 @@ const SettingsPage = () => {
       };
       return pkgNames[selectedAddonPkg] || "Contratar Pacote de WhatsApp";
     }
-    return "PetControle Pro - Pagamento";
+    return "Forma de Pagamento & Assinatura";
   };
 
   const confirmPaymentMethodChange = async (method: "card" | "pix") => {
@@ -475,6 +481,21 @@ const SettingsPage = () => {
     }
   };
 
+  const handleCancelPackage = async () => {
+    setCancelingPackage(true);
+    try {
+      await cancelPackage();
+      toast.success("Pacote de WhatsApp cancelado com sucesso!");
+      await checkAuth();
+      await fetchCharges();
+      setOpenCancelPackageModal(false);
+    } catch {
+      toast.error("Erro ao cancelar pacote de WhatsApp.");
+    } finally {
+      setCancelingPackage(false);
+    }
+  };
+
   // Limpa os dados sensíveis imediatamente ao trocar de tenant,
   // evitando que cartões/cobranças de um tenant apareçam em outro.
   useEffect(() => {
@@ -521,7 +542,22 @@ const SettingsPage = () => {
     setValue(newValue);
   };
 
-  const isTrialing = !tenant?.feature_flags?.free_access && (tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing");
+  const now = new Date();
+  const rawTrialEnd = tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end;
+  const trialEndDate = rawTrialEnd ? new Date(rawTrialEnd) : null;
+  const isTrialPlan = !tenant?.feature_flags?.free_access && 
+    (tenant?.subscription?.plan?.code === "FREE_TRIAL" || tenant?.subscription?.status === "trialing");
+
+  const isTrialExpired = isTrialPlan && trialEndDate !== null && trialEndDate.getTime() <= now.getTime();
+  const isTrialActive = isTrialPlan && !isTrialExpired;
+
+  const isSubPastDue = !tenant?.feature_flags?.free_access && (
+    tenant?.subscription?.status === "past_due" || 
+    (tenant?.subscription?.status === "active" && tenant?.subscription?.current_period_end && new Date(tenant.subscription.current_period_end).getTime() <= now.getTime())
+  );
+
+  const isSubActive = tenant?.subscription?.status === "active" && !isSubPastDue;
+  const isTrialing = isTrialActive; // backward compatibility helper
 
   const activePendingPixCharge = useMemo(() => {
     return charges.find(c => c.payment_method === "pix" && c.status === "pending" && c.pix_qr_code);
@@ -995,12 +1031,12 @@ const SettingsPage = () => {
                 }}
               >
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
-                  <Box>
+                  <Box sx={{ flex: 1, minWidth: 280 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, flexWrap: "wrap" }}>
                       <Typography variant="h5" fontWeight={900} color="#0F172A">
                         PetControle Pro
                       </Typography>
-                      {isTrialing ? (
+                      {isTrialActive ? (
                         <Chip
                           icon={<Gift size={15} color="#047857" />}
                           label="6 Meses Grátis Ativo"
@@ -1010,6 +1046,32 @@ const SettingsPage = () => {
                             bgcolor: "#ECFDF5",
                             color: "#047857",
                             border: "1px solid #A7F3D0",
+                            px: 0.5,
+                          }}
+                        />
+                      ) : isTrialExpired ? (
+                        <Chip
+                          icon={<AlertTriangle size={15} color="#DC2626" />}
+                          label="Período Gratuito Expirado"
+                          size="small"
+                          sx={{
+                            fontWeight: 800,
+                            bgcolor: "#FEF2F2",
+                            color: "#DC2626",
+                            border: "1px solid #FECACA",
+                            px: 0.5,
+                          }}
+                        />
+                      ) : isSubPastDue ? (
+                        <Chip
+                          icon={<AlertTriangle size={15} color="#D97706" />}
+                          label="Pagamento Pendente"
+                          size="small"
+                          sx={{
+                            fontWeight: 800,
+                            bgcolor: "#FFFBEB",
+                            color: "#D97706",
+                            border: "1px solid #FDE68A",
                             px: 0.5,
                           }}
                         />
@@ -1023,10 +1085,18 @@ const SettingsPage = () => {
                       )}
                     </Box>
                     <Typography variant="body2" sx={{ mt: 0.8, fontSize: "0.9rem", color: "#334155" }}>
-                      {isTrialing
+                      {isTrialActive
                         ? `Você está no período de gratuidade de 6 meses válido até ${dayjs(
                             tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end
                           ).format("DD/MM/YYYY")}. Ao término, a mensalidade será de R$ 99,90/mês.`
+                        : isTrialExpired
+                        ? `Seu período de gratuidade de 6 meses expirou em ${dayjs(
+                            tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end
+                          ).format("DD/MM/YYYY")}. Ative sua assinatura para continuar utilizando o sistema.`
+                        : isSubPastDue
+                        ? `Sua assinatura venceu em ${dayjs(
+                            tenant?.subscription?.current_period_end
+                          ).format("DD/MM/YYYY")}. Regularize seu pagamento para manter o sistema ativo.`
                         : `Sua assinatura está ativa e renova em ${dayjs(
                             tenant?.subscription?.current_period_end
                           ).format("DD/MM/YYYY")} via ${
@@ -1042,8 +1112,46 @@ const SettingsPage = () => {
                     </Typography>
                   </Box>
 
-                  {/* Ações de Gerenciamento para Assinatura Paga */}
-                  {!isTrialing && tenant?.subscription?.status === "active" && (
+                  {/* Ações de Assinatura */}
+                  {isTrialExpired && (
+                    <Button
+                      variant="contained"
+                      onClick={() => setOpenCheckout(true)}
+                      sx={{
+                        fontWeight: 800,
+                        bgcolor: "#313485",
+                        color: "white",
+                        borderRadius: 2.5,
+                        px: 2.5,
+                        py: 1,
+                        whiteSpace: "nowrap",
+                        "&:hover": { bgcolor: "#24276A" },
+                      }}
+                    >
+                      Ativar Assinatura - R$ 99,90/mês
+                    </Button>
+                  )}
+
+                  {isSubPastDue && (
+                    <Button
+                      variant="contained"
+                      onClick={() => setOpenCheckout(true)}
+                      sx={{
+                        fontWeight: 800,
+                        bgcolor: "#D97706",
+                        color: "white",
+                        borderRadius: 2.5,
+                        px: 2.5,
+                        py: 1,
+                        whiteSpace: "nowrap",
+                        "&:hover": { bgcolor: "#B45309" },
+                      }}
+                    >
+                      Pagar Mensalidade
+                    </Button>
+                  )}
+
+                  {isSubActive && (
                     <Box>
                       <Button
                         variant="outlined"
@@ -1123,72 +1231,113 @@ const SettingsPage = () => {
                         </Typography>
                       </Typography>
                       <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
-                        {isTrialing
+                        {isTrialActive
                           ? "100% Gratuito (1º ao 6º mês)"
+                          : isTrialExpired
+                          ? "Período gratuito encerrado"
                           : "Cobrança mensal regular"}
                       </Typography>
                     </Box>
                   </Grid>
 
                   {/* 2. WhatsApp Addon */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Box
-                      sx={{
-                        p: 2,
-                        borderRadius: 3,
-                        bgcolor: "white",
-                        border: "1px solid #E2E8F0",
-                        height: "100%",
-                      }}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                        <MessageCircle size={16} color="#16A34A" />
-                        <Typography variant="caption" fontWeight={700} sx={{ color: "#475569" }} textTransform="uppercase">
-                          Mensagens WhatsApp
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" fontWeight={900} color="#0F172A">
-                        R$ 0,00
-                        <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
-                          /mês
-                        </Typography>
-                      </Typography>
-                      <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
-                        Nenhum pacote contratado (opcional)
-                      </Typography>
-                    </Box>
-                  </Grid>
+                  {(() => {
+                    const rawWaPkgId = tenant?.subscription?.whatsapp_package_id;
+                    const waPkgId = rawWaPkgId ? (rawWaPkgId.startsWith("pkg_") ? rawWaPkgId : `pkg_${rawWaPkgId}`) : null;
+                    const isWaActive = tenant?.subscription?.whatsapp_package_status === "active";
+                    const isWaPending = tenant?.subscription?.whatsapp_package_status === "pending_payment";
+                    const waPrices: Record<string, { label: string; price: string; cents: number }> = {
+                      pkg_200: { label: "200 msgs", price: "R$ 37,90", cents: 3790 },
+                      pkg_500: { label: "500 msgs", price: "R$ 69,90", cents: 6990 },
+                      pkg_1000: { label: "1.000 msgs", price: "R$ 119,90", cents: 11990 },
+                      pkg_2000: { label: "2.000 msgs", price: "R$ 199,90", cents: 19990 },
+                    };
+                    const pkgInfo = waPkgId ? waPrices[waPkgId] : null;
+
+                    return (
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            bgcolor: "white",
+                            border: "1px solid #E2E8F0",
+                            height: "100%",
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                            <MessageCircle size={16} color="#16A34A" />
+                            <Typography variant="caption" fontWeight={700} sx={{ color: "#475569" }} textTransform="uppercase">
+                              Mensagens WhatsApp
+                            </Typography>
+                          </Box>
+                          <Typography variant="h6" fontWeight={900} color={isWaActive ? "#16A34A" : "#0F172A"}>
+                            {pkgInfo && isWaActive ? pkgInfo.price : "R$ 0,00"}
+                            <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
+                              /mês
+                            </Typography>
+                          </Typography>
+                          <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
+                            {isWaActive && pkgInfo
+                              ? `Pacote ${pkgInfo.label} Ativo`
+                              : isWaPending && pkgInfo
+                              ? `Pacote ${pkgInfo.label} (Pendente)`
+                              : "Nenhum pacote contratado (opcional)"}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    );
+                  })()}
 
                   {/* 3. Total Atual */}
-                  <Grid size={{ xs: 12, md: 4 }}>
-                    <Box
-                      sx={{
-                        p: 2,
-                        borderRadius: 3,
-                        bgcolor: "white",
-                        border: "1.5px solid #C7D2FE",
-                        height: "100%",
-                      }}
-                    >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                        <CreditCard size={16} color="#313485" />
-                        <Typography variant="caption" fontWeight={700} sx={{ color: "#313485" }} textTransform="uppercase">
-                          Total Mensal Atual
-                        </Typography>
-                      </Box>
-                      <Typography variant="h6" fontWeight={900} color="#313485">
-                        {isTrialing ? "R$ 0,00" : "R$ 99,90"}
-                        <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
-                          /mês
-                        </Typography>
-                      </Typography>
-                      <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
-                        {isTrialing
-                          ? "R$ 99,90/mês a partir do 7º mês"
-                          : `Próximo vencimento: ${dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}`}
-                      </Typography>
-                    </Box>
-                  </Grid>
+                  {(() => {
+                    const rawWaPkgId = tenant?.subscription?.whatsapp_package_id;
+                    const waPkgId = rawWaPkgId ? (rawWaPkgId.startsWith("pkg_") ? rawWaPkgId : `pkg_${rawWaPkgId}`) : null;
+                    const isWaActive = tenant?.subscription?.whatsapp_package_status === "active";
+                    const waPrices: Record<string, number> = {
+                      pkg_200: 3790,
+                      pkg_500: 6990,
+                      pkg_1000: 11990,
+                      pkg_2000: 19990,
+                    };
+                    const waCents = waPkgId && isWaActive ? waPrices[waPkgId] || 0 : 0;
+                    const baseCents = isTrialActive ? 0 : 9990;
+                    const totalCents = baseCents + waCents;
+
+                    return (
+                      <Grid size={{ xs: 12, md: 4 }}>
+                        <Box
+                          sx={{
+                            p: 2,
+                            borderRadius: 3,
+                            bgcolor: "white",
+                            border: "1.5px solid #C7D2FE",
+                            height: "100%",
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                            <CreditCard size={16} color="#313485" />
+                            <Typography variant="caption" fontWeight={700} sx={{ color: "#313485" }} textTransform="uppercase">
+                              Total Mensal Atual
+                            </Typography>
+                          </Box>
+                          <Typography variant="h6" fontWeight={900} color="#313485">
+                            {(totalCents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                            <Typography component="span" variant="caption" sx={{ ml: 0.5, color: "#64748B" }}>
+                              /mês
+                            </Typography>
+                          </Typography>
+                          <Typography variant="caption" sx={{ display: "block", mt: 0.3, color: "#475569", fontWeight: 500 }}>
+                            {isTrialActive
+                              ? `Gratuidade do sistema até ${dayjs(tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}`
+                              : isTrialExpired
+                              ? `Período gratuito expirado em ${dayjs(tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}`
+                              : `Próximo vencimento: ${dayjs(tenant?.subscription?.current_period_end).format("DD/MM/YYYY")}`}
+                          </Typography>
+                        </Box>
+                      </Grid>
+                    );
+                  })()}
                 </Grid>
               </Box>
             )}
@@ -1243,17 +1392,25 @@ const SettingsPage = () => {
 
                   {/* Top Action Buttons */}
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                    {savedCards.length > 0 && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => setOpenCheckout(true)}
-                        startIcon={<Plus size={16} />}
-                        sx={{ fontWeight: 700, borderRadius: 2, color: "#313485", borderColor: "#C7D2FE" }}
-                      >
-                        Novo Cartão
-                      </Button>
-                    )}
+                    <Button
+                      variant="outlined"
+                      size="small"
+                      onClick={() => setOpenAddCardModal(true)}
+                      startIcon={<Plus size={16} />}
+                      sx={{
+                        fontWeight: 700,
+                        borderRadius: 2,
+                        color: "#313485",
+                        borderColor: "#C7D2FE",
+                        bgcolor: "rgba(49, 52, 133, 0.03)",
+                        "&:hover": {
+                          bgcolor: "rgba(49, 52, 133, 0.08)",
+                          borderColor: "#313485",
+                        },
+                      }}
+                    >
+                      Adicionar Novo Cartão
+                    </Button>
                     {savedCards.length > 0 && tenant?.subscription?.payment_method !== "pix" && (
                       <Button
                         variant="text"
@@ -1335,7 +1492,7 @@ const SettingsPage = () => {
                     <Button
                       variant="outlined"
                       size="small"
-                      onClick={() => setOpenCheckout(true)}
+                      onClick={() => setOpenAddCardModal(true)}
                       startIcon={<CreditCard size={16} />}
                       sx={{ fontWeight: 700, borderRadius: 2 }}
                     >
@@ -1385,7 +1542,7 @@ const SettingsPage = () => {
 
                     <Button
                       variant="contained"
-                      onClick={() => setOpenCheckout(true)}
+                      onClick={() => setOpenAddCardModal(true)}
                       startIcon={<Plus size={16} />}
                       sx={{
                         fontWeight: 700,
@@ -1397,7 +1554,7 @@ const SettingsPage = () => {
                         "&:hover": { bgcolor: "#24276A" },
                       }}
                     >
-                      Cadastrar Forma de Pagamento
+                      Cadastrar Cartão de Crédito
                     </Button>
                   </Box>
                 )}
@@ -1468,10 +1625,15 @@ const SettingsPage = () => {
             <Box sx={{ pt: 1 }}>
               <BillingAddonsSection
                 activePackageId={tenant?.subscription?.whatsapp_package_id}
+                packageStatus={tenant?.subscription?.whatsapp_package_status as any}
+                messagesLimit={tenant?.subscription?.whatsapp_messages_limit}
+                messagesUsed={tenant?.subscription?.whatsapp_messages_used}
+                periodEnd={tenant?.subscription?.whatsapp_period_end}
                 onHirePackage={(pkgId) => {
-                  setSelectedAddonPkg(pkgId);
-                  setOpenCheckout(true);
+                  setSelectedPackageForCheckout(pkgId);
+                  setOpenPackageCheckout(true);
                 }}
+                onCancelPackage={() => setOpenCancelPackageModal(true)}
               />
             </Box>
 
@@ -2509,6 +2671,42 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* --- DIALOG CANCELAR PACOTE WHATSAPP --- */}
+      <Dialog
+        open={openCancelPackageModal}
+        onClose={() => !cancelingPackage && setOpenCancelPackageModal(false)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle>Cancelar Pacote de WhatsApp</DialogTitle>
+        <DialogContent>
+          <Typography color="text.primary">
+            Tem certeza que deseja cancelar o pacote de mensagens WhatsApp? A renovação automática será cancelada imediatamente e não haverá novas cobranças.
+          </Typography>
+          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 3 }}>
+            <Button
+              variant="text"
+              onClick={() => setOpenCancelPackageModal(false)}
+              disabled={cancelingPackage}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={handleCancelPackage}
+              disabled={cancelingPackage}
+            >
+              {cancelingPackage ? (
+                <CircularProgress size={20} color="inherit" />
+              ) : (
+                "Sim, cancelar pacote"
+              )}
+            </Button>
+          </Box>
+        </DialogContent>
+      </Dialog>
+
       {/* --- DIALOG ENCERRAR CONTA --- */}
       <Dialog
         open={openDeleteAccount}
@@ -2688,6 +2886,17 @@ const SettingsPage = () => {
         </DialogContent>
       </Dialog>
 
+      {/* --- MODAL PARA ADICIONAR / CADASTRAR NOVO CARTÃO DE CRÉDITO (SEM COBRANÇA IMEDIATA) --- */}
+      <UpdateCardModal
+        open={openAddCardModal}
+        onClose={() => setOpenAddCardModal(false)}
+        tenantDocument={tenant?.document}
+        onSuccess={async () => {
+          await fetchCards();
+          await checkAuth();
+        }}
+      />
+
       {/* --- STEPPER DE CHECKOUT COMPLETO (Passo a Passo: 1. Pagamento -> 2. Dados -> 3. Concluído) --- */}
       <CheckoutStepper
         open={openCheckout}
@@ -2703,7 +2912,7 @@ const SettingsPage = () => {
           setSelectedAddonPkg(null);
         }}
         title={getCheckoutTitle()}
-        planId={selectedAddonPkg || tenant?.subscription?.plan?.code || "PLAN_MONTHLY"}
+        planId={selectedAddonPkg || (tenant?.subscription?.plan?.code && tenant?.subscription?.plan?.code !== "FREE_TRIAL" ? tenant.subscription.plan.code : "MONTHLY")}
         tenantDocument={tenant?.document}
         savedCards={savedCards}
         existingPixData={pixData ? {
@@ -2712,6 +2921,25 @@ const SettingsPage = () => {
           expires_at: pixData.expires_at,
         } : null}
         startAt={checkoutStartAt}
+      />
+
+      {/* --- MODAL DE CHECKOUT DO PACOTE DE WHATSAPP COM PRORATION (VIA CHECKOUT STEPPER) --- */}
+      <CheckoutStepper
+        open={openPackageCheckout}
+        onClose={() => {
+          setOpenPackageCheckout(false);
+          setSelectedPackageForCheckout(null);
+        }}
+        packageCode={selectedPackageForCheckout}
+        savedCards={savedCards}
+        tenantDocument={tenant?.document}
+        onSuccess={async () => {
+          await checkAuth();
+          await fetchCards();
+          await fetchCharges();
+          setOpenPackageCheckout(false);
+          setSelectedPackageForCheckout(null);
+        }}
       />
     </Box>
   );

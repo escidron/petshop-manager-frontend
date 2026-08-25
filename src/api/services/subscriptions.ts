@@ -133,3 +133,27 @@ export const cancelCharge = async (chargeId: string) => {
   return response.data;
 };
 
+export const previewPackageProration = async (packageCode: string) => {
+  const response = await apiClient.get<import("../../features/billing/types").ProrationPreviewResponse>(
+    `/api/v1/subscriptions/package/preview-proration`,
+    { params: { package_code: packageCode } }
+  );
+  return response.data;
+};
+
+export const checkoutPackage = async (payload: import("../../features/billing/types").HirePackagePayload) => {
+  const response = await apiClient.post<Record<string, unknown>>(
+    `/api/v1/subscriptions/package/checkout`,
+    payload
+  );
+  return response.data;
+};
+
+export const cancelPackage = async () => {
+  const response = await apiClient.post<{ status: string; message: string }>(
+    `/api/v1/subscriptions/package/cancel`
+  );
+  return response.data;
+};
+
+

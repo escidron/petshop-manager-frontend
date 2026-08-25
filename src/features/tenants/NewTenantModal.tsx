@@ -24,7 +24,7 @@ type Props = {
 };
 
 const PLANS: { code: PlanCode; label: string; description: string }[] = [
-  { code: "FREE_TRIAL", label: "Teste Grátis", description: "14 dias sem cartão" },
+  { code: "FREE_TRIAL", label: "Teste Grátis", description: "6 meses sem cartão" },
   { code: "MONTHLY", label: "Mensal", description: "R$ 99,90/mês" },
 ];
 

@@ -10,6 +10,12 @@ export type Subscription = {
   payment_method?: string | null;
   eligible_for_refund?: boolean;
   whatsapp_package_id?: string | null;
+  whatsapp_package_status?: "inactive" | "pending_payment" | "active" | "canceled";
+  whatsapp_messages_limit?: number;
+  whatsapp_messages_used?: number;
+  whatsapp_period_end?: string | null;
+  pagarme_whatsapp_subscription_id?: string | null;
+  billing_day?: number;
   plan: {
     id: number;
     code: string;

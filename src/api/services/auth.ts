@@ -4,8 +4,9 @@ import apiClient from "../apiClient";
 
 export const signup = async (
   user: SignupPayload["user"],
-  tenant: Omit<SignupPayload["tenant"], "plan_code">,
-  planCode: "MONTHLY" | "FREE_TRIAL"
+  tenant: Omit<SignupPayload["tenant"], "plan_code" | "whatsapp_package">,
+  planCode: "MONTHLY" | "FREE_TRIAL",
+  whatsappPackage?: string | null
 ) => {
   const response = await apiClient.post<AuthResponse>(
     "/api/v1/auth/signup",
@@ -14,6 +15,7 @@ export const signup = async (
       tenant: {
         ...tenant,
         plan_code: planCode,
+        whatsapp_package: whatsappPackage || undefined,
       },
     }
   );

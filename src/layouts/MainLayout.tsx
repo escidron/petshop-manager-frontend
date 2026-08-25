@@ -29,6 +29,7 @@ import UserMenu from "../features/users/UserMenu";
 import { AlertTriangle, Zap, MessageCircle } from "lucide-react";
 import { Button } from "../components/Button/Button";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
+import PendingWhatsAppBanner from "../features/billing/PendingWhatsAppBanner";
 import WhatsappSimulator from "../features/whatsapp-simulator/WhatsappSimulator";
 import { ErrorBoundary } from "../components/ErrorBoundary/ErrorBoundary";
 
@@ -338,6 +339,7 @@ export default function MainLayout() {
       }}>
         <DrawerHeader />
         <EmailVerificationBanner />
+        <PendingWhatsAppBanner />
         {subscriptionAlert && (
           <Box
             sx={{
