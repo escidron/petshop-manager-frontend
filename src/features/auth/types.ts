@@ -10,6 +10,7 @@ export interface SignupPayload {
     phone: string;
     document?: string | null;
     plan_code: "MONTHLY" | "FREE_TRIAL";
+    whatsapp_package?: string | null;
   };
 }
 

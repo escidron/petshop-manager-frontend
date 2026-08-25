@@ -110,6 +110,7 @@ const SignupPage = () => {
           document: data.document,
         },
         planCode,
+        selectedPackage
       );
 
       toast.success("Conta criada com sucesso");

@@ -15,7 +15,7 @@ export default function EmailVerificationBanner() {
     <>
       <Box
         sx={{
-          margin: "0 auto 1.5rem auto",
+          margin: "0 auto 0.75rem auto",
           width: "100%",
           maxWidth: 1400,
           display: "flex",

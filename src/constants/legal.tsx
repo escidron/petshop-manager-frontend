@@ -37,7 +37,7 @@ export const LEGAL_CONTENT = {
           O uso de determinados recursos da plataforma depende da contratação de planos de assinatura específicos. Os valores, prazos de vencimento, formas de cobrança e regras de rescisão ou upgrade estão detalhados na tela de planos e no painel administrativo do Usuário. O atraso no pagamento poderá acarretar na suspensão temporária do acesso aos serviços ou cancelamento da conta conforme políticas comerciais vigentes.
         </Typography>
         <Typography variant="body1" sx={{ mt: 1 }}>
-          <strong>Direito de Arrependimento:</strong> Após o término do período de teste gratuito de 14 dias (quando aplicável), e a partir da data de confirmação do primeiro pagamento da assinatura (seja via Cartão de Crédito ou PIX), o Usuário tem o prazo de 7 (sete) dias corridos para solicitar o cancelamento com direito à devolução integral do valor pago. Após esse prazo estipulado por lei, ou em casos de renovações mensais subsequentes, o cancelamento interromperá futuras cobranças, mas não haverá estorno de valores já processados.
+          <strong>Direito de Arrependimento:</strong> Após o término do período de teste gratuito de 6 meses (quando aplicável), e a partir da data de confirmação do primeiro pagamento da assinatura (seja via Cartão de Crédito ou PIX), o Usuário tem o prazo de 7 (sete) dias corridos para solicitar o cancelamento com direito à devolução integral do valor pago. Após esse prazo estipulado por lei, ou em casos de renovações mensais subsequentes, o cancelamento interromperá futuras cobranças, mas não haverá estorno de valores já processados.
         </Typography>
 
         <Typography variant="h6" component="h2">6. Limitação de Responsabilidade</Typography>

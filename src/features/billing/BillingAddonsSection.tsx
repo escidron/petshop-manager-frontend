@@ -1,16 +1,19 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Typography,
   Stack,
   Chip,
+  LinearProgress,
 } from "@mui/material";
 import {
   MessageCircle,
   MessageSquare,
   Info,
+  CheckCircle2,
 } from "lucide-react";
 import { Button } from "../../components/Button/Button";
+import dayjs from "dayjs";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -21,14 +24,13 @@ export interface WhatsAppPkg {
   price: string;
   period: string;
   popular?: boolean;
-  features?: string[];
 }
 
 // ─── Package Catalog ──────────────────────────────────────────────────────────
 
-const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
+export const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
   {
-    id: "200",
+    id: "pkg_200",
     count: "200",
     label: "mensagens / mês",
     price: "R$ 37,90",
@@ -36,7 +38,7 @@ const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
     popular: false,
   },
   {
-    id: "500",
+    id: "pkg_500",
     count: "500",
     label: "mensagens / mês",
     price: "R$ 69,90",
@@ -44,7 +46,7 @@ const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
     popular: false,
   },
   {
-    id: "1000",
+    id: "pkg_1000",
     count: "1.000",
     label: "mensagens / mês",
     price: "R$ 119,90",
@@ -52,7 +54,7 @@ const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
     popular: true,
   },
   {
-    id: "2000",
+    id: "pkg_2000",
     count: "2.000",
     label: "mensagens / mês",
     price: "R$ 199,90",
@@ -65,15 +67,42 @@ const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
 
 interface BillingAddonsSectionProps {
   activePackageId?: string | null;
-  onSelectPackage?: (pkgId: string | null) => void;
+  packageStatus?: "inactive" | "pending_payment" | "active" | "canceled";
+  messagesLimit?: number;
+  messagesUsed?: number;
+  periodEnd?: string | null;
   onHirePackage?: (pkgId: string) => void;
+  onCancelPackage?: () => void;
 }
 
 const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
   activePackageId = null,
+  packageStatus = "inactive",
+  messagesLimit = 0,
+  messagesUsed = 0,
+  periodEnd,
   onHirePackage,
+  onCancelPackage,
 }) => {
-  const [selectedPkg, setSelectedPkg] = useState<string | null>(activePackageId);
+  // Normalize active package ID (e.g. "500" -> "pkg_500")
+  const normalizedActiveId = activePackageId
+    ? activePackageId.startsWith("pkg_")
+      ? activePackageId
+      : `pkg_${activePackageId}`
+    : null;
+
+  const [selectedPkg, setSelectedPkg] = useState<string | null>(normalizedActiveId);
+
+  useEffect(() => {
+    setSelectedPkg(normalizedActiveId);
+  }, [normalizedActiveId]);
+
+  const isActive = packageStatus === "active" && normalizedActiveId;
+  const isPending = packageStatus === "pending_payment" && normalizedActiveId;
+  const currentPkgData = WHATSAPP_PACKAGES.find((p) => p.id === normalizedActiveId);
+  const selectedPkgData = WHATSAPP_PACKAGES.find((p) => p.id === selectedPkg);
+
+  const usagePercent = messagesLimit > 0 ? Math.min(100, Math.round((messagesUsed / messagesLimit) * 100)) : 0;
 
   return (
     <Box
@@ -81,8 +110,8 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
         bgcolor: "white",
         borderRadius: 4,
         p: { xs: 2.5, sm: 3.5 },
-        border: "1.5px solid #86EFAC",
-        boxShadow: "0 8px 30px -8px rgba(37, 211, 102, 0.12)",
+        border: "1.5px solid #E2E8F0",
+        boxShadow: "0 4px 20px rgba(0,0,0,0.03)",
         display: "flex",
         flexDirection: "column",
         position: "relative",
@@ -127,13 +156,79 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
         Mensagens automáticas
       </Typography>
       <Typography variant="body2" sx={{ color: "#475569", fontSize: "0.92rem", lineHeight: 1.5, mb: 2.5 }}>
-        Envie lembretes de agendamentos e confirmações de forma automática pelo WhatsApp.
+        Envie lembretes de agendamentos e confirmações de forma 100% automática pelo WhatsApp.
       </Typography>
+
+      {/* Active Package Status Card */}
+      {isActive && currentPkgData && (
+        <Box
+          sx={{
+            p: 2.5,
+            mb: 3,
+            borderRadius: 3,
+            bgcolor: "white",
+            border: "1.5px solid #E2E8F0",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.03)",
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <CheckCircle2 size={18} color="#16A34A" />
+              <Typography variant="subtitle2" fontWeight={800} color="#0F172A">
+                Pacote Ativo: {currentPkgData.count} Mensagens/mês ({currentPkgData.price})
+              </Typography>
+            </Box>
+            {periodEnd && (
+              <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 700 }}>
+                Renova em {dayjs(periodEnd).format("DD/MM/YYYY")}
+              </Typography>
+            )}
+          </Box>
+
+          <Box sx={{ mb: 1 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+              <Typography variant="caption" fontWeight={600} color="#475569">
+                Consumo do ciclo atual:
+              </Typography>
+              <Typography variant="caption" fontWeight={800} color="#0F172A">
+                {messagesUsed} de {messagesLimit} mensagens utilizadas ({usagePercent}%)
+              </Typography>
+            </Box>
+            <LinearProgress
+              variant="determinate"
+              value={usagePercent}
+              sx={{
+                height: 8,
+                borderRadius: 4,
+                bgcolor: "#F1F5F9",
+                "& .MuiLinearProgress-bar": {
+                  bgcolor: usagePercent > 90 ? "#EF4444" : "#16A34A",
+                  borderRadius: 4,
+                },
+              }}
+            />
+          </Box>
+
+          <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
+            {onCancelPackage && (
+              <Button
+                variant="text"
+                size="small"
+                color="error"
+                onClick={onCancelPackage}
+                sx={{ fontSize: "0.8rem", fontWeight: 700 }}
+              >
+                Cancelar este pacote
+              </Button>
+            )}
+          </Box>
+        </Box>
+      )}
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 2 }}>
         <MessageSquare size={16} color="#16A34A" strokeWidth={2.5} />
         <Typography sx={{ fontSize: "0.88rem", fontWeight: 700, color: "#334155" }}>
-          Pacotes opcionais. Clique para selecionar ou alterar seu pacote:
+          {isActive ? "Deseja alterar seu pacote? Escolha uma opção:" : "Pacotes disponíveis:"}
         </Typography>
       </Box>
 
@@ -141,7 +236,7 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
       <Stack spacing={1.5} sx={{ mb: 3 }}>
         {WHATSAPP_PACKAGES.map((pkg) => {
           const isSelected = selectedPkg === pkg.id;
-          const isActive = activePackageId === pkg.id;
+          const isCurrentActive = normalizedActiveId === pkg.id && isActive;
 
           return (
             <Box
@@ -154,13 +249,13 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
                 p: { xs: 1.5, sm: 1.8 },
                 borderRadius: "14px",
                 border: "1.5px solid",
-                borderColor: isSelected ? "#16A34A" : "#E2E8F0",
-                bgcolor: isSelected ? "#F0FDF4" : "white",
+                borderColor: isCurrentActive ? "#16A34A" : isSelected ? "#313485" : "#E2E8F0",
+                bgcolor: isCurrentActive ? "#F0FDF4" : isSelected ? "#EEF2FF" : "white",
                 cursor: "pointer",
                 transition: "all 0.15s ease",
                 "&:hover": {
-                  borderColor: isSelected ? "#16A34A" : "#CBD5E1",
-                  bgcolor: isSelected ? "#F0FDF4" : "#F8FAFC",
+                  borderColor: isCurrentActive ? "#16A34A" : isSelected ? "#313485" : "#CBD5E1",
+                  bgcolor: isCurrentActive ? "#F0FDF4" : isSelected ? "#EEF2FF" : "#F8FAFC",
                 },
               }}
             >
@@ -185,7 +280,7 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
                     }}
                   />
                 )}
-                {isActive && (
+                {isCurrentActive && (
                   <Chip
                     label="Pacote Atual"
                     size="small"
@@ -195,6 +290,20 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
                       fontWeight: 800,
                       fontSize: "0.68rem",
                       border: "1px solid #BBF7D0",
+                      height: 22,
+                    }}
+                  />
+                )}
+                {isPending && normalizedActiveId === pkg.id && (
+                  <Chip
+                    label="Aguardando ativação"
+                    size="small"
+                    sx={{
+                      bgcolor: "#FEF3C7",
+                      color: "#92400E",
+                      fontWeight: 800,
+                      fontSize: "0.68rem",
+                      border: "1px solid #FDE68A",
                       height: 22,
                     }}
                   />
@@ -219,8 +328,8 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
                     height: 22,
                     borderRadius: "50%",
                     border: "2px solid",
-                    borderColor: isSelected ? "#16A34A" : "#CBD5E1",
-                    bgcolor: isSelected ? "#16A34A" : "transparent",
+                    borderColor: isSelected ? "#313485" : "#CBD5E1",
+                    bgcolor: isSelected ? "#313485" : "transparent",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
@@ -245,7 +354,7 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
       </Stack>
 
       {/* Action / Contratar button if selected */}
-      {selectedPkg && selectedPkg !== activePackageId && (
+      {selectedPkg && (!(isActive && normalizedActiveId === selectedPkg) || isPending) && (
         <Box sx={{ mb: 2.5 }}>
           <Button
             variant="contained"
@@ -262,7 +371,11 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
               "&:hover": { bgcolor: "#15803D" },
             }}
           >
-            Contratar pacote ({WHATSAPP_PACKAGES.find(p => p.id === selectedPkg)?.price}/mês)
+            {isActive
+              ? "Alterar para este pacote"
+              : isPending && normalizedActiveId === selectedPkg
+              ? `Pagar e Ativar pacote (${selectedPkgData?.price}/mês)`
+              : `Contratar pacote (${selectedPkgData?.price}/mês)`}
           </Button>
         </Box>
       )}
@@ -281,7 +394,7 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
       >
         <Info size={18} color="#16A34A" style={{ marginTop: 2, flexShrink: 0 }} />
         <Typography sx={{ fontSize: "0.85rem", color: "#166534", lineHeight: 1.5, fontWeight: 500 }}>
-          Você só paga pelos pacotes que escolher. Eles são cobrados mensalmente de forma independente ou combinada com o plano PetControle Pro.
+          Cobrança unificada: se você contratar no meio do mês, paga apenas o valor proporcional (pro-rata) até a data de vencimento da sua conta.
         </Typography>
       </Box>
     </Box>
