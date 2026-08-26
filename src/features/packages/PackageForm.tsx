@@ -131,6 +131,7 @@ export default function PackageForm({
         : createPackage(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["packages"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       toast.success(
         editingPackage
           ? "Pacote atualizado com sucesso!"

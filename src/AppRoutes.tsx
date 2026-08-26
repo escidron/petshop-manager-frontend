@@ -30,7 +30,14 @@ import SharedSchedulePage from "./pages/SharedSchedulePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
 
+import { usePermission } from "./hooks/usePermission";
+
 type Props = {
+  children: JSX.Element;
+};
+
+type PermissionProps = {
+  module: string;
   children: JSX.Element;
 };
 
@@ -46,6 +53,17 @@ export const ProtectedRoute = ({ children }: Props) => {
   if (!checking && !user) {
     return <Navigate to="/login" replace state={{ from: location }} />;
   }
+
+  return children;
+};
+
+export const PermissionRoute = ({ module, children }: PermissionProps) => {
+  const { user, checking } = useAuth();
+  const { hasPermission } = usePermission();
+
+  if (checking && !user) return <LoadingScreen />;
+  if (!user) return <Navigate to="/login" replace />;
+  if (!hasPermission(module)) return <Navigate to="/dashboard" replace />;
 
   return children;
 };
@@ -88,43 +106,43 @@ export default function AppRoutes() {
           </ProtectedRoute>
         }
       >
-        <Route path="/dashboard" element={<Home />} />
+        <Route path="/dashboard" element={<PermissionRoute module="dashboard"><Home /></PermissionRoute>} />
         <Route path="/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
-        <Route path="/pos" element={<POSPage />} />
-        <Route path="/inventory" element={<InventoryPage />} />
+        <Route path="/pos" element={<PermissionRoute module="pos"><POSPage /></PermissionRoute>} />
+        <Route path="/inventory" element={<PermissionRoute module="inventory"><InventoryPage /></PermissionRoute>} />
         <Route path="registration" element={<RegistrationLayout />}>
           <Route path="clients">
-            <Route index element={<ClientsPage />} />
-            <Route path=":id" element={<ClientDetailsPage />} />
+            <Route index element={<PermissionRoute module="clients"><ClientsPage /></PermissionRoute>} />
+            <Route path=":id" element={<PermissionRoute module="clients"><ClientDetailsPage /></PermissionRoute>} />
           </Route>
           <Route path="pets">
-            <Route index element={<PetsPage />} />
-            <Route path=":id" element={<ClientDetailsPage />} />
+            <Route index element={<PermissionRoute module="pets"><PetsPage /></PermissionRoute>} />
+            <Route path=":id" element={<PermissionRoute module="pets"><ClientDetailsPage /></PermissionRoute>} />
           </Route>
           <Route path="products">
-            <Route index element={<ProductsPage />} />
+            <Route index element={<PermissionRoute module="products"><ProductsPage /></PermissionRoute>} />
           </Route>
           <Route path="suppliers">
-            <Route index element={<SuppliersPage />} />
+            <Route index element={<PermissionRoute module="suppliers"><SuppliersPage /></PermissionRoute>} />
           </Route>
           <Route path="services">
-            <Route index element={<ServicesPage />} />
+            <Route index element={<PermissionRoute module="services"><ServicesPage /></PermissionRoute>} />
           </Route>
           <Route path="packages">
-            <Route index element={<PackagesPage />} />
+            <Route index element={<PermissionRoute module="packages"><PackagesPage /></PermissionRoute>} />
           </Route>
           <Route path="employees">
-            <Route index element={<OwnerRoute><EmployeesPage /></OwnerRoute>} />
+            <Route index element={<PermissionRoute module="employees"><EmployeesPage /></PermissionRoute>} />
           </Route>
         </Route>
         <Route path="/commissions">
-          <Route path="rules" element={<OwnerRoute><CommissionRulesPage /></OwnerRoute>} />
+          <Route path="rules" element={<PermissionRoute module="commissions"><CommissionRulesPage /></PermissionRoute>} />
           <Route path="report" element={<Navigate to="/reports?category=vendas&subtab=comissoes" replace />} />
         </Route>
-        <Route path="/reports" element={<OwnerRoute><ReportsPage /></OwnerRoute>} />
+        <Route path="/reports" element={<PermissionRoute module="reports"><ReportsPage /></PermissionRoute>} />
         <Route path="/reports/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
         <Route path="/reports/inventory" element={<Navigate to="/reports?category=estoque" replace />} />
-        <Route path="/settings" element={<OwnerRoute><SettingsPage /></OwnerRoute>} />
+        <Route path="/settings" element={<PermissionRoute module="settings"><SettingsPage /></PermissionRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       </Route>
       <Route path="/shared-schedule/:token" element={<SharedSchedulePage />} />

@@ -70,6 +70,7 @@ export default function AdjustStockModal({
       toast.success("Estoque ajustado com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["inventory_logs"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       reset();
       onClose();
     },

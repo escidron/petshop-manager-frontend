@@ -98,7 +98,13 @@ export default function CheckoutModal({
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
       queryClient.invalidateQueries({ queryKey: ["client-packages"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["unpaid-packages"] });
       onSuccess();
       onClose();
     },

@@ -14,7 +14,7 @@ import { Dog, X } from "lucide-react";
 import { Button } from "../../../components/Button/Button";
 import type { Pet } from "../../pets/types";
 import type { Service } from "../../tenant_services/types";
-import { isServiceCompatibleWithPet } from "../../../utils/serviceMatcher";
+import { getIncompatibleServicesForPet } from "../../../utils/serviceMatcher";
 
 interface PendingPackageItem {
   id: number;
@@ -27,7 +27,7 @@ interface POSPackagePetDialogProps {
   open: boolean;
   pendingPackageItem: PendingPackageItem | null;
   clientPets: Pet[];
-  packages: Array<{ id: number; items: Array<{ service_id?: number | null; product_id?: number | null }> }>;
+  packages: Array<{ id: number; items: Array<{ service?: Service; service_id?: number | null; product_id?: number | null }> }>;
   services: Service[];
   pendingPackagePetIds: number[];
   onTogglePet: (petId: number) => void;
@@ -46,17 +46,11 @@ export default function POSPackagePetDialog({
   onConfirm,
   onCancel,
 }: POSPackagePetDialogProps) {
-  const getIncompatibleServicesForPet = (pet: Pet): Service[] => {
+  const getIncompatibleServices = (pet: Pet): Service[] => {
     if (!pendingPackageItem) return [];
     const pkgDef = packages.find((p) => p.id === pendingPackageItem.id);
     if (!pkgDef) return [];
-
-    const pkgServices = pkgDef.items
-      .filter((item) => item.service_id)
-      .map((item) => services.find((s) => s.id === item.service_id))
-      .filter(Boolean) as Service[];
-
-    return pkgServices.filter((s) => !isServiceCompatibleWithPet(s, pet));
+    return getIncompatibleServicesForPet(pkgDef, pet, services);
   };
 
   const activePets = clientPets.filter((p) => !p.is_deceased);
@@ -96,7 +90,7 @@ export default function POSPackagePetDialog({
         ) : (
           <List sx={{ pt: 0 }}>
             {activePets.map((pet) => {
-              const incompatible = getIncompatibleServicesForPet(pet);
+              const incompatible = getIncompatibleServices(pet);
               const hasIncompatible = incompatible.length > 0;
               const isSelected = pendingPackagePetIds.includes(pet.id);
 

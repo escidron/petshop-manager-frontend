@@ -14,7 +14,7 @@ import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
 import type { ClientPackage } from "../client_packages/types";
 import type { Service } from "../tenant_services/types";
-import { isServiceCompatibleWithPet } from "../../utils/serviceMatcher";
+import { isPackageCompatibleWithAnyPet, getIncompatibleServicesForPet } from "../../utils/serviceMatcher";
 
 // Sub-components
 import POSSessionHeader from "./components/POSSessionHeader";
@@ -41,6 +41,7 @@ export default function POSInterface() {
 
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
+  const [showAllPackages, setShowAllPackages] = useState(false);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
@@ -63,13 +64,14 @@ export default function POSInterface() {
   const { data: startupData, isLoading: startupLoading } = useQuery({
     queryKey: ["pos-startup"],
     queryFn: fetchPOSStartup,
-    staleTime: 1000 * 60 * 5, // 5 minutos de cache para produtos, pacotes, etc
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache
   });
 
   const { data: clientDetailsData, isLoading: clientDetailsLoading } = useQuery({
     queryKey: ["pos-client", selectedClientId],
     queryFn: () => fetchPOSClientDetails(selectedClientId!),
     enabled: !!selectedClientId,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Global Data
@@ -138,10 +140,39 @@ export default function POSInterface() {
     () => services.filter((s) => s.is_active && s.name.toLowerCase().includes(searchTerm.toLowerCase())),
     [services, searchTerm]
   );
-  const filteredPackages = useMemo(
-    () => packages.filter((pkg) => pkg.is_active && pkg.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    [packages, searchTerm]
+  const activeClientPets = useMemo(
+    () => clientPets.filter((p) => !p.is_deceased),
+    [clientPets]
   );
+
+  const activePackages = useMemo(
+    () => packages.filter((pkg) => pkg.is_active),
+    [packages]
+  );
+
+  const compatiblePackages = useMemo(() => {
+    if (!selectedClientId || activeClientPets.length === 0) {
+      return activePackages;
+    }
+    return activePackages.filter((pkg) =>
+      isPackageCompatibleWithAnyPet(pkg, activeClientPets, services)
+    );
+  }, [activePackages, selectedClientId, activeClientPets, services]);
+
+  const filteredPackages = useMemo(() => {
+    const baseList =
+      selectedClientId && activeClientPets.length > 0 && !showAllPackages
+        ? compatiblePackages
+        : activePackages;
+
+    if (!searchTerm) return baseList;
+    const term = searchTerm.toLowerCase();
+    return baseList.filter(
+      (pkg) =>
+        pkg.name.toLowerCase().includes(term) ||
+        (pkg.description && pkg.description.toLowerCase().includes(term))
+    );
+  }, [selectedClientId, activeClientPets.length, showAllPackages, compatiblePackages, activePackages, searchTerm]);
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   const getAppointmentPrice = (apt: Appointment) =>
@@ -151,15 +182,11 @@ export default function POSInterface() {
       0
     );
 
-  const getIncompatibleServicesForPet = (pet: Pet): Service[] => {
+  const getIncompatibleServices = (pet: Pet): Service[] => {
     if (!pendingPackageItem) return [];
     const pkgDef = packages.find((p) => p.id === pendingPackageItem.id);
     if (!pkgDef) return [];
-    const pkgServices = pkgDef.items
-      .filter((item: any) => item.service_id)
-      .map((item: any) => services.find((s) => s.id === item.service_id))
-      .filter(Boolean) as Service[];
-    return pkgServices.filter((s) => !isServiceCompatibleWithPet(s, pet));
+    return getIncompatibleServicesForPet(pkgDef, pet, services);
   };
 
   // ── Session Control ──────────────────────────────────────────────────────
@@ -169,6 +196,7 @@ export default function POSInterface() {
     setDiscountPctInput("0");
     setSelectedAppointmentId(null);
     setSelectedClientId(clientId ?? null);
+    setShowAllPackages(false);
     setSearchTerm("");
     setIsClientModalOpen(false);
   };
@@ -179,6 +207,7 @@ export default function POSInterface() {
     setDiscountPctInput("0");
     setSelectedClientId(null);
     setSelectedAppointmentId(null);
+    setShowAllPackages(false);
     setSearchTerm("");
   };
 
@@ -315,6 +344,7 @@ export default function POSInterface() {
 
     setSelectedClientId(appointment.client.id);
     setSelectedAppointmentId(appointment.id);
+    setShowAllPackages(false);
     setCart(pulledItems);
     setIsPullDialogOpen(false);
     setSearchTerm("");
@@ -337,6 +367,7 @@ export default function POSInterface() {
       client_package_id_to_pay: pkg.id,
     };
     setSelectedClientId(pkg.client_id);
+    setShowAllPackages(false);
     setCart([item]);
     setIsPullDialogOpen(false);
     toast.success("Venda de pacote pendente carregada.");
@@ -361,7 +392,7 @@ export default function POSInterface() {
   useEffect(() => {
     if (pendingPackageItem) {
       const defaultIds = clientPets
-        .filter((p) => !p.is_deceased && getIncompatibleServicesForPet(p).length === 0)
+        .filter((p) => !p.is_deceased && getIncompatibleServices(p).length === 0)
         .map((p) => p.id);
       setPendingPackagePetIds((prev) => {
         if (prev.length === defaultIds.length && prev.every((id) => defaultIds.includes(id))) return prev;
@@ -450,6 +481,12 @@ export default function POSInterface() {
               onViewModeChange={setViewMode}
               onLowStockToggle={() => setLowStockExpanded((prev) => !prev)}
               onAddItem={handleAddItem}
+              selectedClient={selectedClient}
+              clientPets={clientPets}
+              showAllPackages={showAllPackages}
+              onToggleShowAllPackages={() => setShowAllPackages((prev) => !prev)}
+              totalPackagesCount={activePackages.length}
+              compatiblePackagesCount={compatiblePackages.length}
             />
           </Box>
           </Box>

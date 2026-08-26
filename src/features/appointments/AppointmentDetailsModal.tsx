@@ -10,9 +10,11 @@ import {
   Typography,
   Autocomplete,
   TextField,
+  alpha,
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import dayjs from "dayjs";
 import {
   useQuery,
   useMutation,
@@ -22,7 +24,10 @@ import {
 import { getEmployees } from "../../api/services/employees";
 import { assignAppointmentEmployees } from "../../api/services/appointments";
 import { getCommissionRules } from "../../api/services/commissions";
-import { listClientPackagesByPet } from "../../api/services/client_packages";
+import {
+  listClientPackagesByPet,
+  listClientPackagesByClient,
+} from "../../api/services/client_packages";
 import { useToast } from "../../hooks/useToast";
 import {
   CalendarCheck,
@@ -105,6 +110,25 @@ const AppointmentDetailsModal = ({
       return employeeMatch && serviceMatch;
     });
   };
+
+  // Fetch Active Packages for Client
+  const { data: clientPackages = [] } = useQuery({
+    queryKey: ["clientPackages", "client", appointment?.client?.id],
+    queryFn: () => listClientPackagesByClient(appointment.client.id),
+    enabled: open && !!appointment?.client?.id,
+  });
+
+  const availablePackages = useMemo(() => {
+    return clientPackages
+      .filter((pkg) => pkg.is_active)
+      .map((pkg) => ({
+        ...pkg,
+        remaining:
+          pkg.credits?.reduce((acc, credit) => acc + credit.remaining_qty, 0) ||
+          0,
+      }))
+      .filter((pkg) => pkg.remaining > 0);
+  }, [clientPackages]);
 
   // Fetch Active Packages for all Pets in Appointment
   const packageQueries = useQueries({
@@ -644,7 +668,7 @@ const AppointmentDetailsModal = ({
               </Box>
             </CustomCard>
           </Box>
-          <Box>
+          <Box sx={{ mt: 2 }}>
             <Typography variant="h5" fontWeight={600}>
               Tutor
             </Typography>
@@ -652,6 +676,131 @@ const AppointmentDetailsModal = ({
               <ClientePersonalInfo client={appointment.client} />
             </Box>
           </Box>
+
+          {/* PACOTES DISPONÍVEIS */}
+          {availablePackages.length > 0 && (
+            <Box sx={{ mt: 2 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Typography variant="h5" fontWeight={600}>
+                  Pacotes Disponíveis
+                </Typography>
+                <Chip
+                  label={availablePackages.length}
+                  size="small"
+                  sx={{
+                    height: 22,
+                    minWidth: 22,
+                    fontSize: "0.75rem",
+                    fontWeight: 700,
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                    color: "primary.main",
+                  }}
+                />
+              </Box>
+
+              <Box sx={{ mt: 1, minWidth: "580px", display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {availablePackages.map((pkg) => (
+                  <CustomCard
+                    key={pkg.id}
+                    sx={{
+                      display: "flex",
+                      flexDirection: "column",
+                      gap: 1,
+                      px: 2,
+                      py: 1.5,
+                      minWidth: "580px",
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                      }}
+                    >
+                      <Typography
+                        variant="h6"
+                        fontWeight={600}
+                        color="primary.main"
+                      >
+                        {pkg.package_name}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        color={theme.palette.text.disabled}
+                        fontWeight={500}
+                      >
+                        Vence:{" "}
+                        {pkg.expires_at
+                          ? dayjs(pkg.expires_at).format("DD/MM/YYYY")
+                          : "Sem validade"}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                      {pkg.credits?.map((credit) => (
+                        <Box
+                          key={credit.id}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 2,
+                          }}
+                        >
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.75,
+                              fontWeight: 500,
+                            }}
+                          >
+                            <Box
+                              component="span"
+                              sx={{
+                                width: 5,
+                                height: 5,
+                                borderRadius: "50%",
+                                bgcolor:
+                                  credit.remaining_qty > 0
+                                    ? "primary.main"
+                                    : theme.palette.text.disabled,
+                                flexShrink: 0,
+                              }}
+                            />
+                            {credit.service_name}
+                          </Typography>
+
+                          <Typography variant="body2">
+                            <Box
+                              component="span"
+                              sx={{
+                                fontWeight: 700,
+                                color:
+                                  credit.remaining_qty > 0
+                                    ? "text.primary"
+                                    : theme.palette.text.disabled,
+                              }}
+                            >
+                              restam {credit.remaining_qty}
+                            </Box>{" "}
+                            <Box
+                              component="span"
+                              sx={{ color: theme.palette.text.disabled }}
+                            >
+                              (usou {credit.used_qty} de {credit.total_qty})
+                            </Box>
+                          </Typography>
+                        </Box>
+                      ))}
+                    </Box>
+                  </CustomCard>
+                ))}
+              </Box>
+            </Box>
+          )}
         </Box>
 
         <Box className="coluna-2" sx={{ width: "50%" }}>

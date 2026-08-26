@@ -14,7 +14,11 @@ export function usePets() {
   });
 
   // Compatibilidade com chamadas existentes de getPets()
-  const getPets = () => queryClient.invalidateQueries({ queryKey: PETS_QUERY_KEY });
+  const getPets = () => {
+    queryClient.invalidateQueries({ queryKey: PETS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+    queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+  };
 
   return { pets, loading, getPets };
 }

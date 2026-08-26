@@ -14,7 +14,11 @@ export function useClients() {
   });
 
   // Compatibilidade com chamadas existentes de getClients()
-  const getClients = () => queryClient.invalidateQueries({ queryKey: CLIENTS_QUERY_KEY });
+  const getClients = () => {
+    queryClient.invalidateQueries({ queryKey: CLIENTS_QUERY_KEY });
+    queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+    queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+  };
 
   return { clients, loading, getClients };
 }

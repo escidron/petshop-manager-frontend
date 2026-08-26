@@ -31,6 +31,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Início",
         icon: <Home size={20} />,
         path: "/dashboard",
+        module: "dashboard",
       },
     ],
   },
@@ -42,43 +43,49 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Clientes",
         icon: <Users size={20} />,
         path: "/registration/clients",
+        module: "clients",
       },
       {
         id: "pets",
         label: "Pets",
         icon: <PawPrint size={20} />,
         path: "/registration/pets",
+        module: "pets",
       },
       {
         id: "services",
         label: "Serviços",
         icon: <ClipboardList size={20} />,
         path: "/registration/services",
+        module: "services",
       },
       {
         id: "products",
         label: "Produtos",
         icon: <Barcode size={20} />,
         path: "/registration/products",
+        module: "products",
       },
       {
         id: "packages",
         label: "Pacotes",
         icon: <ShoppingBag size={20} />,
         path: "/registration/packages",
+        module: "packages",
       },
       {
         id: "suppliers",
         label: "Fornecedores",
         icon: <Truck size={20} />,
         path: "/registration/suppliers",
+        module: "suppliers",
       },
       {
         id: "employees",
         label: "Funcionários",
         icon: <UserCheck size={20} />,
         path: "/registration/employees",
-        ownerOnly: true,
+        module: "employees",
       },
     ],
   },
@@ -90,26 +97,28 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Caixa",
         icon: <ShoppingCart size={20} />,
         path: "/pos",
+        module: "pos",
       },
       {
         id: "inventory",
         label: "Estoque",
         icon: <Package size={20} />,
         path: "/inventory",
+        module: "inventory",
       },
       {
         id: "commission-rules",
         label: "Comissão",
         icon: <Percent size={20} />,
         path: "/commissions/rules",
-        ownerOnly: true,
+        module: "commissions",
       },
       {
         id: "reports",
         label: "Relatórios",
         icon: <BarChart2 size={20} />,
         path: "/reports",
-        ownerOnly: true,
+        module: "reports",
       },
     ],
   },
@@ -121,7 +130,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         label: "Configurações",
         icon: <Settings size={20} />,
         path: "/settings",
-        ownerOnly: true,
+        module: "settings",
       },
       {
         id: "support",
@@ -136,7 +145,7 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
 const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
   const navigate = useNavigate();
   const { tenant, user } = useAuth();
-  const { isOwner } = usePermission();
+  const { isOwner, hasPermission } = usePermission();
 
   const getTrialInfo = () => {
     if (tenant?.feature_flags?.free_access) return null;
@@ -149,18 +158,37 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
     if (!isTrial || !subscription.trial_ends_at) {
       return null;
     }
-    const expiryDate = dayjs(subscription.trial_ends_at);
-    const daysLeft = Math.ceil(expiryDate.diff(dayjs(), "hour") / 24);
 
-    return { daysLeft: daysLeft > 0 ? daysLeft : 0, expiryDate };
+    const now = dayjs();
+    const trialEnd = dayjs(subscription.trial_ends_at);
+    const daysLeft = Math.max(0, trialEnd.diff(now, "day"));
+
+    return {
+      daysLeft,
+      trialEndFormatted: trialEnd.format("DD/MM/YYYY"),
+    };
   };
 
   const trialInfo = getTrialInfo();
-  
-  const sections = [...menuSections];
+
+  const visibleSections = menuSections
+    .map((section) => ({
+      ...section,
+      items: section.items.filter((item) => {
+        if (item.ownerOnly && !isOwner) return false;
+        if (item.id === "support") {
+          return !!tenant?.feature_flags?.support;
+        }
+        if (item.module) {
+          return hasPermission(item.module);
+        }
+        return true;
+      }),
+    }))
+    .filter((section) => section.items.length > 0);
+
+  const sections = [...visibleSections];
   if (user?.role === "admin") {
-    // Import dynamically or use a fallback icon from lucide-react.
-    // Since we imported Shield or can use UserCheck:
     sections.push({
       title: "ADMINISTRADOR",
       items: [

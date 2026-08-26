@@ -14,6 +14,7 @@ export type AuthUser = {
   name: string;
   email: string;
   email_verified: boolean;
+  permissions?: string[];
 };
 
 export const createUser = async (
@@ -51,6 +52,7 @@ export type TenantUserCreate = {
   email: string;
   password: string;
   role: string;
+  permissions?: string[];
 };
 
 export type TenantUserResponse = {
@@ -59,6 +61,7 @@ export type TenantUserResponse = {
   email: string;
   role: string;
   is_active: boolean;
+  permissions?: string[];
 };
 
 export const listTenantUsers = async (): Promise<TenantUserResponse[]> => {
@@ -72,6 +75,17 @@ export const createTenantUser = async (
   const response = await apiClient.post<TenantUserResponse>(
     "/api/v1/tenants/users",
     payload,
+  );
+  return response.data;
+};
+
+export const updateTenantUserPermissions = async (
+  userId: number,
+  permissions: string[],
+): Promise<TenantUserResponse> => {
+  const response = await apiClient.put<TenantUserResponse>(
+    `/api/v1/tenants/users/${userId}/permissions`,
+    { permissions },
   );
   return response.data;
 };

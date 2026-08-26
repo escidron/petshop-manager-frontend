@@ -18,6 +18,7 @@ export type SidebarItemConfig = {
   label: string;
   icon?: ReactNode;
   path?: string;
+  module?: string;
   ownerOnly?: boolean;
   children?: SidebarItemConfig[];
 };
@@ -53,7 +54,7 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
           py: 0.5,
           pl: 2 + depth * 2,
           gap: 1,
-          color: "text.secondary",
+          color: "rgba(255, 255, 255, 0.8)",
           backgroundColor:
             location.pathname == item.path
               ? alpha(lighten(theme.palette.primary.main, 0.3), 0.3)
@@ -64,11 +65,12 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
               lighten(theme.palette.primary.main, 0.3),
               0.3,
             ),
+            color: "#FFFFFF",
           },
         }}
       >
         {item.icon && (
-          <ListItemIcon sx={{ minWidth: 20, color: "text.secondary" }}>
+          <ListItemIcon sx={{ minWidth: 20, color: "inherit" }}>
             {item.icon}
           </ListItemIcon>
         )}
