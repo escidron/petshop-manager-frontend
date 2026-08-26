@@ -49,12 +49,10 @@ function getServiceScore(service: Service, pet: Pet) {
     return score;
 }
 
-
 export const getServicesForPet = (
     services: Service[],
     pet?: Pet
 ) => {
-
     if (!pet) return services;
 
     const filtered = services.filter((service) => {
@@ -70,3 +68,58 @@ export const getServicesForPet = (
 
     return sorted;
 };
+
+export const getPackageServices = (
+    pkg: { items?: Array<{ service?: Service; service_id?: number | null }> },
+    allServices?: Service[]
+): Service[] => {
+    if (!pkg.items) return [];
+    return pkg.items
+        .map((item) => {
+            if (item.service) return item.service;
+            if (item.service_id && allServices) {
+                return allServices.find((s) => s.id === item.service_id);
+            }
+            return undefined;
+        })
+        .filter((s): s is Service => !!s);
+};
+
+export const getIncompatibleServicesForPet = (
+    pkg: { items?: Array<{ service?: Service; service_id?: number | null }> },
+    pet: Pet,
+    allServices?: Service[]
+): Service[] => {
+    const pkgServices = getPackageServices(pkg, allServices);
+    return pkgServices.filter((service) => !isServiceCompatibleWithPet(service, pet));
+};
+
+export const isPackageCompatibleWithPet = (
+    pkg: { items?: Array<{ service?: Service; service_id?: number | null }> },
+    pet: Pet,
+    allServices?: Service[]
+): boolean => {
+    const incompatible = getIncompatibleServicesForPet(pkg, pet, allServices);
+    return incompatible.length === 0;
+};
+
+export const isPackageCompatibleWithAnyPet = (
+    pkg: { items?: Array<{ service?: Service; service_id?: number | null }> },
+    pets: Pet[],
+    allServices?: Service[]
+): boolean => {
+    const activePets = pets.filter((p) => !p.is_deceased);
+    if (activePets.length === 0) return true;
+    const pkgServices = getPackageServices(pkg, allServices);
+    if (pkgServices.length === 0) return true;
+    return activePets.some((pet) => isPackageCompatibleWithPet(pkg, pet, allServices));
+};
+
+export const getCompatiblePetsForPackage = (
+    pkg: { items?: Array<{ service?: Service; service_id?: number | null }> },
+    pets: Pet[],
+    allServices?: Service[]
+): Pet[] => {
+    const activePets = pets.filter((p) => !p.is_deceased);
+    return activePets.filter((pet) => isPackageCompatibleWithPet(pkg, pet, allServices));
+};

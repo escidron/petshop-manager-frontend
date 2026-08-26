@@ -26,6 +26,7 @@ export default function PackagesList() {
     mutationFn: deletePackage,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["packages"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       toast.success("Pacote excluído com sucesso!");
     },
     onError: (error: { response?: { data?: { detail?: string } } }) => {

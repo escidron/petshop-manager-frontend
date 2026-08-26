@@ -9,6 +9,7 @@ import { X } from "lucide-react";
 import { Box } from "@mui/material";
 import { useState } from "react";
 import { sellPackageToPet } from "../../api/services/client_packages";
+import { useQueryClient } from "@tanstack/react-query";
 import type { Pet } from "../pets/types";
 import type { Package } from "../packages/types";
 import ClientPackageSellForm from "./ClientPackageSellForm";
@@ -34,11 +35,19 @@ export default function ClientPackageSellModal({
   defaultPackageId,
 }: Props) {
   const [loading, setLoading] = useState(false);
+  const queryClient = useQueryClient();
 
   const handleSubmit = async (data: ClientPackageSellFormData) => {
     try {
       setLoading(true);
       await sellPackageToPet(data);
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+      queryClient.invalidateQueries({ queryKey: ["client-packages"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["unpaid-packages"] });
       onSuccess();
       onClose();
     } finally {

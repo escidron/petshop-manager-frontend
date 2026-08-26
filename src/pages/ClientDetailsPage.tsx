@@ -49,8 +49,14 @@ export default function ClientDetailsPage() {
   });
 
   const fetchClientPackages = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: ["clientPackages", clientId] });
-  }, [queryClient, clientId]);
+    queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+    queryClient.invalidateQueries({ queryKey: ["client-packages"] });
+    queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+    queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+    queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+    queryClient.invalidateQueries({ queryKey: ["unpaid-packages"] });
+  }, [queryClient]);
 
   const toast = useToast();
 

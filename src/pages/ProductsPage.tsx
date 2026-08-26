@@ -46,6 +46,7 @@ export default function ProductsPage() {
       await deleteProduct(productToDelete.id);
       await getProducts();
       queryClient.invalidateQueries({ queryKey: ["products"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       setProductToDelete(null);
       toast.success("Produto apagado com sucesso");
     } finally {
@@ -79,6 +80,7 @@ export default function ProductsPage() {
           onSuccess={async () => {
             await getProducts();
             queryClient.invalidateQueries({ queryKey: ["products"] });
+            queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
             setProductModal({ open: false, mode: "create" });
           }}
         />
@@ -103,6 +105,7 @@ export default function ProductsPage() {
         onSuccess={async () => {
           await getProducts();
           queryClient.invalidateQueries({ queryKey: ["products"] });
+          queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
         }}
       />
 

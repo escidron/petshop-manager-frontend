@@ -48,6 +48,7 @@ export default function ServicesPage() {
       await deleteService(serviceToDelete.id);
       await getServices();
       queryClient.invalidateQueries({ queryKey: ["services"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       setServiceToDelete(null);
       toast.success("Serviço removido com sucesso");
     } finally {
@@ -85,6 +86,7 @@ export default function ServicesPage() {
             setServiceModal((prev) => ({ ...prev, open: false }));
             getServices();
             queryClient.invalidateQueries({ queryKey: ["services"] });
+            queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
           }}
         />
       )}
@@ -98,6 +100,7 @@ export default function ServicesPage() {
         onSuccess={async () => {
           await getServices();
           queryClient.invalidateQueries({ queryKey: ["services"] });
+          queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
         }}
       />
 

@@ -90,6 +90,8 @@ export default function OpenInvoices({
       await applyAppointmentAction(appointment.id, action);
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
       setSelectedAppointment(null);
     } finally {
       setLoadingAction(null);

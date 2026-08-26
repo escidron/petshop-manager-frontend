@@ -405,6 +405,12 @@ const Dashboard = () => {
             queryClient.invalidateQueries({
               queryKey: ["appointments"],
             });
+            queryClient.invalidateQueries({
+              queryKey: ["pos-startup"],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["pos-client"],
+            });
             if (flow.waitingListEntryId) {
               deleteWaitingListEntry(flow.waitingListEntryId);
             }

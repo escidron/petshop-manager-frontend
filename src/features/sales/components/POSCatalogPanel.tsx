@@ -31,39 +31,14 @@ import {
 import dayjs from "dayjs";
 import { useState, useEffect } from "react";
 import { getCoatTypeLabel } from "../../../utils/formatCoatType";
-import type { CoatType } from "../../pets/types";
+import type { CoatType, Pet } from "../../pets/types";
 import type { Appointment } from "../../appointments/types";
-
-interface Product {
-  id: number;
-  name: string;
-  price_cents?: number;
-  price?: number;
-  quantity: number;
-  unit?: string;
-  category?: string;
-  min_stock: number;
-  is_active: boolean;
-}
-
-interface Service {
-  id: number;
-  name: string;
-  price_cents?: number;
-  is_active: boolean;
-  species?: string;
-  size?: string;
-  coat_type?: string;
-  duration_minutes?: number;
-}
-
-interface Package {
-  id: number;
-  name: string;
-  price_cents?: number;
-  description?: string;
-  is_active: boolean;
-}
+import type { Client } from "../../clients/types";
+import type { Service } from "../../tenant_services/types";
+import type { Product } from "../../products/types";
+import type { Package } from "../../packages/types";
+import { getCompatiblePetsForPackage } from "../../../utils/serviceMatcher";
+import { Button } from "../../../components/Button/Button";
 
 type CatalogTab = "appointments" | "products" | "services" | "packages" | null;
 
@@ -88,6 +63,12 @@ interface POSCatalogPanelProps {
     item: { id: number; name: string; price_cents?: number; quantity?: number },
     type: "product" | "service" | "package"
   ) => void;
+  selectedClient?: Client | null;
+  clientPets?: Pet[];
+  showAllPackages?: boolean;
+  onToggleShowAllPackages?: () => void;
+  totalPackagesCount?: number;
+  compatiblePackagesCount?: number;
 }
 
 const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
@@ -202,8 +183,17 @@ export default function POSCatalogPanel({
   lowStockProducts,
   lowStockExpanded,
   onLowStockToggle,
+  selectedClient,
+  clientPets = [],
+  showAllPackages = false,
+  onToggleShowAllPackages,
+  totalPackagesCount,
+  compatiblePackagesCount,
 }: POSCatalogPanelProps) {
   const [productLimit, setProductLimit] = useState(24);
+
+  const activeClientPets = clientPets.filter((p) => !p.is_deceased);
+  const hasClientWithPets = Boolean(selectedClient && activeClientPets.length > 0);
 
   useEffect(() => {
     setProductLimit(24);
@@ -600,53 +590,330 @@ export default function POSCatalogPanel({
           <POSSkeleton viewMode={viewMode} />
         ) : packages.length > 0 ? (
           <Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography variant="overline" sx={{ fontWeight: 800, color: "primary.main", display: "block" }}>
-                {searchTerm ? `Resultados para "${searchTerm}"` : "Pacotes de Serviços / Produtos"}
-              </Typography>
-              <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
-            </Box>
-            <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-              {packages.slice(0, productLimit).map((pkg) => (
-                <Grid
-                  size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
-                  key={`pkg-${pkg.id}`}
-                >
-                  {viewMode === "grid" ? (
-                    <Paper
-                      elevation={0}
-                      onClick={() => onAddItem(pkg, "package")}
-                      sx={{ p: 2, borderRadius: 3, cursor: "pointer", height: "100%", display: "flex", flexDirection: "column", position: "relative", transition: "all 0.2s ease-in-out", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.main", "& .add-btn-p": { bgcolor: "primary.main", color: "white" } } }}
-                    >
-                      <Box sx={{ mb: 1.5, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: alpha("#ff9800", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "#ff9800" }}><ShoppingBag size={18} /></Box>
-                        <Chip label="PACOTE" size="small" sx={{ fontSize: "0.65rem", fontWeight: 900, bgcolor: alpha("#ff9800", 0.1), color: "#ff9800", border: "none" }} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>{pkg.name}</Typography>
-                      <Typography variant="caption" color="text.primary" sx={{ mb: 2, flexGrow: 1, display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
-                        {pkg.description || "Combo promocional"}
-                      </Typography>
-                      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: "auto" }}>
-                        <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "primary.main" }}>R$ {((pkg.price_cents || 0) / 100).toFixed(2)}</Typography>
-                        <IconButton size="small" className="add-btn-p" sx={{ transition: "all 0.2s", bgcolor: alpha("#1976d2", 0.04) }}><Plus size={18} /></IconButton>
-                      </Box>
-                    </Paper>
-                  ) : (
-                    <Paper
-                      elevation={0}
-                      onClick={() => onAddItem(pkg, "package")}
-                      sx={{ p: 1.5, borderRadius: 2, cursor: "pointer", display: "flex", alignItems: "center", gap: 2, border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.main", boxShadow: "0 4px 12px rgba(0,0,0,0.05)" } }}
-                    >
-                      <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: alpha("#ff9800", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "#ff9800", flexShrink: 0 }}><ShoppingBag size={18} /></Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, flexGrow: 1 }}>{pkg.name}</Typography>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main", minWidth: 80, textAlign: "right" }}>R$ {((pkg.price_cents || 0) / 100).toFixed(2)}</Typography>
-                      <IconButton size="small" color="primary"><Plus size={18} /></IconButton>
-                    </Paper>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="overline" sx={{ fontWeight: 800, color: "primary.main", display: "block" }}>
+                    {searchTerm ? `Resultados para "${searchTerm}"` : "Pacotes de Serviços / Produtos"}
+                  </Typography>
+                  {hasClientWithPets && (
+                    <Chip
+                      label={showAllPackages ? `Todos (${packages.length})` : `Compatíveis (${packages.length})`}
+                      size="small"
+                      color={showAllPackages ? "default" : "primary"}
+                      variant={showAllPackages ? "outlined" : "filled"}
+                      sx={{ fontSize: "0.65rem", height: 20, fontWeight: 800 }}
+                    />
                   )}
-                </Grid>
-              ))}
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {hasClientWithPets && onToggleShowAllPackages && (
+                    <Button
+                      size="small"
+                      variant={showAllPackages ? "contained" : "outlined"}
+                      onClick={onToggleShowAllPackages}
+                      sx={{
+                        fontSize: "0.75rem",
+                        py: 0.5,
+                        px: 1.25,
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.75,
+                      }}
+                    >
+                      {showAllPackages ? (
+                        <>
+                          <Filter size={14} />
+                          Mostrar apenas compatíveis ({compatiblePackagesCount ?? 0})
+                        </>
+                      ) : (
+                        <>
+                          <ShoppingBag size={14} />
+                          Mostrar todos os pacotes ({totalPackagesCount ?? packages.length})
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
+                </Box>
+              </Box>
+
+              {hasClientWithPets && (
+                <Box
+                  sx={{
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: 2,
+                    bgcolor: showAllPackages ? alpha("#ff9800", 0.08) : alpha("#1976d2", 0.06),
+                    border: "1px solid",
+                    borderColor: showAllPackages ? alpha("#ff9800", 0.25) : alpha("#1976d2", 0.2),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 600 }}>
+                    {showAllPackages ? (
+                      <>
+                        ⚠️ <strong>Exibindo todos os pacotes:</strong> Pacotes incompatíveis com os pets de <strong>{selectedClient?.name}</strong> estão sinalizados.
+                      </>
+                    ) : (
+                      <>
+                        🐾 <strong>Pacotes compatíveis para:</strong>{" "}
+                        {activeClientPets.map((p) => `${p.name}${p.size ? ` (${p.size})` : ""}`).join(", ")}
+                      </>
+                    )}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            <Grid container spacing={viewMode === "grid" ? 2 : 1}>
+              {packages.slice(0, productLimit).map((pkg) => {
+                const compatiblePets = hasClientWithPets
+                  ? getCompatiblePetsForPackage(pkg, activeClientPets, services)
+                  : [];
+                const isCompatible = !hasClientWithPets || compatiblePets.length > 0;
+
+                return (
+                  <Grid
+                    size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
+                    key={`pkg-${pkg.id}`}
+                  >
+                    {viewMode === "grid" ? (
+                      <Paper
+                        elevation={0}
+                        onClick={() => onAddItem(pkg, "package")}
+                        sx={{
+                          p: 2,
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          position: "relative",
+                          transition: "all 0.2s ease-in-out",
+                          border: isCompatible ? "1px solid" : "1px dashed",
+                          borderColor: isCompatible ? "divider" : alpha("#d32f2f", 0.4),
+                          bgcolor: "background.paper",
+                          opacity: isCompatible ? 1 : 0.78,
+                          "&:hover": {
+                            borderColor: isCompatible ? "primary.main" : "error.main",
+                            opacity: 1,
+                            "& .add-btn-p": { bgcolor: isCompatible ? "primary.main" : "error.main", color: "white" },
+                          },
+                        }}
+                      >
+                        <Box sx={{ mb: 1.5, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <Box
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 1.5,
+                              bgcolor: isCompatible ? alpha("#ff9800", 0.08) : alpha("#d32f2f", 0.08),
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: isCompatible ? "#ff9800" : "#d32f2f",
+                            }}
+                          >
+                            <ShoppingBag size={18} />
+                          </Box>
+                          <Chip
+                            label="PACOTE"
+                            size="small"
+                            sx={{
+                              fontSize: "0.65rem",
+                              fontWeight: 900,
+                              bgcolor: alpha("#ff9800", 0.1),
+                              color: "#ff9800",
+                              border: "none",
+                            }}
+                          />
+                        </Box>
+
+                        <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
+                          {pkg.name}
+                        </Typography>
+
+                        {/* Pet compatibility indicator */}
+                        {hasClientWithPets && (
+                          <Box sx={{ mb: 1, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            {isCompatible ? (
+                              <Chip
+                                label={`✓ Compatível: ${compatiblePets.map((p) => p.name).join(", ")}`}
+                                size="small"
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  height: 18,
+                                  bgcolor: alpha("#2e7d32", 0.08),
+                                  color: "#2e7d32",
+                                  border: "1px solid",
+                                  borderColor: alpha("#2e7d32", 0.2),
+                                  fontWeight: 700,
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                label="Incompatível"
+                                size="small"
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  height: 18,
+                                  bgcolor: alpha("#d32f2f", 0.08),
+                                  color: "#d32f2f",
+                                  border: "1px solid",
+                                  borderColor: alpha("#d32f2f", 0.25),
+                                  fontWeight: 700,
+                                }}
+                              />
+                            )}
+                          </Box>
+                        )}
+
+                        <Typography
+                          variant="caption"
+                          color="text.primary"
+                          sx={{
+                            mb: 2,
+                            flexGrow: 1,
+                            display: "-webkit-box",
+                            WebkitLineClamp: 2,
+                            WebkitBoxOrient: "vertical",
+                            overflow: "hidden",
+                          }}
+                        >
+                          {pkg.description || "Combo promocional"}
+                        </Typography>
+
+                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: "auto" }}>
+                          <Typography variant="subtitle2" sx={{ fontWeight: 800, color: isCompatible ? "primary.main" : "text.primary" }}>
+                            R$ {((pkg.price_cents || 0) / 100).toFixed(2)}
+                          </Typography>
+                          <IconButton
+                            size="small"
+                            className="add-btn-p"
+                            sx={{
+                              transition: "all 0.2s",
+                              bgcolor: alpha("#1976d2", 0.04),
+                            }}
+                          >
+                            <Plus size={18} />
+                          </IconButton>
+                        </Box>
+                      </Paper>
+                    ) : (
+                      <Paper
+                        elevation={0}
+                        onClick={() => onAddItem(pkg, "package")}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          border: isCompatible ? "1px solid" : "1px dashed",
+                          borderColor: isCompatible ? "divider" : alpha("#d32f2f", 0.35),
+                          bgcolor: "background.paper",
+                          opacity: isCompatible ? 1 : 0.78,
+                          "&:hover": {
+                            borderColor: isCompatible ? "primary.main" : "error.main",
+                            opacity: 1,
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                          },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 1,
+                            bgcolor: isCompatible ? alpha("#ff9800", 0.08) : alpha("#d32f2f", 0.08),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: isCompatible ? "#ff9800" : "#d32f2f",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ShoppingBag size={18} />
+                        </Box>
+
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {pkg.name}
+                            </Typography>
+                            {hasClientWithPets && (
+                              isCompatible ? (
+                                <Chip
+                                  label={`✓ ${compatiblePets.map((p) => p.name).join(", ")}`}
+                                  size="small"
+                                  sx={{
+                                    fontSize: "0.55rem",
+                                    height: 16,
+                                    bgcolor: alpha("#2e7d32", 0.08),
+                                    color: "#2e7d32",
+                                    border: "1px solid",
+                                    borderColor: alpha("#2e7d32", 0.2),
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Incompatível"
+                                  size="small"
+                                  sx={{
+                                    fontSize: "0.55rem",
+                                    height: 16,
+                                    bgcolor: alpha("#d32f2f", 0.08),
+                                    color: "#d32f2f",
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              )
+                            )}
+                          </Box>
+                          {pkg.description && (
+                            <Typography variant="caption" color="text.secondary" sx={{ display: "block", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                              {pkg.description}
+                            </Typography>
+                          )}
+                        </Box>
+
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: isCompatible ? "primary.main" : "text.primary", minWidth: 80, textAlign: "right" }}>
+                          R$ {((pkg.price_cents || 0) / 100).toFixed(2)}
+                        </Typography>
+                        <IconButton size="small" color={isCompatible ? "primary" : "default"}>
+                          <Plus size={18} />
+                        </IconButton>
+                      </Paper>
+                    )}
+                  </Grid>
+                );
+              })}
             </Grid>
           </Box>
+        ) : hasClientWithPets && !showAllPackages && (totalPackagesCount || 0) > 0 ? (
+          <Paper elevation={0} sx={{ p: 4, textAlign: "center", border: "1px dashed", borderColor: "divider", borderRadius: 3, bgcolor: "background.paper" }}>
+            <ShoppingBag size={44} style={{ opacity: 0.3, marginBottom: 12, color: "#ff9800" }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+              Nenhum pacote compatível com os pets de {selectedClient?.name}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, mb: 2.5 }}>
+              Os pets cadastrados ({activeClientPets.map((p) => `${p.name}${p.size ? ` (${p.size})` : ""}`).join(", ")}) não possuem compatibilidade com os pacotes ativos.
+            </Typography>
+            {onToggleShowAllPackages && (
+              <Button variant="contained" size="small" onClick={onToggleShowAllPackages}>
+                Mostrar todos os {totalPackagesCount} pacotes
+              </Button>
+            )}
+          </Paper>
         ) : (
           <Box sx={{ textAlign: "center", mt: 10 }}>
             <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
