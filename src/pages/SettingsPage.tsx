@@ -17,12 +17,16 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
+  DialogActions,
   Select,
   MenuItem,
   Menu,
   TextField,
   Switch,
   FormControlLabel,
+  Checkbox,
+  Tooltip,
+  alpha,
 } from "@mui/material";
 import {
   Settings,
@@ -43,9 +47,19 @@ import {
   Gift,
   Calendar,
   MessageCircle,
+  Home,
+  PawPrint,
+  ClipboardList,
+  Barcode,
+  ShoppingBag,
+  UserCheck,
+  ShoppingCart,
+  Percent,
+  BarChart2,
+  Edit2,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { usePermission } from "../hooks/usePermission";
+import { usePermission, SYSTEM_MODULES } from "../hooks/usePermission";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
@@ -58,6 +72,7 @@ import {
   listTenantUsers,
   createTenantUser,
   removeTenantUser,
+  updateTenantUserPermissions,
   changePassword,
   type TenantUserResponse,
 } from "../api/services/users";
@@ -282,6 +297,20 @@ const SettingsPage = () => {
   const [loadingExportSuppliers, setLoadingExportSuppliers] = useState(false);
   const [loadingExportUsers, setLoadingExportUsers] = useState(false);
 
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
+    "dashboard",
+    "clients",
+    "pets",
+    "services",
+    "products",
+    "packages",
+    "pos",
+    "inventory",
+  ]);
+  const [userToEditPermissions, setUserToEditPermissions] = useState<TenantUserResponse | null>(null);
+  const [editPermissionsList, setEditPermissionsList] = useState<string[]>([]);
+  const [savingPermissions, setSavingPermissions] = useState(false);
+
   const {
     control: controlPassword,
     handleSubmit: handleSubmitPassword,
@@ -297,10 +326,46 @@ const SettingsPage = () => {
     handleSubmit: handleSubmitCreateUser,
     formState: { errors: createUserErrors },
     reset: resetCreateUser,
+    watch: watchCreateUser,
   } = useForm<CreateUserFormData>({
     resolver: zodResolver(createUserSchema),
     defaultValues: { name: "", email: "", password: "", role: "employee" },
   });
+
+  const watchCreateUserRole = watchCreateUser("role");
+
+  const getModuleIcon = (id: string) => {
+    switch (id) {
+      case "dashboard":
+        return <Home size={18} />;
+      case "clients":
+        return <Users size={18} />;
+      case "pets":
+        return <PawPrint size={18} />;
+      case "services":
+        return <ClipboardList size={18} />;
+      case "products":
+        return <Barcode size={18} />;
+      case "packages":
+        return <ShoppingBag size={18} />;
+      case "suppliers":
+        return <Truck size={18} />;
+      case "employees":
+        return <UserCheck size={18} />;
+      case "pos":
+        return <ShoppingCart size={18} />;
+      case "inventory":
+        return <PackageIcon size={18} />;
+      case "commissions":
+        return <Percent size={18} />;
+      case "reports":
+        return <BarChart2 size={18} />;
+      case "settings":
+        return <Settings size={18} />;
+      default:
+        return <Settings size={18} />;
+    }
+  };
 
   const tabConfig = useMemo(
     () => [
@@ -636,16 +701,51 @@ const SettingsPage = () => {
   const onCreateUser = async (data: CreateUserFormData) => {
     setCreatingUser(true);
     try {
-      const newUser = await createTenantUser(data);
+      const payload = {
+        ...data,
+        permissions: data.role === "owner" ? undefined : selectedPermissions,
+      };
+      const newUser = await createTenantUser(payload);
       setTenantUsers((prev) => [...prev, newUser]);
       setOpenCreateUser(false);
       resetCreateUser();
+      setSelectedPermissions([
+        "dashboard",
+        "clients",
+        "pets",
+        "services",
+        "products",
+        "packages",
+        "pos",
+        "inventory",
+      ]);
       toast.success("Usuário criado com sucesso!");
     } catch (error: unknown) {
       const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao criar usuário. Verifique os dados e tente novamente.";
       toast.error(message || "Erro ao criar usuário. Verifique os dados e tente novamente.");
     } finally {
       setCreatingUser(false);
+    }
+  };
+
+  const onSavePermissions = async () => {
+    if (!userToEditPermissions) return;
+    setSavingPermissions(true);
+    try {
+      const updated = await updateTenantUserPermissions(
+        userToEditPermissions.id,
+        editPermissionsList
+      );
+      setTenantUsers((prev) =>
+        prev.map((u) => (u.id === updated.id ? { ...u, permissions: updated.permissions } : u))
+      );
+      toast.success("Permissões atualizadas com sucesso!");
+      setUserToEditPermissions(null);
+    } catch (error: unknown) {
+      const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao atualizar permissões.";
+      toast.error(message || "Erro ao atualizar permissões.");
+    } finally {
+      setSavingPermissions(false);
     }
   };
 
@@ -1889,7 +1989,7 @@ const SettingsPage = () => {
                               </Typography>
                             </Box>
                           </Box>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
                             <Chip
                               label={
                                 u.role === "owner" ? "Proprietário" : "Funcionário"
@@ -1898,14 +1998,94 @@ const SettingsPage = () => {
                               size="small"
                               sx={{ fontWeight: 700 }}
                             />
-                            {u.id !== Number(user?.id) && (
-                              <IconButton
+                            {u.role === "owner" ? (
+                              <Chip
+                                label="Acesso Total"
                                 size="small"
-                                onClick={() => setUserToDelete(u)}
-                                sx={{ color: "error.main" }}
+                                variant="outlined"
+                                color="primary"
+                                sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+                              />
+                            ) : (
+                              <Tooltip
+                                title={
+                                  <Box sx={{ p: 0.5 }}>
+                                    <Typography variant="caption" fontWeight={700} sx={{ display: "block", mb: 0.5, color: "white" }}>
+                                      Módulos Permitidos:
+                                    </Typography>
+                                    {SYSTEM_MODULES.filter((m) =>
+                                      (
+                                        u.permissions || [
+                                          "dashboard",
+                                          "clients",
+                                          "pets",
+                                          "services",
+                                          "products",
+                                          "packages",
+                                          "pos",
+                                          "inventory",
+                                        ]
+                                      ).includes(m.id)
+                                    ).map((m) => (
+                                      <Typography key={m.id} variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.9)" }}>
+                                        • {m.label}
+                                      </Typography>
+                                    ))}
+                                  </Box>
+                                }
+                                arrow
                               >
-                                <Trash2 size={16} />
-                              </IconButton>
+                                <Chip
+                                  label={`${(u.permissions || ["dashboard", "clients", "pets", "services", "products", "packages", "pos", "inventory"]).length} de ${SYSTEM_MODULES.length} módulos`}
+                                  size="small"
+                                  variant="outlined"
+                                  sx={{ fontWeight: 600, fontSize: "0.75rem", cursor: "help" }}
+                                />
+                              </Tooltip>
+                            )}
+                            {u.role !== "owner" && (
+                              <Tooltip title="Personalizar Permissões">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => {
+                                    setUserToEditPermissions(u);
+                                    setEditPermissionsList(
+                                      u.permissions || [
+                                        "dashboard",
+                                        "clients",
+                                        "pets",
+                                        "services",
+                                        "products",
+                                        "packages",
+                                        "pos",
+                                        "inventory",
+                                      ]
+                                    );
+                                  }}
+                                  sx={{
+                                    color: "primary.main",
+                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                    "&:hover": { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16) },
+                                  }}
+                                >
+                                  <Edit2 size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {u.id !== Number(user?.id) && (
+                              <Tooltip title="Remover Usuário">
+                                <IconButton
+                                  size="small"
+                                  onClick={() => setUserToDelete(u)}
+                                  sx={{
+                                    color: "error.main",
+                                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                    "&:hover": { bgcolor: (theme) => alpha(theme.palette.error.main, 0.16) },
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                </IconButton>
+                              </Tooltip>
                             )}
                           </Box>
                         </Box>
@@ -2205,7 +2385,7 @@ const SettingsPage = () => {
         </DialogTitle>
         <DialogContent dividers>
           <form onSubmit={handleSubmitCreateUser(onCreateUser)}>
-            <Stack spacing={3} sx={{ mt: 1 }}>
+            <Stack spacing={2.5} sx={{ mt: 0.5 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                   Nome
@@ -2278,11 +2458,116 @@ const SettingsPage = () => {
                 <Stack direction="row" alignItems="flex-start" spacing={0.75} sx={{ mt: 0.75 }}>
                   <Info size={14} style={{ marginTop: 1, flexShrink: 0, color: "inherit" }} />
                   <Typography variant="caption" color="text.primary" sx={{ opacity: 0.7, lineHeight: 1.5 }}>
-                    <strong>Funcionário</strong> tem acesso limitado às operações do dia a dia como: caixa, clientes, pets e estoque.{" "}
-                    <strong>Proprietário</strong> tem acesso administrativo completo, incluindo financeiro, relatórios, comissões e configurações do sistema.
+                    <strong>Funcionário</strong> tem acesso restrito apenas aos módulos marcados abaixo.{" "}
+                    <strong>Proprietário</strong> possui acesso irrestrito a todos os módulos e configurações do sistema.
                   </Typography>
                 </Stack>
               </FormControl>
+
+              {watchCreateUserRole === "employee" && (
+                <Box
+                  sx={{
+                    p: 2,
+                    bgcolor: (theme) => alpha(theme.palette.text.primary, 0.02),
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
+                    <Box>
+                      <Typography variant="subtitle2" fontWeight={700}>
+                        Módulos Permitidos
+                      </Typography>
+                      <Typography variant="caption" color="text.primary" sx={{ opacity: 0.7 }}>
+                        Selecione individualmente os itens da barra lateral que este usuário poderá acessar:
+                      </Typography>
+                    </Box>
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => setSelectedPermissions(SYSTEM_MODULES.map((m) => m.id))}
+                        sx={{ fontSize: "0.75rem", py: 0.25, px: 1 }}
+                      >
+                        Marcar Todos
+                      </Button>
+                      <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => setSelectedPermissions([])}
+                        sx={{ fontSize: "0.75rem", py: 0.25, px: 1, color: "text.primary" }}
+                      >
+                        Desmarcar Todos
+                      </Button>
+                    </Box>
+                  </Box>
+
+                  <Grid container spacing={1}>
+                    {SYSTEM_MODULES.map((mod) => {
+                      const isChecked = selectedPermissions.includes(mod.id);
+                      return (
+                        <Grid size={{ xs: 12, sm: 6 }} key={mod.id}>
+                          <Box
+                            onClick={() => {
+                              setSelectedPermissions((prev) =>
+                                prev.includes(mod.id)
+                                  ? prev.filter((id) => id !== mod.id)
+                                  : [...prev, mod.id]
+                              );
+                            }}
+                            sx={{
+                              p: 1,
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1.25,
+                              borderRadius: 2,
+                              border: "1px solid",
+                              borderColor: isChecked ? "primary.main" : "divider",
+                              bgcolor: isChecked
+                                ? (theme) => alpha(theme.palette.primary.main, 0.06)
+                                : "background.paper",
+                              cursor: "pointer",
+                              transition: "all 0.15s ease",
+                              "&:hover": {
+                                borderColor: "primary.main",
+                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                              },
+                            }}
+                          >
+                            <Checkbox
+                              checked={isChecked}
+                              size="small"
+                              sx={{ p: 0.5, color: isChecked ? "primary.main" : "inherit" }}
+                            />
+                            <Box
+                              sx={{
+                                color: isChecked ? "primary.main" : "text.primary",
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {getModuleIcon(mod.id)}
+                            </Box>
+                            <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                              <Typography variant="body2" fontWeight={isChecked ? 700 : 500} noWrap>
+                                {mod.label}
+                              </Typography>
+                              <Typography
+                                variant="caption"
+                                color="text.primary"
+                                sx={{ opacity: 0.6, fontSize: "0.65rem", display: "block" }}
+                              >
+                                {mod.section}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        </Grid>
+                      );
+                    })}
+                  </Grid>
+                </Box>
+              )}
 
               <Box
                 sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 1 }}
@@ -2309,6 +2594,133 @@ const SettingsPage = () => {
             </Stack>
           </form>
         </DialogContent>
+      </Dialog>
+
+      {/* --- DIALOG EDITAR PERMISSÕES --- */}
+      <Dialog
+        open={!!userToEditPermissions}
+        onClose={() => !savingPermissions && setUserToEditPermissions(null)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
+          <Box>
+            <Typography variant="h6" fontWeight={700}>Personalizar Permissões</Typography>
+            <Typography variant="caption" color="text.primary" sx={{ opacity: 0.7 }}>
+              {userToEditPermissions?.name} ({userToEditPermissions?.email})
+            </Typography>
+          </Box>
+          <Box sx={{ cursor: "pointer" }}>
+            <X onClick={() => !savingPermissions && setUserToEditPermissions(null)} size={24} />
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box sx={{ p: 0.5 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+              <Typography variant="body2" color="text.primary" sx={{ opacity: 0.8 }}>
+                Marque os itens da barra lateral que este funcionário poderá acessar:
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1 }}>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setEditPermissionsList(SYSTEM_MODULES.map((m) => m.id))}
+                  sx={{ fontSize: "0.75rem", py: 0.25, px: 1 }}
+                >
+                  Marcar Todos
+                </Button>
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setEditPermissionsList([])}
+                  sx={{ fontSize: "0.75rem", py: 0.25, px: 1, color: "text.primary" }}
+                >
+                  Desmarcar Todos
+                </Button>
+              </Box>
+            </Box>
+
+            <Grid container spacing={1}>
+              {SYSTEM_MODULES.map((mod) => {
+                const isChecked = editPermissionsList.includes(mod.id);
+                return (
+                  <Grid size={{ xs: 12, sm: 6 }} key={mod.id}>
+                    <Box
+                      onClick={() => {
+                        setEditPermissionsList((prev) =>
+                          prev.includes(mod.id)
+                            ? prev.filter((id) => id !== mod.id)
+                            : [...prev, mod.id]
+                        );
+                      }}
+                      sx={{
+                        p: 1.25,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 1.25,
+                        borderRadius: 2,
+                        border: "1px solid",
+                        borderColor: isChecked ? "primary.main" : "divider",
+                        bgcolor: isChecked
+                          ? (theme) => alpha(theme.palette.primary.main, 0.06)
+                          : "background.paper",
+                        cursor: "pointer",
+                        transition: "all 0.15s ease",
+                        "&:hover": {
+                          borderColor: "primary.main",
+                          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                        },
+                      }}
+                    >
+                      <Checkbox
+                        checked={isChecked}
+                        size="small"
+                        sx={{ p: 0.5, color: isChecked ? "primary.main" : "inherit" }}
+                      />
+                      <Box
+                        sx={{
+                          color: isChecked ? "primary.main" : "text.primary",
+                          display: "flex",
+                          alignItems: "center",
+                        }}
+                      >
+                        {getModuleIcon(mod.id)}
+                      </Box>
+                      <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                        <Typography variant="body2" fontWeight={isChecked ? 700 : 500} noWrap>
+                          {mod.label}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          color="text.primary"
+                          sx={{ opacity: 0.6, fontSize: "0.65rem", display: "block" }}
+                        >
+                          {mod.section}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 2, gap: 1 }}>
+          <Button
+            variant="text"
+            onClick={() => setUserToEditPermissions(null)}
+            disabled={savingPermissions}
+          >
+            Cancelar
+          </Button>
+          <Button
+            variant="contained"
+            onClick={onSavePermissions}
+            disabled={savingPermissions}
+          >
+            {savingPermissions ? <CircularProgress size={20} color="inherit" /> : "Salvar Permissões"}
+          </Button>
+        </DialogActions>
       </Dialog>
 
       {/* --- DIALOG CONFIRMAR EXCLUSÃO --- */}
