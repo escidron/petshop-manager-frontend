@@ -31,7 +31,15 @@ export const cancelSale = async (saleId: number): Promise<SaleResponse> => {
 
 export const fetchPOSStartup = async (): Promise<POSStartupResponse> => {
   const response = await apiClient.get<POSStartupResponse>("/api/v1/sales/pos-startup");
-  return response.data;
+  const data = response.data;
+  return {
+    ...data,
+    products: (data.products || []).map((p: any) => ({
+      ...p,
+      price_cents: p.price_cents ?? (typeof p.price === "number" ? p.price : 0),
+      cost_cents: p.cost_cents ?? (typeof p.cost === "number" ? p.cost : 0),
+    })),
+  };
 };
 
 export const fetchPOSClientDetails = async (clientId: number): Promise<POSClientDetailsResponse> => {

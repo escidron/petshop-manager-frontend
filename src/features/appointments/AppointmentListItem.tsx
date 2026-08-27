@@ -68,8 +68,8 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
     <CustomCard
       key={appointment.id}
       sx={{
-        px: { xs: 1.5, sm: 2 },
-        py: 1,
+        px: { xs: 1.25, sm: 2 },
+        py: { xs: 0.85, sm: 1 },
         borderLeft: "5px solid",
         borderLeftColor: p.main,
         width: "100%",
@@ -85,8 +85,8 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
         sx={{
           display: "flex",
           alignItems: "center",
-          gap: { xs: 1.5, sm: 2, md: 3, lg: 3, xl: 6 },
-          flexWrap: { xs: "wrap", sm: "nowrap" },
+          gap: { xs: 1.25, sm: 2, md: 3, lg: 3, xl: 6 },
+          flexWrap: "nowrap",
         }}
       >
         {/* Time Column */}
@@ -95,11 +95,12 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
-            minWidth: { xs: 45, sm: 50 },
-            order: 1,
+            justifyContent: "center",
+            minWidth: { xs: 42, sm: 50 },
+            flexShrink: 0,
           }}
         >
-          <Typography fontWeight={700} fontSize={{ xs: "14px", sm: "15px" }} lineHeight={1}>
+          <Typography fontWeight={700} fontSize={{ xs: "0.85rem", sm: "0.95rem" }} lineHeight={1}>
             {dayjs(appointment.scheduled_at).format("HH:mm")}
           </Typography>
           {endTime && (
@@ -107,17 +108,20 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               <Box
                 sx={{
                   width: "1.5px",
-                  height: "8px",
+                  height: "6px",
                   bgcolor: "divider",
                   my: "2px",
                   borderRadius: 1,
                 }}
               />
               <Typography
-                fontSize={{ xs: "12px", sm: "13px" }}
-                color="text.primary"
-                fontWeight={500}
-                lineHeight={1}
+                sx={{
+                  fontSize: { xs: "0.72rem", sm: "0.8rem" },
+                  color: "text.primary",
+                  opacity: 0.65,
+                  fontWeight: 500,
+                  lineHeight: 1,
+                }}
               >
                 {endTime.format("HH:mm")}
               </Typography>
@@ -125,32 +129,34 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           )}
         </Box>
 
-        <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden", order: { xs: 2, sm: 2 } }}>
+        {/* Client & Pets Info */}
+        <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <Typography
-            fontSize={{ xs: "15px", sm: "16px" }}
+            fontSize={{ xs: "0.88rem", sm: "1rem" }}
             fontWeight={600}
             noWrap
-            sx={{ maxWidth: { xs: "160px", sm: "240px", md: "340px" } }}
+            sx={{ maxWidth: { xs: "100%", sm: "240px", md: "340px" }, lineHeight: 1.2 }}
           >
             {appointment.client.name}
           </Typography>
 
-          <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexWrap: "nowrap", overflow: "hidden", mt: 0.25 }}>
             {appointment.items.map((item, index) => (
-              <Box key={item.id} sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+              <Box key={item.id} sx={{ display: "flex", gap: 0.5, alignItems: "center", minWidth: 0, flexShrink: index === 0 ? 0 : 1 }}>
                 <Typography
                   variant="body2"
                   color="text.primary"
                   noWrap
                   sx={{
-                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
-                    maxWidth: { xs: "100px", sm: "180px" },
+                    opacity: 0.7,
+                    fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                    maxWidth: { xs: "110px", sm: "180px" },
                   }}
                 >
                   {item.pet.name}
                 </Typography>
                 {index < appointment.items.length - 1 && (
-                  <Typography variant="body2" color="text.disabled">
+                  <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.75rem" }}>
                     •
                   </Typography>
                 )}
@@ -160,17 +166,20 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               <Box
                 sx={{
                   display: "flex",
-                  gap: 0.5,
+                  gap: 0.35,
                   alignItems: "center",
                   cursor: "pointer",
-                  p: 0.25,
+                  px: 0.5,
+                  py: 0.15,
                   borderRadius: 1,
-                  "&:hover": { bgcolor: "rgba(233, 30, 99, 0.05)" },
+                  bgcolor: "rgba(233, 30, 99, 0.08)",
+                  flexShrink: 0,
+                  "&:hover": { bgcolor: "rgba(233, 30, 99, 0.15)" },
                 }}
                 onClick={handleObsClick}
               >
-                <Info size={12} color={theme.palette.error.main} />
-                <Typography variant="caption" color="error.main" fontWeight={600}>
+                <Info size={11} color={theme.palette.error.main} />
+                <Typography variant="caption" color="error.main" fontWeight={700} sx={{ fontSize: "0.65rem" }}>
                   Obs
                 </Typography>
               </Box>
@@ -178,22 +187,19 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           </Box>
         </Box>
 
-        {/* Status and Icons */}
+        {/* Status Chip (Desktop only) & Service Icons */}
         <Box
           sx={{
             display: "flex",
             alignItems: "center",
-            gap: 2,
-            order: { xs: 3, sm: 3 },
-            width: { xs: "100%", sm: "auto" },
-            justifyContent: { xs: "space-between", sm: "flex-end" },
-            mt: { xs: 1, sm: 0 },
-            pt: { xs: 1, sm: 0 },
-            borderTop: { xs: "1px solid", sm: "none" },
-            borderColor: "divider",
+            gap: { xs: 0.5, sm: 1.5 },
+            marginLeft: "auto",
+            flexShrink: 0,
           }}
         >
-          <AppointmentStatusChip status={appointment.status} size="small" />
+          <Box sx={{ display: { xs: "none", sm: "block" } }}>
+            <AppointmentStatusChip status={appointment.status} size="small" />
+          </Box>
           <Box
             sx={{
               display: "flex",
@@ -201,10 +207,9 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               alignItems: "center",
               cursor: "pointer",
               borderRadius: 1,
-              px: 1,
+              px: { xs: 0.5, sm: 1 },
               py: 0.5,
               "&:hover": { backgroundColor: "secondary.main" },
-              ml: { sm: 1 },
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -217,8 +222,8 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               </Box>
             ))}
             {hasPackage && (
-              <Box sx={{ display: "flex", alignItems: "center", opacity: 0.7, color: "success.main" }}>
-                <ShoppingBag size={20} />
+              <Box sx={{ display: "flex", alignItems: "center", opacity: 0.8, color: "success.main" }}>
+                <ShoppingBag size={18} />
               </Box>
             )}
           </Box>

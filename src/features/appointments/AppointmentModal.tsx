@@ -125,10 +125,20 @@ export default function AppointmentModal({
       <Dialog
         open={open}
         maxWidth={false}
-        slotProps={{ paper: { sx: { width: "720px", maxWidth: "1400px" } } }}
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: "96vw", sm: "720px" },
+              maxWidth: "100%",
+              m: { xs: 1, sm: 2 },
+              maxHeight: { xs: "92vh", sm: "90vh" },
+              borderRadius: 3,
+            },
+          },
+        }}
       >
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
-          <Typography variant="h5">
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: { xs: 2, sm: 4 } }}>
+          <Typography variant="h5" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" }, fontWeight: 700 }}>
             {mode === "create" ? "Novo Agendamento" : "Editar Agendamento"}
           </Typography>
           <Box sx={{ cursor: "pointer" }}>

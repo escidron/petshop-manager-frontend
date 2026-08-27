@@ -267,171 +267,170 @@ export default function AppointmentForm({
               dateAdapter={AdapterDayjs}
               adapterLocale="pt-br"
             >
-              <Box sx={{ display: "flex", gap: 2 }}>
-                <DatePicker
-                  format="DD/MM/YYYY"
-                  value={scheduledDate}
-                  onChange={(newDate) => {
-                    setScheduledDate(newDate);
-                    if (newDate?.isValid() && scheduledTime?.isValid()) {
-                      field.onChange(
-                        newDate
-                          .hour(scheduledTime.hour())
-                          .minute(scheduledTime.minute())
-                          .second(0)
-                          .millisecond(0)
-                          .toISOString(),
-                      );
-                    } else {
-                      field.onChange("");
-                    }
-                  }}
-                  shouldDisableDate={(date) => {
-                    if (!workingHours) return false;
-                    return workingHours[String(date.day())]?.is_open === false;
-                  }}
-                  dayOfWeekFormatter={(day: dayjs.Dayjs) => {
-                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                    return days[day.day()];
-                  }}
-                  slotProps={{
-                    popper: {
-                      sx: {
-                        "& .MuiDayCalendar-weekDayLabel": {
-                          color: "#3d4048 !important",
-                          fontWeight: 700,
-                          fontSize: "0.75rem",
-                        },
-                        "& .MuiPickersDay-root": {
-                          color: "#3d4048 !important",
-                          "&.Mui-selected": {
-                            color: "white !important",
+              <Box sx={{ display: "flex", gap: { xs: 1, sm: 2 }, width: "100%" }}>
+                <Box sx={{ flex: { xs: "1 1 50%", sm: "1 1 0" }, minWidth: 0 }}>
+                  <DatePicker
+                    format="DD/MM/YYYY"
+                    value={scheduledDate}
+                    onChange={(newDate) => {
+                      setScheduledDate(newDate);
+                      if (newDate?.isValid() && scheduledTime?.isValid()) {
+                        field.onChange(
+                          newDate
+                            .hour(scheduledTime.hour())
+                            .minute(scheduledTime.minute())
+                            .second(0)
+                            .millisecond(0)
+                            .toISOString(),
+                        );
+                      } else {
+                        field.onChange("");
+                      }
+                    }}
+                    shouldDisableDate={(date) => {
+                      if (!workingHours) return false;
+                      return workingHours[String(date.day())]?.is_open === false;
+                    }}
+                    dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                      const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                      return days[day.day()];
+                    }}
+                    slotProps={{
+                      popper: {
+                        sx: {
+                          "& .MuiDayCalendar-weekDayLabel": {
+                            color: "#3d4048 !important",
+                            fontWeight: 700,
+                            fontSize: "0.75rem",
                           },
-                          "&.Mui-disabled": {
-                            color: "#b8bbc2 !important",
-                            opacity: 0.4,
+                          "& .MuiPickersDay-root": {
+                            color: "#3d4048 !important",
+                            "&.Mui-selected": {
+                              color: "white !important",
+                            },
+                            "&.Mui-disabled": {
+                              color: "#b8bbc2 !important",
+                              opacity: 0.4,
+                            },
                           },
-                        },
-                        "& .MuiPickersCalendarHeader-label": {
-                          color: "#3d4048 !important",
-                        },
-                        "& .MuiPickersArrowSwitcher-button": {
-                          color: "#3d4048 !important",
+                          "& .MuiPickersCalendarHeader-label": {
+                            color: "#3d4048 !important",
+                          },
+                          "& .MuiPickersArrowSwitcher-button": {
+                            color: "#3d4048 !important",
+                          },
                         },
                       },
-                    },
-                    textField: {
-                      size: "small",
-                      fullWidth: true,
-                      error: !!fieldState.error,
-                      helperText: fieldState.error?.message,
-                      placeholder: "DD/MM/AAAA",
-                      inputMode: "numeric",
-                      sx: { backgroundColor: theme.palette.common.white },
-                    },
-                    actionBar: { actions: [] },
-                  }}
-                />
-                <TimePicker
-                  value={scheduledTime}
-                  ampm={false}
-                  referenceDate={dayjs().hour(8).minute(0)}
-                  minutesStep={5}
-                  minTime={(() => {
-                    if (!workingHours || !scheduledDate?.isValid()) return undefined;
-                    const s = workingHours[String(scheduledDate.day())];
-                    if (!s?.is_open) return undefined;
-                    const [h, m] = s.open.split(":").map(Number);
-                    return dayjs().hour(h).minute(m).second(0);
-                  })()}
-                  maxTime={(() => {
-                    if (!workingHours || !scheduledDate?.isValid()) return undefined;
-                    const s = workingHours[String(scheduledDate.day())];
-                    if (!s?.is_open) return undefined;
-                    const [h, m] = s.close.split(":").map(Number);
-                    return dayjs().hour(h).minute(m).second(0);
-                  })()}
-                  open={timePickerOpen}
-                  onOpen={() => {
-                    pendingTimeCloseRef.current = false;
-                    setTimePickerOpen(true);
-                  }}
-                  onClose={() => setTimePickerOpen(false)}
-                  onViewChange={(view) => {
-                    // MUI auto-avança para 'minutes' após clicar na hora.
-                    // Marcamos pendingClose=true aqui para que o PRÓXIMO
-                    // onChange (clique explícito do usuário nos minutos) feche.
-                    if (view === "minutes") {
-                      setTimeout(() => {
-                        pendingTimeCloseRef.current = true;
-                      }, 10);
-                    }
-                  }}
-                  onChange={(newTime) => {
-                    setScheduledTime(newTime);
-                    if (scheduledDate?.isValid() && newTime?.isValid()) {
-                      field.onChange(
-                        scheduledDate
-                          .hour(newTime.hour())
-                          .minute(newTime.minute())
-                          .second(0)
-                          .millisecond(0)
-                          .toISOString(),
-                      );
-                    } else {
-                      field.onChange("");
-                    }
-                    // Mudança: Se ja estamos em minutos (pendingTimeCloseRef), fechamos
-                    if (pendingTimeCloseRef.current) {
+                      textField: {
+                        size: "small",
+                        fullWidth: true,
+                        error: !!fieldState.error,
+                        helperText: fieldState.error?.message,
+                        placeholder: "DD/MM/AAAA",
+                        inputMode: "numeric",
+                        sx: { backgroundColor: theme.palette.common.white, width: "100%" },
+                      },
+                      actionBar: { actions: [] },
+                    }}
+                  />
+                </Box>
+                <Box sx={{ flex: { xs: "1 1 50%", sm: "0 0 160px" }, minWidth: 0 }}>
+                  <TimePicker
+                    value={scheduledTime}
+                    ampm={false}
+                    referenceDate={dayjs().hour(8).minute(0)}
+                    minutesStep={5}
+                    minTime={(() => {
+                      if (!workingHours || !scheduledDate?.isValid()) return undefined;
+                      const s = workingHours[String(scheduledDate.day())];
+                      if (!s?.is_open) return undefined;
+                      const [h, m] = s.open.split(":").map(Number);
+                      return dayjs().hour(h).minute(m).second(0);
+                    })()}
+                    maxTime={(() => {
+                      if (!workingHours || !scheduledDate?.isValid()) return undefined;
+                      const s = workingHours[String(scheduledDate.day())];
+                      if (!s?.is_open) return undefined;
+                      const [h, m] = s.close.split(":").map(Number);
+                      return dayjs().hour(h).minute(m).second(0);
+                    })()}
+                    open={timePickerOpen}
+                    onOpen={() => {
+                      pendingTimeCloseRef.current = false;
+                      setTimePickerOpen(true);
+                    }}
+                    onClose={() => setTimePickerOpen(false)}
+                    onViewChange={(view) => {
+                      if (view === "minutes") {
+                        setTimeout(() => {
+                          pendingTimeCloseRef.current = true;
+                        }, 10);
+                      }
+                    }}
+                    onChange={(newTime) => {
+                      setScheduledTime(newTime);
+                      if (scheduledDate?.isValid() && newTime?.isValid()) {
+                        field.onChange(
+                          scheduledDate
+                            .hour(newTime.hour())
+                            .minute(newTime.minute())
+                            .second(0)
+                            .millisecond(0)
+                            .toISOString(),
+                        );
+                      } else {
+                        field.onChange("");
+                      }
+                      if (pendingTimeCloseRef.current) {
+                        setTimePickerOpen(false);
+                      }
+                    }}
+                    onAccept={() => {
                       setTimePickerOpen(false);
-                    }
-                  }}
-                  onAccept={() => {
-                    // onAccept costuma ser disparado no clique final no desktop
-                    setTimePickerOpen(false);
-                    pendingTimeCloseRef.current = false;
-                  }}
-                  slotProps={{
-                    textField: {
-                      size: "small",
-                      fullWidth: false,
-                      error: !!fieldState.error,
-                      sx: {
-                        backgroundColor: theme.palette.common.white,
-                        width: "160px",
-                      },
-                    },
-                    actionBar: { actions: [] },
-                    popper: {
-                      onClick: () => {
-                        if (pendingTimeCloseRef.current) {
-                          setTimePickerOpen(false);
-                          pendingTimeCloseRef.current = false;
-                        }
-                      },
-                      sx: {
-                        "& .MuiMultiSectionDigitalClock-root": {
-                          maxHeight: 260,
+                      pendingTimeCloseRef.current = false;
+                    }}
+                    slotProps={{
+                      textField: {
+                        size: "small",
+                        fullWidth: true,
+                        error: !!fieldState.error,
+                        sx: {
+                          backgroundColor: theme.palette.common.white,
+                          width: "100%",
                         },
-                        "& .MuiMultiSectionDigitalClockSection-root": {
-                          maxHeight: 260,
-                          scrollbarWidth: "none",
-                          msOverflowStyle: "none",
-                          "&::-webkit-scrollbar": { display: "none" },
-                        },
-                        "& .MuiMultiSectionDigitalClockSection-item": {
-                          minHeight: "unset",
-                          py: "4px",
-                          fontSize: "0.85rem",
-                        },
-                        "& .MuiPaper-root": { maxHeight: 300 },
                       },
-                    },
-                    mobilePaper: {
-                      sx: { maxHeight: "90vh" },
-                    },
-                  }}
-                />
+                      actionBar: { actions: [] },
+                      popper: {
+                        onClick: () => {
+                          if (pendingTimeCloseRef.current) {
+                            setTimePickerOpen(false);
+                            pendingTimeCloseRef.current = false;
+                          }
+                        },
+                        sx: {
+                          "& .MuiMultiSectionDigitalClock-root": {
+                            maxHeight: 260,
+                          },
+                          "& .MuiMultiSectionDigitalClockSection-root": {
+                            maxHeight: 260,
+                            scrollbarWidth: "none",
+                            msOverflowStyle: "none",
+                            "&::-webkit-scrollbar": { display: "none" },
+                          },
+                          "& .MuiMultiSectionDigitalClockSection-item": {
+                            minHeight: "unset",
+                            py: "4px",
+                            fontSize: "0.85rem",
+                          },
+                          "& .MuiPaper-root": { maxHeight: 300 },
+                        },
+                      },
+                      mobilePaper: {
+                        sx: { maxHeight: "90vh" },
+                      },
+                    }}
+                  />
+                </Box>
               </Box>
             </LocalizationProvider>
           )}
@@ -443,13 +442,13 @@ export default function AppointmentForm({
       {/* CLIENTE */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
-        <Box sx={{ display: "flex", gap: 1 }}>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
           <Controller
             name="client_id"
             control={control}
             render={({ field, fieldState }) => (
               <Autocomplete<Client>
-                sx={{ flex: 1 }}
+                sx={{ flex: 1, minWidth: 0 }}
                 options={clients ?? []}
                 filterOptions={(options, state) => {
                   const input = state.inputValue.toLowerCase();
@@ -517,12 +516,21 @@ export default function AppointmentForm({
             )}
           />
           <Button
-            sx={{ minWidth: "140px", maxHeight: "40px" }}
-            startIcon={<Plus size={16} />}
+            sx={{
+              minWidth: { xs: "40px", sm: "140px" },
+              width: { xs: "40px", sm: "auto" },
+              height: "40px",
+              p: { xs: 0, sm: "6px 16px" },
+              flexShrink: 0,
+            }}
             variant="outlined"
             onClick={() => onCreateClient?.()}
+            title="Criar Cliente"
           >
-            Criar Cliente
+            <Plus size={18} />
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
+              Criar Cliente
+            </Box>
           </Button>
         </Box>
       </FormControl>

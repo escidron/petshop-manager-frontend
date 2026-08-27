@@ -1,18 +1,14 @@
 import { useState, useMemo } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
-import { Box, Typography, Badge } from "@mui/material";
+import { Box, Typography } from "@mui/material";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
+import DashboardCalendar from "../features/dashboard/DashboardCalendar";
 import GroomingQueue from "../features/dashboard/GroomingQueue";
 import OpenInvoices from "../features/dashboard/OpenInvoices";
 import WaitingListCard from "../features/dashboard/WaitingListCard";
 import type { WaitingListEntry } from "../features/appointments/waiting-list/types";
 import { useWaitingListMutations } from "../hooks/useWaitingList";
-import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
-import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
-import { DateCalendar } from "@mui/x-date-pickers/DateCalendar";
-import { PickersDay, type PickersDayProps } from "@mui/x-date-pickers/PickersDay";
-import "dayjs/locale/pt-br";
 import dayjs from "dayjs";
 import type {
   Appointment,
@@ -24,37 +20,6 @@ import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner"
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";
 import { Button } from "../components/Button/Button";
-
-function CustomDay(props: PickersDayProps & { highlightedDays?: Set<string>, day: dayjs.Dayjs }) {
-  const { highlightedDays = new Set(), day, outsideCurrentMonth, ...other } = props;
-
-  const hasAppointment = !outsideCurrentMonth && highlightedDays.has(day.format("YYYY-MM-DD"));
-
-  if (!hasAppointment) {
-    return <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />;
-  }
-
-  return (
-    <Badge
-      key={day.toString()}
-      overlap="circular"
-      variant="dot"
-      sx={{
-        "& .MuiBadge-badge": {
-          backgroundColor: "#1976d2", // primary main
-          bottom: 4,
-          right: "50%",
-          transform: "translateX(50%)",
-          width: 14,
-          height: 3,
-          borderRadius: 2,
-        },
-      }}
-    >
-      <PickersDay {...other} outsideCurrentMonth={outsideCurrentMonth} day={day} />
-    </Badge>
-  );
-}
 
 const Dashboard = () => {
   const [flow, setFlow] = useState<AppointmentFlowState>({ open: false });
@@ -110,11 +75,12 @@ const Dashboard = () => {
         sx={{
           maxWidth: "1400px",
           mx: "auto",
-          mt: 2,
+          mt: { xs: 0.5, sm: 1.5, md: 2 },
           display: "flex",
           flexDirection: "column",
-          gap: 2,
-          px: 2,
+          gap: { xs: 1.5, sm: 2 },
+          px: { xs: 0.5, sm: 1.5, md: 2 },
+          pb: { xs: 10, sm: 5 },
         }}
       >
         {isOnboarding ? (
@@ -150,6 +116,12 @@ const Dashboard = () => {
               >
                 <AppointmentsDailyList
                   date={date}
+                  onDateChange={(newDate) => {
+                    setDate(newDate);
+                    setCalendarMonth(newDate.startOf("month"));
+                  }}
+                  onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
+                  highlightedDays={highlightedDays}
                   appointments={dailyAppointments}
                   isFetching={isFetching}
                   onEdit={(appointment: Appointment) =>
@@ -206,8 +178,10 @@ const Dashboard = () => {
                     gap: 3,
                   }}
                 >
+                  {/* Calendário (visível apenas em telas md+, no mobile abre pelo botão no topo) */}
                   <Box
                     sx={{
+                      display: { xs: "none", md: "block" },
                       backgroundColor: "white",
                       borderRadius: 2,
                       boxShadow: "0 2px 8px rgba(0,0,0,0.05)",
@@ -269,76 +243,14 @@ const Dashboard = () => {
                     </Box>
 
                     {isCalendarExpanded && (
-                      <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-                        <DateCalendar
-                          value={date}
-                          onChange={(newDate) => {
-                            if (newDate) setDate(newDate);
-                          }}
-                          onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
-                          dayOfWeekFormatter={(day: dayjs.Dayjs) => {
-                            const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                            return days[day.day()];
-                          }}
-                          slots={{
-                            day: CustomDay,
-                          }}
-                          slotProps={{
-                            day: {
-                              highlightedDays,
-                            } as PickersDayProps & { highlightedDays: Set<string> },
-                          }}
-                          sx={{
-                            width: "100%",
-                            height: "320px",
-                            margin: 0,
-                            backgroundColor: "#ffffff",
-                            "& *": {
-                              color: "#3d4048 !important",
-                            },
-                            "& .MuiPickersCalendarHeader-root": {
-                              mt: 1,
-                              mb: 0,
-                              px: 2,
-                              minHeight: "40px",
-                            },
-                            "& .MuiPickersCalendarHeader-labelContainer": {
-                              color: "#3d4048 !important",
-                            },
-                            "& .MuiPickersCalendarHeader-label": {
-                              color: "#3d4048 !important",
-                              fontWeight: 600,
-                              fontSize: "0.9rem",
-                            },
-                            "& .MuiPickersArrowSwitcher-button": {
-                              color: "#3d4048 !important",
-                            },
-                            "& .MuiDayCalendar-weekDayLabel": {
-                              color: "#3d4048 !important",
-                              fontWeight: 700,
-                              fontSize: "0.75rem",
-                            },
-                            "& .MuiPickersDay-root": {
-                              width: "36px",
-                              height: "36px",
-                              color: "#3d4048 !important",
-                              fontSize: "0.85rem",
-                              "&.MuiPickersDay-today:not(.Mui-selected)": {
-                                border: "none !important",
-                                backgroundColor: "#e0e0e0 !important",
-                              },
-                              "&.Mui-selected": {
-                                color: "white !important",
-                                backgroundColor: "primary.main !important",
-                              },
-                              "&.Mui-disabled": {
-                                color: "#b8bbc2 !important",
-                                opacity: 0.4,
-                              },
-                            },
-                          }}
-                        />
-                      </LocalizationProvider>
+                      <DashboardCalendar
+                        value={date}
+                        onChange={(newDate) => {
+                          if (newDate) setDate(newDate);
+                        }}
+                        onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
+                        highlightedDays={highlightedDays}
+                      />
                     )}
                   </Box>
                   <GroomingQueue appointments={dailyAppointments} isFetching={isFetching} />

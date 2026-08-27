@@ -85,12 +85,15 @@ export default function ClientFormModal({
   return (
     <Dialog
       open={open}
-      maxWidth={false} // permite ultrapassar os limites padrões
+      maxWidth={false}
       slotProps={{
         paper: {
           sx: {
-            width: showAdditionalInfo ? "80%" : "500px",
-            maxWidth: "1400px", // largura máxima
+            width: { xs: "95vw", sm: showAdditionalInfo ? "85%" : "500px" },
+            maxWidth: { xs: "100%", sm: "1200px" },
+            minWidth: { xs: "unset", sm: showAdditionalInfo ? "750px" : "450px" },
+            m: { xs: 1, sm: 2 },
+            borderRadius: 3,
           },
         },
       }}

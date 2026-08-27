@@ -98,45 +98,60 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
     );
   };
 
+  const hasContact = !!(
+    client.email ||
+    client.phone ||
+    client.phone_secondary ||
+    client.phone_tertiary
+  );
+  const hasPersonal = !!(client.document || client.birth_date);
+  const hasSocial = !!(client.instagram || client.facebook);
+  const fullAddress = getFullAddress();
+  const hasAddress = !!fullAddress;
+  const hasAnyDetails = hasContact || hasPersonal || hasSocial || hasAddress;
+
   return (
-    <Paper elevation={0} sx={{ p: 3, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
+    <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 3, border: "1px solid", borderColor: "divider", width: "100%", minWidth: 0 }}>
       {/* Header */}
       <Box
         sx={{
           display: "flex",
           justifyContent: "space-between",
-          alignItems: "flex-start",
-          mb: 3,
+          alignItems: "center",
+          gap: 1,
+          mb: hasAnyDetails ? { xs: 1.5, sm: 2 } : 0,
         }}
       >
-        <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+        <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", minWidth: 0, flex: 1 }}>
           <Box
             sx={{
-              width: 56,
-              height: 56,
-              borderRadius: "16px",
+              width: { xs: 40, sm: 48 },
+              height: { xs: 40, sm: 48 },
+              borderRadius: "12px",
               bgcolor: "primary.main",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               color: "white",
+              flexShrink: 0,
             }}
           >
-            <User size={32} />
+            <User size={20} />
           </Box>
           <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography
-              variant="h5"
+              variant="h6"
               fontWeight={700}
               color="text.primary"
               noWrap
               sx={{
-                maxWidth: { xs: "180px", sm: "240px", md: "280px" },
+                fontSize: { xs: "0.95rem", sm: "1.15rem" },
+                lineHeight: 1.2,
               }}
             >
               {client.name}
             </Typography>
-            <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.5 }}>
+            <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.25 }}>
               <Chip
                 label={client.is_active ? "Ativo" : "Inativo"}
                 size="small"
@@ -144,14 +159,15 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
                   bgcolor: client.is_active ? "success.lighter" : "error.lighter",
                   color: client.is_active ? "success.dark" : "error.dark",
                   fontWeight: 600,
-                  fontSize: "0.7rem",
-                  height: "20px",
+                  fontSize: "0.65rem",
+                  height: "18px",
                 }}
               />
             </Box>
           </Box>
         </Box>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+
+        <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", flexShrink: 0 }}>
           {onEdit && (
             <Tooltip title="Editar Cliente">
               <IconButton 
@@ -162,13 +178,14 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
                   border: "1px solid",
                   borderColor: "divider",
                   borderRadius: 2,
+                  p: 0.6,
                   "&:hover": {
                     bgcolor: "grey.100",
                     color: "primary.main",
                   }
                 }}
               >
-                <Pencil size={18} />
+                <Pencil size={15} />
               </IconButton>
             </Tooltip>
           )}
@@ -178,7 +195,7 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
               variant="outlined"
               size="small"
               color="success"
-              startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 20, height: 20 }} />}
+              startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 16, height: 16 }} />}
               onClick={() => {
                 const cleanPhone = client.phone!.replace(/\D/g, "");
                 const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
@@ -188,9 +205,11 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
                 borderRadius: 2, 
                 textTransform: "none",
                 fontWeight: 600,
+                fontSize: "0.75rem",
+                height: 32,
+                px: { xs: 1, sm: 1.5 },
                 borderColor: "success.light",
                 color: "success.main",
-                height: "fit-content",
                 "&:hover": {
                   borderColor: "success.dark"
                 }
@@ -202,85 +221,128 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
         </Box>
       </Box>
 
-      <Grid container spacing={4}>
-        {/* Coluna 1: Contato */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 1, color: "text.disabled" }}>
-            Contato
-          </Typography>
-          <InfoItem icon={Mail} label="E-mail" value={client.email} />
-          <InfoItem icon={Phone} label="Principal" value={client.phone ? maskPhone(client.phone) : null} />
-
-          <InfoItem 
-            icon={Phone} 
-            label={client.phone_secondary_name || "Contato 2"} 
-            value={client.phone_secondary ? maskPhone(client.phone_secondary) : null} 
-          />
-          <InfoItem 
-            icon={Phone} 
-            label={client.phone_tertiary_name || "Contato 3"} 
-            value={client.phone_tertiary ? maskPhone(client.phone_tertiary) : null} 
-          />
-        </Grid>
-
-        {/* Coluna 2: Pessoal e Redes Sociais */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 1, color: "text.disabled" }}>
-            Dados Pessoais
-          </Typography>
-          <InfoItem 
-            icon={CreditCard} 
-            label={client.document_type || "Documento"} 
-            value={formatDocument(client.document, client.document_type)} 
-          />
-          <InfoItem 
-            icon={Calendar} 
-            label="Nascimento" 
-            value={client.birth_date ? isoToBrDate(client.birth_date) : null} 
-          />
-          
-          
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 1, color: "text.disabled" }}>
-            Redes Sociais
-          </Typography>
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {client.instagram && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1, borderRadius: 2, bgcolor: "grey.50" }}>
-                <Instagram size={20} color="#E4405F" />
-                <Typography variant="body2" fontWeight={500}>@{client.instagram}</Typography>
-              </Box>
-            )}
-            {client.facebook && (
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1, borderRadius: 2, bgcolor: "grey.50" }}>
-                <Facebook size={20} color="#1877F2" />
-                <Typography variant="body2" fontWeight={500}>{client.facebook}</Typography>
-              </Box>
-            )}
-            {!client.instagram && !client.facebook && (
-              <Typography variant="body2" color="text.disabled" fontStyle="italic">
-                Nenhuma rede cadastrada
+      {hasAnyDetails && (
+        <Grid container spacing={{ xs: 2, md: 3 }}>
+          {/* Coluna 1: Contato */}
+          {hasContact && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+                sx={{
+                  mb: 1.5,
+                  textTransform: "uppercase",
+                  fontSize: "0.7rem",
+                  letterSpacing: 1,
+                  color: "text.disabled",
+                }}
+              >
+                Contato
               </Typography>
-            )}
-          </Box>
-        </Grid>
+              <InfoItem icon={Mail} label="E-mail" value={client.email} />
+              <InfoItem icon={Phone} label="Principal" value={client.phone ? maskPhone(client.phone) : null} />
 
-        {/* Coluna 3: Endereço */}
-        <Grid size={{ xs: 12, md: 4 }}>
-          <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 2, textTransform: "uppercase", fontSize: "0.7rem", letterSpacing: 1, color: "text.disabled" }}>
-            Endereço
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1.5 }}>
-            <Box sx={{ color: "primary.main", mt: 0.5 }}>
-              <MapPin size={18} />
-            </Box>
-            {getFullAddress() || (
-              <Typography variant="body2" color="text.disabled" fontStyle="italic">
-                Não informado
+              <InfoItem 
+                icon={Phone} 
+                label={client.phone_secondary_name || "Contato 2"} 
+                value={client.phone_secondary ? maskPhone(client.phone_secondary) : null} 
+              />
+              <InfoItem 
+                icon={Phone} 
+                label={client.phone_tertiary_name || "Contato 3"} 
+                value={client.phone_tertiary ? maskPhone(client.phone_tertiary) : null} 
+              />
+            </Grid>
+          )}
+
+          {/* Coluna 2: Dados Pessoais */}
+          {hasPersonal && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+                sx={{
+                  mb: 1.5,
+                  textTransform: "uppercase",
+                  fontSize: "0.7rem",
+                  letterSpacing: 1,
+                  color: "text.disabled",
+                }}
+              >
+                Dados Pessoais
               </Typography>
-            )}
-          </Box>
+              <InfoItem 
+                icon={CreditCard} 
+                label={client.document_type || "Documento"} 
+                value={formatDocument(client.document, client.document_type)} 
+              />
+              <InfoItem 
+                icon={Calendar} 
+                label="Nascimento" 
+                value={client.birth_date ? isoToBrDate(client.birth_date) : null} 
+              />
+            </Grid>
+          )}
+
+          {/* Coluna 3: Redes Sociais */}
+          {hasSocial && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+                sx={{
+                  mb: 1.5,
+                  textTransform: "uppercase",
+                  fontSize: "0.7rem",
+                  letterSpacing: 1,
+                  color: "text.disabled",
+                }}
+              >
+                Redes Sociais
+              </Typography>
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                {client.instagram && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1, borderRadius: 2, bgcolor: "grey.50" }}>
+                    <Instagram size={20} color="#E4405F" />
+                    <Typography variant="body2" fontWeight={500}>@{client.instagram}</Typography>
+                  </Box>
+                )}
+                {client.facebook && (
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, p: 1, borderRadius: 2, bgcolor: "grey.50" }}>
+                    <Facebook size={20} color="#1877F2" />
+                    <Typography variant="body2" fontWeight={500}>{client.facebook}</Typography>
+                  </Box>
+                )}
+              </Box>
+            </Grid>
+          )}
+
+          {/* Coluna 4: Endereço */}
+          {hasAddress && (
+            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+              <Typography
+                variant="subtitle2"
+                fontWeight={700}
+                sx={{
+                  mb: 1.5,
+                  textTransform: "uppercase",
+                  fontSize: "0.7rem",
+                  letterSpacing: 1,
+                  color: "text.disabled",
+                }}
+              >
+                Endereço
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1.5 }}>
+                <Box sx={{ color: "primary.main", mt: 0.5 }}>
+                  <MapPin size={18} />
+                </Box>
+                {fullAddress}
+              </Box>
+            </Grid>
+          )}
         </Grid>
-      </Grid>
+      )}
     </Paper>
   );
 };

@@ -6,10 +6,16 @@ import {
   Skeleton,
   TextField,
   Typography,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { applyAppointmentAction } from "../../api/services/appointments";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, X } from "lucide-react";
 import type { Dayjs } from "dayjs";
+import dayjs from "dayjs";
 import { Button } from "../../components/Button/Button";
 import type { Appointment, AppointmentAction } from "./types";
 import { useState } from "react";
@@ -17,6 +23,7 @@ import AppointmentListItem from "./AppointmentListItem";
 import { buildDayTimeline } from "../../utils/getFreeSlotsforAppointment";
 import AppointmentFreeTimeCard from "./AppointmentFreeTimeCard";
 import AppointmentDetailsModal from "./AppointmentDetailsModal";
+import DashboardCalendar from "../dashboard/DashboardCalendar";
 
 import { useQueryClient } from "@tanstack/react-query";
 import NoAppointmentsBanner from "./NoAppointmentsBanner";
@@ -25,25 +32,31 @@ type Props = {
   onEdit: (appointment: Appointment) => void;
   openFlow: () => void;
   date: Dayjs;
+  onDateChange?: (newDate: Dayjs) => void;
+  onMonthChange?: (newMonth: Dayjs) => void;
+  highlightedDays?: Set<string>;
   appointments: Appointment[];
   isFetching?: boolean;
 };
-
-
 
 const AppointmentsDailyList = ({
   openFlow,
   onEdit,
   date,
+  onDateChange,
+  onMonthChange,
+  highlightedDays,
   appointments,
   isFetching = false,
 }: Props) => {
+  const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [detailsModal, setDetailsModal] = useState<{
     open: boolean;
     appointmentId?: number;
   }>({ open: false });
   const [search, setSearch] = useState("");
   const [showCanceled, setShowCanceled] = useState(false);
+  const [showFreeSlots, setShowFreeSlots] = useState(false);
   const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
   const queryClient = useQueryClient();
 
@@ -100,31 +113,96 @@ const AppointmentsDailyList = ({
           flexDirection: { xs: "column", sm: "row", lg: "column", xl: "row" },
           justifyContent: "space-between",
           alignItems: { xs: "stretch", sm: "center", lg: "stretch", xl: "center" },
-          gap: 2,
+          gap: { xs: 1.25, sm: 2 },
         }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight={600} color="text.primary" sx={{ fontSize: { xs: "1.25rem", lg: "1.1rem", xl: "1.5rem" } }}>
-            Agendas do dia
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: "text.disabled", 
-              fontWeight: 500,
-              display: "block",
-              mt: 0.2,
-              textTransform: "capitalize",
-              fontSize: { xs: "0.8rem", lg: "0.75rem", xl: "0.875rem" }
-            }}
-          >
-            {date.format("dddd, DD [de] MMMM")}
-          </Typography>
+        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: { xs: 1, sm: 2 } }}>
+          <Box>
+            <Typography
+              variant="h6"
+              fontWeight={700}
+              color="text.primary"
+              sx={{
+                fontSize: { xs: "1.05rem", sm: "1.2rem", xl: "1.4rem" },
+                lineHeight: 1.2,
+              }}
+            >
+              Agendas do dia
+            </Typography>
+            <Typography 
+              variant="body2" 
+              sx={{ 
+                color: "text.disabled", 
+                fontWeight: 500,
+                display: "block",
+                mt: 0.2,
+                textTransform: "capitalize",
+                fontSize: { xs: "0.75rem", sm: "0.85rem" }
+              }}
+            >
+              {date.format("dddd, DD [de] MMMM")}
+            </Typography>
+          </Box>
+
+          {/* Filtros de visualização inline (exibidos juntos quando há agendamentos) */}
+          {appointments.length > 0 && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1.5 }, flexWrap: "wrap" }}>
+              <FormControlLabel
+                sx={{ m: 0 }}
+                control={
+                  <Checkbox
+                    disableRipple
+                    size="small"
+                    checked={showFreeSlots}
+                    onChange={(e) => setShowFreeSlots(e.target.checked)}
+                    sx={{ color: "primary.main", p: 0.5 }}
+                  />
+                }
+                label={
+                  <Typography
+                    sx={{
+                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                      color: "text.primary",
+                      opacity: 0.8,
+                      userSelect: "none",
+                    }}
+                  >
+                    Horários livres
+                  </Typography>
+                }
+              />
+
+              <FormControlLabel
+                sx={{ m: 0 }}
+                control={
+                  <Checkbox
+                    disableRipple
+                    size="small"
+                    checked={showCanceled}
+                    onChange={(e) => setShowCanceled(e.target.checked)}
+                    sx={{ color: "primary.main", p: 0.5 }}
+                  />
+                }
+                label={
+                  <Typography
+                    sx={{
+                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                      color: "text.primary",
+                      opacity: 0.8,
+                      userSelect: "none",
+                    }}
+                  >
+                    Cancelados
+                  </Typography>
+                }
+              />
+            </Box>
+          )}
         </Box>
         <Box
           sx={{
             display: "flex",
-            gap: 1.5,
+            gap: 1,
             alignItems: "center",
             flex: { xs: "1 1 100%", sm: "0 1 auto", lg: "1 1 100%", xl: "0 1 auto" },
           }}
@@ -150,12 +228,39 @@ const AppointmentsDailyList = ({
               },
             }}
           />
+          {onDateChange && (
+            <Tooltip title="Selecionar Data">
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ 
+                  display: { xs: "inline-flex", md: "none" },
+                  minWidth: "38px", 
+                  width: "38px",
+                  height: "38px", 
+                  p: 0, 
+                  borderRadius: 1, 
+                  borderColor: "#e0e0e0",
+                  backgroundColor: "white",
+                  color: "text.primary",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    backgroundColor: "grey.50",
+                  }
+                }}
+                onClick={() => setCalendarModalOpen(true)}
+              >
+                <CalendarIcon size={18} />
+              </Button>
+            </Tooltip>
+          )}
           <Button
             size="small"
             sx={{ 
-              minWidth: "40px", 
-              height: "40px", 
-              p: 1, 
+              minWidth: "38px", 
+              width: "38px",
+              height: "38px", 
+              p: 0, 
               borderRadius: 1, 
               backgroundColor: "primary.main",
               color: "white"
@@ -166,26 +271,6 @@ const AppointmentsDailyList = ({
           </Button>
         </Box>
       </Box>
-      {appointments.length > 0 && (
-        <FormControlLabel
-          sx={{ mt: 2, mb: 0 }}
-          control={
-            <Checkbox
-              disableRipple
-              size="small"
-              checked={showCanceled}
-              onChange={(e) => setShowCanceled(e.target.checked)}
-              sx={{ color: "primary.main", py: 0 }}
-            />
-          }
-          label={
-            <Typography variant="body2" color="text.primary">
-              Mostrar cancelados
-            </Typography>
-          }
-        />
-      )}
-
 
       {/* Lista */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1, mt: 1.5 }}>
@@ -220,6 +305,7 @@ const AppointmentsDailyList = ({
                 );
               }
               if (block.type === "free") {
+                if (!showFreeSlots) return null;
                 return (
                   <AppointmentFreeTimeCard
                     key={`free-${index}`}
@@ -249,6 +335,71 @@ const AppointmentsDailyList = ({
           onEdit={onEdit}
         />
       )}
+
+      {/* Modal de Calendário (Especialmente para Mobile) */}
+      <Dialog
+        open={calendarModalOpen}
+        onClose={() => setCalendarModalOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: {
+            borderRadius: 3,
+            p: 1,
+            overflow: "hidden",
+          },
+        }}
+      >
+        <DialogTitle
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            pb: 0.5,
+            pt: 1,
+            px: 1.5,
+          }}
+        >
+          <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+            Selecionar Data
+          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            {!date.isSame(dayjs(), "day") && onDateChange && (
+              <Button
+                size="small"
+                variant="outlined"
+                sx={{ height: 26, fontSize: "0.75rem", py: 0, px: 1 }}
+                onClick={() => {
+                  onDateChange(dayjs());
+                  setCalendarModalOpen(false);
+                }}
+              >
+                Hoje
+              </Button>
+            )}
+            <IconButton
+              size="small"
+              onClick={() => setCalendarModalOpen(false)}
+              sx={{ color: "text.primary", opacity: 0.7, "&:hover": { opacity: 1 } }}
+            >
+              <X size={18} />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, display: "flex", justifyContent: "center" }}>
+          <DashboardCalendar
+            value={date}
+            onChange={(newDate) => {
+              if (newDate && onDateChange) {
+                onDateChange(newDate);
+                setCalendarModalOpen(false);
+              }
+            }}
+            onMonthChange={onMonthChange}
+            highlightedDays={highlightedDays}
+          />
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

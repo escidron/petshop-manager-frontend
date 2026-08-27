@@ -302,9 +302,12 @@ const AppointmentDetailsModal = ({
       slotProps={{
         paper: {
           sx: {
-            width: "60%",
-            maxWidth: "1400px",
-            minWidth: "1250px",
+            width: { xs: "96vw", md: "90%", lg: "1200px" },
+            maxWidth: "1250px",
+            minWidth: "unset",
+            m: { xs: 1, sm: 2 },
+            maxHeight: { xs: "92vh", sm: "90vh" },
+            borderRadius: 3,
           },
         },
         backdrop: {
@@ -313,30 +316,42 @@ const AppointmentDetailsModal = ({
       }}
     >
       <DialogTitle
-        sx={{ display: "flex", justifyContent: "space-between", pr: 4, pb: 0 }}
+        sx={{ display: "flex", justifyContent: "space-between", pr: { xs: 2, sm: 4 }, pb: 0 }}
       >
-        <Typography variant="h5">Detalhes do agendamento</Typography>
+        <Typography variant="h5" sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" }, fontWeight: 700 }}>
+          Detalhes do agendamento
+        </Typography>
         <Box sx={{ cursor: "pointer" }}>
           <X onClick={onClose} />
         </Box>
       </DialogTitle>
 
       <Divider />
-      <DialogContent sx={{ display: "flex", justifyContent: "space-between" }}>
+      <DialogContent
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", md: "row" },
+          gap: { xs: 2.5, md: 3 },
+          px: { xs: 1.5, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+          overflowX: "hidden",
+        }}
+      >
         <Box
           className="coluna-1"
           sx={{
-            width: "45%",
+            width: { xs: "100%", md: "48%" },
+            minWidth: 0,
             display: "flex",
             gap: 2,
             flexDirection: "column",
           }}
         >
           <Box>
-            <Typography variant="h5" fontWeight={600}>
+            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
               Agendamento
             </Typography>
-            <CustomCard sx={{ mt: 1, px: 2, py: 1, minWidth: "580px" }}>
+            <CustomCard sx={{ mt: 1, px: { xs: 1.5, sm: 2 }, py: 1, width: "100%", minWidth: 0 }}>
               <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                 <Typography variant="h6" fontWeight={500}>
                   {formatAppointmentDate(appointment.scheduled_at)}
@@ -404,24 +419,32 @@ const AppointmentDetailsModal = ({
                 </Box>
               )}
 
-              <Box sx={{ p: 2 }}>
+              <Box sx={{ p: { xs: 1.5, sm: 2 } }}>
                 {appointment.status === "pending" && (
                   <>
                     <Divider sx={{ my: 1 }} />
                     <Box
                       sx={{
                         display: "flex",
+                        flexDirection: { xs: "column-reverse", sm: "row" },
                         justifyContent: "space-between",
-                        gap: 1,
+                        alignItems: { xs: "stretch", sm: "center" },
+                        gap: 1.25,
                       }}
                     >
                       <Button
-                        variant="contained"
+                        variant="outlined"
                         color="error"
                         size="small"
-                        startIcon={<X size={16} />}
+                        startIcon={<X size={15} />}
                         disabled={!!loadingAction}
                         onClick={() => setCancelConfirmOpen(true)}
+                        sx={{
+                          fontSize: "0.78rem",
+                          borderColor: "error.light",
+                          opacity: 0.85,
+                          "&:hover": { opacity: 1, borderColor: "error.main" },
+                        }}
                       >
                         Cancelar Agendamento
                       </Button>
@@ -429,18 +452,22 @@ const AppointmentDetailsModal = ({
                         <Button
                           variant="outlined"
                           onClick={() => onEdit(appointment)}
-                          startIcon={<Pencil size={16} />}
+                          startIcon={<Pencil size={15} />}
                           disabled={!!loadingAction}
                           size="small"
+                          sx={{ flex: { xs: 1, sm: "initial" } }}
                         >
                           Alterar
                         </Button>
                         <Button
+                          variant="contained"
+                          color="primary"
                           onClick={() => handleAction(appointment, "confirm")}
                           startIcon={<CalendarCheck size={16} />}
                           loading={loadingAction === "confirm"}
                           disabled={!!loadingAction}
                           size="small"
+                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
                         >
                           Confirmar
                         </Button>
@@ -455,17 +482,25 @@ const AppointmentDetailsModal = ({
                     <Box
                       sx={{
                         display: "flex",
+                        flexDirection: { xs: "column-reverse", sm: "row" },
                         justifyContent: "space-between",
-                        gap: 1,
+                        alignItems: { xs: "stretch", sm: "center" },
+                        gap: 1.25,
                       }}
                     >
                       <Button
-                        variant="contained"
+                        variant="outlined"
                         color="error"
                         size="small"
-                        startIcon={<X size={16} />}
+                        startIcon={<X size={15} />}
                         disabled={!!loadingAction}
                         onClick={() => setCancelConfirmOpen(true)}
+                        sx={{
+                          fontSize: "0.78rem",
+                          borderColor: "error.light",
+                          opacity: 0.85,
+                          "&:hover": { opacity: 1, borderColor: "error.main" },
+                        }}
                       >
                         Cancelar Agendamento
                       </Button>
@@ -473,18 +508,22 @@ const AppointmentDetailsModal = ({
                         <Button
                           variant="outlined"
                           onClick={() => onEdit(appointment)}
-                          startIcon={<Pencil size={16} />}
+                          startIcon={<Pencil size={15} />}
                           disabled={!!loadingAction}
                           size="small"
+                          sx={{ flex: { xs: 1, sm: "initial" } }}
                         >
                           Alterar
                         </Button>
                         <Button
+                          variant="contained"
+                          color="primary"
                           size="small"
                           startIcon={<Play size={16} />}
                           loading={loadingAction === "start"}
                           disabled={!!loadingAction}
                           onClick={() => handleAction(appointment, "start")}
+                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
                         >
                           Iniciar Serviços
                         </Button>
@@ -508,6 +547,7 @@ const AppointmentDetailsModal = ({
                         loading={loadingAction === "complete"}
                         disabled={!!loadingAction}
                         onClick={() => handleAction(appointment, "complete")}
+                        sx={{ width: { xs: "100%", sm: "auto" } }}
                       >
                         Finalizar
                       </Button>
@@ -658,6 +698,7 @@ const AppointmentDetailsModal = ({
                               state: { pullAppointment: appointment },
                             });
                           }}
+                          sx={{ width: { xs: "100%", sm: "auto" } }}
                         >
                           Cobrar no Caixa
                         </Button>
@@ -669,10 +710,10 @@ const AppointmentDetailsModal = ({
             </CustomCard>
           </Box>
           <Box sx={{ mt: 2 }}>
-            <Typography variant="h5" fontWeight={600}>
+            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
               Tutor
             </Typography>
-            <Box sx={{ mt: 1, minWidth: "580px" }}>
+            <Box sx={{ mt: 1, width: "100%", minWidth: 0 }}>
               <ClientePersonalInfo client={appointment.client} />
             </Box>
           </Box>
@@ -681,7 +722,7 @@ const AppointmentDetailsModal = ({
           {availablePackages.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="h5" fontWeight={600}>
+                <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
                   Pacotes Disponíveis
                 </Typography>
                 <Chip
@@ -698,7 +739,7 @@ const AppointmentDetailsModal = ({
                 />
               </Box>
 
-              <Box sx={{ mt: 1, minWidth: "580px", display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box sx={{ mt: 1, width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: 1.5 }}>
                 {availablePackages.map((pkg) => (
                   <CustomCard
                     key={pkg.id}
@@ -706,9 +747,10 @@ const AppointmentDetailsModal = ({
                       display: "flex",
                       flexDirection: "column",
                       gap: 1,
-                      px: 2,
+                      px: { xs: 1.5, sm: 2 },
                       py: 1.5,
-                      minWidth: "580px",
+                      width: "100%",
+                      minWidth: 0,
                     }}
                   >
                     <Box
@@ -803,18 +845,18 @@ const AppointmentDetailsModal = ({
           )}
         </Box>
 
-        <Box className="coluna-2" sx={{ width: "50%" }}>
+        <Box className="coluna-2" sx={{ width: { xs: "100%", md: "50%" }, minWidth: 0 }}>
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="h5" fontWeight={600}>
+            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
               Pets & Serviços
             </Typography>
-            <Typography variant="h5" fontWeight={600}>
+            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
               {formattedTotal}
             </Typography>
           </Box>
           <Box sx={{ mt: 1, display: "flex", gap: 2, flexDirection: "column" }}>
             {appointment.items.map((item) => (
-              <CustomCard sx={{ px: 2, py: 1, minWidth: "600px" }}>
+              <CustomCard key={item.id} sx={{ px: { xs: 1.5, sm: 2 }, py: 1, width: "100%", minWidth: 0 }}>
                 <Box
                   sx={{
                     display: "flex",
@@ -1009,21 +1051,24 @@ const AppointmentDetailsModal = ({
                             <Box
                               sx={{
                                 display: "flex",
-                                alignItems: "flex-start",
+                                flexDirection: { xs: "column", sm: "row" },
+                                alignItems: { xs: "flex-start", sm: "center" },
+                                gap: { xs: 0.5, sm: 1 },
                                 flex: 1,
-                                ml: 1,
+                                ml: { xs: 0, sm: 1 },
                                 mt: 0.5,
                               }}
                             >
                               <Typography
                                 variant="caption"
-                                sx={{ minWidth: "80px", mt: 1 }}
+                                sx={{ minWidth: { xs: "unset", sm: "80px" }, mt: { xs: 0, sm: 0.5 } }}
                               >
                                 Profissional:
                               </Typography>
                               <Box
                                 sx={{
                                   flex: 1,
+                                  width: "100%",
                                   display: "flex",
                                   flexDirection: "column",
                                 }}

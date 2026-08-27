@@ -343,9 +343,9 @@ export default function POSCatalogPanel({
   };
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 2, height: "100%" }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: { xs: 1, sm: 2 }, height: { xs: "auto", lg: "100%" }, width: "100%" }}>
       {/* Tab Cards */}
-      <Grid container spacing={1.5}>
+      <Grid container spacing={{ xs: 1, sm: 1.5 }}>
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
@@ -354,13 +354,13 @@ export default function POSCatalogPanel({
                 elevation={0}
                 onClick={() => { onTabChange(tab.id!); onSearchChange(""); }}
                 sx={{
-                  p: 1.5,
+                  p: { xs: 1, sm: 1.5 },
                   borderRadius: 2,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: 1,
+                  gap: { xs: 0.75, sm: 1 },
                   border: "2px solid",
                   borderColor: isActive ? "primary.main" : "divider",
                   bgcolor: isActive ? alpha("#1976d2", 0.04) : "background.paper",
@@ -381,7 +381,15 @@ export default function POSCatalogPanel({
                 >
                   {tab.icon}
                 </Box>
-                <Typography variant="body2" sx={{ fontWeight: 800, color: isActive ? "primary.main" : "text.primary" }}>
+                <Typography
+                  variant="body2"
+                  sx={{
+                    fontWeight: 800,
+                    fontSize: { xs: "0.8rem", sm: "0.875rem" },
+                    color: isActive ? "primary.main" : "text.primary",
+                  }}
+                  noWrap
+                >
                   {tab.label}
                 </Typography>
               </Paper>
@@ -427,7 +435,17 @@ export default function POSCatalogPanel({
             });
           }
         }}
-        sx={{ flexGrow: 1, minHeight: 0, overflowY: "auto", pr: 1, display: "flex", flexDirection: "column", gap: 2, "&::-webkit-scrollbar": { width: 6 }, "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4 } }}
+        sx={{
+          flexGrow: 1,
+          minHeight: { xs: "auto", lg: 0 },
+          overflowY: { xs: "visible", lg: "auto" },
+          pr: { xs: 0, lg: 1 },
+          display: "flex",
+          flexDirection: "column",
+          gap: 2,
+          "&::-webkit-scrollbar": { width: 6 },
+          "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4 },
+        }}
       >
         {/* Low Stock Alert */}
         {lowStockProducts.length > 0 && activeTab === "products" && (

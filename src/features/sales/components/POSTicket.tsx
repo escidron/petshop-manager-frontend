@@ -198,26 +198,35 @@ export default function POSTicket({
       {/* ── Header ── */}
       <Box
         sx={{
-          px: 2.5,
-          py: 1.75,
+          px: { xs: 1.5, sm: 2.5 },
+          py: 1.5,
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
+          gap: { xs: 1, sm: 1.5 },
           bgcolor: clientMode ? (theme) => alpha(theme.palette.primary.main, 0.04) : "transparent",
           transition: "background-color 0.3s ease",
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-          <Typography variant="h6" sx={{ fontWeight: 800, color: "text.primary" }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1 }, minWidth: 0, flex: 1 }}>
+          <Typography
+            variant="subtitle1"
+            sx={{
+              fontWeight: 800,
+              color: "text.primary",
+              fontSize: { xs: "0.9rem", sm: "1.1rem" },
+              whiteSpace: "nowrap",
+            }}
+          >
             {clientMode ? "Conferência" : "Ticket de Venda"}
           </Typography>
           {cart.length > 0 && !clientMode && (
             <Chip
-              label={`${cart.reduce((a, i) => a + i.quantity, 0)} iten${cart.reduce((a, i) => a + i.quantity, 0) === 1 ? "" : "s"}`}
+              label={`${cart.reduce((a, i) => a + i.quantity, 0)} ${cart.reduce((a, i) => a + i.quantity, 0) === 1 ? "item" : "itens"}`}
               size="small"
-              sx={{ fontWeight: 700, fontSize: "0.7rem", height: 22 }}
+              sx={{ fontWeight: 700, fontSize: "0.65rem", height: 20, flexShrink: 0 }}
             />
           )}
         </Box>
@@ -229,10 +238,10 @@ export default function POSTicket({
             sx={{
               display: "flex",
               alignItems: "center",
-              gap: 0.75,
+              gap: 0.5,
               cursor: "pointer",
-              px: 1.25,
-              py: 0.5,
+              px: { xs: 0.75, sm: 1.25 },
+              py: 0.4,
               borderRadius: 2,
               border: "1px solid",
               borderColor: clientMode ? "primary.main" : "divider",
@@ -240,14 +249,15 @@ export default function POSTicket({
               color: clientMode ? "primary.main" : "text.primary",
               transition: "all 0.2s ease",
               userSelect: "none",
+              flexShrink: 0,
               "&:hover": {
                 borderColor: "primary.main",
                 bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
               },
             }}
           >
-            {clientMode ? <Eye size={14} /> : <EyeOff size={14} />}
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", whiteSpace: "nowrap" }}>
+            {clientMode ? <Eye size={13} /> : <EyeOff size={13} />}
+            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: "0.6rem", sm: "0.65rem" }, whiteSpace: "nowrap" }}>
               Vista do Cliente
             </Typography>
             <Switch
@@ -255,7 +265,7 @@ export default function POSTicket({
               checked={clientMode}
               onChange={(e) => setClientMode(e.target.checked)}
               onClick={(e) => e.stopPropagation()}
-              sx={{ ml: -0.5, "& .MuiSwitch-thumb": { width: 10, height: 10 }, "& .MuiSwitch-switchBase": { py: "7px" } }}
+              sx={{ ml: -0.5, mr: -0.5, "& .MuiSwitch-thumb": { width: 10, height: 10 }, "& .MuiSwitch-switchBase": { py: "7px" } }}
             />
           </Box>
         </Tooltip>

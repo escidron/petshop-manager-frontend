@@ -47,10 +47,15 @@ export default function WaitingListPetItem({
   const sortedAndFilteredServices = useMemo(() => {
     let baseServices = services ?? [];
     if (!showAllServices) {
-      baseServices = getServicesForPet(baseServices, currentPet);
+      const selectedIds = items?.[index]?.service_ids ?? [];
+      const compatibleServices = getServicesForPet(baseServices, currentPet);
+      const selectedIncompatible = baseServices.filter(
+        (s) => selectedIds.includes(s.id) && !compatibleServices.some((c) => c.id === s.id)
+      );
+      baseServices = [...compatibleServices, ...selectedIncompatible];
     }
     return baseServices;
-  }, [services, currentPet, showAllServices]);
+  }, [services, currentPet, showAllServices, items, index]);
 
   return (
     <Box
@@ -157,61 +162,92 @@ export default function WaitingListPetItem({
                   }
                 }
               }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    maxHeight: "280px",
+                    borderRadius: 2,
+                    boxShadow: "0 6px 24px rgba(0,0,0,0.12)",
+                  },
+                },
+              }}
               disableCloseOnSelect
               size="small"
-              value={sortedAndFilteredServices.filter((s) => field.value?.includes(s.id)) ?? []}
+              value={
+                (services ?? []).filter((s) => field.value?.includes(s.id)) ?? []
+              }
               getOptionLabel={(option) => formatServiceLabel(option)}
               isOptionEqualToValue={(option, value) => option.id === value.id}
               onChange={(_, value) => field.onChange(value.map((v: Service) => v.id))}
               renderOption={(props, option, { selected }) => {
                 const { key, ...rest } = props as any;
                 return (
-                  <Box
-                    component="li"
-                    key={key}
+                  <li
                     {...rest}
-                    sx={{
-                      display: "flex !important",
-                      alignItems: "center !important",
-                      justifyContent: "space-between !important",
+                    key={key || option.id}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
                       width: "100%",
-                      gap: 1,
+                      padding: "8px 12px",
                     }}
                   >
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 0,
+                        flex: 1,
+                        overflow: "hidden",
+                      }}
+                    >
                       <Checkbox
                         checked={selected}
                         disableRipple
-                        sx={{ color: "primary.main", py: 0 }}
+                        sx={{ color: "primary.main", p: 0 }}
                       />
-                      <Box>
-                        <Typography sx={{ fontWeight: 500, fontSize: "0.95rem" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                            lineHeight: 1.2,
+                          }}
+                        >
                           {formatServiceLabel(option)}
                         </Typography>
                         {option.description && (
-                          <div
-                            style={{
-                              fontSize: 12,
+                          <Typography
+                            variant="caption"
+                            noWrap
+                            sx={{
+                              fontSize: "0.72rem",
+                              color: "text.primary",
                               opacity: 0.6,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              lineHeight: "1.3",
-                              maxWidth: "380px",
-                              wordBreak: "break-word",
+                              display: "block",
                             }}
                           >
                             {option.description}
-                          </div>
+                          </Typography>
                         )}
                       </Box>
                     </Box>
-                    <Box sx={{ fontWeight: 600, flexShrink: 0, color: "text.primary" }}>
+                    <Box
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: { xs: "0.82rem", sm: "0.88rem" },
+                        color: "text.primary",
+                        whiteSpace: "nowrap",
+                        ml: 1,
+                        flexShrink: 0,
+                      }}
+                    >
                       {formatPrice(option.price_cents)}
                     </Box>
-                  </Box>
+                  </li>
                 );
               }}
               renderInput={(params) => (
@@ -227,7 +263,7 @@ export default function WaitingListPetItem({
       </Box>
 
       <FormControlLabel
-        sx={{ width: "fit-content" }}
+        sx={{ width: "fit-content", my: 0 }}
         control={
           <Checkbox
             disableRipple
@@ -237,8 +273,17 @@ export default function WaitingListPetItem({
             onChange={(e) => setShowAllServices(e.target.checked)}
           />
         }
-        label="Mostrar todos os serviços (ignorar porte e pelagem)"
-        slotProps={{ typography: { sx: { fontSize: 12 } } }}
+        label="Mostrar todos os serviços"
+        slotProps={{
+          typography: {
+            sx: {
+              fontSize: { xs: "0.72rem", sm: "0.78rem" },
+              color: "text.primary",
+              opacity: 0.85,
+              whiteSpace: "nowrap",
+            },
+          },
+        }}
       />
 
       {!isOnlyPet && (

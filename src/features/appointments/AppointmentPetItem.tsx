@@ -112,7 +112,12 @@ export default function AppointmentPetItem({
   const sortedAndFilteredServices = useMemo(() => {
     let baseServices = (services ?? []).filter((s) => s.is_active);
     if (!showAllServices) {
-      baseServices = getServicesForPet(baseServices, currentPet);
+      const selectedIds = items?.[index]?.service_ids ?? [];
+      const compatibleServices = getServicesForPet(baseServices, currentPet);
+      const selectedIncompatible = baseServices.filter(
+        (s) => selectedIds.includes(s.id) && !compatibleServices.some((c) => c.id === s.id)
+      );
+      baseServices = [...compatibleServices, ...selectedIncompatible];
     }
 
     // Move package-covered services to the top
@@ -128,7 +133,7 @@ export default function AppointmentPetItem({
     });
 
     return [...covered, ...notCovered];
-  }, [services, currentPet, showAllServices, packageCreditsByServiceId]);
+  }, [services, currentPet, showAllServices, packageCreditsByServiceId, items, index]);
 
   return (
     <Box
@@ -218,11 +223,20 @@ export default function AppointmentPetItem({
         />
         <Button
           variant="outlined"
-          sx={{ width: "150px", height: "40px", flexShrink: 0 }}
-          startIcon={<Plus size={14} />}
+          sx={{
+            minWidth: { xs: "40px", sm: "120px" },
+            width: { xs: "40px", sm: "auto" },
+            height: "40px",
+            p: { xs: 0, sm: "6px 16px" },
+            flexShrink: 0,
+          }}
           onClick={() => onCreatePet?.(index, watchedClientId ?? 0)}
+          title="Criar Pet"
         >
-          Criar Pet
+          <Plus size={18} />
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
+            Criar Pet
+          </Box>
         </Button>
       </Box>
 
@@ -257,7 +271,7 @@ export default function AppointmentPetItem({
               disableCloseOnSelect
               size="small"
               value={
-                sortedAndFilteredServices.filter((s) => field.value?.includes(s.id)) ?? []
+                (services ?? []).filter((s) => field.value?.includes(s.id)) ?? []
               }
               getOptionLabel={(option) => formatServiceLabel(option)}
               isOptionEqualToValue={(option, value) => option.id === value.id}
@@ -275,7 +289,15 @@ export default function AppointmentPetItem({
                   }
                 }
               }}
-              slotProps={{ paper: { sx: { width: "635px", maxWidth: "90vw" } } }}
+              slotProps={{
+                paper: {
+                  sx: {
+                    maxHeight: "280px",
+                    borderRadius: 2,
+                    boxShadow: "0 6px 24px rgba(0,0,0,0.12)",
+                  },
+                },
+              }}
               onChange={(_, value) => field.onChange(value.map((v) => v.id))}
               renderOption={(props, option, { selected }) => {
                 const { ...rest } = props;
@@ -291,40 +313,51 @@ export default function AppointmentPetItem({
                       alignItems: "center",
                       justifyContent: "space-between",
                       width: "100%",
+                      padding: "8px 12px",
                       backgroundColor: isPackageCovered
                         ? "rgba(46, 125, 50, 0.04)"
                         : "transparent",
                     }}
                   >
                     <Box
-                      style={{ display: "flex", alignItems: "center", gap: 8 }}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 8,
+                        minWidth: 0,
+                        flex: 1,
+                        overflow: "hidden",
+                      }}
                     >
                       <Checkbox
                         checked={selected}
                         disableRipple
-                        sx={{ color: "primary.main", py: 0 }}
+                        sx={{ color: "primary.main", p: 0 }}
                       />
-                      <Box>
-                        <Typography sx={{ fontWeight: 500, fontSize: "0.95rem" }}>
+                      <Box sx={{ minWidth: 0, overflow: "hidden" }}>
+                        <Typography
+                          noWrap
+                          sx={{
+                            fontWeight: 500,
+                            fontSize: { xs: "0.85rem", sm: "0.9rem" },
+                            lineHeight: 1.2,
+                          }}
+                        >
                           {formatServiceLabel(option)}
                         </Typography>
                         {option.description && (
-                          <div
-                            style={{
-                              fontSize: 12,
+                          <Typography
+                            variant="caption"
+                            noWrap
+                            sx={{
+                              fontSize: "0.72rem",
+                              color: "text.primary",
                               opacity: 0.6,
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                              display: "-webkit-box",
-                              WebkitLineClamp: 2,
-                              WebkitBoxOrient: "vertical",
-                              lineHeight: "1.3",
-                              maxWidth: "380px",
-                              wordBreak: "break-word",
+                              display: "block",
                             }}
                           >
                             {option.description}
-                          </div>
+                          </Typography>
                         )}
                       </Box>
                     </Box>
@@ -334,16 +367,27 @@ export default function AppointmentPetItem({
                         sx={{
                           display: "flex",
                           alignItems: "center",
-                          gap: 0.5,
                           color: "success.main",
                           fontWeight: 700,
-                          fontSize: "0.8rem",
+                          fontSize: "0.75rem",
+                          whiteSpace: "nowrap",
+                          ml: 1,
+                          flexShrink: 0,
                         }}
                       >
                         Pacote ({remainingQty}x)
                       </Box>
                     ) : (
-                      <Box style={{ fontWeight: 600 }}>
+                      <Box
+                        sx={{
+                          fontWeight: 700,
+                          fontSize: { xs: "0.82rem", sm: "0.88rem" },
+                          color: "text.primary",
+                          whiteSpace: "nowrap",
+                          ml: 1,
+                          flexShrink: 0,
+                        }}
+                      >
                         {formatPrice(option.price_cents)}
                       </Box>
                     )}
@@ -364,16 +408,25 @@ export default function AppointmentPetItem({
         />
         <Button
           variant="outlined"
-          sx={{ width: "150px", height: "40px", flexShrink: 0 }}
-          startIcon={<Plus size={14} />}
+          sx={{
+            minWidth: { xs: "40px", sm: "130px" },
+            width: { xs: "40px", sm: "auto" },
+            height: "40px",
+            p: { xs: 0, sm: "6px 16px" },
+            flexShrink: 0,
+          }}
           onClick={() => onCreateService?.(index)}
+          title="Criar Serviço"
         >
-          Criar Serviço
+          <Plus size={18} />
+          <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
+            Criar Serviço
+          </Box>
         </Button>
       </Box>
 
       <FormControlLabel
-        sx={{ width: "fit-content" }}
+        sx={{ width: "fit-content", my: 0 }}
         control={
           <Checkbox
             disableRipple
@@ -383,8 +436,17 @@ export default function AppointmentPetItem({
             onChange={(e) => setShowAllServices(e.target.checked)}
           />
         }
-        label="Mostrar todos os serviços (ignorar porte e pelagem)"
-        slotProps={{ typography: { sx: { fontSize: 12 } } }}
+        label="Mostrar todos os serviços"
+        slotProps={{
+          typography: {
+            sx: {
+              fontSize: { xs: "0.72rem", sm: "0.78rem" },
+              color: "text.primary",
+              opacity: 0.85,
+              whiteSpace: "nowrap",
+            },
+          },
+        }}
       />
 
       {!isOnlyPet && (

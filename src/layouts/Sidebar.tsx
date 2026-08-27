@@ -142,7 +142,13 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
   },
 ];
 
-const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
+const Sidebar = ({
+  collapsed,
+  onNavigate,
+}: {
+  collapsed: boolean;
+  onNavigate?: () => void;
+}) => {
   const navigate = useNavigate();
   const { tenant, user } = useAuth();
   const { isOwner, hasPermission } = usePermission();
@@ -265,6 +271,7 @@ const Sidebar = ({ collapsed }: { collapsed: boolean }) => {
                     key={item.id}
                     item={item}
                     collapsed={collapsed}
+                    onNavigate={onNavigate}
                   />
                 ))}
             </List>

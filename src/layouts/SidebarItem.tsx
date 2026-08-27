@@ -27,9 +27,10 @@ type Props = {
   item: SidebarItemConfig;
   depth?: number;
   collapsed: boolean;
+  onNavigate?: () => void;
 };
 
-const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
+const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed, onNavigate }) => {
   const [open, setOpen] = React.useState(true);
   const navigate = useNavigate();
   const location = useLocation();
@@ -43,6 +44,7 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
 
     if (item.path) {
       navigate(item.path);
+      onNavigate?.();
     }
   };
 
@@ -89,6 +91,7 @@ const SidebarItem: React.FC<Props> = ({ item, depth = 0, collapsed }) => {
                 item={child}
                 depth={depth + 1}
                 collapsed={collapsed}
+                onNavigate={onNavigate}
               />
             ))}
           </List>
