@@ -1,5 +1,21 @@
-import { Box, Paper, Autocomplete, TextField, InputAdornment, Dialog, DialogTitle, DialogContent, DialogActions, Typography, alpha } from "@mui/material";
-import { User } from "lucide-react";
+import {
+  Box,
+  Paper,
+  Autocomplete,
+  TextField,
+  InputAdornment,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Typography,
+  alpha,
+  useMediaQuery,
+  useTheme,
+  Drawer,
+  IconButton,
+} from "@mui/material";
+import { User, ShoppingCart, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
@@ -26,6 +42,8 @@ import { Button } from "../../components/Button/Button";
 
 
 export default function POSInterface() {
+  const theme = useTheme();
+  const isMobilePOS = useMediaQuery(theme.breakpoints.down("lg"));
   const { tenant } = useAuth();
   const toast = useToast();
   const location = useLocation();
@@ -38,6 +56,8 @@ export default function POSInterface() {
   const [discountCents, setDiscountCents] = useState<number>(0);
   const [discountPctInput, setDiscountPctInput] = useState<string>("0");
   const discountAmount = discountCents / 100;
+  const [mobileCartDrawerOpen, setMobileCartDrawerOpen] = useState(false);
+  const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
@@ -56,7 +76,9 @@ export default function POSInterface() {
     id: number;
     name: string;
     price_cents?: number;
+    price?: number;
     quantity?: number;
+    unit?: string;
   } | null>(null);
   const [pendingPackagePetIds, setPendingPackagePetIds] = useState<number[]>([]);
 
@@ -75,7 +97,13 @@ export default function POSInterface() {
   });
 
   // Global Data
-  const products = startupData?.products || [];
+  const products = useMemo(() => {
+    return (startupData?.products || []).map((p: any) => ({
+      ...p,
+      price_cents: p.price_cents ?? (typeof p.price === "number" ? p.price : 0),
+      cost_cents: p.cost_cents ?? (typeof p.cost === "number" ? p.cost : 0),
+    }));
+  }, [startupData?.products]);
   const services = startupData?.services || [];
   const packages = startupData?.packages || [];
   const clients = startupData?.clients || [];
@@ -220,12 +248,13 @@ export default function POSInterface() {
   };
 
   const addItemToCart = (
-    item: { id: number; name: string; price_cents?: number; quantity?: number; unit?: string },
+    item: { id: number; name: string; price_cents?: number; price?: number; quantity?: number; unit?: string },
     type: "product" | "service" | "package",
     petIds?: number[],
     petNames?: string[]
   ) => {
-    const price = (item.price_cents || 0) / 100;
+    const rawCents = item.price_cents ?? (typeof (item as any).price === "number" ? (item as any).price : 0);
+    const price = rawCents / 100;
     const displayName =
       type === "package" && petNames && petNames.length > 0
         ? `${item.name} (${petNames.join(", ")})`
@@ -259,7 +288,7 @@ export default function POSInterface() {
   };
 
   const handleAddItem = (
-    item: { id: number; name: string; price_cents?: number; quantity?: number },
+    item: { id: number; name: string; price_cents?: number; price?: number; quantity?: number; unit?: string },
     type: "product" | "service" | "package"
   ) => {
     if (type === "package") {
@@ -410,20 +439,35 @@ export default function POSInterface() {
       sx={{
         display: "flex",
         flexDirection: { xs: "column", lg: "row" },
-        gap: 3,
-        height: "100%",
-        p: 1,
+        gap: { xs: 1, lg: 3 },
+        height: { xs: "auto", lg: "100%" },
+        minHeight: { xs: "auto", lg: "100%" },
+        p: 0,
         width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
       }}
     >
       {/* ── Left Column ── */}
-      <Box sx={{ display: "flex", flexDirection: "column", flexGrow: 1, minWidth: 0, overflowY: "hidden", height: "100%" }}>
-        
-        <Box sx={{ display: "flex", flexDirection: "column", height: "100%", overflow: "hidden" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          flexGrow: 1,
+          minWidth: 0,
+          width: "100%",
+          maxWidth: "100%",
+          height: { xs: "auto", lg: "100%" },
+          pb: isMobilePOS ? 10 : 0,
+          boxSizing: "border-box",
+        }}
+      >
+        <Box sx={{ display: "flex", flexDirection: "column", height: { xs: "auto", lg: "100%" }, width: "100%" }}>
           {selectedClient ? (
             <Paper
               elevation={0}
-              sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 2 }}
+              sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 1, width: "100%", boxSizing: "border-box" }}
             >
               <POSSessionHeader
                 client={selectedClient}
@@ -443,26 +487,74 @@ export default function POSInterface() {
               />
             </Paper>
           ) : (
-            <Paper elevation={0} sx={{ p: 2, mb: 2, borderRadius: 3, border: "1px dashed", borderColor: "divider", display: "flex", justifyContent: "space-between", alignItems: "center", bgcolor: "background.paper", flexShrink: 0 }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box sx={{ width: 42, height: 42, borderRadius: "50%", bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04), display: "flex", alignItems: "center", justifyContent: "center", color: "text.primary" }}>
-                  <User size={20} />
+            <Paper
+              elevation={0}
+              sx={{
+                p: { xs: 1, sm: 1.5 },
+                mb: 1,
+                borderRadius: 3,
+                border: "1px dashed",
+                borderColor: "divider",
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                bgcolor: "background.paper",
+                flexShrink: 0,
+                gap: 1,
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0, flex: 1 }}>
+                <Box
+                  sx={{
+                    width: 36,
+                    height: 36,
+                    borderRadius: "50%",
+                    bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    color: "text.primary",
+                    flexShrink: 0,
+                  }}
+                >
+                  <User size={18} />
                 </Box>
-                <Box>
-                  <Typography variant="body1" sx={{ fontWeight: 800, color: "text.primary" }}>Cliente Avulso</Typography>
-                  <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.8, display: "block", mt: 0.2 }}>
-                    A seleção de cliente é opcional. Obrigatória apenas para venda de pacotes.
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", fontSize: { xs: "0.85rem", sm: "0.95rem" } }} noWrap>
+                    Cliente Avulso
+                  </Typography>
+                  <Typography
+                    variant="caption"
+                    sx={{ color: "text.primary", opacity: 0.75, display: "block", fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+                    noWrap
+                  >
+                    Vincule um cliente para pacotes
                   </Typography>
                 </Box>
               </Box>
-              <Button variant="outlined" size="small" onClick={() => setIsClientModalOpen(true)} sx={{ color: "text.primary", flexShrink: 0, ml: 2, "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) } }}>
-                Selecionar Cliente
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={() => setIsClientModalOpen(true)}
+                sx={{
+                  color: "text.primary",
+                  flexShrink: 0,
+                  fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                  py: { xs: 0.5, sm: 0.75 },
+                  px: { xs: 1.25, sm: 1.5 },
+                  whiteSpace: "nowrap",
+                  "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) },
+                }}
+              >
+                Vincular
               </Button>
             </Paper>
           )}
 
           {/* Catalog to add items to the ticket */}
-          <Box sx={{ flexGrow: 1, minHeight: 0 }}>
+          <Box sx={{ flexGrow: 1, minHeight: { xs: "auto", lg: 0 }, height: { xs: "auto", lg: "100%" } }}>
             <POSCatalogPanel
               activeTab={catalogTab}
               searchTerm={searchTerm}
@@ -489,39 +581,192 @@ export default function POSInterface() {
               compatiblePackagesCount={compatiblePackages.length}
             />
           </Box>
-          </Box>
+        </Box>
       </Box>
 
-      {/* ── Right Column: Ticket (always visible) ── */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: "column",
-          gap: 2,
-          maxHeight: "800px",
-          width: { xl: "480px", lg: "440px", xs: "100%" },
-          minWidth: { xl: "420px", lg: "400px", xs: "100%" },
-          flexShrink: 0,
-        }}
-      >
-        <POSTicket
-          cart={cart}
-          cartTotal={cartTotal}
-          discountCents={discountCents}
-          discountPctInput={discountPctInput}
-          isDiscountExceeded={isDiscountExceeded}
-          allowDiscount={tenant?.allow_discount !== false}
-          maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
-          clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
-          onUpdateQuantity={handleUpdateQuantity}
-          onSetQuantity={handleSetQuantity}
-          onRemoveItem={handleRemoveItem}
-          onDiscountCentsChange={setDiscountCents}
-          onDiscountPctChange={setDiscountPctInput}
-          onClearCart={handleClearCart}
-          onCheckout={() => setIsCheckoutOpen(true)}
-        />
-      </Box>
+      {/* ── Desktop Right Column: Ticket ── */}
+      {!isMobilePOS && (
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
+            maxHeight: "800px",
+            width: { xl: "480px", lg: "440px" },
+            minWidth: { xl: "420px", lg: "400px" },
+            flexShrink: 0,
+          }}
+        >
+          <POSTicket
+            cart={cart}
+            cartTotal={cartTotal}
+            discountCents={discountCents}
+            discountPctInput={discountPctInput}
+            isDiscountExceeded={isDiscountExceeded}
+            allowDiscount={tenant?.allow_discount !== false}
+            maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
+            clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
+            onUpdateQuantity={handleUpdateQuantity}
+            onSetQuantity={handleSetQuantity}
+            onRemoveItem={handleRemoveItem}
+            onDiscountCentsChange={setDiscountCents}
+            onDiscountPctChange={setDiscountPctInput}
+            onClearCart={handleClearCart}
+            onCheckout={() => setIsCheckoutOpen(true)}
+          />
+        </Box>
+      )}
+
+      {/* ── Mobile Floating Cart Bar ── */}
+      {isMobilePOS && (
+        <Paper
+          elevation={4}
+          sx={{
+            position: "fixed",
+            bottom: 12,
+            left: 12,
+            right: 12,
+            zIndex: 1050,
+            borderRadius: 3,
+            p: 1.25,
+            bgcolor: "background.paper",
+            border: "1px solid",
+            borderColor: "divider",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1.5,
+          }}
+        >
+          <Box
+            onClick={() => setMobileCartDrawerOpen(true)}
+            sx={{ display: "flex", alignItems: "center", gap: 1.25, cursor: "pointer", flex: 1, minWidth: 0 }}
+          >
+            <Box
+              sx={{
+                width: 38,
+                height: 38,
+                borderRadius: 2,
+                bgcolor: "primary.main",
+                color: "white",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                position: "relative",
+                flexShrink: 0,
+              }}
+            >
+              <ShoppingCart size={18} />
+              {totalCartItems > 0 && (
+                <Box
+                  sx={{
+                    position: "absolute",
+                    top: -5,
+                    right: -5,
+                    bgcolor: "secondary.main",
+                    color: "white",
+                    borderRadius: "50%",
+                    minWidth: 18,
+                    height: 18,
+                    fontSize: "0.7rem",
+                    fontWeight: 800,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    px: 0.5,
+                  }}
+                >
+                  {totalCartItems}
+                </Box>
+              )}
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="caption" color="text.disabled" fontWeight={600} sx={{ display: "block", lineHeight: 1.1 }}>
+                {totalCartItems === 1 ? "1 item" : `${totalCartItems} itens`}
+              </Typography>
+              <Typography variant="subtitle2" fontWeight={800} color="text.primary" sx={{ lineHeight: 1.2 }}>
+                R$ {(cartTotal - discountAmount).toFixed(2).replace(".", ",")}
+              </Typography>
+            </Box>
+          </Box>
+
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={() => setMobileCartDrawerOpen(true)}
+              sx={{ borderRadius: 2, px: 1.5, fontSize: "0.75rem" }}
+            >
+              Ver Carrinho
+            </Button>
+            {cart.length > 0 && (
+              <Button
+                variant="contained"
+                size="small"
+                onClick={() => setIsCheckoutOpen(true)}
+                sx={{ borderRadius: 2, px: 1.75, fontWeight: 700, fontSize: "0.75rem" }}
+              >
+                Finalizar
+              </Button>
+            )}
+          </Box>
+        </Paper>
+      )}
+
+      {/* ── Mobile Cart Bottom Sheet Drawer ── */}
+      {isMobilePOS && (
+        <Drawer
+          anchor="bottom"
+          open={mobileCartDrawerOpen}
+          onClose={() => setMobileCartDrawerOpen(false)}
+          PaperProps={{
+            sx: {
+              borderTopLeftRadius: 20,
+              borderTopRightRadius: 20,
+              maxHeight: "90vh",
+              display: "flex",
+              flexDirection: "column",
+              bgcolor: "background.paper",
+              p: 2,
+            },
+          }}
+        >
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5, pb: 1, borderBottom: "1px solid", borderColor: "divider" }}>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <ShoppingCart size={20} />
+              <Typography variant="h6" fontWeight={800} color="text.primary">
+                Carrinho de Vendas
+              </Typography>
+            </Box>
+            <IconButton onClick={() => setMobileCartDrawerOpen(false)} size="small">
+              <X size={20} />
+            </IconButton>
+          </Box>
+          <Box sx={{ flex: 1, overflowY: "auto", minHeight: 0 }}>
+            <POSTicket
+              cart={cart}
+              cartTotal={cartTotal}
+              discountCents={discountCents}
+              discountPctInput={discountPctInput}
+              isDiscountExceeded={isDiscountExceeded}
+              allowDiscount={tenant?.allow_discount !== false}
+              maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
+              clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
+              onUpdateQuantity={handleUpdateQuantity}
+              onSetQuantity={handleSetQuantity}
+              onRemoveItem={handleRemoveItem}
+              onDiscountCentsChange={setDiscountCents}
+              onDiscountPctChange={setDiscountPctInput}
+              onClearCart={handleClearCart}
+              onCheckout={() => {
+                setMobileCartDrawerOpen(false);
+                setIsCheckoutOpen(true);
+              }}
+            />
+          </Box>
+        </Drawer>
+      )}
 
       {/* ── Modals ── */}
       {isCheckoutOpen && (

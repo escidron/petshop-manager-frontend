@@ -160,18 +160,20 @@ export default function PetFormModal({
   return (
     <>
       <Dialog
-      open={open}
-      maxWidth={false} // permite ultrapassar os limites padrões
-      slotProps={{
-        paper: {
-          sx: {
-            width: showAdditionalInfo ? "80%" : "500px",
-            maxWidth: "1200px", // largura máxima
-            minWidth: showAdditionalInfo ? "1000px" : "500px",
+        open={open}
+        maxWidth={false}
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: "95vw", sm: showAdditionalInfo ? "85%" : "500px" },
+              maxWidth: { xs: "100%", sm: "1200px" },
+              minWidth: { xs: "unset", sm: showAdditionalInfo ? "750px" : "450px" },
+              m: { xs: 1, sm: 2 },
+              borderRadius: 3,
+            },
           },
-        },
-      }}
-    >
+        }}
+      >
       <DialogTitle
         sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
       >

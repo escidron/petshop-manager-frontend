@@ -15,27 +15,25 @@ export default function EmailVerificationBanner() {
     <>
       <Box
         sx={{
-          margin: "0 auto 0.75rem auto",
+          margin: "0 auto",
+          mb: { xs: 0.75, sm: 1 },
           width: "100%",
           maxWidth: 1400,
           display: "flex",
-          flexDirection: { xs: "column", md: "row" },
-          alignItems: { xs: "flex-start", md: "center" },
+          flexDirection: { xs: "row", sm: "row" },
+          alignItems: "center",
           justifyContent: "space-between",
-          gap: 2,
-          px: 3,
-          py: 2,
-          borderRadius: 3,
+          gap: { xs: 1, sm: 2 },
+          px: { xs: 1, sm: 2 },
+          py: { xs: 0.75, sm: 1.25 },
+          borderRadius: { xs: 2, sm: 3 },
           background: "linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%)",
           border: "1px solid #A7F3D0",
-          boxShadow: "0 4px 12px rgba(16, 185, 129, 0.06)",
-          transition: "transform 0.2s, box-shadow 0.2s",
-          "&:hover": {
-            boxShadow: "0 6px 16px rgba(16, 185, 129, 0.1)",
-          },
+          boxShadow: "0 2px 8px rgba(16, 185, 129, 0.06)",
+          flexShrink: 0,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0, flex: 1 }}>
           <Box
             sx={{
               display: "flex",
@@ -44,25 +42,28 @@ export default function EmailVerificationBanner() {
               bgcolor: "#10B981",
               color: "white",
               borderRadius: "50%",
-              width: 32,
-              height: 32,
+              width: { xs: 28, sm: 32 },
+              height: { xs: 28, sm: 32 },
+              minWidth: { xs: 28, sm: 32 },
               flexShrink: 0,
             }}
           >
-            <ShieldAlert size={18} />
+            <ShieldAlert size={16} />
           </Box>
-          <Box>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
             <Typography
               variant="subtitle2"
-              sx={{ fontWeight: 700, color: "#065F46", lineHeight: 1.2 }}
+              sx={{ fontWeight: 700, color: "#065F46", fontSize: { xs: "0.78rem", sm: "0.875rem" }, lineHeight: 1.2 }}
+              noWrap
             >
               Confirme seu endereço de e-mail
             </Typography>
             <Typography
-              variant="body2"
-              sx={{ color: "#047857", mt: 0.5, fontSize: "0.85rem" }}
+              variant="caption"
+              sx={{ color: "#047857", display: "block", fontSize: { xs: "0.68rem", sm: "0.8rem" }, mt: 0.1 }}
+              noWrap
             >
-              Enviamos um código de verificação para <strong>{user.email}</strong>. Confirme sua conta para garantir segurança total.
+              Código enviado para <strong>{user.email}</strong>
             </Typography>
           </Box>
         </Box>
@@ -71,11 +72,11 @@ export default function EmailVerificationBanner() {
           variant="contained"
           size="small"
           onClick={() => setModalOpen(true)}
-          endIcon={<ArrowRight size={14} />}
+          endIcon={<ArrowRight size={13} />}
           sx={{
-            py: 0.8,
-            px: 2,
-            fontSize: "0.8rem",
+            py: { xs: 0.5, sm: 0.75 },
+            px: { xs: 1.25, sm: 2 },
+            fontSize: { xs: "0.72rem", sm: "0.8rem" },
             fontWeight: 700,
             textTransform: "none",
             borderRadius: 2,
@@ -83,15 +84,14 @@ export default function EmailVerificationBanner() {
             color: "white",
             boxShadow: "none",
             flexShrink: 0,
-            alignSelf: { xs: "stretch", md: "auto" },
-            textAlign: "center",
+            whiteSpace: "nowrap",
             "&:hover": {
               bgcolor: "#047857",
               boxShadow: "0 2px 6px rgba(4, 120, 87, 0.2)",
             },
           }}
         >
-          Verificar Conta
+          Verificar
         </Button>
       </Box>
 

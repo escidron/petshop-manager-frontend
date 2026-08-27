@@ -2,7 +2,7 @@ import { Box, Typography, Skeleton, Chip } from "@mui/material";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Receipt, ShoppingCart, Clock } from "lucide-react";
+import { Receipt, Clock, ChevronRight } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import { getOpenInvoices } from "../../api/services/appointments";
 import AppointmentDetailsModal from "../appointments/AppointmentDetailsModal";
@@ -187,77 +187,101 @@ export default function OpenInvoices({
             return (
               <CustomCard
                 key={`${type}-${data.id}`}
-                onClick={() => { if (isApt) setSelectedAppointment(data as Appointment) }}
+                onClick={() => {
+                  if (isApt) navigate("/pos", { state: { pullAppointment: data } });
+                  else navigate("/pos", { state: { pullPackage: data } });
+                }}
                 sx={{
-                  p: 1.5,
-                  cursor: isApt ? "pointer" : "default",
+                  p: { xs: 1.1, sm: 1.25 },
+                  cursor: "pointer",
                   transition: "all 0.15s ease",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 0.4,
                   "&:hover": {
                     transform: "translateY(-1px)",
-                    boxShadow: 4,
+                    boxShadow: 3,
+                    "& .chevron-icon": {
+                      transform: "translateX(2px)",
+                      bgcolor: "primary.main",
+                      color: "white",
+                    },
                   },
                 }}
               >
-                {/* Top row: client + amount */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                  <Box>
-                    <Typography variant="body2" fontWeight={700} sx={{ lineHeight: 1.3 }}>
+                {/* Linha 1: Nome do cliente e pets na esquerda | Preço e seta na direita */}
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0, overflow: "hidden" }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={700}
+                      noWrap
+                      sx={{ fontSize: { xs: "0.85rem", sm: "0.88rem" }, lineHeight: 1.2 }}
+                    >
                       {clientName}
                     </Typography>
-                    <Typography variant="caption" color="text.disabled">
-                      {description}
-                    </Typography>
+                    {description && (
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{ color: "text.primary", opacity: 0.6, fontSize: "0.74rem" }}
+                      >
+                        • {description}
+                      </Typography>
+                    )}
                   </Box>
-                  <Typography variant="body2" fontWeight={800} color="primary.main" sx={{ whiteSpace: "nowrap", ml: 1 }}>
-                    {totalFormatted}
+
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+                    <Typography
+                      variant="body2"
+                      fontWeight={800}
+                      color="primary.main"
+                      sx={{ whiteSpace: "nowrap", fontSize: { xs: "0.85rem", sm: "0.92rem" } }}
+                    >
+                      {totalFormatted}
+                    </Typography>
+                    <Box
+                      className="chevron-icon"
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        width: 20,
+                        height: 20,
+                        borderRadius: "50%",
+                        bgcolor: "grey.100",
+                        color: "primary.main",
+                        transition: "all 0.15s ease",
+                      }}
+                    >
+                      <ChevronRight size={13} strokeWidth={2.5} />
+                    </Box>
+                  </Box>
+                </Box>
+
+                {/* Linha 2: Serviços na esquerda | Tempo decorrido no final à direita */}
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                  <Typography
+                    variant="caption"
+                    noWrap
+                    sx={{ color: "text.primary", opacity: 0.7, fontSize: "0.72rem", minWidth: 0, flex: 1 }}
+                  >
+                    {subDescription || "Agendamento"}
                   </Typography>
-                </Box>
 
-                {/* Bottom row: services + time */}
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.75 }}>
-                  {subDescription && (
-                    <Typography variant="caption" color="text.primary" noWrap sx={{ maxWidth: "65%" }}>
-                      {subDescription}
-                    </Typography>
-                  )}
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "text.disabled", ml: "auto" }}>
-                    <Clock size={11} />
-                    <Typography variant="caption">{when}</Typography>
-                  </Box>
-                </Box>
-
-                {/* Quick POS button */}
-                <Box
-                  sx={{
-                    mt: 1,
-                    display: "flex",
-                    justifyContent: "flex-end",
-                  }}
-                  onClick={(e) => e.stopPropagation()}
-                >
                   <Box
-                    onClick={() => {
-                        if (isApt) navigate("/pos", { state: { pullAppointment: data } });
-                        else navigate("/pos", { state: { pullPackage: data } });
-                    }}
                     sx={{
                       display: "flex",
                       alignItems: "center",
-                      gap: 0.5,
-                      px: 1.25,
-                      py: 0.4,
-                      borderRadius: 1,
-                      bgcolor: "primary.main",
-                      color: "primary.contrastText",
-                      cursor: "pointer",
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      transition: "opacity 0.15s",
-                      "&:hover": { opacity: 0.85 },
+                      gap: 0.35,
+                      color: "text.disabled",
+                      flexShrink: 0,
                     }}
                   >
-                    <ShoppingCart size={13} />
-                    Cobrar
+                    <Clock size={11} />
+                    <Typography variant="caption" sx={{ fontSize: "0.68rem" }}>
+                      {when}
+                    </Typography>
                   </Box>
                 </Box>
               </CustomCard>

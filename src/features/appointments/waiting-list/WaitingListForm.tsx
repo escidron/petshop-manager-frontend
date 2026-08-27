@@ -182,9 +182,9 @@ export default function WaitingListForm({
         </Button>
       </FormControl>
 
-      <Box sx={{ display: "flex", gap: 2 }}>
+      <Box sx={{ display: "flex", gap: { xs: 1, sm: 2 }, width: "100%" }}>
         {/* DATA PREFERENCIAL */}
-        <FormControl sx={{ flex: 1 }}>
+        <FormControl sx={{ flex: { xs: "1 1 55%", sm: 1 }, minWidth: 0 }}>
           <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Data Preferencial</FormLabel>
           <Controller
             name="preferred_date"
@@ -243,13 +243,13 @@ export default function WaitingListForm({
         </FormControl>
 
         {/* PERÍODO */}
-        <FormControl sx={{ width: 140 }}>
+        <FormControl sx={{ flex: { xs: "1 1 45%", sm: "0 0 140px" }, minWidth: 0 }}>
           <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Período</FormLabel>
           <Controller
             name="preferred_period"
             control={control}
             render={({ field }) => (
-              <Select {...field} size="small">
+              <Select {...field} size="small" fullWidth>
                 <MenuItem value="any">Qualquer</MenuItem>
                 <MenuItem value="morning">Manhã</MenuItem>
                 <MenuItem value="afternoon">Tarde</MenuItem>

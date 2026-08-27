@@ -51,16 +51,30 @@ export default function WaitingListModal({ open, onClose, onSuccess, initialEntr
 
   return (
     <>
-      <Dialog open={open} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Typography variant="h6" component="div">
+      <Dialog
+        open={open}
+        maxWidth={false}
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: "96vw", sm: "720px" },
+              maxWidth: "100%",
+              m: { xs: 1, sm: 2 },
+              maxHeight: { xs: "92vh", sm: "90vh" },
+              borderRadius: 3,
+            },
+          },
+        }}
+      >
+        <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pr: { xs: 2, sm: 4 } }}>
+          <Typography variant="h5" sx={{ fontSize: { xs: "1.25rem", sm: "1.5rem" }, fontWeight: 700 }}>
             {initialEntry ? "Editar Fila de Espera" : "Adicionar à Fila de Espera"}
           </Typography>
           <Box sx={{ cursor: "pointer" }} onClick={onClose}>
             <X size={20} />
           </Box>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent>
           <WaitingListForm
             initialData={initialEntry}
             clients={clients}

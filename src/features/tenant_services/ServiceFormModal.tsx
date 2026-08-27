@@ -77,13 +77,15 @@ export default function ServiceFormModal({
   return (
     <Dialog
       open={open}
-      maxWidth={false} // permite ultrapassar os limites padrões
+      maxWidth={false}
       slotProps={{
         paper: {
           sx: {
-            width: showAdditionalInfo ? "80%" : "500px",
-            maxWidth: "800px", // largura máxima
-            minWidth: showAdditionalInfo ? "800px" : "400px",
+            width: { xs: "95vw", sm: showAdditionalInfo ? "80%" : "500px" },
+            maxWidth: { xs: "100%", sm: "800px" },
+            minWidth: { xs: "unset", sm: showAdditionalInfo ? "650px" : "400px" },
+            m: { xs: 1, sm: 2 },
+            borderRadius: 3,
           },
         },
       }}

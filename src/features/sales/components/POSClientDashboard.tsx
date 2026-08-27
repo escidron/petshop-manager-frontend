@@ -6,6 +6,8 @@ import {
   IconButton,
   Collapse,
   alpha,
+  useMediaQuery,
+  useTheme,
 } from "@mui/material";
 import { Calendar, User, X, ChevronDown, ChevronUp, Check } from "lucide-react";
 import { useState } from "react";
@@ -49,6 +51,8 @@ export default function POSClientDashboard({
   onClearClient,
   hideHeader = false,
 }: POSClientDashboardProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
   const [packagesOpen, setPackagesOpen] = useState(false);
   const [upcomingOpen, setUpcomingOpen] = useState(false);
   const [showAllPending, setShowAllPending] = useState(false);
@@ -86,11 +90,12 @@ export default function POSClientDashboard({
   const upcoming = allUpcoming.slice(0, 3);
   const remainingUpcoming = upcomingCount > 3 ? upcomingCount - 3 : 0;
 
-  const displayedPendingToPay = showAllPending ? pendingToPay : pendingToPay.slice(0, 4);
+  const defaultLimit = isMobile ? 2 : 4;
+  const displayedPendingToPay = showAllPending ? pendingToPay : pendingToPay.slice(0, defaultLimit);
   const hiddenPendingCount = pendingToPay.length - displayedPendingToPay.length;
 
   return (
-    <Box sx={{ p: { xs: 2, md: 2.5 } }}>
+    <Box sx={{ p: { xs: 0.5, sm: 1.5, md: 2 } }}>
       {/* Client Header — hidden when POSSessionHeader is already showing above */}
       {!hideHeader && (
         <Box
@@ -104,13 +109,13 @@ export default function POSClientDashboard({
             borderRadius: 3,
             borderColor: "divider",
             bgcolor: (theme) => alpha(theme.palette.primary.main, 0.02),
-            mb: 3,
+            mb: 2,
           }}
         >
           <Box
             sx={{
-              width: 44,
-              height: 44,
+              width: 40,
+              height: 40,
               borderRadius: "50%",
               bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
               display: "flex",
@@ -120,18 +125,15 @@ export default function POSClientDashboard({
               flexShrink: 0,
             }}
           >
-            <User size={22} />
+            <User size={20} />
           </Box>
 
-          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 2, flexGrow: 1, flexWrap: "wrap" }}>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main" }}>
+          <Box sx={{ display: "flex", flexDirection: "row", alignItems: "center", gap: 1.5, flexGrow: 1, flexWrap: "wrap", minWidth: 0 }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "primary.main", fontSize: { xs: "0.95rem", sm: "1.15rem" } }} noWrap>
               {client.name}
             </Typography>
             {clientPets && clientPets.length > 0 && (
-              <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center" }}>
-                <Typography variant="caption" sx={{ fontWeight: 800, color: "text.primary", opacity: 0.3, mr: 0.5 }}>
-                  PETS:
-                </Typography>
+              <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", alignItems: "center" }}>
                 {clientPets.map((pet) => (
                   <Chip
                     key={pet.id}
@@ -141,6 +143,8 @@ export default function POSClientDashboard({
                       bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                       color: "primary.main",
                       fontWeight: 700,
+                      height: 20,
+                      fontSize: "0.65rem",
                     }}
                   />
                 ))}
@@ -157,7 +161,7 @@ export default function POSClientDashboard({
               "&:hover": { color: "error.main", opacity: 1, bgcolor: (theme) => alpha(theme.palette.error.main, 0.1) },
             }}
           >
-            <X size={22} />
+            <X size={20} />
           </IconButton>
         </Box>
       )}
@@ -166,103 +170,129 @@ export default function POSClientDashboard({
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
 
         {/* 1. Pending to Pay — always expanded, high priority */}
-          {pendingToPay.length > 0 && (
-            <Box>
-              <Typography
-                variant="overline"
-                sx={{ fontWeight: 800, color: "text.primary", mb: 1, display: "block", letterSpacing: 1.2, fontSize: "0.65rem" }}
-              >
-                Comandas em Aberto
-              </Typography>
-              <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                {displayedPendingToPay.map((apt) => {
-                  const isSelected = selectedAppointmentId === apt.id;
-                  return (
-                    <Paper
-                      key={apt.id}
-                      elevation={0}
+        {pendingToPay.length > 0 && (
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ fontWeight: 800, color: "text.primary", mb: 1, display: "block", letterSpacing: 1.2, fontSize: "0.65rem" }}
+            >
+              Comandas em Aberto
+            </Typography>
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+              {displayedPendingToPay.map((apt) => {
+                const isSelected = selectedAppointmentId === apt.id;
+                return (
+                  <Paper
+                    key={apt.id}
+                    elevation={0}
+                    sx={{
+                      display: "flex",
+                      flexDirection: { xs: "column", sm: "row" },
+                      justifyContent: "space-between",
+                      alignItems: { xs: "stretch", sm: "center" },
+                      p: 1.5,
+                      gap: 1.25,
+                      border: "1px solid",
+                      borderColor: isSelected ? "success.main" : (theme) => alpha(theme.palette.primary.main, 0.35),
+                      borderRadius: 2.5,
+                      bgcolor: isSelected ? (theme) => alpha(theme.palette.success.main, 0.05) : (theme) => alpha(theme.palette.primary.main, 0.04),
+                      transition: "all 0.3s ease",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
+                      <Box
+                        sx={{
+                          width: 34,
+                          height: 34,
+                          borderRadius: 1.5,
+                          bgcolor: isSelected ? (theme) => alpha(theme.palette.success.main, 0.1) : (theme) => alpha(theme.palette.primary.main, 0.1),
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          color: isSelected ? "success.main" : "primary.main",
+                          flexShrink: 0,
+                        }}
+                      >
+                        <Calendar size={16} />
+                      </Box>
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2, mb: 0.25 }}>
+                          {dayjs(apt.scheduled_at).format("DD/MM")} · {dayjs(apt.scheduled_at).format("HH:mm")}
+                        </Typography>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                          <Typography variant="caption" sx={{ fontWeight: 800, color: isSelected ? "success.dark" : "primary.main", fontSize: "0.72rem" }}>
+                            {apt.items.map((i) => i.pet.name).join(", ")}
+                          </Typography>
+                          <Box component="span" sx={{ width: 3, height: 3, borderRadius: "50%", bgcolor: "text.primary", opacity: 0.3, flexShrink: 0 }} />
+                          <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.75, fontSize: "0.68rem" }} noWrap>
+                            {[...new Set(apt.items.flatMap((i) => i.services.map((s) => s.name)))].join(", ")}
+                          </Typography>
+                        </Box>
+                      </Box>
+                    </Box>
+
+                    <Box
                       sx={{
                         display: "flex",
-                        justifyContent: "space-between",
                         alignItems: "center",
-                        p: 1.5,
-                        border: "1px solid",
-                        borderColor: isSelected ? "success.main" : (theme) => alpha(theme.palette.primary.main, 0.35),
-                        borderRadius: 2.5,
-                        bgcolor: isSelected ? (theme) => alpha(theme.palette.success.main, 0.05) : (theme) => alpha(theme.palette.primary.main, 0.04),
-                        transition: "all 0.3s ease",
+                        justifyContent: { xs: "space-between", sm: "flex-end" },
+                        gap: 1.5,
+                        flexShrink: 0,
+                        pt: { xs: 0.75, sm: 0 },
+                        borderTop: { xs: "1px solid", sm: "none" },
+                        borderColor: (theme) => alpha(theme.palette.divider, 0.5),
                       }}
                     >
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flex: 1, minWidth: 0 }}>
-                        <Box
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: isSelected ? "success.main" : "primary.main", fontSize: "0.9rem" }}>
+                        R$ {(getAppointmentPrice(apt) / 100).toFixed(2)}
+                      </Typography>
+                      {isSelected ? (
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "success.main", px: 1 }}>
+                          <Check size={16} />
+                          <Typography variant="caption" sx={{ fontWeight: 800 }}>Adicionado</Typography>
+                        </Box>
+                      ) : (
+                        <Button
+                          variant="contained"
+                          size="small"
+                          onClick={() => onPullAppointment(apt)}
                           sx={{
-                            width: 32,
-                            height: 32,
+                            bgcolor: "primary.main",
+                            color: "white",
+                            fontWeight: 700,
                             borderRadius: 1.5,
-                            bgcolor: isSelected ? (theme) => alpha(theme.palette.success.main, 0.1) : (theme) => alpha(theme.palette.primary.main, 0.1),
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: isSelected ? "success.main" : "primary.main",
-                            flexShrink: 0,
+                            px: 1.5,
+                            py: 0.5,
+                            boxShadow: "none",
+                            minWidth: 0,
+                            fontSize: "0.75rem",
+                            whiteSpace: "nowrap",
+                            "&:hover": { bgcolor: "primary.dark", boxShadow: "none" },
                           }}
                         >
-                          <Calendar size={16} />
-                        </Box>
-                        <Box sx={{ minWidth: 0, flex: 1, pr: 2 }}>
-                          <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2, mb: 0.5 }}>
-                            {dayjs(apt.scheduled_at).format("DD/MM")} · {dayjs(apt.scheduled_at).format("HH:mm")}
-                          </Typography>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "nowrap", overflow: "hidden" }}>
-                            <Typography variant="caption" sx={{ fontWeight: 800, color: isSelected ? "success.dark" : "primary.main", fontSize: "0.7rem", whiteSpace: "nowrap" }}>
-                              {apt.items.map((i) => i.pet.name).join(", ")}
-                            </Typography>
-                            <Box component="span" sx={{ width: 3, height: 3, borderRadius: "50%", bgcolor: "text.primary", opacity: 0.3, flexShrink: 0 }} />
-                            <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.6, fontSize: "0.65rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                              {[...new Set(apt.items.flatMap((i) => i.services.map((s) => s.name)))].join(", ")}
-                            </Typography>
-                          </Box>
-                        </Box>
-                      </Box>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 800, color: isSelected ? "success.main" : "primary.main" }}>
-                          R$ {(getAppointmentPrice(apt) / 100).toFixed(2)}
-                        </Typography>
-                        {isSelected ? (
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, color: "success.main", px: 1 }}>
-                            <Check size={18} />
-                            <Typography variant="caption" sx={{ fontWeight: 800 }}>Adicionado</Typography>
-                          </Box>
-                        ) : (
-                          <Button
-                            variant="contained"
-                            size="small"
-                            onClick={() => onPullAppointment(apt)}
-                            sx={{ bgcolor: "primary.main", color: "white", fontWeight: 700, borderRadius: 1.5, px: 1.5, boxShadow: "none", minWidth: 0, fontSize: "0.75rem", "&:hover": { bgcolor: "primary.dark", boxShadow: "none" } }}
-                          >
-                            Adicionar ao carrinho
-                          </Button>
-                        )}
-                      </Box>
-                    </Paper>
-                  );
-                })}
-                {hiddenPendingCount > 0 && (
-                  <Button
-                    variant="text"
-                    size="small"
-                    onClick={() => setShowAllPending(true)}
-                    sx={{ color: "primary.main", fontWeight: 800, fontSize: "0.7rem", py: 0.5, mt: 0.5 }}
-                  >
-                    Ver todas as {pendingToPay.length} comandas pendentes
-                  </Button>
-                )}
-              </Box>
+                          Adicionar ao carrinho
+                        </Button>
+                      )}
+                    </Box>
+                  </Paper>
+                );
+              })}
+              {hiddenPendingCount > 0 && (
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={() => setShowAllPending(true)}
+                  sx={{ color: "primary.main", fontWeight: 800, fontSize: "0.7rem", py: 0.5, mt: 0.5 }}
+                >
+                  Ver todas as {pendingToPay.length} comandas pendentes
+                </Button>
+              )}
             </Box>
-          )}
+          </Box>
+        )}
 
         {/* Pending Commands Modal */}
-        <Dialog open={showAllPending} onClose={() => setShowAllPending(false)} maxWidth="sm" fullWidth>
+        <Dialog open={showAllPending} onClose={() => setShowAllPending(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: 3, m: { xs: 1, sm: 2 }, width: { xs: "96vw", sm: "auto" } } }}>
           <DialogTitle sx={{ fontWeight: 800, pb: 1, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
             Comandas Pendentes ({pendingToPay.length})
             <IconButton onClick={() => setShowAllPending(false)} size="small">
@@ -278,9 +308,11 @@ export default function POSClientDashboard({
                   elevation={0}
                   sx={{
                     display: "flex",
+                    flexDirection: { xs: "column", sm: "row" },
                     justifyContent: "space-between",
-                    alignItems: "center",
+                    alignItems: { xs: "stretch", sm: "center" },
                     p: 1.5,
+                    gap: 1.25,
                     border: "1px solid",
                     borderColor: isSelected ? "success.main" : (theme) => alpha(theme.palette.primary.main, 0.35),
                     borderRadius: 2.5,
@@ -304,22 +336,22 @@ export default function POSClientDashboard({
                     >
                       <Calendar size={16} />
                     </Box>
-                    <Box sx={{ minWidth: 0, flex: 1, pr: 2 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2, mb: 0.5 }}>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", lineHeight: 1.2, mb: 0.25 }}>
                         {dayjs(apt.scheduled_at).format("DD/MM")} · {dayjs(apt.scheduled_at).format("HH:mm")}
                       </Typography>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "nowrap", overflow: "hidden" }}>
-                        <Typography variant="caption" sx={{ fontWeight: 800, color: isSelected ? "success.dark" : "primary.main", fontSize: "0.7rem", whiteSpace: "nowrap" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
+                        <Typography variant="caption" sx={{ fontWeight: 800, color: isSelected ? "success.dark" : "primary.main", fontSize: "0.7rem" }}>
                           {apt.items.map((i) => i.pet.name).join(", ")}
                         </Typography>
                         <Box component="span" sx={{ width: 3, height: 3, borderRadius: "50%", bgcolor: "text.primary", opacity: 0.3, flexShrink: 0 }} />
-                        <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.6, fontSize: "0.65rem", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.6, fontSize: "0.65rem" }} noWrap>
                           {[...new Set(apt.items.flatMap((i) => i.services.map((s) => s.name)))].join(", ")}
                         </Typography>
                       </Box>
                     </Box>
                   </Box>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexShrink: 0 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: { xs: "space-between", sm: "flex-end" }, gap: 1.5, flexShrink: 0 }}>
                     <Typography variant="body2" sx={{ fontWeight: 800, color: isSelected ? "success.main" : "primary.main" }}>
                       R$ {(getAppointmentPrice(apt) / 100).toFixed(2)}
                     </Typography>

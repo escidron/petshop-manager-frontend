@@ -146,7 +146,15 @@ export default function CheckoutModal({
         onClose={onClose}
         maxWidth="sm"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 4, overflow: "hidden" } }}
+        PaperProps={{
+          sx: {
+            borderRadius: { xs: 3, sm: 4 },
+            overflow: "hidden",
+            m: { xs: 1, sm: 2 },
+            width: { xs: "96vw", sm: "auto" },
+            maxHeight: { xs: "92vh", sm: "90vh" },
+          },
+        }}
       >
         <DialogTitle
           sx={{
@@ -155,13 +163,13 @@ export default function CheckoutModal({
             justifyContent: "space-between",
             bgcolor: "primary.main",
             color: "white",
-            px: 3,
-            py: 2,
+            px: { xs: 2, sm: 3 },
+            py: { xs: 1.5, sm: 2 },
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <ShoppingCart size={24} />
-            <Typography variant="h6" sx={{ fontWeight: 700 }}>
+            <ShoppingCart size={22} />
+            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               Finalizar Venda
             </Typography>
           </Box>
@@ -170,11 +178,11 @@ export default function CheckoutModal({
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: 4 }}>
+        <DialogContent sx={{ p: { xs: 2, sm: 4 } }}>
           <Box
             sx={{
               mb: 3,
-              p: 3,
+              p: { xs: 2, sm: 3 },
               bgcolor: alpha("#1976d2", 0.05),
               borderRadius: 3,
               textAlign: "center",
@@ -185,7 +193,11 @@ export default function CheckoutModal({
             <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 0.5 }}>
               TOTAL A RECEBER
             </Typography>
-            <Typography variant="h3" color="primary" sx={{ fontWeight: 900 }}>
+            <Typography
+              variant="h3"
+              color="primary"
+              sx={{ fontWeight: 900, fontSize: { xs: "1.8rem", sm: "2.75rem" } }}
+            >
               R$ {totalAmount.toFixed(2)}
             </Typography>
           </Box>

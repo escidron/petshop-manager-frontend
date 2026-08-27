@@ -23,17 +23,17 @@ export default function POSSessionHeader({
       sx={{
         display: "flex",
         alignItems: "center",
-        gap: 2,
-        px: 3,
-        py: 2,
+        justifyContent: "space-between",
+        gap: { xs: 0.75, sm: 2 },
+        px: { xs: 1, sm: 2.5 },
+        py: { xs: 1, sm: 1.5 },
         borderBottom: "1px solid",
         borderColor: "divider",
         bgcolor: "background.paper",
-        borderRadius: "12px 12px 0 0",
         flexShrink: 0,
       }}
     >
-      {/* Back button */}
+      {/* Back / Trocar button */}
       <IconButton
         onClick={onBack}
         size="small"
@@ -41,10 +41,11 @@ export default function POSSessionHeader({
           bgcolor: "action.hover",
           borderRadius: 2,
           gap: 0.5,
-          px: 1.5,
-          py: 0.75,
+          px: { xs: 1, sm: 1.5 },
+          py: 0.5,
           height: "auto",
           color: "text.primary",
+          flexShrink: 0,
           "&:hover": { color: "text.primary", bgcolor: "action.selected" },
         }}
       >
@@ -54,27 +55,28 @@ export default function POSSessionHeader({
         </Typography>
       </IconButton>
 
-      {/* Client info */}
-      <Box sx={{ flex: 1, display: "flex", alignItems: "center", gap: 2, flexWrap: "wrap" }}>
+      {/* Client info and pet chips */}
+      <Box sx={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.25 }}>
         <Typography
-          variant="h6"
-          sx={{ fontWeight: 800, color: "primary.main", lineHeight: 1 }}
+          variant="subtitle1"
+          sx={{ fontWeight: 800, color: "primary.main", fontSize: { xs: "0.95rem", sm: "1.1rem" }, lineHeight: 1.2 }}
+          noWrap
         >
           {client.name}
         </Typography>
 
         {clientPets.length > 0 && (
-          <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap", alignItems: "center" }}>
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", alignItems: "center", maxWidth: "100%" }}>
             {clientPets.map((pet) => (
               <Chip
                 key={pet.id}
                 label={pet.name}
                 size="small"
                 sx={{
-                  height: 24,
-                  fontSize: "0.7rem",
+                  height: 20,
+                  fontSize: "0.65rem",
                   fontWeight: 700,
-                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.1),
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
                   color: "primary.main",
                 }}
               />
@@ -89,6 +91,7 @@ export default function POSSessionHeader({
         size="small"
         sx={{
           color: "text.disabled",
+          flexShrink: 0,
           "&:hover": {
             color: "error.main",
             bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
