@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Box, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import { Box, Dialog, DialogContent, DialogTitle, DialogActions, Typography, Alert } from "@mui/material";
 import { X } from "lucide-react";
 
 import { createAppointment, updateAppointment } from "../../api/services/appointments";
@@ -7,6 +7,7 @@ import { useClients } from "../../hooks/useClients";
 import { useServices } from "../../hooks/useServices";
 import { useClient } from "../../hooks/useClient";
 import { useToast } from "../../hooks/useToast";
+import { Button } from "../../components/Button/Button";
 
 import AppointmentForm from "./AppointmentForm";
 import ClientFormModal from "../clients/ClientFormModal";
@@ -78,18 +79,30 @@ export default function AppointmentModal({
   >();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editRecurrenceConfirmOpen, setEditRecurrenceConfirmOpen] = useState(false);
+  const [pendingFormData, setPendingFormData] = useState<AppointmentFormData | null>(null);
 
-  const handleSubmit = async (data: AppointmentFormData) => {
+  const executeSubmit = async (data: AppointmentFormData, updateAllFuture: boolean = false) => {
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      await (mode === "create"
-        ? createAppointment(data)
-        : updateAppointment(appointment!.id, data));
+      if (mode === "create") {
+        await createAppointment(data);
+      } else {
+        await updateAppointment(appointment!.id, {
+          ...data,
+          update_all_future: updateAllFuture,
+        });
+      }
 
       toast.success(
-        mode === "create" ? "Agendamento criado com sucesso" : "Agendamento atualizado com sucesso",
+        mode === "create"
+          ? "Agendamento criado com sucesso"
+          : updateAllFuture
+          ? "Agendamento e recorrências futuras atualizados com sucesso"
+          : "Agendamento atualizado com sucesso",
       );
+      setEditRecurrenceConfirmOpen(false);
       onSuccess();
       onClose();
     } catch {
@@ -97,6 +110,15 @@ export default function AppointmentModal({
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleSubmit = (data: AppointmentFormData) => {
+    if (mode === "edit" && appointment?.recurrence_id) {
+      setPendingFormData(data);
+      setEditRecurrenceConfirmOpen(true);
+      return;
+    }
+    executeSubmit(data, false);
   };
 
   const handleClientCreated = async (client: Client) => {
@@ -192,6 +214,57 @@ export default function AppointmentModal({
         onClose={() => setServiceModal((p) => ({ ...p, open: false }))}
         onSuccess={handleServiceCreated}
       />
+
+      <Dialog
+        open={editRecurrenceConfirmOpen}
+        onClose={() => !isSubmitting && setEditRecurrenceConfirmOpen(false)}
+      >
+        <DialogTitle>Alterar Agendamento Recorrente</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Este agendamento faz parte de uma recorrência. Como deseja aplicar as alterações?
+          </Typography>
+          <Alert severity="info" sx={{ mt: 2, fontSize: "0.85rem" }}>
+            Você pode alterar apenas este agendamento ou aplicar as novas informações (horário, serviços, observações) para este e todos os agendamentos futuros da série.
+          </Alert>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            p: 2,
+            gap: 1,
+          }}
+        >
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={() => pendingFormData && executeSubmit(pendingFormData, false)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
+            Alterar apenas este
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => setEditRecurrenceConfirmOpen(false)}
+            disabled={isSubmitting}
+          >
+            Voltar
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => pendingFormData && executeSubmit(pendingFormData, true)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
+            Alterar este e TODOS os futuros
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

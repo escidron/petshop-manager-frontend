@@ -24,7 +24,7 @@ export const createAppointment = async (
 
 export const updateAppointment = async (
   appointmentId: number,
-  payload: AppointmentFormData
+  payload: AppointmentFormData & { update_all_future?: boolean }
 ) => {
   const response = await apiClient.patch<Appointment>(
     `/api/v1/appointments/${appointmentId}`,
