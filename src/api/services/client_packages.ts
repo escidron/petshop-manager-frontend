@@ -52,9 +52,10 @@ export const deactivateClientPackage = async (
 
 export const consumeClientPackageCredit = async (
   creditId: number,
-  notes?: string
+  data?: { notes?: string; consumed_at?: string } | string,
 ): Promise<void> => {
-  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`, { notes });
+  const payload = typeof data === "string" ? { notes: data } : data || {};
+  await apiClient.post(`/api/v1/client-packages/credits/${creditId}/consume`, payload);
 };
 
 export const revertClientPackageCredit = async (
