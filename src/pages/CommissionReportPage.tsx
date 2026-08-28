@@ -285,14 +285,11 @@ export default function CommissionReportPage({
               }
             }}
             getOptionLabel={(option) => option.name}
-            renderOption={(props, option) => {
-              const { key, ...restProps } = props as any;
-              return (
-                <li key={option.id} {...restProps}>
-                  {option.name}
-                </li>
-              );
-            }}
+            renderOption={(props, option) => (
+              <li {...props} key={option.id}>
+                {option.name}
+              </li>
+            )}
             isOptionEqualToValue={(option, value) =>
               String(option.id) === String(value.id)
             }
@@ -482,8 +479,8 @@ export default function CommissionReportPage({
               </TableCell>
               <TableCell sx={headerCellSx}>Funcionário</TableCell>
               <TableCell sx={headerCellSx}>Origem</TableCell>
-              <TableCell sx={headerCellSx}>Tipo</TableCell>
               <TableCell sx={headerCellSx}>Base</TableCell>
+              <TableCell sx={headerCellSx}>Tipo</TableCell>
               <TableCell sx={headerCellSx}>Taxa</TableCell>
               <TableCell sx={headerCellSx}>Comissão</TableCell>
               <TableCell sx={headerCellSx}>Data</TableCell>
@@ -531,17 +528,15 @@ export default function CommissionReportPage({
                     )}
                   </TableCell>
                   <TableCell>
-                    {entry.commission_type === "percentage"
-                      ? `${Number(entry.rate).toFixed(2)}%`
-                      : `R$ ${Number(entry.rate).toFixed(2)} fixo`}
-                  </TableCell>
-                  <TableCell>
                     R$ {Number(entry.base_amount).toFixed(2)}
                   </TableCell>
                   <TableCell>
+                    {entry.commission_type === "percentage" ? "Porcentagem" : "Fixo"}
+                  </TableCell>
+                  <TableCell>
                     {entry.commission_type === "percentage"
                       ? `${Number(entry.rate).toFixed(2)}%`
-                      : "fixo"}
+                      : `R$ ${Number(entry.rate).toFixed(2)}`}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700 }}>
                     R$ {Number(entry.commission_amount).toFixed(2)}

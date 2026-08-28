@@ -13,6 +13,11 @@ import {
   Autocomplete,
   TextField,
 } from "@mui/material";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs from "dayjs";
+import "dayjs/locale/pt-br";
 import { ShoppingBag, Trash2, ChevronDown, ChevronUp, History, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import {
@@ -33,12 +38,49 @@ type Props = {
   onRefresh: () => void;
 };
 
+const parseUsageInfo = (notes?: string | null, createdAt?: string, userName?: string | null) => {
+  const rawNotes = notes || "";
+  let petName: string | null = null;
+  let customObs: string | null = null;
+
+  const petMatch = rawNotes.match(/Pet:\s*([^-\]]+)/i);
+  if (petMatch) {
+    petName = petMatch[1].trim();
+  }
+
+  const cleaned = rawNotes
+    .replace(/^Consumo manual\s*/i, "")
+    .replace(/^Consumido via agendamento\s*/i, "")
+    .replace(/^Estorno manual\s*/i, "")
+    .replace(/^-\s*Pet:\s*[^-\]]+\s*/i, "")
+    .replace(/^Pet:\s*[^-\]]+\s*/i, "")
+    .replace(/^-+\s*/, "")
+    .trim();
+
+  if (cleaned && !cleaned.toLowerCase().startsWith("pet:")) {
+    customObs = cleaned;
+  }
+
+  const dateObj = createdAt ? new Date(createdAt) : new Date();
+  return {
+    date: dateObj.toLocaleDateString("pt-BR"),
+    time: dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }),
+    userName: userName || null,
+    petName,
+    customObs,
+    rawNotes,
+  };
+};
+
 export default function PetPackageCredits({ packages, clientPhone, onRefresh }: Props) {
   const [removing, setRemoving] = useState<number | null>(null);
   const [confirmId, setConfirmId] = useState<number | null>(null);
   const [expandedPackageId, setExpandedPackageId] = useState<number | null>(null);
   const [consumeConfirmData, setConsumeConfirmData] = useState<{ creditId: number, serviceName: string, packagePets: ClientPackage["pets"] } | null>(null);
   const [consumeSelectedPetId, setConsumeSelectedPetId] = useState<number | "">("");
+  const [consumeDate, setConsumeDate] = useState<dayjs.Dayjs | null>(dayjs());
+  const [consumeNotes, setConsumeNotes] = useState<string>("");
+  const [isConsuming, setIsConsuming] = useState<boolean>(false);
   const [revertConfirmCreditId, setRevertConfirmCreditId] = useState<number | null>(null);
   const [revertConfirmServiceName, setRevertConfirmServiceName] = useState<string>("");
   const toast = useToast();
@@ -53,8 +95,8 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
       await deactivateClientPackage(confirmId);
       toast.success("Pacote cancelado com sucesso!");
       onRefresh();
-    } catch (e: any) {
-      toast.error(e.response?.data?.detail || "Erro ao cancelar pacote");
+    } catch {
+      toast.error("Erro ao cancelar pacote");
     } finally {
       setConfirmId(null);
       setRemoving(null);
@@ -62,25 +104,39 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
   };
 
   const confirmConsume = async () => {
-    if (!consumeConfirmData) return;
+    if (!consumeConfirmData || isConsuming) return;
     
     let notes = "Consumo manual";
-    if (consumeSelectedPetId) {
-      const pet = consumeConfirmData.packagePets.find(p => p.id === consumeSelectedPetId);
-      if (pet) {
-        notes = `Consumo manual - Pet: ${pet.name}`;
-      }
+    const selectedPet = consumeSelectedPetId
+      ? consumeConfirmData.packagePets.find((p) => p.id === consumeSelectedPetId)
+      : null;
+
+    if (selectedPet && consumeNotes.trim()) {
+      notes = `Consumo manual - Pet: ${selectedPet.name} - ${consumeNotes.trim()}`;
+    } else if (selectedPet) {
+      notes = `Consumo manual - Pet: ${selectedPet.name}`;
+    } else if (consumeNotes.trim()) {
+      notes = `Consumo manual - ${consumeNotes.trim()}`;
     }
 
+    const consumedAt = consumeDate && consumeDate.isValid() ? consumeDate.toISOString() : undefined;
+
+    setIsConsuming(true);
     try {
-      await consumeClientPackageCredit(consumeConfirmData.creditId, notes);
+      await consumeClientPackageCredit(consumeConfirmData.creditId, {
+        notes,
+        consumed_at: consumedAt,
+      });
       toast.success("Baixa realizada com sucesso!");
       onRefresh();
-    } catch (e) {
-      toast.error("Erro ao realizar baixa.");
-    } finally {
       setConsumeConfirmData(null);
       setConsumeSelectedPetId("");
+      setConsumeNotes("");
+      setConsumeDate(dayjs());
+    } catch {
+      toast.error("Erro ao realizar baixa.");
+    } finally {
+      setIsConsuming(false);
     }
   };
 
@@ -90,7 +146,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
       await revertClientPackageCredit(revertConfirmCreditId);
       toast.success("Estorno realizado com sucesso!");
       onRefresh();
-    } catch (e) {
+    } catch {
       toast.error("Erro ao estornar.");
     } finally {
       setRevertConfirmCreditId(null);
@@ -169,16 +225,76 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
         </DialogActions>
       </Dialog>
 
-      <Dialog open={consumeConfirmData !== null} onClose={() => setConsumeConfirmData(null)} maxWidth="xs" fullWidth>
+      <Dialog
+        open={consumeConfirmData !== null}
+        onClose={() => !isConsuming && setConsumeConfirmData(null)}
+        maxWidth="sm"
+        fullWidth
+      >
         <DialogTitle>Confirmar Baixa Manual</DialogTitle>
-        <DialogContent>
-          <DialogContentText sx={{ color: "text.primary", mb: 2 }}>
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <DialogContentText sx={{ color: "text.primary" }}>
             Tem certeza que deseja dar baixa manual em <strong>{consumeConfirmData?.serviceName}</strong>?
           </DialogContentText>
+
+          {/* Data da baixa */}
+          <Box>
+            <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
+              Data da baixa
+            </Typography>
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <DatePicker
+                format="DD/MM/YYYY"
+                value={consumeDate}
+                onChange={(newDate) => setConsumeDate(newDate)}
+                dayOfWeekFormatter={(day: dayjs.Dayjs) => {
+                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                  return days[day.day()];
+                }}
+                slotProps={{
+                  popper: {
+                    sx: {
+                      "& .MuiDayCalendar-weekDayLabel": {
+                        color: "#3d4048 !important",
+                        fontWeight: 700,
+                        fontSize: "0.75rem",
+                      },
+                      "& .MuiPickersDay-root": {
+                        color: "#3d4048 !important",
+                        "&.Mui-selected": {
+                          color: "white !important",
+                        },
+                        "&.Mui-disabled": {
+                          color: "#b8bbc2 !important",
+                          opacity: 0.4,
+                        },
+                      },
+                      "& .MuiPickersCalendarHeader-label": {
+                        color: "#3d4048 !important",
+                      },
+                      "& .MuiPickersArrowSwitcher-button": {
+                        color: "#3d4048 !important",
+                      },
+                    },
+                  },
+                  textField: {
+                    size: "small",
+                    fullWidth: true,
+                    helperText: "Data em que o serviço foi realizado (permite data retroativa).",
+                    placeholder: "DD/MM/AAAA",
+                    inputMode: "numeric",
+                    sx: { backgroundColor: theme.palette.common.white },
+                  },
+                  actionBar: { actions: [] },
+                }}
+              />
+            </LocalizationProvider>
+          </Box>
           
+          {/* Seleção de Pet */}
           {consumeConfirmData && consumeConfirmData.packagePets.length > 0 && (
-            <Box sx={{ mt: 2 }}>
-              <Typography variant="body2" color="text.primary" sx={{ mb: 1 }}>
+            <Box>
+              <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
                 Para qual pet este serviço foi realizado? (Opcional)
               </Typography>
               <Autocomplete
@@ -200,12 +316,28 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
             </Box>
           )}
 
+          {/* Observações / Motivo da baixa */}
+          <Box>
+            <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ mb: 1 }}>
+              Observações / Motivo da baixa (Opcional)
+            </Typography>
+            <TextField
+              size="small"
+              fullWidth
+              multiline
+              rows={2}
+              value={consumeNotes}
+              onChange={(e) => setConsumeNotes(e.target.value)}
+              placeholder="ex: Cliente compareceu presencialmente, cortesia, etc."
+            />
+          </Box>
+
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2 }}>
-          <Button variant="outlined" onClick={() => setConsumeConfirmData(null)}>
+          <Button variant="outlined" onClick={() => setConsumeConfirmData(null)} disabled={isConsuming}>
             Voltar
           </Button>
-          <Button variant="contained" color="primary" onClick={confirmConsume}>
+          <Button variant="contained" color="primary" onClick={confirmConsume} loading={isConsuming} disabled={isConsuming}>
             Confirmar Baixa
           </Button>
         </DialogActions>
@@ -380,6 +512,8 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                                 onClick={() => {
                                   setConsumeConfirmData({ creditId: credit.id, serviceName, packagePets: pkg.pets });
                                   setConsumeSelectedPetId(pkg.pets.length === 1 ? pkg.pets[0].id : "");
+                                  setConsumeNotes("");
+                                  setConsumeDate(dayjs());
                                 }}
                                 sx={{ textTransform: "none", fontSize: "0.72rem", py: 0.25, px: 1, minWidth: 0, fontWeight: 700 }}
                               >
@@ -388,11 +522,52 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                             )}
                           </Box>
 
-                          {isUsed && (
-                            <Typography variant="caption" color="text.primary" sx={{ mt: 0.5 }}>
-                              Baixa realizada{usage ? ` em ${new Date(usage.created_at).toLocaleDateString()}` : ""}{usage?.user_name ? ` por ${usage.user_name}` : ""} {usage?.notes ? `[${usage.notes}]` : ""}
-                            </Typography>
-                          )}
+                          {isUsed && usage && (() => {
+                            const parsed = parseUsageInfo(usage.notes, usage.created_at, usage.user_name);
+                            return (
+                              <Box sx={{ mt: 0.5, display: "flex", flexDirection: "column", gap: 0.35 }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                                  <Typography variant="body2" sx={{ color: "text.primary", fontSize: "0.8rem", fontWeight: 500 }}>
+                                    Baixa realizada em <strong>{parsed.date}</strong>
+                                    {parsed.userName ? <> por <strong>{parsed.userName}</strong></> : null}
+                                  </Typography>
+
+                                  {parsed.petName && (
+                                    <Chip
+                                      size="small"
+                                      label={`Pet: ${parsed.petName}`}
+                                      sx={{
+                                        height: 20,
+                                        fontSize: "0.72rem",
+                                        fontWeight: 600,
+                                        bgcolor: "grey.100",
+                                        color: "text.primary",
+                                        border: "1px solid",
+                                        borderColor: "divider",
+                                      }}
+                                    />
+                                  )}
+                                </Box>
+
+                                {parsed.customObs && (
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      color: "text.primary",
+                                      fontSize: "0.78rem",
+                                      pl: 1,
+                                      borderLeft: "2.5px solid",
+                                      borderColor: "primary.main",
+                                      wordBreak: "break-word",
+                                      lineHeight: 1.4,
+                                    }}
+                                  >
+                                    <strong>Obs:</strong> {parsed.customObs}
+                                  </Typography>
+                                )}
+                              </Box>
+                            );
+                          })()}
                         </Box>
                       );
                     })}
@@ -411,36 +586,86 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                 startIcon={<History size={14} />}
                 endIcon={expandedPackageId === pkg.id ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
                 onClick={() => setExpandedPackageId(expandedPackageId === pkg.id ? null : pkg.id)}
-                sx={{ textTransform: "none", fontSize: "0.75rem", p: 0, minWidth: 0 }}
+                sx={{ textTransform: "none", fontSize: "0.78rem", p: 0, minWidth: 0, fontWeight: 600 }}
               >
                 {expandedPackageId === pkg.id ? "Ocultar histórico de ações" : "Ver histórico de ações"}
               </Button>
               
               {expandedPackageId === pkg.id && (
-                <Box sx={{ mt: 1.5, pl: 1.5, borderLeft: "2px solid", borderColor: "primary.light", display: "flex", flexDirection: "column", gap: 1 }}>
+                <Box sx={{ mt: 1.5, pl: 1.5, borderLeft: "2px solid", borderColor: "primary.main", display: "flex", flexDirection: "column", gap: 1 }}>
                   {pkg.usages.length === 0 ? (
-                    <Typography variant="caption" color="text.primary" sx={{ opacity: 0.6 }}>
+                    <Typography variant="body2" color="text.primary" sx={{ opacity: 0.75 }}>
                       Nenhum consumo registrado ainda.
                     </Typography>
                   ) : (
-                    pkg.usages.map((usage) => (
-                      <Box key={usage.id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Box>
-                          <Typography variant="caption" fontWeight={600} display="block" color="text.primary">
-                            {usage.service_name}
-                          </Typography>
-                          <Typography variant="caption" color="text.primary" sx={{ opacity: 0.7 }}>
-                            {new Date(usage.created_at).toLocaleString()}{usage.user_name ? ` por ${usage.user_name}` : ""} - {usage.notes}
-                          </Typography>
+                    pkg.usages.map((usage) => {
+                      const parsed = parseUsageInfo(usage.notes, usage.created_at, usage.user_name);
+                      return (
+                        <Box
+                          key={usage.id}
+                          sx={{
+                            py: 0.75,
+                            borderBottom: "1px solid",
+                            borderColor: "grey.100",
+                            "&:last-child": { borderBottom: "none" },
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "flex-start",
+                            gap: 1.5,
+                          }}
+                        >
+                          <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25, flex: 1, minWidth: 0 }}>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                              <Typography variant="body2" fontWeight={700} color="text.primary">
+                                {usage.service_name}
+                              </Typography>
+                              {parsed.petName && (
+                                <Chip
+                                  size="small"
+                                  label={`Pet: ${parsed.petName}`}
+                                  sx={{
+                                    height: 18,
+                                    fontSize: "0.7rem",
+                                    fontWeight: 600,
+                                    bgcolor: "grey.100",
+                                    color: "text.primary",
+                                  }}
+                                />
+                              )}
+                            </Box>
+
+                            <Typography variant="body2" sx={{ color: "text.primary", fontSize: "0.78rem" }}>
+                              {parsed.date} às {parsed.time}{parsed.userName ? ` por ${parsed.userName}` : ""}
+                            </Typography>
+
+                            {parsed.customObs && (
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.primary",
+                                  fontSize: "0.78rem",
+                                  pl: 1,
+                                  borderLeft: "2px solid",
+                                  borderColor: "primary.main",
+                                  wordBreak: "break-word",
+                                  mt: 0.25,
+                                  lineHeight: 1.4,
+                                }}
+                              >
+                                <strong>Obs:</strong> {parsed.customObs}
+                              </Typography>
+                            )}
+                          </Box>
+
+                          <Chip
+                            label={usage.change_qty > 0 ? "Consumido" : "Estornado"}
+                            size="small"
+                            color={usage.change_qty > 0 ? "info" : "warning"}
+                            sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700, flexShrink: 0 }}
+                          />
                         </Box>
-                        <Chip
-                          label={usage.change_qty > 0 ? "Consumido" : "Estornado"}
-                          size="small"
-                          color={usage.change_qty > 0 ? "info" : "warning"}
-                          sx={{ height: 16, fontSize: 9, fontWeight: 700 }}
-                        />
-                      </Box>
-                    ))
+                      );
+                    })
                   )}
                 </Box>
               )}

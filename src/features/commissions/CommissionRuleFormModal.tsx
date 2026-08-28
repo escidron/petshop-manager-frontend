@@ -1,6 +1,8 @@
 import {
   Autocomplete,
   Box,
+  Checkbox,
+  Chip,
   Dialog,
   DialogContent,
   DialogTitle,
@@ -111,7 +113,7 @@ export default function CommissionRuleFormModal({
         value: rule?.value ?? ("" as unknown as number),
         applies_to: rule?.applies_to ?? "service",
         employee_id: rule?.employee_id ?? null,
-        service_ids: rule?.service_ids ?? [],
+        service_ids: rule?.service_ids ?? (rule?.services?.map((s) => s.id) ?? []),
         valid_from: rule?.valid_from ?? null,
         valid_until: rule?.valid_until ?? null,
         is_active: rule?.is_active ?? true,
@@ -121,6 +123,7 @@ export default function CommissionRuleFormModal({
         isMounted = false;
       };
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, rule, reset]);
 
 
@@ -328,14 +331,11 @@ export default function CommissionRuleFormModal({
                       loading={loadingOptions}
                       value={employees.find((e) => e.id === field.value) ?? null}
                       getOptionLabel={(o) => o.name}
-                      renderOption={(props, option) => {
-                        const { key, ...restProps } = props as any;
-                        return (
-                          <li key={option.id} {...restProps}>
-                            {option.name}
-                          </li>
-                        );
-                      }}
+                      renderOption={(props, option) => (
+                        <li {...props} key={option.id}>
+                          {option.name}
+                        </li>
+                      )}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
                       onChange={(_, v) => field.onChange(v?.id ?? null)}
                       noOptionsText={loadingOptions ? "Carregando..." : "Nenhum funcionário cadastrado"}
@@ -360,6 +360,7 @@ export default function CommissionRuleFormModal({
                   render={({ field }) => (
                     <Autocomplete<Service, true>
                       multiple
+                      disableCloseOnSelect
                       loading={loadingOptions}
                       options={services}
                       filterOptions={(options, state) => {
@@ -382,15 +383,62 @@ export default function CommissionRuleFormModal({
                         }
                       }}
                       size="small"
-                      value={services.filter((s) => field.value.includes(s.id))}
+                      value={(services ?? []).filter((s) => (field.value ?? []).includes(s.id))}
                       getOptionLabel={(o) => formatServiceLabel(o)}
                       isOptionEqualToValue={(o, v) => o.id === v.id}
                       onChange={(_, v) => field.onChange(v.map((s) => s.id))}
-                      noOptionsText="Nenhum serviço cadastrado"
+                      noOptionsText={loadingOptions ? "Carregando..." : "Nenhum serviço cadastrado"}
+                      renderOption={(props, option, { selected }) => (
+                        <li
+                          {...props}
+                          key={option.id}
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 8,
+                            padding: "6px 12px",
+                          }}
+                        >
+                          <Checkbox
+                            size="small"
+                            checked={selected}
+                            disableRipple
+                            sx={{
+                              color: "primary.main",
+                              p: 0,
+                              "&.Mui-checked": {
+                                color: "primary.main",
+                              },
+                            }}
+                          />
+                          <Typography variant="body2" color="text.primary">
+                            {formatServiceLabel(option)}
+                          </Typography>
+                        </li>
+                      )}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key || option.id}
+                              size="small"
+                              label={formatServiceLabel(option)}
+                              {...tagProps}
+                              sx={{
+                                maxWidth: "160px",
+                                height: "22px",
+                                fontSize: "0.72rem",
+                                m: 0.25,
+                              }}
+                            />
+                          );
+                        })
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          placeholder={field.value.length === 0 ? "Qualquer serviço" : ""}
+                          placeholder={field.value?.length === 0 ? "Qualquer serviço (todos)" : ""}
                         />
                       )}
                     />
