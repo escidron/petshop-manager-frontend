@@ -1,7 +1,7 @@
 import { createContext, useState, type ReactNode, useEffect } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { AuthUser } from "../../api/services/users";
-import apiClient from "../../api/apiClient";
+import apiClient, { refreshSession } from "../../api/apiClient";
 import { useNavigate } from "react-router-dom";
 import type { AxiosError } from "axios";
 import type { Tenant } from "../tenants/types";
@@ -214,6 +214,41 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     checkAuth();
   }, []);
+
+  // Keep-alive: renovação periódica silenciosa e ao focar na aba após inatividade
+  useEffect(() => {
+    if (!user) return;
+
+    let lastRefresh = Date.now();
+
+    // 1. Silent refresh a cada 30 minutos enquanto a aba estiver aberta
+    const interval = setInterval(async () => {
+      const ok = await refreshSession();
+      if (ok) {
+        lastRefresh = Date.now();
+      }
+    }, 30 * 60 * 1000);
+
+    // 2. Ao voltar para a aba após deixá-la inativa por mais de 15 minutos
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === "visible") {
+        const timeSinceLastRefresh = Date.now() - lastRefresh;
+        if (timeSinceLastRefresh > 15 * 60 * 1000) {
+          const ok = await refreshSession();
+          if (ok) {
+            lastRefresh = Date.now();
+          }
+        }
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      clearInterval(interval);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [user]);
 
   const logout = async () => {
     setUser(null);

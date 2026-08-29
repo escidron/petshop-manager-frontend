@@ -95,5 +95,19 @@ apiClient.interceptors.response.use(
   }
 );
 
+export const refreshSession = async (): Promise<boolean> => {
+  if (isRefreshing) return true;
+  try {
+    isRefreshing = true;
+    await refreshClient.post("/api/v1/auth/refresh", {});
+    processQueue(null);
+    return true;
+  } catch (err) {
+    return false;
+  } finally {
+    isRefreshing = false;
+  }
+};
+
 export default apiClient;
 
