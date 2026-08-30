@@ -105,6 +105,7 @@ export default function CheckoutModal({
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
       queryClient.invalidateQueries({ queryKey: ["unpaid-packages"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-status"] });
       onSuccess();
       onClose();
     },
