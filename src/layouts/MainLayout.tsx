@@ -557,7 +557,7 @@ export default function MainLayout() {
         component="main"
         sx={{
           flexGrow: 1,
-          p: { xs: 0.5, sm: 1.5, md: isPOS ? 1.5 : 3 },
+          p: { xs: 1, sm: 2, md: isPOS ? 2 : 3 },
           height: "100%",
           display: "flex",
           flexDirection: "column",
@@ -570,7 +570,7 @@ export default function MainLayout() {
           boxSizing: "border-box",
         }}
       >
-        <DrawerHeader />
+        <DrawerHeader sx={{ flexShrink: 0 }} />
         <EmailVerificationBanner />
         <PendingWhatsAppBanner />
         {subscriptionAlert && (

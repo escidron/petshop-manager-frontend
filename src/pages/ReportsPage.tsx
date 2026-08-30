@@ -17,6 +17,7 @@ import SalesSummaryReport from "../features/reports/SalesSummaryReport";
 import FinancialReportPage from "./FinancialReportPage";
 import CommissionReportPage from "./CommissionReportPage";
 import InventoryReportPage from "./InventoryReportPage";
+import CashHistoryReport from "../features/cash_register/CashHistoryReport";
 
 dayjs.locale("pt-br");
 
@@ -128,6 +129,7 @@ export default function ReportsPage() {
           >
             <Tab label="Resumo" value="resumo" />
             <Tab label="Extrato de Vendas" value="extrato" />
+            <Tab label="Frente de Caixa" value="caixa" />
             <Tab label="Comissões" value="comissoes" />
           </Tabs>
         </Box>
@@ -206,6 +208,13 @@ export default function ReportsPage() {
             setStartDate={setStartDate}
             setEndDate={setEndDate}
             hideFilters={true}
+          />
+        )}
+
+        {activeCategory === "vendas" && activeSubTab === "caixa" && (
+          <CashHistoryReport
+            startDate={startDate}
+            endDate={endDate}
           />
         )}
 

@@ -10,12 +10,8 @@ import {
   IconButton,
   Tooltip,
   Chip,
-  Switch,
-  alpha,
-  Collapse,
 } from "@mui/material";
-import { ShoppingCart, Trash2, Plus, Minus, Eye, EyeOff, CheckCircle } from "lucide-react";
-import { useState } from "react";
+import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { Button } from "../../../components/Button/Button";
 import { formatBRLFromCents } from "../../../utils/masks";
 import type { SaleItem } from "../schemas";
@@ -29,6 +25,7 @@ interface POSTicketProps {
   allowDiscount: boolean;
   maxDiscountPercentage: number;
   clientPetNames?: Record<number, string>;
+  cashControl?: React.ReactNode;
   onUpdateQuantity: (index: number, delta: number) => void;
   onSetQuantity: (index: number, value: number) => void;
   onRemoveItem: (index: number) => void;
@@ -37,8 +34,6 @@ interface POSTicketProps {
   onClearCart: () => void;
   onCheckout: () => void;
 }
-
-
 
 // ── Editable row (operator view) ──────────────────────────────────────────────
 function CartItemRow({
@@ -106,35 +101,6 @@ function CartItemRow({
   );
 }
 
-// ── Read-only row (client view) ───────────────────────────────────────────────
-function ClientItemRow({ item, petName }: { item: SaleItem; petName?: string | null }) {
-  return (
-    <Box>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", py: 1.25, gap: 1.5 }}>
-        <Box sx={{ flex: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.3 }}>
-            {petName && (
-              <Typography component="span" sx={{ fontWeight: 800, color: "primary.main", mr: 0.5, fontSize: "0.75rem" }}>
-                {petName} •
-              </Typography>
-            )}
-            {item.name}
-          </Typography>
-          {item.quantity > 1 && (
-            <Typography variant="caption" sx={{ color: "text.primary", opacity: 0.55, fontWeight: 600 }}>
-              {item.quantity} × R$ {item.unit_price.toFixed(2).replace(".", ",")}
-            </Typography>
-          )}
-        </Box>
-        <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", whiteSpace: "nowrap" }}>
-          R$ {item.subtotal.toFixed(2).replace(".", ",")}
-        </Typography>
-      </Box>
-      <Divider sx={{ opacity: 0.25 }} />
-    </Box>
-  );
-}
-
 export default function POSTicket({
   cart,
   cartTotal,
@@ -144,6 +110,7 @@ export default function POSTicket({
   allowDiscount,
   maxDiscountPercentage,
   clientPetNames,
+  cashControl,
   onUpdateQuantity,
   onSetQuantity,
   onRemoveItem,
@@ -152,8 +119,6 @@ export default function POSTicket({
   onClearCart,
   onCheckout,
 }: POSTicketProps) {
-  const [clientMode, setClientMode] = useState(false);
-
   const discountAmount = discountCents / 100;
 
   const handleDiscountCentsChange = (value: string) => {
@@ -190,24 +155,22 @@ export default function POSTicket({
         borderRadius: 3,
         overflow: "hidden",
         border: "1.5px solid",
-        borderColor: clientMode ? "primary.main" : "divider",
+        borderColor: "divider",
         bgcolor: "background.paper",
-        transition: "border-color 0.3s ease",
       }}
     >
       {/* ── Header ── */}
       <Box
         sx={{
-          px: { xs: 1.5, sm: 2.5 },
-          py: 1.5,
+          px: { xs: 1.5, sm: 2 },
+          py: 1.25,
           borderBottom: "1px solid",
           borderColor: "divider",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          gap: { xs: 1, sm: 1.5 },
-          bgcolor: clientMode ? (theme) => alpha(theme.palette.primary.main, 0.04) : "transparent",
-          transition: "background-color 0.3s ease",
+          gap: 1,
+          flexShrink: 0,
         }}
       >
         <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1 }, minWidth: 0, flex: 1 }}>
@@ -216,13 +179,13 @@ export default function POSTicket({
             sx={{
               fontWeight: 800,
               color: "text.primary",
-              fontSize: { xs: "0.9rem", sm: "1.1rem" },
+              fontSize: { xs: "0.9rem", sm: "1.05rem" },
               whiteSpace: "nowrap",
             }}
           >
-            {clientMode ? "Conferência" : "Ticket de Venda"}
+            Ticket de Venda
           </Typography>
-          {cart.length > 0 && !clientMode && (
+          {cart.length > 0 && (
             <Chip
               label={`${cart.reduce((a, i) => a + i.quantity, 0)} ${cart.reduce((a, i) => a + i.quantity, 0) === 1 ? "item" : "itens"}`}
               size="small"
@@ -231,44 +194,12 @@ export default function POSTicket({
           )}
         </Box>
 
-        {/* Client Mode toggle */}
-        <Tooltip title={clientMode ? "Voltar para modo operador" : "Modo Cliente — vista limpa para conferência"}>
-          <Box
-            onClick={() => setClientMode((p) => !p)}
-            sx={{
-              display: "flex",
-              alignItems: "center",
-              gap: 0.5,
-              cursor: "pointer",
-              px: { xs: 0.75, sm: 1.25 },
-              py: 0.4,
-              borderRadius: 2,
-              border: "1px solid",
-              borderColor: clientMode ? "primary.main" : "divider",
-              bgcolor: clientMode ? (theme) => alpha(theme.palette.primary.main, 0.08) : "transparent",
-              color: clientMode ? "primary.main" : "text.primary",
-              transition: "all 0.2s ease",
-              userSelect: "none",
-              flexShrink: 0,
-              "&:hover": {
-                borderColor: "primary.main",
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-              },
-            }}
-          >
-            {clientMode ? <Eye size={13} /> : <EyeOff size={13} />}
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: { xs: "0.6rem", sm: "0.65rem" }, whiteSpace: "nowrap" }}>
-              Vista do Cliente
-            </Typography>
-            <Switch
-              size="small"
-              checked={clientMode}
-              onChange={(e) => setClientMode(e.target.checked)}
-              onClick={(e) => e.stopPropagation()}
-              sx={{ ml: -0.5, mr: -0.5, "& .MuiSwitch-thumb": { width: 10, height: 10 }, "& .MuiSwitch-switchBase": { py: "7px" } }}
-            />
+        {/* Right side: Cash Control Pill */}
+        {cashControl && (
+          <Box sx={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
+            {cashControl}
           </Box>
-        </Tooltip>
+        )}
       </Box>
 
       {/* ── Items List ── */}
@@ -284,9 +215,7 @@ export default function POSTicket({
               const petId = item.pet_ids?.[0];
               const petName = petId && clientPetNames ? clientPetNames[petId] : null;
 
-              return clientMode ? (
-                <ClientItemRow key={`${item.item_type}-${item.item_id}-${index}`} item={item} petName={petName} />
-              ) : (
+              return (
                 <CartItemRow
                   key={`${item.item_type}-${item.item_id}-${index}`}
                   item={item}
@@ -309,25 +238,21 @@ export default function POSTicket({
           py: 2,
           borderTop: "1px solid",
           borderColor: "divider",
-          bgcolor: clientMode ? (theme) => alpha(theme.palette.primary.main, 0.02) : "transparent",
-          transition: "background-color 0.3s ease",
+          bgcolor: "transparent",
         }}
       >
         {/* Summary */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mb: 1.5 }}>
+          {/* Subtotal */}
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Typography variant="body2" color="text.primary" sx={{ opacity: 0.6 }}>Subtotal</Typography>
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
+              R$ {cartTotal.toFixed(2).replace(".", ",")}
+            </Typography>
+          </Box>
 
-          {/* Subtotal — hide in client mode if no discount */}
-          {(!clientMode || discountAmount > 0) && (
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-              <Typography variant="body2" color="text.primary" sx={{ opacity: 0.6 }}>Subtotal</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary" }}>
-                R$ {cartTotal.toFixed(2).replace(".", ",")}
-              </Typography>
-            </Box>
-          )}
-
-          {/* Discount field (operator only) */}
-          {!clientMode && allowDiscount && cart.length > 0 && (
+          {/* Discount field */}
+          {allowDiscount && cart.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 36 }}>
               <Typography variant="body2" color="text.primary" sx={{ opacity: 0.6 }}>Desconto</Typography>
               <Box sx={{ display: "flex", gap: 0.5, position: "relative" }}>
@@ -378,32 +303,15 @@ export default function POSTicket({
             </Box>
           )}
 
-          {/* Discount line in client mode */}
-          {clientMode && discountAmount > 0 && (
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography variant="body2" color="text.primary" sx={{ opacity: 0.6 }}>Desconto</Typography>
-              <Typography variant="body2" sx={{ fontWeight: 700, color: "success.main" }}>
-                − R$ {discountAmount.toFixed(2).replace(".", ",")}
-              </Typography>
-            </Box>
-          )}
-
           <Box sx={{ height: isDiscountExceeded ? 10 : 0, transition: "height 0.2s" }} />
           <Divider sx={{ my: 0.5 }} />
 
-          {/* Total — big in client mode */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: clientMode ? 1 : 0.5 }}>
-            <Typography
-              variant={clientMode ? "h6" : "subtitle2"}
-              sx={{ fontWeight: 800, color: "text.primary" }}
-            >
+          {/* Total */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mt: 0.5 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary" }}>
               Total
             </Typography>
-            <Typography
-              variant={clientMode ? "h4" : "h5"}
-              color="primary"
-              sx={{ fontWeight: 900, transition: "font-size 0.3s ease" }}
-            >
+            <Typography variant="h5" color="primary" sx={{ fontWeight: 900 }}>
               R$ {(cartTotal - discountAmount).toFixed(2).replace(".", ",")}
             </Typography>
           </Box>
@@ -417,34 +325,30 @@ export default function POSTicket({
           size="large"
           disabled={cart.length === 0 || isDiscountExceeded}
           onClick={onCheckout}
-          startIcon={clientMode ? <CheckCircle size={20} /> : <ShoppingCart size={20} />}
+          startIcon={<ShoppingCart size={20} />}
           sx={{
             borderRadius: 2.5,
-            height: clientMode ? 58 : 52,
+            height: 52,
             fontWeight: 800,
-            fontSize: clientMode ? "1.05rem" : "0.95rem",
+            fontSize: "0.95rem",
             textTransform: "uppercase",
             letterSpacing: 0.5,
-            boxShadow: clientMode ? "0 6px 20px rgba(0,0,0,0.18)" : "0 4px 14px rgba(0,0,0,0.15)",
-            transition: "all 0.3s ease",
+            boxShadow: "0 4px 14px rgba(0,0,0,0.15)",
           }}
         >
-          {clientMode ? "CONFIRMAR PAGAMENTO" : `COBRAR R$ ${(cartTotal - discountAmount).toFixed(2).replace(".", ",")}`}
+          {`COBRAR R$ ${(cartTotal - discountAmount).toFixed(2).replace(".", ",")}`}
         </Button>
 
-        {/* Operator-only controls */}
-        <Collapse in={!clientMode}>
-          {cart.length > 0 && (
-            <Button
-              color="secondary"
-              fullWidth
-              onClick={onClearCart}
-              sx={{ mt: 1, borderRadius: 2, height: 36, fontWeight: 600, fontSize: "0.8rem", opacity: 0.5, "&:hover": { opacity: 1 } }}
-            >
-              Limpar itens
-            </Button>
-          )}
-        </Collapse>
+        {cart.length > 0 && (
+          <Button
+            color="secondary"
+            fullWidth
+            onClick={onClearCart}
+            sx={{ mt: 1, borderRadius: 2, height: 36, fontWeight: 600, fontSize: "0.8rem", opacity: 0.5, "&:hover": { opacity: 1 } }}
+          >
+            Limpar itens
+          </Button>
+        )}
       </Box>
     </Paper>
   );

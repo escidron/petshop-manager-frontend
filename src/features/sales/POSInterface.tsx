@@ -14,6 +14,7 @@ import {
   useTheme,
   Drawer,
   IconButton,
+  CircularProgress,
 } from "@mui/material";
 import { User, ShoppingCart, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -38,7 +39,19 @@ import POSCatalogPanel from "./components/POSCatalogPanel";
 import POSTicket from "./components/POSTicket";
 import POSClientDashboard from "./components/POSClientDashboard";
 import POSPackagePetDialog from "./components/POSPackagePetDialog";
+import POSClosedStateScreen from "./components/POSClosedStateScreen";
+import POSCashControlPill from "./components/POSCashControlPill";
 import { Button } from "../../components/Button/Button";
+
+// Cash Register components & services
+import { getCurrentCashStatus } from "../../api/services/cash";
+import type { CashSessionDetailResponse } from "../cash_register/types";
+import OpenCashModal from "../cash_register/OpenCashModal";
+import SupplyModal from "../cash_register/SupplyModal";
+import BleedModal from "../cash_register/BleedModal";
+import CloseCashModal from "../cash_register/CloseCashModal";
+import CashStatementModal from "../cash_register/CashStatementModal";
+import CashReceiptPrintModal from "../cash_register/CashReceiptPrintModal";
 
 
 export default function POSInterface() {
@@ -68,9 +81,26 @@ export default function POSInterface() {
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientListLimit, setClientListLimit] = useState(20);
 
+  // Cash Register States
+  const [isOpenCashModalOpen, setIsOpenCashModalOpen] = useState(false);
+  const [isSupplyModalOpen, setIsSupplyModalOpen] = useState(false);
+  const [isBleedModalOpen, setIsBleedModalOpen] = useState(false);
+  const [isCloseCashModalOpen, setIsCloseCashModalOpen] = useState(false);
+  const [isStatementModalOpen, setIsStatementModalOpen] = useState(false);
+  const [isReceiptPrintModalOpen, setIsReceiptPrintModalOpen] = useState(false);
+  const [receiptSessionData, setReceiptSessionData] = useState<CashSessionDetailResponse | null>(null);
+
   const [catalogTab, setCatalogTab] = useState<"appointments" | "products" | "services" | "packages" | null>("appointments");
   const [viewMode, setViewMode] = useState<"grid" | "list">("list");
   const [lowStockExpanded, setLowStockExpanded] = useState(false);
+
+  useEffect(() => {
+    if (selectedClientId) {
+      setCatalogTab(null);
+    } else {
+      setCatalogTab("appointments");
+    }
+  }, [selectedClientId]);
 
   const [pendingPackageItem, setPendingPackageItem] = useState<{
     id: number;
@@ -83,6 +113,18 @@ export default function POSInterface() {
   const [pendingPackagePetIds, setPendingPackagePetIds] = useState<number[]>([]);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
+  const { data: cashStatus, isLoading: isCashStatusLoading } = useQuery({
+    queryKey: ["cash-status"],
+    queryFn: getCurrentCashStatus,
+    staleTime: 1000 * 30, // 30s cache
+  });
+
+  useEffect(() => {
+    if (cashStatus?.is_open && isOpenCashModalOpen) {
+      setIsOpenCashModalOpen(false);
+    }
+  }, [cashStatus?.is_open, isOpenCashModalOpen]);
+
   const { data: startupData, isLoading: startupLoading } = useQuery({
     queryKey: ["pos-startup"],
     queryFn: fetchPOSStartup,
@@ -245,6 +287,15 @@ export default function POSInterface() {
     setDiscountCents(0);
     setDiscountPctInput("0");
     setSelectedAppointmentId(null);
+  };
+
+  const handleInitiateCheckout = () => {
+    if (!cashStatus?.is_open) {
+      toast.error("O caixa está fechado! Abra o caixa antes de realizar vendas.");
+      setIsOpenCashModalOpen(true);
+      return;
+    }
+    setIsCheckoutOpen(true);
   };
 
   const addItemToCart = (
@@ -434,6 +485,73 @@ export default function POSInterface() {
   }, [pendingPackageItem, clientPets]);
 
   // ── Render ───────────────────────────────────────────────────────────────
+  if (isCashStatusLoading) {
+    return (
+      <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "70vh", width: "100%" }}>
+        <CircularProgress size={36} sx={{ color: "primary.main" }} />
+      </Box>
+    );
+  }
+
+  if (cashStatus && !cashStatus.is_open) {
+    return (
+      <Box sx={{ width: "100%", height: "100%", overflowY: "auto" }}>
+        <POSClosedStateScreen
+          cashStatus={cashStatus}
+          onOpenSupply={() => setIsSupplyModalOpen(true)}
+          onOpenBleed={() => setIsBleedModalOpen(true)}
+          onViewHistory={() => {
+            setIsStatementModalOpen(true);
+          }}
+        />
+
+        {isSupplyModalOpen && (
+          <SupplyModal
+            open={isSupplyModalOpen}
+            onClose={() => setIsSupplyModalOpen(false)}
+            currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+          />
+        )}
+
+        {isBleedModalOpen && (
+          <BleedModal
+            open={isBleedModalOpen}
+            onClose={() => setIsBleedModalOpen(false)}
+            currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+          />
+        )}
+
+        {isStatementModalOpen && (
+          <CashStatementModal
+            open={isStatementModalOpen}
+            onClose={() => setIsStatementModalOpen(false)}
+            sessionData={cashStatus?.last_closed_session ?? cashStatus?.current_session ?? null}
+            onOpenSupply={() => setIsSupplyModalOpen(true)}
+            onOpenBleed={() => setIsBleedModalOpen(true)}
+            onOpenClose={() => setIsCloseCashModalOpen(true)}
+            onOpenOpenModal={() => setIsOpenCashModalOpen(true)}
+            onPrint={() => {
+              const currentOrLast = cashStatus?.last_closed_session ?? cashStatus?.current_session;
+              if (currentOrLast) {
+                setReceiptSessionData(currentOrLast);
+                setIsReceiptPrintModalOpen(true);
+              }
+            }}
+          />
+        )}
+
+        {isReceiptPrintModalOpen && (
+          <CashReceiptPrintModal
+            open={isReceiptPrintModalOpen}
+            onClose={() => setIsReceiptPrintModalOpen(false)}
+            sessionData={receiptSessionData}
+            tenantName={tenant?.name}
+          />
+        )}
+      </Box>
+    );
+  }
+
   return (
     <Box
       sx={{
@@ -606,13 +724,22 @@ export default function POSInterface() {
             allowDiscount={tenant?.allow_discount !== false}
             maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
             clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
+            cashControl={
+              <POSCashControlPill
+                currentSession={cashStatus?.current_session}
+                onOpenSupplyModal={() => setIsSupplyModalOpen(true)}
+                onOpenBleedModal={() => setIsBleedModalOpen(true)}
+                onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
+                onOpenStatementModal={() => setIsStatementModalOpen(true)}
+              />
+            }
             onUpdateQuantity={handleUpdateQuantity}
             onSetQuantity={handleSetQuantity}
             onRemoveItem={handleRemoveItem}
             onDiscountCentsChange={setDiscountCents}
             onDiscountPctChange={setDiscountPctInput}
             onClearCart={handleClearCart}
-            onCheckout={() => setIsCheckoutOpen(true)}
+            onCheckout={handleInitiateCheckout}
           />
         </Box>
       )}
@@ -704,7 +831,7 @@ export default function POSInterface() {
               <Button
                 variant="contained"
                 size="small"
-                onClick={() => setIsCheckoutOpen(true)}
+                onClick={handleInitiateCheckout}
                 sx={{ borderRadius: 2, px: 1.75, fontWeight: 700, fontSize: "0.75rem" }}
               >
                 Finalizar
@@ -753,6 +880,15 @@ export default function POSInterface() {
               allowDiscount={tenant?.allow_discount !== false}
               maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
               clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
+              cashControl={
+                <POSCashControlPill
+                  currentSession={cashStatus?.current_session}
+                  onOpenSupplyModal={() => setIsSupplyModalOpen(true)}
+                  onOpenBleedModal={() => setIsBleedModalOpen(true)}
+                  onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
+                  onOpenStatementModal={() => setIsStatementModalOpen(true)}
+                />
+              }
               onUpdateQuantity={handleUpdateQuantity}
               onSetQuantity={handleSetQuantity}
               onRemoveItem={handleRemoveItem}
@@ -761,7 +897,7 @@ export default function POSInterface() {
               onClearCart={handleClearCart}
               onCheckout={() => {
                 setMobileCartDrawerOpen(false);
-                setIsCheckoutOpen(true);
+                handleInitiateCheckout();
               }}
             />
           </Box>
@@ -881,6 +1017,76 @@ export default function POSInterface() {
         onConfirm={handlePetsSelected}
         onCancel={handlePetSelectionCancel}
       />
+
+      {/* ── Cash Register Modals ── */}
+      {isOpenCashModalOpen && (
+        <OpenCashModal
+          open={isOpenCashModalOpen}
+          onClose={() => setIsOpenCashModalOpen(false)}
+          cashStatus={cashStatus}
+          onOpenSupply={() => setIsSupplyModalOpen(true)}
+          onOpenBleed={() => setIsBleedModalOpen(true)}
+          onViewHistory={() => {
+            setIsStatementModalOpen(true);
+          }}
+        />
+      )}
+
+      {isSupplyModalOpen && (
+        <SupplyModal
+          open={isSupplyModalOpen}
+          onClose={() => setIsSupplyModalOpen(false)}
+          currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+        />
+      )}
+
+      {isBleedModalOpen && (
+        <BleedModal
+          open={isBleedModalOpen}
+          onClose={() => setIsBleedModalOpen(false)}
+          currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+        />
+      )}
+
+      {isCloseCashModalOpen && (
+        <CloseCashModal
+          open={isCloseCashModalOpen}
+          onClose={() => setIsCloseCashModalOpen(false)}
+          currentSession={cashStatus?.current_session ?? null}
+          onPrintReceipt={(closedSession) => {
+            setReceiptSessionData(closedSession);
+            setIsReceiptPrintModalOpen(true);
+          }}
+        />
+      )}
+
+      {isStatementModalOpen && (
+        <CashStatementModal
+          open={isStatementModalOpen}
+          onClose={() => setIsStatementModalOpen(false)}
+          sessionData={cashStatus?.current_session ?? cashStatus?.last_closed_session ?? null}
+          onOpenSupply={() => setIsSupplyModalOpen(true)}
+          onOpenBleed={() => setIsBleedModalOpen(true)}
+          onOpenClose={() => setIsCloseCashModalOpen(true)}
+          onOpenOpenModal={() => setIsOpenCashModalOpen(true)}
+          onPrint={() => {
+            const currentOrLast = cashStatus?.current_session ?? cashStatus?.last_closed_session;
+            if (currentOrLast) {
+              setReceiptSessionData(currentOrLast);
+              setIsReceiptPrintModalOpen(true);
+            }
+          }}
+        />
+      )}
+
+      {isReceiptPrintModalOpen && (
+        <CashReceiptPrintModal
+          open={isReceiptPrintModalOpen}
+          onClose={() => setIsReceiptPrintModalOpen(false)}
+          sessionData={receiptSessionData}
+          tenantName={tenant?.name}
+        />
+      )}
     </Box>
   );
 }

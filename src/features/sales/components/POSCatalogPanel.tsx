@@ -198,8 +198,9 @@ export default function POSCatalogPanel({
   useEffect(() => {
     setProductLimit(24);
   }, [activeTab, searchTerm]);
+
   const tabs: { id: CatalogTab; label: string; icon: React.ReactNode }[] = [
-    { id: "appointments", label: "Agendamentos", icon: <Calendar size={20} /> },
+    ...(selectedClient ? [] : [{ id: "appointments" as const, label: "Agendamentos", icon: <Calendar size={20} /> }]),
     { id: "products", label: "Produtos", icon: <Barcode size={20} /> },
     { id: "services", label: "Serviços", icon: <ClipboardList size={20} /> },
     { id: "packages", label: "Pacotes", icon: <ShoppingBag size={20} /> },
@@ -349,10 +350,13 @@ export default function POSCatalogPanel({
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
-            <Grid size={{ xs: 6, sm: 3 }} key={tab.id}>
+            <Grid size={selectedClient ? { xs: 4, sm: 4 } : { xs: 6, sm: 3 }} key={tab.id}>
               <Paper
                 elevation={0}
-                onClick={() => { onTabChange(tab.id!); onSearchChange(""); }}
+                onClick={() => {
+                  onTabChange(isActive ? null : tab.id);
+                  onSearchChange("");
+                }}
                 sx={{
                   p: { xs: 1, sm: 1.5 },
                   borderRadius: 2,
@@ -402,9 +406,19 @@ export default function POSCatalogPanel({
       <TextField
         fullWidth
         size="small"
-        placeholder={`Pesquisar ${activeTabConfig?.label.toLowerCase() || ""}...`}
+        placeholder={
+          activeTabConfig
+            ? `Pesquisar ${activeTabConfig.label.toLowerCase()}...`
+            : "Pesquisar produtos, serviços..."
+        }
         value={searchTerm}
-        onChange={(e) => onSearchChange(e.target.value)}
+        onChange={(e) => {
+          const val = e.target.value;
+          onSearchChange(val);
+          if (val.trim().length > 0 && activeTab === null) {
+            onTabChange("products");
+          }
+        }}
         autoFocus
         InputProps={{
           startAdornment: (
@@ -447,6 +461,33 @@ export default function POSCatalogPanel({
           "&::-webkit-scrollbar-thumb": { backgroundColor: "rgba(0,0,0,0.1)", borderRadius: 4 },
         }}
       >
+        {/* Null Tab Neutral State */}
+        {activeTab === null && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 4,
+              textAlign: "center",
+              border: "1px dashed",
+              borderColor: "divider",
+              borderRadius: 3,
+              bgcolor: "background.paper",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              my: 2,
+            }}
+          >
+            <ShoppingBag size={36} style={{ opacity: 0.25, marginBottom: 8 }} />
+            <Typography variant="body1" sx={{ fontWeight: 700, color: "text.primary" }}>
+              Nenhuma categoria selecionada
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.primary", opacity: 0.65, mt: 0.5, maxWidth: 360 }}>
+              Selecione <strong>Produtos</strong>, <strong>Serviços</strong> ou <strong>Pacotes</strong> acima para buscar itens adicionais.
+            </Typography>
+          </Paper>
+        )}
         {/* Low Stock Alert */}
         {lowStockProducts.length > 0 && activeTab === "products" && (
           <Alert

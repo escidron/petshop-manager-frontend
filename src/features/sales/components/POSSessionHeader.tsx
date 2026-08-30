@@ -11,12 +11,14 @@ interface POSSessionHeaderProps {
   client: ClientInfo;
   clientPets: Pet[];
   onBack: () => void;
+  rightAction?: React.ReactNode;
 }
 
 export default function POSSessionHeader({
   client,
   clientPets,
   onBack,
+  rightAction,
 }: POSSessionHeaderProps) {
   return (
     <Box
@@ -85,21 +87,24 @@ export default function POSSessionHeader({
         )}
       </Box>
 
-      {/* End session button */}
-      <IconButton
-        onClick={onBack}
-        size="small"
-        sx={{
-          color: "text.disabled",
-          flexShrink: 0,
-          "&:hover": {
-            color: "error.main",
-            bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
-          },
-        }}
-      >
-        <X size={18} />
-      </IconButton>
+      {/* Right Actions & End session button */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexShrink: 0 }}>
+        {rightAction}
+        <IconButton
+          onClick={onBack}
+          size="small"
+          sx={{
+            color: "text.disabled",
+            flexShrink: 0,
+            "&:hover": {
+              color: "error.main",
+              bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+            },
+          }}
+        >
+          <X size={18} />
+        </IconButton>
+      </Box>
     </Box>
   );
 }
