@@ -103,27 +103,7 @@ export default function ClientDetailsPage() {
             onEdit={() => setClientModal({ open: true })}
           />
 
-          {/* Pacotes Ativos */}
-          <Box sx={{ mt: 4 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                gap: 1,
-                mb: 2,
-              }}
-            >
-              <ShoppingBag size={20} />
-              <Typography variant="h6" fontWeight={600}>
-                Pacotes
-              </Typography>
-            </Box>
-            <PetPackageCredits
-              packages={clientPackages.filter((p) => p.is_active)}
-              clientPhone={client.phone}
-              onRefresh={fetchClientPackages}
-            />
-          </Box>
+          {/* Pets */}
           <Box
             sx={{
               display: "flex",
@@ -156,9 +136,30 @@ export default function ClientDetailsPage() {
                   setPhotosModalOpen(true);
                 }}
               />
-
             </Box>
           ))}
+
+          {/* Pacotes Ativos */}
+          <Box sx={{ mt: 4 }}>
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 1,
+                mb: 2,
+              }}
+            >
+              <ShoppingBag size={20} />
+              <Typography variant="h6" fontWeight={600}>
+                Pacotes
+              </Typography>
+            </Box>
+            <PetPackageCredits
+              packages={clientPackages.filter((p) => p.is_active)}
+              clientPhone={client.phone}
+              onRefresh={fetchClientPackages}
+            />
+          </Box>
 
         </Box>
 

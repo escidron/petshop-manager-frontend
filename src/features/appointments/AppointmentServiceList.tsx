@@ -2,7 +2,7 @@ import { Box, Divider, Dialog, DialogContent, DialogTitle, Typography, Chip } fr
 import type { Appointment } from "./types";
 import { useQuery } from "@tanstack/react-query";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
-import { Dot, List, X } from "lucide-react";
+import { Dot, List, X, Repeat } from "lucide-react";
 import theme from "../../theme";
 import CustomCard from "../../components/Card/CustomCard";
 import { COAT_TYPES, PET_SIZES } from "../pets/constants";
@@ -65,10 +65,26 @@ const AppointmentServiceList = ({
             justifyContent: "space-between",
           }}
         >
-          <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
+          <Box sx={{ display: "flex", gap: 1.5, alignItems: "center", flexWrap: "wrap" }}>
             <List size={24} color={theme.palette.primary.main} />
-            <Typography variant="h5" fontWeight={600}>Serviços à realizar</Typography>
+            <Typography variant="h5" fontWeight={600}>Serviços à realizar</Typography>
             <Typography variant="h6" color="text.primary"> {formattedTotal}</Typography>
+            {appointment.recurrence_id && (
+              <Chip
+                icon={<Repeat size={13} color="#7c3aed" />}
+                label="Recorrente"
+                size="small"
+                sx={{
+                  bgcolor: "rgba(124, 58, 237, 0.08)",
+                  color: "#7c3aed",
+                  fontWeight: 700,
+                  fontSize: "0.75rem",
+                  border: "1px solid rgba(124, 58, 237, 0.2)",
+                  height: 24,
+                  "& .MuiChip-icon": { ml: 0.5 },
+                }}
+              />
+            )}
           </Box>
           <Box sx={{ cursor: "pointer", display: "flex" }} onClick={handleClose}>
             <X size={24} />
