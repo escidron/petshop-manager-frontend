@@ -33,7 +33,7 @@ import { useState, useMemo } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { useQuery } from "@tanstack/react-query";
 import { listCashSessions, listCashRegisters, getCurrentCashStatus } from "../../api/services/cash";
-import type { CashSessionDetailResponse } from "./types";
+import type { CashSessionDetailResponse, CurrentCashStatusResponse } from "./types";
 import { Button } from "../../components/Button/Button";
 
 const getMovementTypeLabel = (type: string) => {
@@ -50,6 +50,7 @@ const getMovementTypeLabel = (type: string) => {
 
 interface CashStatementViewProps {
   sessionData: CashSessionDetailResponse | null;
+  cashRegisterId?: number | null;
   isLoading?: boolean;
   onOpenSupply?: () => void;
   onOpenBleed?: () => void;
@@ -60,6 +61,7 @@ interface CashStatementViewProps {
 
 export default function CashStatementView({
   sessionData,
+  cashRegisterId,
   isLoading: isInitialLoading,
   onOpenSupply,
   onOpenBleed,
@@ -67,10 +69,15 @@ export default function CashStatementView({
   onOpenOpenModal,
   onPrint,
 }: CashStatementViewProps) {
+  const [selectedRegisterId, setSelectedRegisterId] = useState<number | "all">(
+    cashRegisterId ?? sessionData?.cash_register?.id ?? "all"
+  );
+
   // Fetch current terminal status to know if physical register is currently open
-  const { data: terminalStatus } = useQuery({
-    queryKey: ["cash-status"],
-    queryFn: getCurrentCashStatus,
+  const activeRegId = selectedRegisterId === "all" ? (cashRegisterId ?? undefined) : selectedRegisterId;
+  const { data: terminalStatus } = useQuery<CurrentCashStatusResponse>({
+    queryKey: ["cash-status", activeRegId],
+    queryFn: () => getCurrentCashStatus(activeRegId),
     staleTime: 1000 * 15,
   });
 
@@ -86,12 +93,11 @@ export default function CashStatementView({
 
   const [selectedDate, setSelectedDate] = useState<Dayjs | null>(initialDate);
   const [viewMode, setViewMode] = useState<"daily" | "monthly">("daily");
-  const [selectedRegisterId, setSelectedRegisterId] = useState<number | "all">("all");
 
   // Fetch Registers for the filter dropdown
   const { data: registers = [] } = useQuery({
     queryKey: ["cash-registers"],
-    queryFn: listCashRegisters,
+    queryFn: () => listCashRegisters(false),
     staleTime: 1000 * 60 * 5,
   });
 
@@ -107,14 +113,15 @@ export default function CashStatementView({
     return { start: dayStr, end: dayStr };
   }, [selectedDate, viewMode]);
 
-  // Fetch sessions for the selected date / month
+  // Fetch sessions for the selected date / month & register
+  const regParam = selectedRegisterId === "all" ? undefined : selectedRegisterId;
   const { data: fetchedSessions, isLoading: isQueryLoading } = useQuery({
-    queryKey: ["cash-sessions-statement", dateParams.start, dateParams.end],
-    queryFn: () => listCashSessions(dateParams.start, dateParams.end),
+    queryKey: ["cash-sessions-statement", dateParams.start, dateParams.end, regParam],
+    queryFn: () => listCashSessions(dateParams.start, dateParams.end, regParam),
     staleTime: 1000 * 10,
   });
 
-  // Filter by Register
+  // Filter by Register (fallback local filter if needed)
   const filteredSessions = useMemo(() => {
     if (fetchedSessions !== undefined) {
       if (selectedRegisterId === "all") return fetchedSessions;
@@ -127,20 +134,34 @@ export default function CashStatementView({
   const currentSessionDisplay = useMemo(() => {
     if (fetchedSessions !== undefined) {
       if (filteredSessions.length === 0) return null;
-      if (filteredSessions.length === 1) return filteredSessions[0];
+      if (filteredSessions.length === 1 && selectedRegisterId !== "all") return filteredSessions[0];
 
-      // Aggregate multiple sessions on the same date/month
+      // Aggregate multiple sessions on the same date/month or across all registers
       const combinedPaymentsMap: Record<string, { label: string; total_amount: number; count: number }> = {};
       let totalSales = 0;
       let totalSupplies = 0;
       let totalBleeds = 0;
+      let totalInitial = 0;
+      let totalBalance = 0;
       const allMovements: typeof filteredSessions[0]["movements"] = [];
 
       for (const s of filteredSessions) {
         totalSales += s.total_sales_amount;
         totalSupplies += s.total_supplies;
         totalBleeds += s.total_bleeds;
-        allMovements.push(...s.movements);
+        totalInitial += s.session.initial_amount;
+        totalBalance += s.current_balance;
+
+        for (const m of s.movements) {
+          allMovements.push({
+            ...m,
+            destination_or_origin:
+              selectedRegisterId === "all" && s.cash_register?.name
+                ? `${s.cash_register.name} • ${m.destination_or_origin}`
+                : m.destination_or_origin,
+          });
+        }
+
         for (const pm of s.payment_methods) {
           if (!combinedPaymentsMap[pm.method]) {
             combinedPaymentsMap[pm.method] = { label: pm.label, total_amount: 0, count: 0 };
@@ -155,9 +176,15 @@ export default function CashStatementView({
 
       const latestSession = filteredSessions[0];
       const aggregated: CashSessionDetailResponse = {
-        session: latestSession.session,
-        cash_register: latestSession.cash_register,
-        current_balance: latestSession.current_balance,
+        session: {
+          ...latestSession.session,
+          initial_amount: selectedRegisterId === "all" ? totalInitial : latestSession.session.initial_amount,
+        },
+        cash_register:
+          selectedRegisterId === "all"
+            ? { id: 0, name: "Todos os Caixas (Consolidado)", is_active: true, created_at: "" }
+            : latestSession.cash_register,
+        current_balance: selectedRegisterId === "all" ? totalBalance : latestSession.current_balance,
         total_sales_amount: totalSales,
         total_supplies: totalSupplies,
         total_bleeds: totalBleeds,
@@ -173,7 +200,7 @@ export default function CashStatementView({
       return aggregated;
     }
     return sessionData || null;
-  }, [fetchedSessions, filteredSessions, sessionData]);
+  }, [fetchedSessions, filteredSessions, sessionData, selectedRegisterId]);
 
   if (isInitialLoading || isQueryLoading) {
     return (
@@ -256,7 +283,7 @@ export default function CashStatementView({
                   textField: {
                     size: "small",
                     sx: {
-                      width: viewMode === "monthly" ? 150 : 165,
+                      minWidth: viewMode === "monthly" ? 210 : 190,
                       bgcolor: "#ffffff",
                       borderRadius: 2,
                       "& .MuiInputBase-input": { fontSize: "0.85rem", fontWeight: 700, color: "#111827" },
@@ -346,29 +373,51 @@ export default function CashStatementView({
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2, px: 0.5, flexWrap: "wrap", gap: 1 }}>
             <Box>
               <Typography variant="h6" sx={{ fontWeight: 800, color: "#111827" }}>
-                {currentSessionDisplay.cash_register.name}
+                {selectedRegisterId === "all" ? "Todos os Caixas (Consolidado)" : currentSessionDisplay.cash_register.name}
               </Typography>
               <Typography variant="caption" sx={{ color: "#4B5563", fontWeight: 600, display: "block" }}>
-                Abertura: {dayjs(currentSessionDisplay.session.opened_at).format("DD/MM/YYYY [às] HH:mm")}
-                {currentSessionDisplay.session.opened_by_name && ` por ${currentSessionDisplay.session.opened_by_name}`}
-                {currentSessionDisplay.session.closed_at && (
-                  <> • Fechamento: {dayjs(currentSessionDisplay.session.closed_at).format("HH:mm")}</>
+                {selectedRegisterId === "all" ? (
+                  <>
+                    Período: {selectedDate ? selectedDate.format("DD/MM/YYYY") : "Hoje"} • {filteredSessions.length} {filteredSessions.length === 1 ? "sessão registrada" : "sessões registradas"}
+                  </>
+                ) : (
+                  <>
+                    Abertura: {dayjs(currentSessionDisplay.session.opened_at).format("DD/MM/YYYY [às] HH:mm")}
+                    {currentSessionDisplay.session.opened_by_name && ` por ${currentSessionDisplay.session.opened_by_name}`}
+                    {currentSessionDisplay.session.closed_at && (
+                      <> • Fechamento: {dayjs(currentSessionDisplay.session.closed_at).format("HH:mm")}</>
+                    )}
+                  </>
                 )}
               </Typography>
             </Box>
 
-            <Chip
-              icon={currentSessionDisplay.session.status === "open" ? <Unlock size={14} /> : <Lock size={14} />}
-              label={currentSessionDisplay.session.status === "open" ? "Caixa Aberto" : "Caixa Fechado"}
-              size="small"
-              sx={{
-                fontWeight: 800,
-                fontSize: "0.75rem",
-                bgcolor: currentSessionDisplay.session.status === "open" ? "#DCFCE7" : "#F3F4F6",
-                color: currentSessionDisplay.session.status === "open" ? "#166534" : "#4B5563",
-                border: `1px solid ${currentSessionDisplay.session.status === "open" ? "#86EFAC" : "#D1D5DB"}`,
-              }}
-            />
+            {selectedRegisterId === "all" ? (
+              <Chip
+                label="Visão Consolidada"
+                size="small"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  bgcolor: "#EFF6FF",
+                  color: "#2563EB",
+                  border: "1px solid #BFDBFE",
+                }}
+              />
+            ) : (
+              <Chip
+                icon={currentSessionDisplay.session.status === "open" ? <Unlock size={14} /> : <Lock size={14} />}
+                label={currentSessionDisplay.session.status === "open" ? "Caixa Aberto" : "Caixa Fechado"}
+                size="small"
+                sx={{
+                  fontWeight: 800,
+                  fontSize: "0.75rem",
+                  bgcolor: currentSessionDisplay.session.status === "open" ? "#DCFCE7" : "#F3F4F6",
+                  color: currentSessionDisplay.session.status === "open" ? "#166534" : "#4B5563",
+                  border: `1px solid ${currentSessionDisplay.session.status === "open" ? "#86EFAC" : "#D1D5DB"}`,
+                }}
+              />
+            )}
           </Box>
 
           {/* Card 1: VENDAS POR FORMA DE PAGAMENTO */}
@@ -461,7 +510,9 @@ export default function CashStatementView({
               <Table size="small" stickyHeader>
                 <TableHead>
                   <TableRow>
-                    <TableCell sx={{ fontWeight: 800, color: "#1F2937", bgcolor: "#F9FAFB" }}>Horário</TableCell>
+                    <TableCell sx={{ fontWeight: 800, color: "#1F2937", bgcolor: "#F9FAFB", whiteSpace: "nowrap" }}>
+                      {viewMode === "monthly" ? "Data / Horário" : "Horário"}
+                    </TableCell>
                     <TableCell sx={{ fontWeight: 800, color: "#1F2937", bgcolor: "#F9FAFB" }}>Tipo</TableCell>
                     <TableCell sx={{ fontWeight: 800, color: "#1F2937", bgcolor: "#F9FAFB" }}>Destino / Origem / Descrição</TableCell>
                     <TableCell align="right" sx={{ fontWeight: 800, color: "#1F2937", bgcolor: "#F9FAFB", whiteSpace: "nowrap" }}>Valor (R$)</TableCell>
@@ -482,7 +533,9 @@ export default function CashStatementView({
                       return (
                         <TableRow key={mov.id} hover>
                           <TableCell sx={{ color: "#4B5563", fontWeight: 600, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
-                            {dayjs(mov.created_at).format("HH:mm:ss")}
+                            {viewMode === "monthly"
+                              ? dayjs(mov.created_at).format("DD/MM [às] HH:mm")
+                              : dayjs(mov.created_at).format("HH:mm")}
                           </TableCell>
                           <TableCell sx={{ whiteSpace: "nowrap" }}>
                             <Chip

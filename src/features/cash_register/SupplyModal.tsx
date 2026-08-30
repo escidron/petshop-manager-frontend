@@ -16,8 +16,8 @@ import {
 } from "@mui/material";
 import { X, ArrowUpRight } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addCashSupply } from "../../api/services/cash";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { addCashSupply, listCashDestinationAccounts } from "../../api/services/cash";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
 
@@ -25,24 +25,25 @@ interface SupplyModalProps {
   open: boolean;
   onClose: () => void;
   currentBalance: number;
+  cashRegisterId?: number | null;
 }
-
-const ORIGIN_OPTIONS = [
-  "Caixa Administrativo",
-  "Cofre",
-  "Conta Bancária (Saque / Troco)",
-  "Aporte de Sócio / Administrador",
-  "Ajuste de Saldo",
-  "Outro",
-];
 
 export default function SupplyModal({
   open,
   onClose,
   currentBalance,
+  cashRegisterId,
 }: SupplyModalProps) {
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["cash-destination-accounts"],
+    queryFn: () => listCashDestinationAccounts(false),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const defaultAccountName = accounts.find((a) => a.is_default)?.name || accounts[0]?.name || "Caixa Administrativo";
+
   const [amountStr, setAmountStr] = useState<string>("0,00");
-  const [origin, setOrigin] = useState<string>("Caixa Administrativo");
+  const [origin, setOrigin] = useState<string>(defaultAccountName);
   const [description, setDescription] = useState<string>("");
 
   const queryClient = useQueryClient();
@@ -51,10 +52,10 @@ export default function SupplyModal({
   useEffect(() => {
     if (open) {
       setAmountStr("0,00");
-      setOrigin("Caixa Administrativo");
+      setOrigin(defaultAccountName);
       setDescription("");
     }
-  }, [open]);
+  }, [open, defaultAccountName]);
 
   const supplyMutation = useMutation({
     mutationFn: addCashSupply,
@@ -90,6 +91,7 @@ export default function SupplyModal({
       amount: numericAmount,
       origin,
       description: finalDesc,
+      cash_register_id: cashRegisterId,
     });
   };
 
@@ -182,9 +184,9 @@ export default function SupplyModal({
               "& .MuiOutlinedInput-notchedOutline": { borderColor: "#D1D5DB" },
             }}
           >
-            {ORIGIN_OPTIONS.map((opt) => (
-              <MenuItem key={opt} value={opt} sx={{ color: "#111827", fontWeight: 500 }}>
-                {opt}
+            {accounts.map((acc) => (
+              <MenuItem key={acc.id} value={acc.name} sx={{ color: "#111827", fontWeight: 500 }}>
+                {acc.name}
               </MenuItem>
             ))}
           </Select>

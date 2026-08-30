@@ -16,8 +16,8 @@ import {
 } from "@mui/material";
 import { X, ArrowDownRight, AlertTriangle } from "lucide-react";
 import { useState, useEffect } from "react";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { addCashBleed } from "../../api/services/cash";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { addCashBleed, listCashDestinationAccounts } from "../../api/services/cash";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
 
@@ -25,25 +25,25 @@ interface BleedModalProps {
   open: boolean;
   onClose: () => void;
   currentBalance: number;
+  cashRegisterId?: number | null;
 }
-
-const DESTINATION_OPTIONS = [
-  "Caixa Administrativo",
-  "Conta Itaú",
-  "Conta Bancária (PIX / Depósito)",
-  "Correção por cancelamento de Venda",
-  "Despesa Balcão / Pequenos Gastos",
-  "Retirada de Segurança (Cofre)",
-  "Outro",
-];
 
 export default function BleedModal({
   open,
   onClose,
   currentBalance,
+  cashRegisterId,
 }: BleedModalProps) {
+  const { data: accounts = [] } = useQuery({
+    queryKey: ["cash-destination-accounts"],
+    queryFn: () => listCashDestinationAccounts(false),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const defaultAccountName = accounts.find((a) => a.is_default)?.name || accounts[0]?.name || "Caixa Administrativo";
+
   const [amountStr, setAmountStr] = useState<string>("0,00");
-  const [destination, setDestination] = useState<string>("Caixa Administrativo");
+  const [destination, setDestination] = useState<string>(defaultAccountName);
   const [description, setDescription] = useState<string>("");
 
   const queryClient = useQueryClient();
@@ -52,10 +52,10 @@ export default function BleedModal({
   useEffect(() => {
     if (open) {
       setAmountStr("0,00");
-      setDestination("Caixa Administrativo");
+      setDestination(defaultAccountName);
       setDescription("");
     }
-  }, [open]);
+  }, [open, defaultAccountName]);
 
   const bleedMutation = useMutation({
     mutationFn: addCashBleed,
@@ -92,6 +92,7 @@ export default function BleedModal({
       amount: numericAmount,
       destination,
       description: finalDesc,
+      cash_register_id: cashRegisterId,
     });
   };
 
@@ -192,9 +193,9 @@ export default function BleedModal({
               "& .MuiOutlinedInput-notchedOutline": { borderColor: "#D1D5DB" },
             }}
           >
-            {DESTINATION_OPTIONS.map((opt) => (
-              <MenuItem key={opt} value={opt} sx={{ color: "#111827", fontWeight: 500 }}>
-                {opt}
+            {accounts.map((acc) => (
+              <MenuItem key={acc.id} value={acc.name} sx={{ color: "#111827", fontWeight: 500 }}>
+                {acc.name}
               </MenuItem>
             ))}
           </Select>

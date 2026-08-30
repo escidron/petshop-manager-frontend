@@ -16,10 +16,13 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useState } from "react";
-import type { CashSessionDetailResponse } from "../../cash_register/types";
+import type { CashSessionDetailResponse, CashRegisterResponse } from "../../cash_register/types";
 
 interface POSCashControlPillProps {
   currentSession: CashSessionDetailResponse | null | undefined;
+  registers?: CashRegisterResponse[];
+  selectedRegisterId?: number | null;
+  onSelectRegister?: (id: number) => void;
   onOpenSupplyModal: () => void;
   onOpenBleedModal: () => void;
   onOpenCloseCashModal: () => void;
@@ -28,6 +31,9 @@ interface POSCashControlPillProps {
 
 export default function POSCashControlPill({
   currentSession,
+  registers = [],
+  selectedRegisterId,
+  onSelectRegister,
   onOpenSupplyModal,
   onOpenBleedModal,
   onOpenCloseCashModal,
@@ -39,6 +45,7 @@ export default function POSCashControlPill({
   if (!currentSession) return null;
 
   const drawerBalance = currentSession.current_balance ?? 0;
+  const registerName = currentSession.cash_register.name || "Caixa";
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -83,7 +90,7 @@ export default function POSCashControlPill({
             boxShadow: "0 0 0 2px #DCFCE7",
           }}
         />
-        <span>Caixa Aberto</span>
+        <span>{registerName} Aberto</span>
       </MuiButton>
 
       <Menu
@@ -95,7 +102,7 @@ export default function POSCashControlPill({
         PaperProps={{
           sx: {
             borderRadius: 3,
-            minWidth: 210,
+            minWidth: 220,
             p: 0.75,
             border: "1px solid #E5E7EB",
             boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1)",
@@ -106,7 +113,7 @@ export default function POSCashControlPill({
         <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid #F3F4F6", mb: 0.5 }}>
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, mb: 0.5 }}>
             <Chip
-              label="Caixa Aberto"
+              label={registerName}
               size="small"
               sx={{ height: 18, fontSize: "0.65rem", fontWeight: 800, bgcolor: "#16A34A", color: "#ffffff" }}
             />
@@ -120,6 +127,34 @@ export default function POSCashControlPill({
             Saldo em Gaveta: R$ {drawerBalance.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </Typography>
         </Box>
+
+        {registers.length > 1 && onSelectRegister && (
+          <Box sx={{ px: 1.5, py: 1, borderBottom: "1px solid #F3F4F6", mb: 0.5 }}>
+            <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 700, display: "block", mb: 0.75 }}>
+              ALTERNAR TERMINAL
+            </Typography>
+            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+              {registers.map((r) => {
+                const isCurrent = r.id === (selectedRegisterId || currentSession.cash_register.id);
+                return (
+                  <Chip
+                    key={r.id}
+                    label={r.name}
+                    size="small"
+                    clickable
+                    color={isCurrent ? "primary" : "default"}
+                    variant={isCurrent ? "filled" : "outlined"}
+                    onClick={() => {
+                      onSelectRegister(r.id);
+                      handleMenuClose();
+                    }}
+                    sx={{ fontWeight: 700, fontSize: "0.72rem", height: 24 }}
+                  />
+                );
+              })}
+            </Box>
+          </Box>
+        )}
 
         <MenuItem
           onClick={() => {
