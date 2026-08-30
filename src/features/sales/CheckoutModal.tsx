@@ -22,8 +22,8 @@ import {
   CreditCard,
   QrCode,
   X,
-  CheckCircle,
   AlertTriangle,
+  Check,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -154,9 +154,11 @@ export default function CheckoutModal({
           sx: {
             borderRadius: { xs: 3, sm: 4 },
             overflow: "hidden",
-            m: { xs: 1, sm: 2 },
-            width: { xs: "96vw", sm: "auto" },
-            maxHeight: { xs: "92vh", sm: "90vh" },
+            m: { xs: 1.5, sm: 3 },
+            width: { xs: "calc(100% - 24px)", sm: "580px", md: "620px" },
+            maxWidth: { xs: "100%", sm: "580px", md: "620px" },
+            maxHeight: { xs: "94vh", sm: "90vh" },
+            boxShadow: "0 24px 48px -12px rgba(0, 0, 0, 0.22)",
           },
         }}
       >
@@ -167,56 +169,136 @@ export default function CheckoutModal({
             justifyContent: "space-between",
             bgcolor: "primary.main",
             color: "white",
-            px: { xs: 2, sm: 3 },
-            py: { xs: 1.5, sm: 2 },
+            px: { xs: 2.5, sm: 3.5 },
+            py: { xs: 2, sm: 2.25 },
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <ShoppingCart size={22} />
-            <Typography variant="h6" sx={{ fontWeight: 700, fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
+            <Box
+              sx={{
+                p: 0.8,
+                borderRadius: 2,
+                bgcolor: "rgba(255, 255, 255, 0.15)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <ShoppingCart size={22} />
+            </Box>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 700,
+                fontSize: { xs: "1.1rem", sm: "1.25rem" },
+                letterSpacing: "-0.01em",
+              }}
+            >
               Finalizar Venda
             </Typography>
           </Box>
-          <IconButton onClick={onClose} size="small" sx={{ color: "white" }}>
-            <X size={20} />
+          <IconButton
+            onClick={onClose}
+            size="small"
+            sx={{
+              color: "white",
+              bgcolor: "rgba(255, 255, 255, 0.1)",
+              "&:hover": { bgcolor: "rgba(255, 255, 255, 0.2)" },
+            }}
+          >
+            <X size={18} />
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ p: { xs: 2, sm: 4 } }}>
+        <DialogContent sx={{ p: { xs: 2.5, sm: 3.5 } }}>
           <Box
             sx={{
               mb: 3,
-              p: { xs: 2, sm: 3 },
-              bgcolor: alpha("#1976d2", 0.05),
+              p: { xs: 2.5, sm: 3 },
+              background: (theme) =>
+                `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.05)} 0%, ${alpha(
+                  theme.palette.primary.main,
+                  0.12
+                )} 100%)`,
               borderRadius: 3,
               textAlign: "center",
               border: "1px solid",
-              borderColor: alpha("#1976d2", 0.1),
+              borderColor: (theme) => alpha(theme.palette.primary.main, 0.15),
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
-            <Typography variant="subtitle2" color="text.primary" sx={{ fontWeight: 600, mb: 0.5 }}>
-              TOTAL A RECEBER
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                color: "text.primary",
+                opacity: 0.75,
+                textTransform: "uppercase",
+                fontSize: "0.75rem",
+                mb: 0.5,
+              }}
+            >
+              Total a Receber
             </Typography>
             <Typography
               variant="h3"
               color="primary"
-              sx={{ fontWeight: 900, fontSize: { xs: "1.8rem", sm: "2.75rem" } }}
+              sx={{
+                fontWeight: 800,
+                fontSize: { xs: "2.1rem", sm: "2.85rem" },
+                lineHeight: 1.15,
+                letterSpacing: "-0.02em",
+              }}
             >
               R$ {totalAmount.toFixed(2)}
             </Typography>
+            {discountAmount > 0 && (
+              <Box
+                sx={{
+                  mt: 1.2,
+                  px: 1.5,
+                  py: 0.4,
+                  bgcolor: (theme) => alpha(theme.palette.success.main, 0.12),
+                  borderRadius: 2,
+                  color: "success.main",
+                  fontSize: "0.825rem",
+                  fontWeight: 600,
+                }}
+              >
+                Desconto aplicado: - R$ {discountAmount.toFixed(2)}
+              </Box>
+            )}
           </Box>
 
           {/* Employee assignment per service item */}
           {serviceItems.length > 0 && (
             <Box sx={{ mb: 3 }}>
-              <Typography variant="subtitle1" sx={{ mb: employees.length > 0 ? 1.5 : 0, fontWeight: 700 }}>
+              <Typography variant="subtitle1" sx={{ mb: employees.length > 0 ? 1.5 : 0, fontWeight: 700, color: "text.primary" }}>
                 Funcionário por Serviço
               </Typography>
               {employees.length > 0 ? (
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
                   {serviceItems.map(({ item, idx }) => (
-                    <Box key={idx} sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                      <Typography variant="body2" sx={{ flex: 1, color: "text.primary" }}>
+                    <Box
+                      key={idx}
+                      sx={{
+                        display: "flex",
+                        flexDirection: { xs: "column", sm: "row" },
+                        alignItems: { xs: "flex-start", sm: "center" },
+                        justifyContent: "space-between",
+                        p: 1.5,
+                        borderRadius: 2,
+                        bgcolor: alpha("#1976d2", 0.03),
+                        border: "1px solid",
+                        borderColor: alpha("#1976d2", 0.1),
+                        gap: 1.5,
+                      }}
+                    >
+                      <Typography variant="body2" sx={{ fontWeight: 600, color: "text.primary", flex: 1 }}>
                         {item.name}
                       </Typography>
                       <Autocomplete
@@ -256,10 +338,10 @@ export default function CheckoutModal({
                           }));
                         }}
                         size="small"
-                        sx={{ minWidth: 300 }}
+                        sx={{ width: { xs: "100%", sm: 260 } }}
                         noOptionsText="Nenhum funcionário encontrado"
                         renderInput={(params) => (
-                          <TextField {...params} placeholder="Buscar..." />
+                          <TextField {...params} placeholder="Selecione funcionário..." />
                         )}
                       />
                     </Box>
@@ -283,7 +365,13 @@ export default function CheckoutModal({
                 setPaymentMethod(e.target.value as SaleCreate["payment_method"])
               }
             >
-              <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr" },
+                  gap: { xs: 1.5, sm: 2 },
+                }}
+              >
                 <PaymentMethodCard
                   value="credit_card"
                   label="Cartão de Crédito"
@@ -319,12 +407,18 @@ export default function CheckoutModal({
 
         <Divider />
 
-        <DialogActions sx={{ p: 3, gap: 2 }}>
+        <DialogActions sx={{ px: { xs: 2.5, sm: 3.5 }, py: { xs: 2, sm: 2.5 }, gap: { xs: 1.5, sm: 2 } }}>
           <Button
             onClick={onClose}
             disabled={saleMutation.isPending}
             variant="outlined"
-            sx={{ borderRadius: 2, px: 3 }}
+            sx={{
+              borderRadius: 2.5,
+              px: 3,
+              py: 1.2,
+              fontWeight: 600,
+              minWidth: { xs: "100px", sm: "120px" },
+            }}
           >
             Cancelar
           </Button>
@@ -335,7 +429,13 @@ export default function CheckoutModal({
             fullWidth
             onClick={handleCheckout}
             disabled={saleMutation.isPending}
-            sx={{ borderRadius: 2, fontWeight: 600, boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)" }}
+            sx={{
+              borderRadius: 2.5,
+              fontWeight: 700,
+              py: 1.2,
+              fontSize: { xs: "0.95rem", sm: "1rem" },
+              boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
+            }}
           >
             {saleMutation.isPending ? "Processando..." : "Confirmar e Finalizar"}
           </Button>
@@ -417,48 +517,105 @@ const PaymentMethodCard = ({
       elevation={0}
       component="label"
       sx={{
-        p: 2,
+        p: { xs: 1.5, sm: 2 },
         display: "flex",
-        flexDirection: "column",
+        flexDirection: { xs: "column", sm: "row" },
         alignItems: "center",
-        justifyContent: "center",
+        justifyContent: { xs: "center", sm: "flex-start" },
         cursor: "pointer",
         border: "2px solid",
         borderColor: isSelected ? color : "divider",
-        bgcolor: isSelected ? alpha(color, 0.04) : "background.paper",
+        bgcolor: isSelected ? alpha(color, 0.05) : "background.paper",
         borderRadius: 3,
-        transition: "all 0.2s",
-        gap: 1,
+        transition: "all 0.2s ease-in-out",
+        gap: { xs: 1, sm: 1.75 },
         position: "relative",
+        boxShadow: isSelected
+          ? `0 4px 14px 0 ${alpha(color, 0.18)}`
+          : "0 1px 3px rgba(0,0,0,0.03)",
+        transform: isSelected ? "translateY(-1px)" : "none",
         "&:hover": {
           borderColor: isSelected ? color : alpha(color, 0.5),
-          bgcolor: alpha(color, 0.02),
+          bgcolor: isSelected ? alpha(color, 0.07) : alpha(color, 0.02),
         },
       }}
     >
       <Radio
         value={value}
-        sx={{ position: "absolute", top: 8, right: 8, p: 0 }}
         checked={isSelected}
+        sx={{
+          display: "none",
+        }}
       />
-      <Icon size={32} color={color} />
-      <Typography variant="body2" sx={{ fontWeight: 700, textAlign: "center" }}>
-        {label}
-      </Typography>
+      <Box
+        sx={{
+          width: { xs: 40, sm: 46 },
+          height: { xs: 40, sm: 46 },
+          borderRadius: 2.5,
+          bgcolor: isSelected ? alpha(color, 0.15) : alpha(color, 0.08),
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          color: color,
+          flexShrink: 0,
+          transition: "all 0.2s",
+        }}
+      >
+        <Icon size={24} strokeWidth={2.2} />
+      </Box>
+
+      <Box sx={{ flex: 1, textAlign: { xs: "center", sm: "left" } }}>
+        <Typography
+          variant="body2"
+          sx={{
+            fontWeight: isSelected ? 700 : 600,
+            color: isSelected ? color : "text.primary",
+            fontSize: { xs: "0.85rem", sm: "0.95rem" },
+            lineHeight: 1.25,
+          }}
+        >
+          {label}
+        </Typography>
+      </Box>
+
+      {/* Selected check badge on desktop */}
+      <Box
+        sx={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          border: "2px solid",
+          borderColor: isSelected ? color : "divider",
+          bgcolor: isSelected ? color : "transparent",
+          display: { xs: "none", sm: "flex" },
+          alignItems: "center",
+          justifyContent: "center",
+          color: "white",
+          flexShrink: 0,
+          transition: "all 0.2s",
+        }}
+      >
+        {isSelected && <Check size={14} strokeWidth={3} />}
+      </Box>
+
+      {/* Mobile top-right active indicator */}
       {isSelected && (
         <Box
           sx={{
             position: "absolute",
-            bottom: -10,
-            bgcolor: "white",
+            top: 6,
+            right: 6,
+            display: { xs: "flex", sm: "none" },
+            width: 18,
+            height: 18,
             borderRadius: "50%",
-            color: color,
-            display: "flex",
+            bgcolor: color,
+            color: "white",
             alignItems: "center",
             justifyContent: "center",
           }}
         >
-          <CheckCircle size={20} strokeWidth={3} />
+          <Check size={12} strokeWidth={3} />
         </Box>
       )}
     </Paper>

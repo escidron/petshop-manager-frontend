@@ -244,15 +244,23 @@ export default function AppointmentForm({
     };
   }, [isRecurrent, scheduledDate, recurrenceFrequency, recurrenceOccurrences]);
 
+  const handleFormSubmit = (data: any) => {
+    const validItems = (data.items || []).filter(
+      (i: any) => i.pet_id && i.service_ids && i.service_ids.length > 0
+    );
+    if (!isRecurrent) {
+      delete data.recurrence;
+    }
+    onSubmit({
+      ...data,
+      items: validItems,
+    } as AppointmentFormData);
+  };
+
   return (
     <Box
         component="form"
-        onSubmit={handleSubmit((data: any) => {
-          if (!isRecurrent) {
-            delete data.recurrence;
-          }
-          onSubmit(data as AppointmentFormData);
-        })}
+        onSubmit={handleSubmit(handleFormSubmit)}
         sx={{ display: "flex", flexDirection: "column", gap: 3 }}
       >{/* DATA E HORA */}
       <FormControl>
@@ -740,12 +748,7 @@ export default function AppointmentForm({
       <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
         <Button
           loading={isSubmitting}
-          onClick={handleSubmit((data: any) => {
-            if (!isRecurrent) {
-              delete data.recurrence;
-            }
-            onSubmit(data as AppointmentFormData);
-          })}
+          onClick={handleSubmit(handleFormSubmit)}
         >
           {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}
         </Button>

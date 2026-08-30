@@ -142,23 +142,39 @@ const AppointmentDetailsModal = ({
   // Dynamically map which services will be covered by packages
   const coveredServiceKeys = useMemo(() => {
     const coveredIds = new Set<string>();
+    if (!appointment?.items) return coveredIds;
 
-    // Build a global map of available credits to avoid double-counting shared packages
+    // Track global credit remaining quantities
     const globalCredits = new Map<number, number>(); // credit.id -> remaining_qty
-    const serviceToCredits = new Map<number, number[]>(); // service.id -> array of credit.ids
+    // Map petId -> Map<serviceId, creditId[]>
+    const petServiceToCredits = new Map<number, Map<number, number[]>>();
 
-    packageQueries.forEach((q) => {
+    packageQueries.forEach((q, idx) => {
+      const petId = appointment.items[idx]?.pet?.id;
+      if (!petId) return;
+
       const pkgs = q.data || [];
+      if (!petServiceToCredits.has(petId)) {
+        petServiceToCredits.set(petId, new Map());
+      }
+      const serviceMap = petServiceToCredits.get(petId)!;
+
       pkgs.forEach((pkg) => {
         if (!pkg.is_active) return;
-        pkg.credits.forEach((credit) => {
+        // Verify this package actually applies to this pet
+        const isPetInPkg = !pkg.pets || pkg.pets.length === 0 || pkg.pets.some((p) => p.id === petId);
+        if (!isPetInPkg) return;
+
+        pkg.credits?.forEach((credit) => {
           if (credit.service_id && credit.remaining_qty > 0) {
             if (!globalCredits.has(credit.id)) {
               globalCredits.set(credit.id, credit.remaining_qty);
+            }
 
-              const cList = serviceToCredits.get(credit.service_id) || [];
+            const cList = serviceMap.get(credit.service_id) || [];
+            if (!cList.includes(credit.id)) {
               cList.push(credit.id);
-              serviceToCredits.set(credit.service_id, cList);
+              serviceMap.set(credit.service_id, cList);
             }
           }
         });
@@ -166,13 +182,16 @@ const AppointmentDetailsModal = ({
     });
 
     appointment.items.forEach((item) => {
+      const petId = item.pet?.id;
+      const serviceMap = petId ? petServiceToCredits.get(petId) : undefined;
+
       item.services.forEach((s) => {
         const key = `${item.id}-${s.id}`;
         if (s.is_package_covered) {
           coveredIds.add(key);
-        } else if (appointment.status !== "completed") {
-          // Try to find an available credit for this service
-          const cList = serviceToCredits.get(s.id) || [];
+        } else if (appointment.status !== "completed" && serviceMap) {
+          // Try to find an available credit for this pet and this service
+          const cList = serviceMap.get(s.id) || [];
           for (const creditId of cList) {
             const remaining = globalCredits.get(creditId) || 0;
             if (remaining > 0) {

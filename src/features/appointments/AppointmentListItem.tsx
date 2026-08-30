@@ -1,5 +1,5 @@
 import CustomCard from "../../components/Card/CustomCard";
-import { Box, Typography } from "@mui/material";
+import { Box, Tooltip, Typography } from "@mui/material";
 import dayjs from "dayjs";
 
 import type { Appointment } from "./types";
@@ -8,7 +8,7 @@ import { getAppointmentStatusUI } from "../../utils/getAppointmentStatusColor";
 import { getServiceIcons } from "../../utils/getServiceIcons";
 import { useState } from "react";
 import AppointmentServiceList from "./AppointmentServiceList";
-import { Info, ShoppingBag } from "lucide-react";
+import { Info, ShoppingBag, Repeat } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import AppointmentObservationList from "./AppointmentObservationList";
 
@@ -24,7 +24,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
     item.services.map((service) => service.name),
   );
 
-
+  const isRecurring = !!appointment.recurrence_id;
 
   const hasPetNotes = appointment.items.some(
     (item) => item.pet?.notes && item.pet.notes.trim() !== "",
@@ -203,7 +203,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           <Box
             sx={{
               display: "flex",
-              gap: 0.5,
+              gap: 0.75,
               alignItems: "center",
               cursor: "pointer",
               borderRadius: 1,
@@ -222,9 +222,18 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
               </Box>
             ))}
             {hasPackage && (
-              <Box sx={{ display: "flex", alignItems: "center", opacity: 0.8, color: "success.main" }}>
-                <ShoppingBag size={18} />
-              </Box>
+              <Tooltip title="Coberto por Pacote" arrow placement="top">
+                <Box sx={{ display: "flex", alignItems: "center", opacity: 0.85, color: "success.main" }}>
+                  <ShoppingBag size={18} />
+                </Box>
+              </Tooltip>
+            )}
+            {isRecurring && (
+              <Tooltip title="Agendamento Recorrente" arrow placement="top">
+                <Box sx={{ display: "flex", alignItems: "center", opacity: 0.9, color: "#7c3aed" }}>
+                  <Repeat size={17} strokeWidth={2.2} />
+                </Box>
+              </Tooltip>
             )}
           </Box>
         </Box>

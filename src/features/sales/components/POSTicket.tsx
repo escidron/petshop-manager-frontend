@@ -255,7 +255,7 @@ export default function POSTicket({
           {allowDiscount && cart.length > 0 && (
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", minHeight: 36 }}>
               <Typography variant="body2" color="text.primary" sx={{ opacity: 0.6 }}>Desconto</Typography>
-              <Box sx={{ display: "flex", gap: 0.5, position: "relative" }}>
+              <Box sx={{ display: "flex", gap: 1, position: "relative" }}>
                 <TextField
                   value={discountCents === 0 ? "" : formatBRLFromCents(discountCents)}
                   size="small"
@@ -265,14 +265,14 @@ export default function POSTicket({
                   slotProps={{
                     input: {
                       startAdornment: (
-                        <InputAdornment position="start">
-                          <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.7rem" }}>R$</Typography>
+                        <InputAdornment position="start" sx={{ mr: 0.5 }}>
+                          <Typography sx={{ color: "text.disabled", fontWeight: 600, fontSize: "0.72rem" }}>R$</Typography>
                         </InputAdornment>
                       ),
                     },
-                    htmlInput: { style: { textAlign: "right", fontWeight: 700, fontSize: "0.8rem", padding: "3px 6px" } },
+                    htmlInput: { style: { textAlign: "right", fontWeight: 700, fontSize: "0.825rem", padding: "4px 8px" } },
                   }}
-                  sx={{ width: 90 }}
+                  sx={{ width: 105 }}
                   error={isDiscountExceeded}
                 />
                 <TextField
@@ -284,14 +284,14 @@ export default function POSTicket({
                   slotProps={{
                     input: {
                       endAdornment: (
-                        <InputAdornment position="end">
-                          <Typography sx={{ color: "text.disabled", fontWeight: 500, fontSize: "0.7rem" }}>%</Typography>
+                        <InputAdornment position="end" sx={{ ml: 0.5 }}>
+                          <Typography sx={{ color: "text.disabled", fontWeight: 600, fontSize: "0.72rem" }}>%</Typography>
                         </InputAdornment>
                       ),
                     },
-                    htmlInput: { style: { textAlign: "right", fontWeight: 700, fontSize: "0.8rem", padding: "3px 6px" } },
+                    htmlInput: { style: { textAlign: "right", fontWeight: 700, fontSize: "0.825rem", padding: "4px 8px" } },
                   }}
-                  sx={{ width: 65 }}
+                  sx={{ width: 75 }}
                   error={isDiscountExceeded}
                 />
                 {isDiscountExceeded && (
