@@ -24,6 +24,7 @@ interface CloseCashModalProps {
   open: boolean;
   onClose: () => void;
   currentSession: CashSessionDetailResponse | null;
+  cashRegisterId?: number | null;
   onPrintReceipt?: (session: CashSessionDetailResponse) => void;
 }
 
@@ -31,6 +32,7 @@ export default function CloseCashModal({
   open,
   onClose,
   currentSession,
+  cashRegisterId,
   onPrintReceipt,
 }: CloseCashModalProps) {
   const expectedBalance = currentSession?.current_balance ?? 0;
@@ -84,6 +86,7 @@ export default function CloseCashModal({
     closeMutation.mutate({
       actual_closing_amount: numericActual,
       closing_notes: closingNotes.trim() || null,
+      cash_register_id: cashRegisterId || currentSession?.cash_register.id,
     });
   };
 

@@ -29,6 +29,7 @@ export const SaleCreateSchema = z.object({
   payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package"]),
   status: z.enum(["completed", "canceled"]).default("completed"),
   items: z.array(SaleItemSchema).min(1, "Adicione pelo menos um item"),
+  cash_register_id: z.number().nullable().optional(),
 });
 
 export type SaleItem = z.infer<typeof SaleItemSchema>;

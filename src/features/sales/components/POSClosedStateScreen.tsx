@@ -4,16 +4,22 @@ import {
   Typography,
   Button as MuiButton,
   Divider,
+  FormControl,
+  Select,
+  MenuItem,
 } from "@mui/material";
-import { Lock, CheckCircle, Receipt } from "lucide-react";
+import { Lock, CheckCircle, Receipt, Monitor } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { openCashSession } from "../../../api/services/cash";
 import { useToast } from "../../../hooks/useToast";
 import { Button } from "../../../components/Button/Button";
-import type { CurrentCashStatusResponse } from "../../cash_register/types";
+import type { CurrentCashStatusResponse, CashRegisterResponse } from "../../cash_register/types";
 
 interface POSClosedStateScreenProps {
   cashStatus: CurrentCashStatusResponse | null | undefined;
+  cashRegisterId?: number | null;
+  registers?: CashRegisterResponse[];
+  onSelectRegister?: (id: number) => void;
   onOpenSupply: () => void;
   onOpenBleed: () => void;
   onViewHistory: () => void;
@@ -21,9 +27,13 @@ interface POSClosedStateScreenProps {
 
 export default function POSClosedStateScreen({
   cashStatus,
+  cashRegisterId,
+  registers = [],
+  onSelectRegister,
   onViewHistory,
 }: POSClosedStateScreenProps) {
   const suggestedAmount = cashStatus?.suggested_opening_amount ?? 0;
+  const currentRegister = registers.find((r) => r.id === cashRegisterId);
 
   const queryClient = useQueryClient();
   const toast = useToast();
@@ -44,6 +54,7 @@ export default function POSClosedStateScreen({
     openMutation.mutate({
       initial_amount: suggestedAmount,
       notes: "Conferência matinal confirmada",
+      cash_register_id: cashRegisterId,
     });
   };
 
@@ -97,9 +108,75 @@ export default function POSClosedStateScreen({
           O Caixa está Fechado
         </Typography>
 
-        <Typography variant="body2" sx={{ color: "#4B5563", maxWidth: 430, lineHeight: 1.6, mb: 3, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
+        <Typography variant="body2" sx={{ color: "#4B5563", maxWidth: 430, lineHeight: 1.6, mb: 2.5, fontSize: { xs: "0.85rem", sm: "0.95rem" } }}>
           Confira o valor da gaveta de dinheiro do caixa para iniciar suas vendas. O valor abaixo corresponde ao saldo deixado no último fechamento.
         </Typography>
+
+        {/* Multi-Terminal Selector */}
+        {registers.length > 1 && onSelectRegister && (
+          <Box
+            sx={{
+              width: "100%",
+              mb: 3,
+              p: 2,
+              bgcolor: "#F8FAFC",
+              borderRadius: 3,
+              border: "1px solid #E2E8F0",
+              textAlign: "left",
+              boxSizing: "border-box",
+            }}
+          >
+            <Typography
+              variant="caption"
+              sx={{
+                color: "#475569",
+                fontWeight: 800,
+                textTransform: "uppercase",
+                letterSpacing: 0.5,
+                display: "flex",
+                alignItems: "center",
+                gap: 0.75,
+                mb: 1,
+              }}
+            >
+              <Monitor size={15} color="#2563EB" />
+              Terminal de Caixa em Operação
+            </Typography>
+
+            <FormControl fullWidth size="small">
+              <Select
+                value={cashRegisterId || currentRegister?.id || registers[0]?.id || ""}
+                onChange={(e) => onSelectRegister(Number(e.target.value))}
+                sx={{
+                  bgcolor: "#ffffff",
+                  borderRadius: 2,
+                  fontWeight: 700,
+                  fontSize: "0.92rem",
+                  "& .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#CBD5E1",
+                  },
+                  "&:hover .MuiOutlinedInput-notchedOutline": {
+                    borderColor: "#94A3B8",
+                  },
+                }}
+              >
+                {registers.map((reg) => (
+                  <MenuItem
+                    key={reg.id}
+                    value={reg.id}
+                    sx={{
+                      py: 1,
+                      fontWeight: 700,
+                      color: "#0F172A",
+                    }}
+                  >
+                    {reg.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
 
         {/* Value Box */}
         <Box

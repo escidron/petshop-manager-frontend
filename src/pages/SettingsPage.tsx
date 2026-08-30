@@ -104,6 +104,7 @@ import { exportPackages } from "../api/services/packages";
 import { exportSuppliers } from "../api/services/suppliers";
 import { exportEmployees } from "../api/services/employees";
 import BillingAddonsSection from "../features/billing/BillingAddonsSection";
+import POSSettingsSection from "../features/cash_register/POSSettingsSection";
 
 const createUserSchema = z.object({
   name: z.string().min(3, "Nome deve ter no mínimo 3 caracteres").max(100),
@@ -172,10 +173,6 @@ const SettingsPage = () => {
   const [limitValue, setLimitValue] = useState<number>(2);
   const [savingLimit, setSavingLimit] = useState(false);
 
-  const [discountEnabled, setDiscountEnabled] = useState(true);
-  const [discountValue, setDiscountValue] = useState<number>(100);
-  const [savingDiscount, setSavingDiscount] = useState(false);
-
   const handleToggleLimit = async (enabled: boolean) => {
     if (!tenant) return;
     setLimitEnabled(enabled);
@@ -211,7 +208,7 @@ const SettingsPage = () => {
       };
       const updatedTenant = await updateTenant(tenant.id, payload);
       setTenant({ ...tenant, ...updatedTenant });
-      toast.success("Limite de agendamentos updated!");
+      toast.success("Limite de agendamentos atualizado!");
     } catch (error) {
       console.error("Failed to save limit value:", error);
       toast.error("Erro ao atualizar o limite de agendamentos.");
@@ -220,51 +217,7 @@ const SettingsPage = () => {
     }
   };
 
-  const handleToggleDiscount = async (enabled: boolean) => {
-    if (!tenant) return;
-    setDiscountEnabled(enabled);
-    setSavingDiscount(true);
-    try {
-      const payload = {
-        name: tenant.name,
-        phone: tenant.phone,
-        document: tenant.document || null,
-        allow_discount: enabled,
-        max_discount_percentage: enabled ? Number(discountValue) : 0,
-      };
-      const updatedTenant = await updateTenant(tenant.id, payload);
-      setTenant({ ...tenant, ...updatedTenant });
-      toast.success(enabled ? "Descontos no caixa ativados!" : "Descontos no caixa desativados!");
-    } catch (error) {
-      console.error("Failed to toggle discount:", error);
-      toast.error("Erro ao alterar configuração de desconto.");
-      setDiscountEnabled(!enabled);
-    } finally {
-      setSavingDiscount(false);
-    }
-  };
 
-  const handleSaveDiscountValue = async () => {
-    if (!tenant) return;
-    setSavingDiscount(true);
-    try {
-      const payload = {
-        name: tenant.name,
-        phone: tenant.phone,
-        document: tenant.document || null,
-        allow_discount: discountEnabled,
-        max_discount_percentage: discountEnabled ? Number(discountValue) : 0,
-      };
-      const updatedTenant = await updateTenant(tenant.id, payload);
-      setTenant({ ...tenant, ...updatedTenant });
-      toast.success("Limite de desconto atualizado!");
-    } catch (error) {
-      console.error("Failed to save discount value:", error);
-      toast.error("Erro ao atualizar o limite de desconto.");
-    } finally {
-      setSavingDiscount(false);
-    }
-  };
 
   const [charges, setCharges] = useState<SubscriptionCharge[]>([]);
   const [loadingCharges, setLoadingCharges] = useState(false);
@@ -371,6 +324,9 @@ const SettingsPage = () => {
     () => [
       { id: "general", label: "Geral", icon: <Settings size={18} /> },
       ...(isOwner
+        ? [{ id: "pos", label: "PDV / Caixa", icon: <ShoppingCart size={18} /> }]
+        : []),
+      ...(isOwner
         ? [{ id: "billing", label: "Planos e Cobrança", icon: <CreditCard size={18} /> }]
         : []),
       { id: "profile", label: "Perfil", icon: <User size={18} /> },
@@ -467,8 +423,6 @@ const SettingsPage = () => {
       });
       setLimitEnabled(tenant.max_simultaneous_appointments !== null && tenant.max_simultaneous_appointments !== undefined);
       setLimitValue(tenant.max_simultaneous_appointments ?? 2);
-      setDiscountEnabled(tenant.allow_discount ?? true);
-      setDiscountValue(tenant.max_discount_percentage ?? 100);
     }
   }, [tenant, reset]);
 
@@ -955,91 +909,20 @@ const SettingsPage = () => {
               </Stack>
             </Paper>
 
-            {/* CARD 3: Políticas de Caixa */}
-            {isOwner && (
-              <Paper sx={{ p: 3, borderRadius: 3 }}>
-                <Stack spacing={2}>
-                  <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                    <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
-                    Políticas de Caixa
-                  </Typography>
-                  <Typography variant="body2" color="text.primary" mb={1}>
-                    Defina limites de descontos e permissões para operadores de caixa.
-                  </Typography>
-                  <Divider sx={{ mb: 1 }} />
-
-                  <Stack spacing={2} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                    <Box>
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            size="small"
-                            checked={discountEnabled}
-                            disabled={savingDiscount}
-                            onChange={(e) => handleToggleDiscount(e.target.checked)}
-                          />
-                        }
-                        label={
-                          <Typography variant="body2" fontWeight={700} color="text.primary">
-                            Permitir descontos no Caixa
-                          </Typography>
-                        }
-                        sx={{ mb: 1 }}
-                      />
-                      
-                      <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
-                        Ative para permitir que operadores de caixa dêem descontos em vendas. Você pode definir a porcentagem máxima permitida.
-                      </Typography>
-                    </Box>
-
-                    {discountEnabled && (
-                      <Stack spacing={1.5} sx={{ mt: 1, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
-                        <FormControl fullWidth>
-                          <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 700, fontSize: "0.75rem" }}>
-                            Desconto máximo permitido (%)
-                          </FormLabel>
-                          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                            <TextField
-                              type="number"
-                              size="small"
-                              value={discountValue}
-                              disabled={savingDiscount}
-                              onChange={(e) => setDiscountValue(Math.max(0, Math.min(100, parseFloat(e.target.value) || 0)))}
-                              slotProps={{ htmlInput: { min: 0, max: 100, step: 0.1 } }}
-                              sx={{ 
-                                width: 80,
-                                "& .MuiInputBase-input": { py: 0.5, fontWeight: 700, fontSize: "0.875rem" }
-                              }}
-                            />
-                            <Button
-                              variant="contained"
-                              size="small"
-                              onClick={handleSaveDiscountValue}
-                              disabled={savingDiscount}
-                              sx={{ py: 0.5, px: 2 }}
-                            >
-                              {savingDiscount ? <CircularProgress size={16} color="inherit" /> : "Salvar Limite"}
-                            </Button>
-                          </Box>
-                        </FormControl>
-
-                        <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
-                          Operadores de caixa não poderão conceder descontos maiores que {discountValue}% do valor total da venda.
-                        </Typography>
-                      </Stack>
-                    )}
-                  </Stack>
-                </Stack>
-              </Paper>
-            )}
-
-            {/* CARD 4: Horário de Funcionamento */}
+            {/* CARD 3: Horário de Funcionamento */}
             {isOwner && (
               <WorkingHoursSettings />
             )}
 
           </Stack>
         </CustomTabPanel>
+
+        {/* --- ABA PDV / CAIXA (owner only) --- */}
+        {isOwner && (
+          <CustomTabPanel value={value} index={getTabIndex("pos")}>
+            <POSSettingsSection />
+          </CustomTabPanel>
+        )}
 
         {/* --- ABA PLANOS E COBRANÇA (owner only) --- */}
         {isOwner && <CustomTabPanel value={value} index={getTabIndex("billing")}>

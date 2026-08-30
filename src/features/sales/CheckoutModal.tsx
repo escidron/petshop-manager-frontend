@@ -42,6 +42,7 @@ interface CheckoutModalProps {
   discountAmount?: number;
   clientId: number | null;
   appointmentId?: number | null;
+  cashRegisterId?: number | null;
   onSuccess: () => void;
 }
 
@@ -53,6 +54,7 @@ export default function CheckoutModal({
   discountAmount = 0,
   clientId,
   appointmentId,
+  cashRegisterId,
   onSuccess,
 }: CheckoutModalProps) {
   const [paymentMethod, setPaymentMethod] =
@@ -128,6 +130,7 @@ export default function CheckoutModal({
       payment_method: paymentMethod,
       status: "completed",
       items: itemsWithEmployee,
+      cash_register_id: cashRegisterId,
     };
     saleMutation.mutate(payload);
   };

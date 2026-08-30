@@ -5,6 +5,37 @@ export interface CashRegisterResponse {
   created_at: string;
 }
 
+export interface CashRegisterCreateRequest {
+  name: string;
+}
+
+export interface CashRegisterUpdateRequest {
+  name?: string;
+  is_active?: boolean;
+}
+
+export interface CashDestinationAccountResponse {
+  id: number;
+  name: string;
+  account_type: "internal_cash" | "bank_account" | "safe" | "other";
+  is_default: boolean;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface CashDestinationAccountCreateRequest {
+  name: string;
+  account_type?: "internal_cash" | "bank_account" | "safe" | "other";
+  is_default?: boolean;
+}
+
+export interface CashDestinationAccountUpdateRequest {
+  name?: string;
+  account_type?: "internal_cash" | "bank_account" | "safe" | "other";
+  is_default?: boolean;
+  is_active?: boolean;
+}
+
 export interface CashMovementResponse {
   id: number;
   session_id: number;
@@ -70,15 +101,18 @@ export interface CashSupplyRequest {
   amount: number;
   origin?: string | null;
   description: string;
+  cash_register_id?: number | null;
 }
 
 export interface CashBleedRequest {
   amount: number;
   destination?: string | null;
   description: string;
+  cash_register_id?: number | null;
 }
 
 export interface CashCloseRequest {
   actual_closing_amount: number;
   closing_notes?: string | null;
+  cash_register_id?: number | null;
 }

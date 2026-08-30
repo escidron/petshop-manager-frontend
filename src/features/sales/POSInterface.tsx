@@ -19,7 +19,7 @@ import {
 import { User, ShoppingCart, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { fetchPOSStartup, fetchPOSClientDetails } from "../../api/services/sales";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
@@ -44,7 +44,7 @@ import POSCashControlPill from "./components/POSCashControlPill";
 import { Button } from "../../components/Button/Button";
 
 // Cash Register components & services
-import { getCurrentCashStatus } from "../../api/services/cash";
+import { getCurrentCashStatus, listCashRegisters } from "../../api/services/cash";
 import type { CashSessionDetailResponse } from "../cash_register/types";
 import OpenCashModal from "../cash_register/OpenCashModal";
 import SupplyModal from "../cash_register/SupplyModal";
@@ -59,6 +59,7 @@ export default function POSInterface() {
   const isMobilePOS = useMediaQuery(theme.breakpoints.down("lg"));
   const { tenant } = useAuth();
   const toast = useToast();
+  const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const hasPulled = useRef(false);
@@ -80,6 +81,35 @@ export default function POSInterface() {
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientListLimit, setClientListLimit] = useState(20);
+
+  // Cash Register Selection (Multi-Terminal)
+  const [selectedRegisterId, setSelectedRegisterId] = useState<number | null>(() => {
+    const saved = localStorage.getItem("pos_selected_cash_register_id");
+    return saved ? parseInt(saved, 10) : null;
+  });
+
+  const { data: registers = [] } = useQuery({
+    queryKey: ["cash-registers"],
+    queryFn: () => listCashRegisters(false),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  // Ensure selected register is valid
+  useEffect(() => {
+    if (registers.length > 0) {
+      if (!selectedRegisterId || !registers.some((r) => r.id === selectedRegisterId)) {
+        const defaultRegId = registers[0].id;
+        setSelectedRegisterId(defaultRegId);
+        localStorage.setItem("pos_selected_cash_register_id", String(defaultRegId));
+      }
+    }
+  }, [registers, selectedRegisterId]);
+
+  const handleSelectRegister = (id: number) => {
+    setSelectedRegisterId(id);
+    localStorage.setItem("pos_selected_cash_register_id", String(id));
+    queryClient.invalidateQueries({ queryKey: ["cash-status"] });
+  };
 
   // Cash Register States
   const [isOpenCashModalOpen, setIsOpenCashModalOpen] = useState(false);
@@ -114,8 +144,9 @@ export default function POSInterface() {
 
   // ── Data Fetching ────────────────────────────────────────────────────────
   const { data: cashStatus, isLoading: isCashStatusLoading } = useQuery({
-    queryKey: ["cash-status"],
-    queryFn: getCurrentCashStatus,
+    queryKey: ["cash-status", selectedRegisterId],
+    queryFn: () => getCurrentCashStatus(selectedRegisterId),
+    placeholderData: keepPreviousData,
     staleTime: 1000 * 30, // 30s cache
   });
 
@@ -485,7 +516,7 @@ export default function POSInterface() {
   }, [pendingPackageItem, clientPets]);
 
   // ── Render ───────────────────────────────────────────────────────────────
-  if (isCashStatusLoading) {
+  if (isCashStatusLoading && !cashStatus) {
     return (
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", height: "70vh", width: "100%" }}>
         <CircularProgress size={36} sx={{ color: "primary.main" }} />
@@ -498,6 +529,9 @@ export default function POSInterface() {
       <Box sx={{ width: "100%", height: "100%", overflowY: "auto" }}>
         <POSClosedStateScreen
           cashStatus={cashStatus}
+          cashRegisterId={selectedRegisterId}
+          registers={registers}
+          onSelectRegister={handleSelectRegister}
           onOpenSupply={() => setIsSupplyModalOpen(true)}
           onOpenBleed={() => setIsBleedModalOpen(true)}
           onViewHistory={() => {
@@ -510,6 +544,7 @@ export default function POSInterface() {
             open={isSupplyModalOpen}
             onClose={() => setIsSupplyModalOpen(false)}
             currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+            cashRegisterId={selectedRegisterId}
           />
         )}
 
@@ -518,6 +553,7 @@ export default function POSInterface() {
             open={isBleedModalOpen}
             onClose={() => setIsBleedModalOpen(false)}
             currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+            cashRegisterId={selectedRegisterId}
           />
         )}
 
@@ -526,6 +562,7 @@ export default function POSInterface() {
             open={isStatementModalOpen}
             onClose={() => setIsStatementModalOpen(false)}
             sessionData={cashStatus?.last_closed_session ?? cashStatus?.current_session ?? null}
+            cashRegisterId={selectedRegisterId}
             onOpenSupply={() => setIsSupplyModalOpen(true)}
             onOpenBleed={() => setIsBleedModalOpen(true)}
             onOpenClose={() => setIsCloseCashModalOpen(true)}
@@ -727,6 +764,9 @@ export default function POSInterface() {
             cashControl={
               <POSCashControlPill
                 currentSession={cashStatus?.current_session}
+                registers={registers}
+                selectedRegisterId={selectedRegisterId}
+                onSelectRegister={handleSelectRegister}
                 onOpenSupplyModal={() => setIsSupplyModalOpen(true)}
                 onOpenBleedModal={() => setIsBleedModalOpen(true)}
                 onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
@@ -883,6 +923,9 @@ export default function POSInterface() {
               cashControl={
                 <POSCashControlPill
                   currentSession={cashStatus?.current_session}
+                  registers={registers}
+                  selectedRegisterId={selectedRegisterId}
+                  onSelectRegister={handleSelectRegister}
                   onOpenSupplyModal={() => setIsSupplyModalOpen(true)}
                   onOpenBleedModal={() => setIsBleedModalOpen(true)}
                   onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
@@ -914,6 +957,7 @@ export default function POSInterface() {
           discountAmount={discountAmount}
           clientId={selectedClientId}
           appointmentId={selectedAppointmentId}
+          cashRegisterId={selectedRegisterId}
           onSuccess={endSession}
         />
       )}
@@ -1024,6 +1068,9 @@ export default function POSInterface() {
           open={isOpenCashModalOpen}
           onClose={() => setIsOpenCashModalOpen(false)}
           cashStatus={cashStatus}
+          cashRegisterId={selectedRegisterId}
+          registers={registers}
+          onSelectRegister={handleSelectRegister}
           onOpenSupply={() => setIsSupplyModalOpen(true)}
           onOpenBleed={() => setIsBleedModalOpen(true)}
           onViewHistory={() => {
@@ -1037,6 +1084,7 @@ export default function POSInterface() {
           open={isSupplyModalOpen}
           onClose={() => setIsSupplyModalOpen(false)}
           currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+          cashRegisterId={selectedRegisterId}
         />
       )}
 
@@ -1045,6 +1093,7 @@ export default function POSInterface() {
           open={isBleedModalOpen}
           onClose={() => setIsBleedModalOpen(false)}
           currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+          cashRegisterId={selectedRegisterId}
         />
       )}
 
@@ -1053,6 +1102,7 @@ export default function POSInterface() {
           open={isCloseCashModalOpen}
           onClose={() => setIsCloseCashModalOpen(false)}
           currentSession={cashStatus?.current_session ?? null}
+          cashRegisterId={selectedRegisterId}
           onPrintReceipt={(closedSession) => {
             setReceiptSessionData(closedSession);
             setIsReceiptPrintModalOpen(true);
@@ -1065,6 +1115,7 @@ export default function POSInterface() {
           open={isStatementModalOpen}
           onClose={() => setIsStatementModalOpen(false)}
           sessionData={cashStatus?.current_session ?? cashStatus?.last_closed_session ?? null}
+          cashRegisterId={selectedRegisterId}
           onOpenSupply={() => setIsSupplyModalOpen(true)}
           onOpenBleed={() => setIsBleedModalOpen(true)}
           onOpenClose={() => setIsCloseCashModalOpen(true)}

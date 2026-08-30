@@ -13,6 +13,7 @@ interface CashStatementModalProps {
   open: boolean;
   onClose: () => void;
   sessionData: CashSessionDetailResponse | null;
+  cashRegisterId?: number | null;
   onOpenSupply: () => void;
   onOpenBleed: () => void;
   onOpenClose: () => void;
@@ -24,6 +25,7 @@ export default function CashStatementModal({
   open,
   onClose,
   sessionData,
+  cashRegisterId,
   onOpenSupply,
   onOpenBleed,
   onOpenClose,
@@ -60,6 +62,7 @@ export default function CashStatementModal({
       <DialogContent sx={{ px: 2, py: 1 }}>
         <CashStatementView
           sessionData={sessionData}
+          cashRegisterId={cashRegisterId}
           onOpenSupply={() => {
             onClose();
             onOpenSupply();

@@ -17,14 +17,20 @@ import {
   ArrowDownRight,
   Receipt,
   MoreVertical,
+  ChevronDown,
+  Monitor,
+  Check,
 } from "lucide-react";
 import { useState } from "react";
-import type { CurrentCashStatusResponse } from "../../cash_register/types";
+import type { CurrentCashStatusResponse, CashRegisterResponse } from "../../cash_register/types";
 import { Button } from "../../../components/Button/Button";
 
 interface POSCashBarProps {
   cashStatus: CurrentCashStatusResponse | null | undefined;
   isLoading?: boolean;
+  registers?: CashRegisterResponse[];
+  selectedRegisterId?: number | null;
+  onSelectRegister?: (id: number) => void;
   onOpenCashModal: () => void;
   onOpenSupplyModal: () => void;
   onOpenBleedModal: () => void;
@@ -34,6 +40,9 @@ interface POSCashBarProps {
 
 export default function POSCashBar({
   cashStatus,
+  registers = [],
+  selectedRegisterId,
+  onSelectRegister,
   onOpenCashModal,
   onOpenSupplyModal,
   onOpenBleedModal,
@@ -41,12 +50,16 @@ export default function POSCashBar({
   onOpenStatementModal,
 }: POSCashBarProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [registerAnchorEl, setRegisterAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
+  const isRegisterMenuOpen = Boolean(registerAnchorEl);
 
   const isOpen = cashStatus?.is_open ?? false;
   const currentSession = cashStatus?.current_session;
   const drawerBalance = currentSession?.current_balance ?? 0;
-  const registerName = currentSession?.cash_register.name ?? "Caixa Principal";
+  
+  const currentRegister = registers.find((r) => r.id === selectedRegisterId) || (currentSession?.cash_register);
+  const registerName = currentRegister?.name ?? "Caixa Principal";
 
   const handleMenuClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -54,6 +67,14 @@ export default function POSCashBar({
 
   const handleMenuClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleRegisterMenuOpen = (event: React.MouseEvent<HTMLElement>) => {
+    setRegisterAnchorEl(event.currentTarget);
+  };
+
+  const handleRegisterMenuClose = () => {
+    setRegisterAnchorEl(null);
   };
 
   return (
@@ -95,9 +116,66 @@ export default function POSCashBar({
 
         <Box sx={{ minWidth: 0, flex: 1 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#111827", fontSize: { xs: "0.85rem", sm: "0.95rem" } }} noWrap>
-              {registerName}
-            </Typography>
+            {registers.length > 1 && onSelectRegister ? (
+              <>
+                <Box
+                  onClick={handleRegisterMenuOpen}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    cursor: "pointer",
+                    px: 1,
+                    py: 0.25,
+                    borderRadius: 1.5,
+                    bgcolor: "rgba(0,0,0,0.04)",
+                    "&:hover": { bgcolor: "rgba(0,0,0,0.08)" },
+                    transition: "all 0.15s ease",
+                  }}
+                >
+                  <Monitor size={14} color="#475569" />
+                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#0F172A", fontSize: { xs: "0.85rem", sm: "0.95rem" } }} noWrap>
+                    {registerName}
+                  </Typography>
+                  <ChevronDown size={14} color="#64748B" />
+                </Box>
+
+                <Menu
+                  anchorEl={registerAnchorEl}
+                  open={isRegisterMenuOpen}
+                  onClose={handleRegisterMenuClose}
+                  PaperProps={{ sx: { borderRadius: 2.5, minWidth: 180, p: 0.5 } }}
+                >
+                  <Typography variant="caption" sx={{ px: 2, py: 1, display: "block", color: "#64748B", fontWeight: 700 }}>
+                    TERMINAIS DISPONÍVEIS
+                  </Typography>
+                  {registers.map((reg) => {
+                    const isSelected = reg.id === (selectedRegisterId || currentRegister?.id);
+                    return (
+                      <MenuItem
+                        key={reg.id}
+                        onClick={() => {
+                          onSelectRegister(reg.id);
+                          handleRegisterMenuClose();
+                        }}
+                        selected={isSelected}
+                        sx={{ borderRadius: 1.5, gap: 1, fontWeight: isSelected ? 800 : 500 }}
+                      >
+                        <ListItemIcon sx={{ minWidth: 24, color: isSelected ? "#2563EB" : "#94A3B8" }}>
+                          {isSelected ? <Check size={16} /> : <Monitor size={16} />}
+                        </ListItemIcon>
+                        <ListItemText primary={reg.name} primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: isSelected ? 700 : 500 }} />
+                      </MenuItem>
+                    );
+                  })}
+                </Menu>
+              </>
+            ) : (
+              <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#111827", fontSize: { xs: "0.85rem", sm: "0.95rem" } }} noWrap>
+                {registerName}
+              </Typography>
+            )}
+
             <Chip
               label={isOpen ? "Aberto" : "Fechado"}
               size="small"
