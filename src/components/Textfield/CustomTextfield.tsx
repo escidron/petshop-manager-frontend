@@ -30,6 +30,7 @@ const CustomTextField: React.FC<CustomTextFieldProps> = ({
           sx: {
             backgroundColor: "#fff",
             borderRadius: 1,
+            ...((slotProps?.input as any)?.sx || {}),
           },
         },
       }}
