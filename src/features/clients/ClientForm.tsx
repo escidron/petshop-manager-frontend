@@ -448,8 +448,8 @@ export default function ClientForm({
               {/* ================= EXTRA ================= */}
               <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
                 {/* CEP + Endereço */}
-                <Box sx={{ display: "flex", gap: 2 }}>
-                  <FormControl sx={{ width: "40%" }}>
+                <Box sx={{ display: "flex", gap: 1.5 }}>
+                  <FormControl sx={{ width: "48%", minWidth: "125px" }}>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                       CEP
                     </FormLabel>
@@ -463,11 +463,19 @@ export default function ClientForm({
                           iconPosition="start"
                           icon={
                             loadingCep ? (
-                              <CircularProgress size={18} />
+                              <CircularProgress size={16} />
                             ) : (
-                              <Search size={18} />
+                              <Search size={16} />
                             )
                           }
+                          slotProps={{
+                            input: {
+                              sx: {
+                                "& .MuiInputAdornment-root": { mr: 0.5 },
+                                "& input": { pr: 1, fontSize: "0.85rem" },
+                              },
+                            },
+                          }}
                           onBlur={() => handleCepLookup(field.value || "")}
                           onChange={(e) =>
                             field.onChange(maskCep(e.target.value))
@@ -477,7 +485,7 @@ export default function ClientForm({
                     />
                   </FormControl>
 
-                  <FormControl sx={{ width: "60%" }}>
+                  <FormControl sx={{ width: "52%", flex: 1 }}>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                       Logradouro
                     </FormLabel>
