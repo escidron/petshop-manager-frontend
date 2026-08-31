@@ -11,9 +11,9 @@ const KEYWORD_TO_ICON_TYPE: Record<string, string> = {
 };
 
 const ICON_COMPONENTS: Record<string, React.ReactNode> = {
-  shower:   <ShowerHead size={24} />,
-  scissors: <ScissorsIcon size={22} />,
-  syringe:  <Syringe size={24} />,
+  shower:   <ShowerHead size={20} />,
+  scissors: <ScissorsIcon size={19} />,
+  syringe:  <Syringe size={20} />,
 };
 
 export function getServiceIcons(serviceNames: string[]) {
