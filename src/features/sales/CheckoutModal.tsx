@@ -42,6 +42,7 @@ interface CheckoutModalProps {
   discountAmount?: number;
   clientId: number | null;
   appointmentId?: number | null;
+  comandaId?: number | null;
   cashRegisterId?: number | null;
   onSuccess: () => void;
 }
@@ -54,6 +55,7 @@ export default function CheckoutModal({
   discountAmount = 0,
   clientId,
   appointmentId,
+  comandaId,
   cashRegisterId,
   onSuccess,
 }: CheckoutModalProps) {
@@ -106,6 +108,7 @@ export default function CheckoutModal({
       queryClient.invalidateQueries({ queryKey: ["pos-client"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
       queryClient.invalidateQueries({ queryKey: ["unpaid-packages"] });
       queryClient.invalidateQueries({ queryKey: ["cash-status"] });
       onSuccess();
@@ -125,6 +128,7 @@ export default function CheckoutModal({
     const payload: SaleCreate = {
       client_id: clientId,
       appointment_id: appointmentId,
+      comanda_id: comandaId,
       total_amount: totalAmount,
       discount_amount: discountAmount,
       payment_method: paymentMethod,

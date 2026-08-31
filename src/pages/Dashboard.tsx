@@ -267,7 +267,7 @@ const Dashboard = () => {
                   }}
                 >
                   <OpenInvoices
-                    initialOpenInvoices={startupData?.open_invoices}
+                    initialOpenComandas={startupData?.open_comandas}
                     initialUnpaidPackages={startupData?.unpaid_packages}
                     packagesCatalog={startupData?.packages_catalog}
                     isFetching={isFetching}
@@ -316,6 +316,9 @@ const Dashboard = () => {
             });
             queryClient.invalidateQueries({
               queryKey: ["appointments"],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["open-comandas"],
             });
             queryClient.invalidateQueries({
               queryKey: ["pos-startup"],
