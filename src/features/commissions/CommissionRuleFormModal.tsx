@@ -16,6 +16,7 @@ import {
   Switch,
   TextField,
   Typography,
+  alpha,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
@@ -47,11 +48,32 @@ const schema = z.object({
   value: z.coerce.number<number>().min(0.01, "Valor deve ser maior que zero"),
   applies_to: z.enum(["service", "product", "both"]),
   employee_id: z.number().nullable().optional(),
+  employee_ids: z.array(z.number()),
   service_ids: z.array(z.number()),
   valid_from: z.string().nullable().optional(),
   valid_until: z.string().nullable().optional(),
   is_active: z.boolean(),
 });
+
+const ALL_EMPLOYEES_ID = -1;
+const ALL_EMPLOYEES_OPTION: Employee = {
+  id: ALL_EMPLOYEES_ID,
+  tenant_id: 0,
+  name: "Todos os funcionários",
+  role: "other",
+  phone: "",
+  is_active: true,
+  created_at: "",
+};
+
+const ALL_SERVICES_ID = -1;
+const ALL_SERVICES_OPTION: Service = {
+  id: ALL_SERVICES_ID,
+  tenant_id: 0,
+  name: "Todos os serviços",
+  price_cents: 0,
+  is_active: true,
+};
 
 type Props = {
   open: boolean;
@@ -73,13 +95,14 @@ export default function CommissionRuleFormModal({
   const [serviceLimit, setServiceLimit] = useState(20);
 
   const { control, handleSubmit, reset, watch } = useForm<CommissionRuleFormData>({
-    resolver: zodResolver(schema),
+    resolver: zodResolver(schema) as any,
     defaultValues: {
       name: "",
       commission_type: "percentage",
       value: "" as unknown as number,
       applies_to: "service",
       employee_id: null,
+      employee_ids: [],
       service_ids: [],
       valid_from: null,
       valid_until: null,
@@ -107,12 +130,14 @@ export default function CommissionRuleFormModal({
           if (isMounted) setLoadingOptions(false);
         });
 
+      const initialEmpIds = rule?.employee_ids ?? (rule?.employees?.map((e) => e.id) ?? (rule?.employee_id ? [rule.employee_id] : []));
       reset({
         name: rule?.name ?? "",
         commission_type: rule?.commission_type ?? "percentage",
         value: rule?.value ?? ("" as unknown as number),
         applies_to: rule?.applies_to ?? "service",
-        employee_id: rule?.employee_id ?? null,
+        employee_id: initialEmpIds[0] ?? null,
+        employee_ids: initialEmpIds,
         service_ids: rule?.service_ids ?? (rule?.services?.map((s) => s.id) ?? []),
         valid_from: rule?.valid_from ?? null,
         valid_until: rule?.valid_until ?? null,
@@ -131,8 +156,13 @@ export default function CommissionRuleFormModal({
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
+      const cleanEmpIds = (data.employee_ids || []).filter((id) => id > 0);
+      const cleanSvcIds = (data.service_ids || []).filter((id) => id > 0);
       const payload = {
         ...data,
+        employee_id: cleanEmpIds[0] ?? null,
+        employee_ids: cleanEmpIds,
+        service_ids: cleanSvcIds,
         valid_from: data.valid_from || null,
         valid_until: data.valid_until || null,
       };
@@ -296,57 +326,184 @@ export default function CommissionRuleFormModal({
               <Box>
                 <Typography variant="h6">Filtros e Vigência</Typography>
                 <Typography fontSize="12px" color="text.disabled">
-                  Campos não obrigatórios
+                  Deixe em "Todos" para aplicar a toda a equipe ou catálogo
                 </Typography>
               </Box>
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Funcionário
+                  Funcionários
                 </FormLabel>
                 <Controller
-                  name="employee_id"
+                  name="employee_ids"
                   control={control}
-                  render={({ field }) => (
-                    <Autocomplete<Employee>
-                      options={employees.filter((e) => e.is_active)}
-                      filterOptions={(options, state) => {
-                        const input = state.inputValue.toLowerCase();
-                        return options.filter((option) =>
-                          option.name.toLowerCase().includes(input)
-                        ).slice(0, employeeLimit);
-                      }}
-                      onInputChange={(_, __, reason) => {
-                        if (reason === "input") setEmployeeLimit(20);
-                      }}
-                      ListboxProps={{
-                        onScroll: (event: React.SyntheticEvent) => {
-                          const listboxNode = event.currentTarget;
-                          if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
-                            setEmployeeLimit((prev) => prev + 20);
-                          }
-                        }
-                      }}
-                      size="small"
-                      loading={loadingOptions}
-                      value={employees.find((e) => e.id === field.value) ?? null}
-                      getOptionLabel={(o) => o.name}
-                      renderOption={(props, option) => (
-                        <li {...props} key={option.id}>
-                          {option.name}
-                        </li>
-                      )}
-                      isOptionEqualToValue={(o, v) => o.id === v.id}
-                      onChange={(_, v) => field.onChange(v?.id ?? null)}
-                      noOptionsText={loadingOptions ? "Carregando..." : "Nenhum funcionário cadastrado"}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder="Qualquer funcionário"
+                  render={({ field }) => {
+                    const isAllEmployees = !field.value || field.value.length === 0;
+                    const activeEmployees = employees.filter((e) => e.is_active);
+                    const employeeOptions = [ALL_EMPLOYEES_OPTION, ...activeEmployees];
+                    const selectedValue = isAllEmployees
+                      ? [ALL_EMPLOYEES_OPTION]
+                      : activeEmployees.filter((e) => (field.value ?? []).includes(e.id));
+
+                    return (
+                      <>
+                        <Autocomplete<Employee, true>
+                          multiple
+                          disableCloseOnSelect
+                          loading={loadingOptions}
+                          options={employeeOptions}
+                          filterOptions={(options, state) => {
+                            const input = state.inputValue.toLowerCase();
+                            return options
+                              .filter((option) => {
+                                if (option.id === ALL_EMPLOYEES_ID) {
+                                  return "todos os funcionários".includes(input);
+                                }
+                                return option.name.toLowerCase().includes(input);
+                              })
+                              .slice(0, employeeLimit);
+                          }}
+                          onInputChange={(_, __, reason) => {
+                            if (reason === "input") setEmployeeLimit(20);
+                          }}
+                          ListboxProps={{
+                            onScroll: (event: React.SyntheticEvent) => {
+                              const listboxNode = event.currentTarget;
+                              if (
+                                listboxNode.scrollTop + listboxNode.clientHeight >=
+                                listboxNode.scrollHeight - 10
+                              ) {
+                                setEmployeeLimit((prev) => prev + 20);
+                              }
+                            },
+                          }}
+                          size="small"
+                          value={selectedValue}
+                          getOptionLabel={(o) => o.name}
+                          isOptionEqualToValue={(o, v) => o.id === v.id}
+                          onChange={(_, newValues) => {
+                            const selected = newValues as Employee[];
+                            const clickedAll = selected.some((e) => e.id === ALL_EMPLOYEES_ID);
+                            const previouslyHadAll = isAllEmployees;
+
+                            if (clickedAll && !previouslyHadAll) {
+                              field.onChange([]);
+                              return;
+                            }
+
+                            const specificEmployees = selected.filter(
+                              (e) => e.id !== ALL_EMPLOYEES_ID
+                            );
+
+                            if (previouslyHadAll && specificEmployees.length > 0) {
+                              field.onChange(specificEmployees.map((e) => e.id));
+                              return;
+                            }
+
+                            field.onChange(specificEmployees.map((e) => e.id));
+                          }}
+                          noOptionsText={loadingOptions ? "Carregando..." : "Nenhum funcionário cadastrado"}
+                          renderOption={(props, option) => {
+                            const isAll = option.id === ALL_EMPLOYEES_ID;
+                            const isChecked = isAll
+                              ? isAllEmployees
+                              : (field.value ?? []).includes(option.id);
+
+                            return (
+                              <li
+                                {...props}
+                                key={option.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  padding: "6px 12px",
+                                  backgroundColor: isAll && isChecked
+                                    ? alpha(theme.palette.primary.main, 0.08)
+                                    : undefined,
+                                }}
+                              >
+                                <Checkbox
+                                  size="small"
+                                  checked={isChecked}
+                                  disableRipple
+                                  sx={{
+                                    color: "primary.main",
+                                    p: 0,
+                                    "&.Mui-checked": {
+                                      color: "primary.main",
+                                    },
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: isAll ? 600 : 400,
+                                    color: isAll ? "primary.main" : "text.primary",
+                                  }}
+                                >
+                                  {option.name}
+                                </Typography>
+                              </li>
+                            );
+                          }}
+                          renderTags={(value, getTagProps) => {
+                            if (isAllEmployees) {
+                              return null;
+                            }
+                            return value.map((option, index) => {
+                              const { key, ...tagProps } = getTagProps({ index });
+                              return (
+                                <Chip
+                                  key={key || option.id}
+                                  size="small"
+                                  label={option.name}
+                                  {...tagProps}
+                                  sx={{
+                                    maxWidth: "160px",
+                                    height: "22px",
+                                    fontSize: "0.72rem",
+                                    m: 0.25,
+                                  }}
+                                />
+                              );
+                            });
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder={isAllEmployees ? "Todos os funcionários" : "Adicionar outro funcionário..."}
+                              sx={
+                                isAllEmployees
+                                  ? {
+                                      "& .MuiInputBase-input::placeholder": {
+                                        color: "text.primary",
+                                        opacity: 1,
+                                        fontWeight: 500,
+                                      },
+                                    }
+                                  : undefined
+                              }
+                            />
+                          )}
                         />
-                      )}
-                    />
-                  )}
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            mt: 0.5,
+                            display: "block",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: isAllEmployees ? "text.secondary" : "primary.main",
+                          }}
+                        >
+                          {isAllEmployees
+                            ? "✓ Regra válida para todos os funcionários"
+                            : `✓ Regra aplicada a ${(field.value ?? []).length} funcionário(s) selecionado(s)`}
+                        </Typography>
+                      </>
+                    );
+                  }}
                 />
               </FormControl>
 
@@ -357,92 +514,182 @@ export default function CommissionRuleFormModal({
                 <Controller
                   name="service_ids"
                   control={control}
-                  render={({ field }) => (
-                    <Autocomplete<Service, true>
-                      multiple
-                      disableCloseOnSelect
-                      loading={loadingOptions}
-                      options={services}
-                      filterOptions={(options, state) => {
-                        const input = state.inputValue.toLowerCase();
-                        return options.filter((option) =>
-                          `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
-                            .toLowerCase()
-                            .includes(input)
-                        ).slice(0, serviceLimit);
-                      }}
-                      onInputChange={(_, __, reason) => {
-                        if (reason === "input") setServiceLimit(20);
-                      }}
-                      ListboxProps={{
-                        onScroll: (event: React.SyntheticEvent) => {
-                          const listboxNode = event.currentTarget;
-                          if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
-                            setServiceLimit((prev) => prev + 20);
+                  render={({ field }) => {
+                    const isAllServices = !field.value || field.value.length === 0;
+                    const serviceOptions = [ALL_SERVICES_OPTION, ...services];
+                    const selectedValue = isAllServices
+                      ? [ALL_SERVICES_OPTION]
+                      : (services ?? []).filter((s) => (field.value ?? []).includes(s.id));
+
+                    return (
+                      <>
+                        <Autocomplete<Service, true>
+                          multiple
+                          disableCloseOnSelect
+                          loading={loadingOptions}
+                          options={serviceOptions}
+                          filterOptions={(options, state) => {
+                            const input = state.inputValue.toLowerCase();
+                            return options
+                              .filter((option) => {
+                                if (option.id === ALL_SERVICES_ID) {
+                                  return "todos os serviços".includes(input);
+                                }
+                                return `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                                  .toLowerCase()
+                                  .includes(input);
+                              })
+                              .slice(0, serviceLimit);
+                          }}
+                          onInputChange={(_, __, reason) => {
+                            if (reason === "input") setServiceLimit(20);
+                          }}
+                          ListboxProps={{
+                            onScroll: (event: React.SyntheticEvent) => {
+                              const listboxNode = event.currentTarget;
+                              if (
+                                listboxNode.scrollTop + listboxNode.clientHeight >=
+                                listboxNode.scrollHeight - 10
+                              ) {
+                                setServiceLimit((prev) => prev + 20);
+                              }
+                            },
+                          }}
+                          size="small"
+                          value={selectedValue}
+                          getOptionLabel={(o) =>
+                            o.id === ALL_SERVICES_ID
+                              ? "Todos os serviços"
+                              : formatServiceLabel(o)
                           }
-                        }
-                      }}
-                      size="small"
-                      value={(services ?? []).filter((s) => (field.value ?? []).includes(s.id))}
-                      getOptionLabel={(o) => formatServiceLabel(o)}
-                      isOptionEqualToValue={(o, v) => o.id === v.id}
-                      onChange={(_, v) => field.onChange(v.map((s) => s.id))}
-                      noOptionsText={loadingOptions ? "Carregando..." : "Nenhum serviço cadastrado"}
-                      renderOption={(props, option, { selected }) => (
-                        <li
-                          {...props}
-                          key={option.id}
-                          style={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 8,
-                            padding: "6px 12px",
+                          isOptionEqualToValue={(o, v) => o.id === v.id}
+                          onChange={(_, newValues) => {
+                            const selected = newValues as Service[];
+                            const clickedAll = selected.some((s) => s.id === ALL_SERVICES_ID);
+                            const previouslyHadAll = isAllServices;
+
+                            if (clickedAll && !previouslyHadAll) {
+                              // User clicked "Todos os serviços" -> reset to []
+                              field.onChange([]);
+                              return;
+                            }
+
+                            // Filter out ALL_SERVICES_ID to get specific services
+                            const specificServices = selected.filter(
+                              (s) => s.id !== ALL_SERVICES_ID
+                            );
+
+                            if (previouslyHadAll && specificServices.length > 0) {
+                              // User was on "Todos" and picked specific service(s)
+                              field.onChange(specificServices.map((s) => s.id));
+                              return;
+                            }
+
+                            // If specificServices is empty, it reverts to Todos ([])
+                            field.onChange(specificServices.map((s) => s.id));
+                          }}
+                          noOptionsText={loadingOptions ? "Carregando..." : "Nenhum serviço cadastrado"}
+                          renderOption={(props, option) => {
+                            const isAll = option.id === ALL_SERVICES_ID;
+                            const isChecked = isAll
+                              ? isAllServices
+                              : (field.value ?? []).includes(option.id);
+
+                            return (
+                              <li
+                                {...props}
+                                key={option.id}
+                                style={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 8,
+                                  padding: "6px 12px",
+                                  backgroundColor: isAll && isChecked
+                                    ? alpha(theme.palette.primary.main, 0.08)
+                                    : undefined,
+                                }}
+                              >
+                                <Checkbox
+                                  size="small"
+                                  checked={isChecked}
+                                  disableRipple
+                                  sx={{
+                                    color: "primary.main",
+                                    p: 0,
+                                    "&.Mui-checked": {
+                                      color: "primary.main",
+                                    },
+                                  }}
+                                />
+                                <Typography
+                                  variant="body2"
+                                  sx={{
+                                    fontWeight: isAll ? 600 : 400,
+                                    color: isAll ? "primary.main" : "text.primary",
+                                  }}
+                                >
+                                  {isAll ? "Todos os serviços" : formatServiceLabel(option)}
+                                </Typography>
+                              </li>
+                            );
+                          }}
+                          renderTags={(value, getTagProps) => {
+                            if (isAllServices) {
+                              return null;
+                            }
+                            return value.map((option, index) => {
+                              const { key, ...tagProps } = getTagProps({ index });
+                              return (
+                                <Chip
+                                  key={key || option.id}
+                                  size="small"
+                                  label={formatServiceLabel(option)}
+                                  {...tagProps}
+                                  sx={{
+                                    maxWidth: "160px",
+                                    height: "22px",
+                                    fontSize: "0.72rem",
+                                    m: 0.25,
+                                  }}
+                                />
+                              );
+                            });
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder={isAllServices ? "Todos os serviços" : "Adicionar outro serviço..."}
+                              sx={
+                                isAllServices
+                                  ? {
+                                      "& .MuiInputBase-input::placeholder": {
+                                        color: "text.primary",
+                                        opacity: 1,
+                                        fontWeight: 500,
+                                      },
+                                    }
+                                  : undefined
+                              }
+                            />
+                          )}
+                        />
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            mt: 0.5,
+                            display: "block",
+                            fontSize: "0.75rem",
+                            fontWeight: 500,
+                            color: isAllServices ? "text.secondary" : "primary.main",
                           }}
                         >
-                          <Checkbox
-                            size="small"
-                            checked={selected}
-                            disableRipple
-                            sx={{
-                              color: "primary.main",
-                              p: 0,
-                              "&.Mui-checked": {
-                                color: "primary.main",
-                              },
-                            }}
-                          />
-                          <Typography variant="body2" color="text.primary">
-                            {formatServiceLabel(option)}
-                          </Typography>
-                        </li>
-                      )}
-                      renderTags={(value, getTagProps) =>
-                        value.map((option, index) => {
-                          const { key, ...tagProps } = getTagProps({ index });
-                          return (
-                            <Chip
-                              key={key || option.id}
-                              size="small"
-                              label={formatServiceLabel(option)}
-                              {...tagProps}
-                              sx={{
-                                maxWidth: "160px",
-                                height: "22px",
-                                fontSize: "0.72rem",
-                                m: 0.25,
-                              }}
-                            />
-                          );
-                        })
-                      }
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          placeholder={field.value?.length === 0 ? "Qualquer serviço (todos)" : ""}
-                        />
-                      )}
-                    />
-                  )}
+                          {isAllServices
+                            ? "✓ Regra válida para todos os serviços cadastrados"
+                            : `✓ Regra aplicada a ${(field.value ?? []).length} serviço(s) selecionado(s)`}
+                        </Typography>
+                      </>
+                    );
+                  }}
                 />
               </FormControl>
 

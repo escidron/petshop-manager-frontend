@@ -134,14 +134,20 @@ export default function CommissionRulesPage() {
               >
                 <TableCell>{row.name}</TableCell>
                 <TableCell>
-                  {row.employee_name || (row.employee_id ? `#${row.employee_id}` : <em style={{ color: "gray" }}>Qualquer</em>)}
+                  {row.employees?.length
+                    ? row.employees.map((emp) => (
+                        <Chip key={emp.id} label={emp.name} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                      ))
+                    : row.employee_name
+                    ? <Chip label={row.employee_name} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                    : <em style={{ color: "gray" }}>Todos</em>}
                 </TableCell>
                 <TableCell>
                   {row.services?.length
                     ? row.services.map((svc) => (
                         <Chip key={svc.id} label={formatServiceLabel(svc)} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
                       ))
-                    : <em style={{ color: "gray" }}>Qualquer</em>}
+                    : <em style={{ color: "gray" }}>Todos</em>}
                 </TableCell>
                 <TableCell>
                   {row.commission_type === "percentage"
@@ -149,10 +155,10 @@ export default function CommissionRulesPage() {
                     : `R$ ${Number(row.value).toFixed(2)}`}
                 </TableCell>
                 <TableCell>
-                  {row.employee_id && row.service_ids?.length
-                    ? "Funcionário + Serviços"
-                    : row.employee_id
-                    ? "Funcionário"
+                  {((row.employees && row.employees.length > 0) || (row.employee_ids && row.employee_ids.length > 0) || row.employee_id) && row.service_ids?.length
+                    ? "Funcionários + Serviços"
+                    : (row.employees && row.employees.length > 0) || (row.employee_ids && row.employee_ids.length > 0) || row.employee_id
+                    ? "Funcionários"
                     : row.service_ids?.length
                     ? "Serviços"
                     : "Global"}
