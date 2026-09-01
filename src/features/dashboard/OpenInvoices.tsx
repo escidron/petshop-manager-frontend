@@ -69,19 +69,36 @@ export default function OpenInvoices({
       type: "comanda" | "package";
       data: Comanda | ClientPackage;
       date: string;
+      displayName: string;
     }> = [];
 
     // Add open comandas
     openComandas.forEach((cmd) =>
-      arr.push({ type: "comanda", data: cmd, date: cmd.created_at })
+      arr.push({
+        type: "comanda",
+        data: cmd,
+        date: cmd.created_at,
+        displayName: cmd.client?.name || "Cliente",
+      })
     );
 
     // Add unpaid packages
     unpaidPkgs.forEach((pkg) =>
-      arr.push({ type: "package", data: pkg, date: pkg.created_at })
+      arr.push({
+        type: "package",
+        data: pkg,
+        date: pkg.created_at,
+        displayName: pkg.package_name || "Pacote",
+      })
     );
 
-    return arr.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf()).slice(0, 15);
+    return arr
+      .sort((a, b) => {
+        const cmp = a.displayName.localeCompare(b.displayName, "pt-BR", { sensitivity: "base" });
+        if (cmp !== 0) return cmp;
+        return dayjs(b.date).valueOf() - dayjs(a.date).valueOf();
+      })
+      .slice(0, 15);
   }, [openComandas, unpaidPkgs]);
 
   const totalInvoices =

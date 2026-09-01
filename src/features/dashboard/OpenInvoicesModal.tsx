@@ -95,17 +95,32 @@ export default function OpenInvoicesModal({ open, onClose }: Props) {
       type: "comanda" | "package";
       data: Comanda | ClientPackage;
       date: string;
+      displayName: string;
     }> = [];
 
     accumulatedComandas.forEach((cmd) =>
-      arr.push({ type: "comanda", data: cmd, date: cmd.updated_at || cmd.created_at })
+      arr.push({
+        type: "comanda",
+        data: cmd,
+        date: cmd.updated_at || cmd.created_at,
+        displayName: cmd.client?.name || "Cliente",
+      })
     );
 
     accumulatedPackages.forEach((pkg) =>
-      arr.push({ type: "package", data: pkg, date: pkg.created_at })
+      arr.push({
+        type: "package",
+        data: pkg,
+        date: pkg.created_at,
+        displayName: pkg.package_name || "Pacote",
+      })
     );
 
-    return arr.sort((a, b) => dayjs(b.date).valueOf() - dayjs(a.date).valueOf());
+    return arr.sort((a, b) => {
+      const cmp = a.displayName.localeCompare(b.displayName, "pt-BR", { sensitivity: "base" });
+      if (cmp !== 0) return cmp;
+      return dayjs(b.date).valueOf() - dayjs(a.date).valueOf();
+    });
   }, [accumulatedComandas, accumulatedPackages]);
 
   const scrollContainerRef = useRef<HTMLDivElement>(null);
