@@ -37,7 +37,7 @@ import type { Client } from "../../clients/types";
 import type { Service } from "../../tenant_services/types";
 import type { Product } from "../../products/types";
 import type { Package } from "../../packages/types";
-import { getCompatiblePetsForPackage } from "../../../utils/serviceMatcher";
+import { getCompatiblePetsForPackage, getCompatiblePetsForService } from "../../../utils/serviceMatcher";
 import { Button } from "../../../components/Button/Button";
 
 type CatalogTab = "appointments" | "products" | "services" | "packages" | null;
@@ -69,6 +69,10 @@ interface POSCatalogPanelProps {
   onToggleShowAllPackages?: () => void;
   totalPackagesCount?: number;
   compatiblePackagesCount?: number;
+  showAllServices?: boolean;
+  onToggleShowAllServices?: () => void;
+  totalServicesCount?: number;
+  compatibleServicesCount?: number;
 }
 
 const POSSkeleton = ({ viewMode }: { viewMode: "grid" | "list" }) => (
@@ -189,6 +193,10 @@ export default function POSCatalogPanel({
   onToggleShowAllPackages,
   totalPackagesCount,
   compatiblePackagesCount,
+  showAllServices = false,
+  onToggleShowAllServices,
+  totalServicesCount,
+  compatibleServicesCount,
 }: POSCatalogPanelProps) {
   const [productLimit, setProductLimit] = useState(24);
 
@@ -570,70 +578,326 @@ export default function POSCatalogPanel({
           <POSSkeleton viewMode={viewMode} />
         ) : services.length > 0 ? (
           <Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
-              <Typography variant="overline" sx={{ fontWeight: 800, color: "primary.main", display: "block" }}>
-                {searchTerm ? `Resultados para "${searchTerm}"` : "Serviços de Pet Shop"}
-              </Typography>
-              <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
-            </Box>
-            <Grid container spacing={viewMode === "grid" ? 2 : 1}>
-              {services.slice(0, productLimit).map((service) => (
-                <Grid
-                  size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
-                  key={`serv-${service.id}`}
-                >
-                  {viewMode === "grid" ? (
-                    <Paper
-                      elevation={0}
-                      onClick={() => onAddItem(service, "service")}
-                      sx={{ p: 2, borderRadius: 3, cursor: "pointer", height: "100%", display: "flex", flexDirection: "column", position: "relative", transition: "all 0.2s ease-in-out", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.main", "& .add-btn-s": { bgcolor: "primary.main", color: "white" } } }}
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, mb: 2 }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="overline" sx={{ fontWeight: 800, color: "primary.main", display: "block" }}>
+                    {searchTerm ? `Resultados para "${searchTerm}"` : "Serviços de Pet Shop"}
+                  </Typography>
+                  {hasClientWithPets && (
+                    <Chip
+                      label={showAllServices ? `Todos (${services.length})` : `Compatíveis (${services.length})`}
+                      size="small"
+                      color={showAllServices ? "default" : "primary"}
+                      variant={showAllServices ? "outlined" : "filled"}
+                      sx={{ fontSize: "0.65rem", height: 20, fontWeight: 800 }}
+                    />
+                  )}
+                </Box>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {hasClientWithPets && onToggleShowAllServices && (
+                    <Button
+                      size="small"
+                      variant={showAllServices ? "contained" : "outlined"}
+                      onClick={onToggleShowAllServices}
+                      sx={{
+                        fontSize: "0.75rem",
+                        py: 0.5,
+                        px: 1.25,
+                        borderRadius: 2,
+                        textTransform: "none",
+                        fontWeight: 700,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 0.75,
+                      }}
                     >
-                      <Box sx={{ mb: 1.5, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                        <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: alpha("#9c27b0", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "primary.main" }}>
-                          <ClipboardList size={18} />
-                        </Box>
-                        <Chip label="SERVIÇO" size="small" color="secondary" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 800 }} />
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>{service.name}</Typography>
-                      {(service.species || service.size || service.coat_type || service.duration_minutes) && (
-                        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
-                          {service.species && <Chip label={service.species} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                          {service.size && <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                          {service.coat_type && <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                          {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                        </Box>
+                      {showAllServices ? (
+                        <>
+                          <Filter size={14} />
+                          Mostrar apenas compatíveis ({compatibleServicesCount ?? 0})
+                        </>
+                      ) : (
+                        <>
+                          <ClipboardList size={14} />
+                          Mostrar todos os serviços ({totalServicesCount ?? services.length})
+                        </>
                       )}
-                      <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                        <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "primary.main" }}>R$ {((service.price_cents || 0) / 100).toFixed(2)}</Typography>
-                        <Box className="add-btn-s" sx={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px solid", borderColor: "secondary.main", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}><Plus size={18} /></Box>
-                      </Box>
-                    </Paper>
-                  ) : (
-                    <Paper
-                      elevation={0}
-                      onClick={() => onAddItem(service, "service")}
-                      sx={{ p: 1.5, borderRadius: 2, cursor: "pointer", display: "flex", alignItems: "center", gap: 2, transition: "all 0.2s", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.main", bgcolor: alpha("#1976d2", 0.02) } }}
-                    >
-                      <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: alpha("#9c27b0", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "primary.main", flexShrink: 0 }}><ClipboardList size={18} /></Box>
-                      <Box sx={{ flexGrow: 1 }}>
-                        <Typography variant="body2" sx={{ fontWeight: 700 }}>{service.name}</Typography>
-                        {(service.species || service.size || service.coat_type || service.duration_minutes) && (
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
-                            {service.species && <Chip label={service.species} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                            {service.size && <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                            {service.coat_type && <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                            {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                    </Button>
+                  )}
+                  <ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
+                </Box>
+              </Box>
+
+              {hasClientWithPets && (
+                <Box
+                  sx={{
+                    px: 1.5,
+                    py: 0.75,
+                    borderRadius: 2,
+                    bgcolor: showAllServices ? alpha("#ff9800", 0.08) : alpha("#1976d2", 0.06),
+                    border: "1px solid",
+                    borderColor: showAllServices ? alpha("#ff9800", 0.25) : alpha("#1976d2", 0.2),
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 1,
+                  }}
+                >
+                  <Typography variant="caption" sx={{ color: "text.primary", fontWeight: 600 }}>
+                    {showAllServices ? (
+                      <>
+                        ⚠️ <strong>Exibindo todos os serviços:</strong> Serviços incompatíveis com os pets de <strong>{selectedClient?.name}</strong> estão sinalizados.
+                      </>
+                    ) : (
+                      <>
+                        🐾 <strong>Serviços compatíveis para:</strong>{" "}
+                        {activeClientPets.map((p) => `${p.name}${p.size ? ` (${p.size})` : ""}`).join(", ")}
+                      </>
+                    )}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
+
+            <Grid container spacing={viewMode === "grid" ? 2 : 1}>
+              {services.slice(0, productLimit).map((service) => {
+                const compatiblePets = hasClientWithPets
+                  ? getCompatiblePetsForService(service, activeClientPets)
+                  : [];
+                const isCompatible = !hasClientWithPets || compatiblePets.length > 0;
+
+                return (
+                  <Grid
+                    size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
+                    key={`serv-${service.id}`}
+                  >
+                    {viewMode === "grid" ? (
+                      <Paper
+                        elevation={0}
+                        onClick={() => onAddItem(service, "service")}
+                        sx={{
+                          p: 2,
+                          borderRadius: 3,
+                          cursor: "pointer",
+                          height: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          position: "relative",
+                          transition: "all 0.2s ease-in-out",
+                          border: isCompatible ? "1px solid" : "1px dashed",
+                          borderColor: isCompatible ? "divider" : alpha("#d32f2f", 0.4),
+                          bgcolor: "background.paper",
+                          opacity: isCompatible ? 1 : 0.78,
+                          "&:hover": {
+                            borderColor: isCompatible ? "primary.main" : "error.main",
+                            opacity: 1,
+                            "& .add-btn-s": { bgcolor: isCompatible ? "primary.main" : "error.main", color: "white" },
+                          },
+                        }}
+                      >
+                        <Box sx={{ mb: 1.5, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <Box
+                            sx={{
+                              width: 36,
+                              height: 36,
+                              borderRadius: 1.5,
+                              bgcolor: isCompatible ? alpha("#9c27b0", 0.08) : alpha("#d32f2f", 0.08),
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              color: isCompatible ? "primary.main" : "#d32f2f",
+                            }}
+                          >
+                            <ClipboardList size={18} />
+                          </Box>
+                          <Chip
+                            label="SERVIÇO"
+                            size="small"
+                            color="secondary"
+                            sx={{ fontSize: "0.6rem", height: 18, fontWeight: 800 }}
+                          />
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, mb: 0.5, color: "text.primary" }}>
+                          {service.name}
+                        </Typography>
+
+                        {/* Pet compatibility indicator */}
+                        {hasClientWithPets && (
+                          <Box sx={{ mb: 1, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                            {isCompatible ? (
+                              <Chip
+                                label={`✓ Compatível: ${compatiblePets.map((p) => p.name).join(", ")}`}
+                                size="small"
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  height: 18,
+                                  bgcolor: alpha("#2e7d32", 0.08),
+                                  color: "#2e7d32",
+                                  border: "1px solid",
+                                  borderColor: alpha("#2e7d32", 0.2),
+                                  fontWeight: 700,
+                                }}
+                              />
+                            ) : (
+                              <Chip
+                                label="Incompatível"
+                                size="small"
+                                sx={{
+                                  fontSize: "0.6rem",
+                                  height: 18,
+                                  bgcolor: alpha("#d32f2f", 0.08),
+                                  color: "#d32f2f",
+                                  border: "1px solid",
+                                  borderColor: alpha("#d32f2f", 0.25),
+                                  fontWeight: 700,
+                                }}
+                              />
+                            )}
                           </Box>
                         )}
-                      </Box>
-                      <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main", minWidth: 80, textAlign: "right" }}>R$ {((service.price_cents || 0) / 100).toFixed(2)}</Typography>
-                      <IconButton size="small" color="primary"><Plus size={18} /></IconButton>
-                    </Paper>
-                  )}
-                </Grid>
-              ))}
+
+                        {(service.species || service.size || service.coat_type || service.duration_minutes) && (
+                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+                            {service.species && <Chip label={service.species} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                            {service.size && <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                            {service.coat_type && <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                            {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                          </Box>
+                        )}
+                        <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                          <Typography variant="subtitle1" sx={{ fontWeight: 800, color: isCompatible ? "primary.main" : "text.primary" }}>
+                            R$ {((service.price_cents || 0) / 100).toFixed(2)}
+                          </Typography>
+                          <Box
+                            className="add-btn-s"
+                            sx={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "50%",
+                              border: "1.5px solid",
+                              borderColor: isCompatible ? "secondary.main" : "error.main",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              transition: "all 0.2s",
+                            }}
+                          >
+                            <Plus size={18} />
+                          </Box>
+                        </Box>
+                      </Paper>
+                    ) : (
+                      <Paper
+                        elevation={0}
+                        onClick={() => onAddItem(service, "service")}
+                        sx={{
+                          p: 1.5,
+                          borderRadius: 2,
+                          cursor: "pointer",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 2,
+                          transition: "all 0.2s",
+                          border: isCompatible ? "1px solid" : "1px dashed",
+                          borderColor: isCompatible ? "divider" : alpha("#d32f2f", 0.35),
+                          bgcolor: "background.paper",
+                          opacity: isCompatible ? 1 : 0.78,
+                          "&:hover": {
+                            borderColor: isCompatible ? "primary.main" : "error.main",
+                            bgcolor: alpha("#1976d2", 0.02),
+                            opacity: 1,
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                          },
+                        }}
+                      >
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 1,
+                            bgcolor: isCompatible ? alpha("#9c27b0", 0.08) : alpha("#d32f2f", 0.08),
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: isCompatible ? "primary.main" : "#d32f2f",
+                            flexShrink: 0,
+                          }}
+                        >
+                          <ClipboardList size={18} />
+                        </Box>
+                        <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {service.name}
+                            </Typography>
+                            {hasClientWithPets && (
+                              isCompatible ? (
+                                <Chip
+                                  label={`✓ ${compatiblePets.map((p) => p.name).join(", ")}`}
+                                  size="small"
+                                  sx={{
+                                    fontSize: "0.55rem",
+                                    height: 16,
+                                    bgcolor: alpha("#2e7d32", 0.08),
+                                    color: "#2e7d32",
+                                    border: "1px solid",
+                                    borderColor: alpha("#2e7d32", 0.2),
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              ) : (
+                                <Chip
+                                  label="Incompatível"
+                                  size="small"
+                                  sx={{
+                                    fontSize: "0.55rem",
+                                    height: 16,
+                                    bgcolor: alpha("#d32f2f", 0.08),
+                                    color: "#d32f2f",
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              )
+                            )}
+                          </Box>
+                          {(service.species || service.size || service.coat_type || service.duration_minutes) && (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+                              {service.species && <Chip label={service.species} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                              {service.size && <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                              {service.coat_type && <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                              {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                            </Box>
+                          )}
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 800, color: isCompatible ? "primary.main" : "text.primary", minWidth: 80, textAlign: "right" }}>
+                          R$ {((service.price_cents || 0) / 100).toFixed(2)}
+                        </Typography>
+                        <IconButton size="small" color={isCompatible ? "primary" : "default"}>
+                          <Plus size={18} />
+                        </IconButton>
+                      </Paper>
+                    )}
+                  </Grid>
+                );
+              })}
             </Grid>
           </Box>
+        ) : hasClientWithPets && !showAllServices && (totalServicesCount || 0) > 0 ? (
+          <Paper elevation={0} sx={{ p: 4, textAlign: "center", border: "1px dashed", borderColor: "divider", borderRadius: 3, bgcolor: "background.paper" }}>
+            <ClipboardList size={44} style={{ opacity: 0.3, marginBottom: 12, color: "#ff9800" }} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+              Nenhum serviço compatível com os pets de {selectedClient?.name}
+            </Typography>
+            <Typography variant="body2" sx={{ color: "text.secondary", mt: 0.5, mb: 2.5 }}>
+              Os pets cadastrados ({activeClientPets.map((p) => `${p.name}${p.size ? ` (${p.size})` : ""}`).join(", ")}) não possuem compatibilidade com os serviços ativos.
+            </Typography>
+            {onToggleShowAllServices && (
+              <Button variant="contained" size="small" onClick={onToggleShowAllServices}>
+                Mostrar todos os {totalServicesCount} serviços
+              </Button>
+            )}
+          </Paper>
         ) : (
           <Box sx={{ textAlign: "center", mt: 10 }}>
             <Filter size={64} style={{ opacity: 0.2, marginBottom: 16 }} />
