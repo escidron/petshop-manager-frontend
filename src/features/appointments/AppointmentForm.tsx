@@ -98,6 +98,16 @@ export default function AppointmentForm({
   );
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const pendingTimeCloseRef = useRef(false);
+  const clientInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (mode === "create" && !selectedClient && !loadedClientId && !autoSelectClientId) {
+      const timer = setTimeout(() => {
+        clientInputRef.current?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, selectedClient, loadedClientId, autoSelectClientId]);
 
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "date" | "never">("occurrences");
@@ -262,7 +272,107 @@ export default function AppointmentForm({
         component="form"
         onSubmit={handleSubmit(handleFormSubmit)}
         sx={{ display: "flex", flexDirection: "column", gap: 3 }}
-      >{/* DATA E HORA */}
+      >      {/* CLIENTE */}
+      <FormControl>
+        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          <Controller
+            name="client_id"
+            control={control}
+            render={({ field, fieldState }) => (
+              <Autocomplete<Client>
+                sx={{ flex: 1, minWidth: 0 }}
+                options={clients ?? []}
+                openOnFocus={false}
+                autoHighlight
+                filterOptions={(options, state) => {
+                  const input = state.inputValue.toLowerCase();
+                  return options
+                    .filter((option) => {
+                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                      const matchName = option.name.toLowerCase().includes(input);
+                      const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
+                      return matchName || matchPet;
+                    })
+                    .slice(0, clientListLimit);
+                }}
+                noOptionsText="Nenhum cliente cadastrado"
+                size="small"
+                value={
+                  selectedClient ??
+                  clients?.find((c) => c.id === field.value) ??
+                  null
+                }
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, value) => option.id === value.id}
+                onInputChange={(_, __, reason) => {
+                  if (reason === 'input') setClientListLimit(20);
+                }}
+                ListboxProps={{
+                  onScroll: (event: React.SyntheticEvent) => {
+                    const listboxNode = event.currentTarget;
+                    if (
+                      listboxNode.scrollTop + listboxNode.clientHeight >=
+                      listboxNode.scrollHeight - 10
+                    ) {
+                      setClientListLimit((prev) => prev + 20);
+                    }
+                  }
+                }}
+                renderOption={(props, option) => {
+                  const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                  const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
+                  return (
+                    <li {...props} key={option.id}>
+                      <Box sx={{ display: "flex", flexDirection: "column" }}>
+                        <Typography variant="body2">{option.name}</Typography>
+                        <Typography variant="caption" color="text.primary">
+                          Pets: {petsText}
+                        </Typography>
+                      </Box>
+                    </li>
+                  );
+                }}
+                onChange={(_, value) => {
+                  const clientId = value?.id ?? 0;
+                  field.onChange(clientId);
+                  setClientId(clientId);
+                  resetField("items");
+                }}
+                renderInput={(params) => (
+                  <TextField
+                    {...params}
+                    inputRef={clientInputRef}
+                    autoFocus={mode === "create" && !selectedClient && !loadedClientId && !autoSelectClientId}
+                    placeholder="Pesquisar cliente"
+                    error={!!fieldState.error}
+                    helperText={fieldState.error?.message}
+                  />
+                )}
+              />
+            )}
+          />
+          <Button
+            sx={{
+              minWidth: { xs: "40px", sm: "140px" },
+              width: { xs: "40px", sm: "auto" },
+              height: "40px",
+              p: { xs: 0, sm: "6px 16px" },
+              flexShrink: 0,
+            }}
+            variant="outlined"
+            onClick={() => onCreateClient?.()}
+            title="Criar Cliente"
+          >
+            <Plus size={18} />
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
+              Criar Cliente
+            </Box>
+          </Button>
+        </Box>
+      </FormControl>
+
+      {/* DATA E HORA */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Data e hora
@@ -443,104 +553,6 @@ export default function AppointmentForm({
             </LocalizationProvider>
           )}
         />
-      </FormControl>
-
-
-
-      {/* CLIENTE */}
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <Controller
-            name="client_id"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Autocomplete<Client>
-                sx={{ flex: 1, minWidth: 0 }}
-                options={clients ?? []}
-                filterOptions={(options, state) => {
-                  const input = state.inputValue.toLowerCase();
-                  return options
-                    .filter((option) => {
-                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
-                      const matchName = option.name.toLowerCase().includes(input);
-                      const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
-                      return matchName || matchPet;
-                    })
-                    .slice(0, clientListLimit);
-                }}
-                noOptionsText="Nenhum cliente cadastrado"
-                size="small"
-                value={
-                  selectedClient ??
-                  clients?.find((c) => c.id === field.value) ??
-                  null
-                }
-                getOptionLabel={(option) => option.name}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                onInputChange={(_, __, reason) => {
-                  if (reason === 'input') setClientListLimit(20);
-                }}
-                ListboxProps={{
-                  onScroll: (event: React.SyntheticEvent) => {
-                    const listboxNode = event.currentTarget;
-                    if (
-                      listboxNode.scrollTop + listboxNode.clientHeight >=
-                      listboxNode.scrollHeight - 10
-                    ) {
-                      setClientListLimit((prev) => prev + 20);
-                    }
-                  }
-                }}
-                renderOption={(props, option) => {
-                  const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
-                  const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
-                  return (
-                    <li {...props} key={option.id}>
-                      <Box sx={{ display: "flex", flexDirection: "column" }}>
-                        <Typography variant="body2">{option.name}</Typography>
-                        <Typography variant="caption" color="text.primary">
-                          Pets: {petsText}
-                        </Typography>
-                      </Box>
-                    </li>
-                  );
-                }}
-                onChange={(_, value) => {
-                  const clientId = value?.id ?? 0;
-                  field.onChange(clientId);
-                  setClientId(clientId);
-                  resetField("items");
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Pesquisar cliente"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            )}
-          />
-          <Button
-            sx={{
-              minWidth: { xs: "40px", sm: "140px" },
-              width: { xs: "40px", sm: "auto" },
-              height: "40px",
-              p: { xs: 0, sm: "6px 16px" },
-              flexShrink: 0,
-            }}
-            variant="outlined"
-            onClick={() => onCreateClient?.()}
-            title="Criar Cliente"
-          >
-            <Plus size={18} />
-            <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
-              Criar Cliente
-            </Box>
-          </Button>
-        </Box>
       </FormControl>
 
       {/* PETS E SERVIÇOS */}
