@@ -1,10 +1,9 @@
 import { Box, Typography, Chip, Tooltip, IconButton, CircularProgress, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions } from "@mui/material";
-import { Calendar, Clock, Plus, Trash2, Pencil, CalendarCheck } from "lucide-react";
+import { Clock, Plus, Trash2, CalendarCheck, Dog } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import { useWaitingListMutations } from "../../hooks/useWaitingList";
 import { useState } from "react";
 import WaitingListModal from "../appointments/waiting-list/WaitingListModal";
-import dayjs from "dayjs";
 import type { WaitingListEntry } from "../appointments/waiting-list/types";
 import { Button } from "../../components/Button/Button";
 
@@ -21,16 +20,8 @@ export default function WaitingListCard({ onScheduleEntry, entries = [], isFetch
   const [editingEntry, setEditingEntry] = useState<WaitingListEntry | undefined>(undefined);
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
 
-  // Mapeamento de labels para períodos
-  const periodLabels = {
-    any: "Qualquer Horário",
-    morning: "Manhã",
-    afternoon: "Tarde",
-    evening: "Noite",
-  };
-
   return (
-    <Box sx={{ mt: 3 }}>
+    <Box sx={{ mt: 2.5 }}>
       <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 1.5 }}>
         <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
           <Clock size={20} />
@@ -72,116 +63,100 @@ export default function WaitingListCard({ onScheduleEntry, entries = [], isFetch
             </Typography>
           </CustomCard>
         ) : (
-          entries.map((entry: WaitingListEntry) => (
-            <CustomCard
-              key={entry.id}
-              sx={{
-                p: { xs: 1.1, sm: 1.25 },
-                borderLeft: "4px solid",
-                borderColor: "warning.main",
-                display: "flex",
-                flexDirection: "column",
-                gap: 0.5,
-                transition: "all 0.15s ease",
-                "&:hover": {
-                  boxShadow: 3,
-                },
-              }}
-            >
-              {/* Linha 1: Cliente e Pets | Botões de Ação */}
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0, overflow: "hidden" }}>
-                  <Typography variant="body2" fontWeight={700} noWrap sx={{ fontSize: { xs: "0.85rem", sm: "0.88rem" }, lineHeight: 1.2 }}>
+          entries.map((entry: WaitingListEntry) => {
+            const petsText = entry.items.map((i) => i.pet.name).join(", ");
+
+            return (
+              <CustomCard
+                key={entry.id}
+                onClick={() => {
+                  setEditingEntry(entry);
+                  setModalOpen(true);
+                }}
+                sx={{
+                  p: { xs: 1.2, sm: 1.35 },
+                  border: "1px solid",
+                  borderColor: "divider",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 1.5,
+                  cursor: "pointer",
+                  transition: "border-color 0.15s ease",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                  },
+                }}
+              >
+                {/* Lado Esquerdo: Nome da pessoa em cima, pets embaixo */}
+                <Box sx={{ minWidth: 0, flex: 1, display: "flex", flexDirection: "column", gap: 0.35 }}>
+                  <Typography
+                    variant="body2"
+                    fontWeight={700}
+                    noWrap
+                    sx={{ fontSize: { xs: "0.86rem", sm: "0.9rem" }, color: "text.primary" }}
+                  >
                     {entry.client.name}
                   </Typography>
-                  <Typography variant="caption" noWrap sx={{ color: "text.primary", opacity: 0.65, fontSize: "0.74rem" }}>
-                    • {entry.items.map((i) => `${i.pet.name} (${i.services.map((s) => s.name).join(", ")})`).join("; ")}
-                  </Typography>
+
+                  {petsText && (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, minWidth: 0 }}>
+                      <Dog size={13} style={{ flexShrink: 0 }} />
+                      <Typography
+                        variant="caption"
+                        noWrap
+                        sx={{ color: "text.primary", fontSize: "0.78rem", fontWeight: 500 }}
+                      >
+                        {petsText}
+                      </Typography>
+                    </Box>
+                  )}
                 </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 0.25, flexShrink: 0 }}>
-                  <Tooltip title="Editar">
-                    <IconButton
-                      size="small"
-                      sx={{ p: 0.35, color: "text.primary", opacity: 0.7, "&:hover": { opacity: 1, color: "primary.main" } }}
-                      onClick={() => { setEditingEntry(entry); setModalOpen(true); }}
-                    >
-                      <Pencil size={14} />
-                    </IconButton>
-                  </Tooltip>
+                {/* Lado Direito: Botão Agendar + Remover */}
+                <Box
+                  sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 0.75 }, flexShrink: 0 }}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="success"
+                    startIcon={<CalendarCheck size={13} />}
+                    sx={{
+                      height: 26,
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      px: { xs: 1, sm: 1.25 },
+                      py: 0,
+                      borderRadius: 1,
+                      flexShrink: 0,
+                      textTransform: "none",
+                    }}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onScheduleEntry(entry);
+                    }}
+                  >
+                    Agendar
+                  </Button>
+
                   <Tooltip title="Remover">
                     <IconButton
                       size="small"
                       sx={{ p: 0.35, color: "text.primary", opacity: 0.7, "&:hover": { opacity: 1, color: "error.main" } }}
-                      onClick={() => setConfirmDeleteId(entry.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setConfirmDeleteId(entry.id);
+                      }}
                     >
                       <Trash2 size={14} />
                     </IconButton>
                   </Tooltip>
                 </Box>
-              </Box>
-
-              {/* Linha 2: Data, Período, Observações e Botão Agendar */}
-              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, overflow: "hidden", flexWrap: "nowrap" }}>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.35, color: "primary.main", flexShrink: 0 }}>
-                    <Calendar size={11} />
-                    <Typography variant="caption" fontWeight={600} sx={{ fontSize: "0.72rem", color: "inherit" }}>
-                      {entry.preferred_date ? dayjs(entry.preferred_date).format("DD/MM") : "Qualquer dia"}
-                    </Typography>
-                  </Box>
-
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.35, color: "text.disabled", flexShrink: 0 }}>
-                    <Clock size={11} />
-                    <Typography variant="caption" sx={{ fontSize: "0.72rem" }}>
-                      {periodLabels[entry.preferred_period as keyof typeof periodLabels]}
-                    </Typography>
-                  </Box>
-
-                  {entry.notes && (
-                    <Typography
-                      variant="caption"
-                      noWrap
-                      sx={{
-                        color: "text.primary",
-                        opacity: 0.75,
-                        fontSize: "0.7rem",
-                        fontStyle: "italic",
-                        bgcolor: "action.hover",
-                        px: 0.6,
-                        py: 0.1,
-                        borderRadius: 0.5,
-                        maxWidth: { xs: "120px", sm: "180px" },
-                      }}
-                      title={entry.notes}
-                    >
-                      "{entry.notes}"
-                    </Typography>
-                  )}
-                </Box>
-
-                <Button
-                  size="small"
-                  variant="contained"
-                  color="success"
-                  startIcon={<CalendarCheck size={13} />}
-                  sx={{
-                    height: 26,
-                    fontSize: "0.72rem",
-                    fontWeight: 700,
-                    px: 1.25,
-                    py: 0,
-                    borderRadius: 1,
-                    flexShrink: 0,
-                    textTransform: "none",
-                  }}
-                  onClick={() => onScheduleEntry(entry)}
-                >
-                  Agendar
-                </Button>
-              </Box>
-            </CustomCard>
-          ))
+              </CustomCard>
+            );
+          })
         )}
       </Box>
 

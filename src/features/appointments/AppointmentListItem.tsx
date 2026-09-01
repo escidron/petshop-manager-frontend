@@ -70,11 +70,18 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
       sx={{
         px: { xs: 1.25, sm: 2 },
         py: { xs: 0.85, sm: 1 },
+        border: "1px solid",
+        borderColor: "divider",
         borderLeft: "5px solid",
         borderLeftColor: p.main,
         width: "100%",
         opacity: appointment.status == "canceled" ? 0.5 : 1,
         cursor: "pointer",
+        transition: "border-color 0.15s ease",
+        "&:hover": {
+          borderColor: p.main,
+          borderLeftColor: p.main,
+        },
       }}
       onClick={() => {
         if (open) return;

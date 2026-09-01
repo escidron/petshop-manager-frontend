@@ -113,7 +113,7 @@ const AppointmentsDailyList = ({
           display: "flex",
           flexDirection: { xs: "column", sm: "row", lg: "column", xl: "row" },
           justifyContent: "space-between",
-          alignItems: { xs: "stretch", sm: "center", lg: "stretch", xl: "center" },
+          alignItems: { xs: "stretch", sm: "flex-start", lg: "stretch", xl: "flex-start" },
           gap: { xs: 1.25, sm: 2 },
         }}
       >

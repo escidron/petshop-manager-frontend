@@ -30,8 +30,8 @@ const SummaryCard = ({
       flex: 1,
       display: "flex",
       alignItems: "center",
-      gap: 2,
-      p: 2,
+      gap: 1.5,
+      p: { xs: 1.2, sm: 1.4 },
     }}
   >
     <Box
@@ -39,10 +39,10 @@ const SummaryCard = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 48,
-        height: 48,
-        minWidth: 48,
-        borderRadius: "12px",
+        width: 40,
+        height: 40,
+        minWidth: 40,
+        borderRadius: "10px",
         backgroundColor: bgColor,
         color: iconColor,
       }}
@@ -56,10 +56,10 @@ const SummaryCard = ({
           fontWeight: 600,
           color: "text.primary",
           opacity: 0.6,
-          fontSize: "0.85rem",
+          fontSize: "0.8rem",
           display: "block",
           lineHeight: 1.2,
-          mb: 0.25,
+          mb: 0.15,
         }}
         noWrap
       >
@@ -70,7 +70,7 @@ const SummaryCard = ({
         sx={{
           fontWeight: 700,
           color: "text.primary",
-          fontSize: "1.4rem",
+          fontSize: "1.25rem",
           lineHeight: 1.2,
         }}
         noWrap
@@ -113,7 +113,7 @@ export default function DashboardSummaryCards({ appointments, isFetching = false
   });
 
   return (
-    <Box sx={{ width: "100%", mb: { xs: 1.5, sm: 2.5 } }}>
+    <Box sx={{ width: "100%", mb: { xs: 1.25, sm: 1.75 } }}>
       {/* ── MOBILE: Todos os 4 em 1 única linha compacta ── */}
       <CustomCard
         sx={{
