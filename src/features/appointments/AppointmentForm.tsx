@@ -35,6 +35,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { usePets } from "../../hooks/usePets";
 import { useQuery } from "@tanstack/react-query";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
+import { CustomDay } from "../dashboard/DashboardCalendar";
+import { getHighlightedDays } from "../../api/services/appointments";
 dayjs.locale("pt-br");
 
 type Props = {
@@ -141,6 +143,21 @@ export default function AppointmentForm({
     queryFn: () => listClientPackagesByClient(watchedClientId!),
     enabled: !!watchedClientId,
   });
+
+  const [calendarMonth, setCalendarMonth] = useState<dayjs.Dayjs>(
+    (scheduledDate || dayjs()).startOf("month")
+  );
+
+  const startDate = calendarMonth.subtract(1, "month").startOf("month").format("YYYY-MM-DD");
+  const endDate = calendarMonth.add(1, "month").endOf("month").format("YYYY-MM-DD");
+
+  const { data: highlightedData = [] } = useQuery({
+    queryKey: ["appointments", "highlights", calendarMonth.format("YYYY-MM")],
+    queryFn: () => getHighlightedDays(startDate, endDate),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const highlightedDays = useMemo(() => new Set<string>(highlightedData), [highlightedData]);
 
   const populatedClientIdRef = useRef<number | undefined>(defaultValues?.client_id);
 
@@ -453,6 +470,7 @@ export default function AppointmentForm({
                         field.onChange("");
                       }
                     }}
+                    onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
                     shouldDisableDate={(date) => {
                       if (!workingHours) return false;
                       return workingHours[String(date.day())]?.is_open === false;
@@ -461,7 +479,13 @@ export default function AppointmentForm({
                       const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
                       return days[day.day()];
                     }}
+                    slots={{
+                      day: CustomDay,
+                    }}
                     slotProps={{
+                      day: {
+                        highlightedDays,
+                      } as any,
                       popper: {
                         sx: {
                           "& .MuiDayCalendar-weekDayLabel": {

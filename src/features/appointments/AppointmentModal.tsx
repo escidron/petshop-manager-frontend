@@ -20,6 +20,7 @@ import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
 
 import AppointmentForm from "./AppointmentForm";
+import AppointmentMobileFlow from "./mobile/AppointmentMobileFlow";
 import ClientFormModal from "../clients/ClientFormModal";
 import PetFormModal from "../pets/PetFormModal";
 import ServiceFormModal from "../tenant_services/ServiceFormModal";
@@ -230,28 +231,52 @@ export default function AppointmentModal({
             overscrollBehavior: "contain",
           }}
         >
-          <AppointmentForm
-            defaultValues={defaultValues}
-            clients={clients}
-            services={services}
-            pets={pets}
-            setClientId={setClientId}
-            selectedClient={selectedClient}
-            selectedPet={selectedPet}
-            onSubmit={handleSubmit}
-            mode={mode}
-            isSubmitting={isSubmitting}
-            onCreateClient={() => setClientModalOpen(true)}
-            onCreatePet={(index, clientId) => setPetModal({ open: true, index, clientId })}
-            onCreateService={(index) => setServiceModal({ open: true, index })}
-            autoSelectClientId={autoSelectClientId}
-            autoSelectPet={autoSelectPet}
-            autoSelectService={autoSelectService}
-            initialDate={initialDate}
-            loadedClientId={loadedClientId}
-            isMobile={isMobile}
-            onClose={onClose}
-          />
+          {isMobile ? (
+            <AppointmentMobileFlow
+              defaultValues={defaultValues}
+              clients={clients}
+              services={services}
+              pets={pets}
+              setClientId={setClientId}
+              selectedClient={selectedClient}
+              selectedPet={selectedPet}
+              onSubmit={handleSubmit}
+              mode={mode}
+              isSubmitting={isSubmitting}
+              onCreateClient={() => setClientModalOpen(true)}
+              onCreatePet={(index, clientId) => setPetModal({ open: true, index, clientId })}
+              onCreateService={(index) => setServiceModal({ open: true, index })}
+              autoSelectClientId={autoSelectClientId}
+              autoSelectPet={autoSelectPet}
+              autoSelectService={autoSelectService}
+              initialDate={initialDate}
+              loadedClientId={loadedClientId}
+              onClose={onClose}
+            />
+          ) : (
+            <AppointmentForm
+              defaultValues={defaultValues}
+              clients={clients}
+              services={services}
+              pets={pets}
+              setClientId={setClientId}
+              selectedClient={selectedClient}
+              selectedPet={selectedPet}
+              onSubmit={handleSubmit}
+              mode={mode}
+              isSubmitting={isSubmitting}
+              onCreateClient={() => setClientModalOpen(true)}
+              onCreatePet={(index, clientId) => setPetModal({ open: true, index, clientId })}
+              onCreateService={(index) => setServiceModal({ open: true, index })}
+              autoSelectClientId={autoSelectClientId}
+              autoSelectPet={autoSelectPet}
+              autoSelectService={autoSelectService}
+              initialDate={initialDate}
+              loadedClientId={loadedClientId}
+              isMobile={isMobile}
+              onClose={onClose}
+            />
+          )}
         </DialogContent>
       </Dialog>
 
