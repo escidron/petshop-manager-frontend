@@ -1,6 +1,20 @@
 import axios, { type AxiosError, type AxiosRequestConfig, type AxiosInstance } from "axios";
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const getBaseUrl = () => {
+  const envUrl = import.meta.env.VITE_API_BASE_URL;
+  // Se estiver acessando por IP local (ex: celular via 192.168.x.x),
+  // usa URL relativa para passar pelo proxy do Vite (evita CORS e garante cookies no mobile)
+  if (
+    typeof window !== "undefined" &&
+    window.location.hostname !== "localhost" &&
+    window.location.hostname !== "127.0.0.1"
+  ) {
+    return "";
+  }
+  return envUrl || "";
+};
+
+const BASE_URL = getBaseUrl();
 
 const apiClient: AxiosInstance = axios.create({
   baseURL: BASE_URL,

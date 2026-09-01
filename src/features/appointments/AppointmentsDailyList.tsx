@@ -1,7 +1,6 @@
 import {
   Box,
   Checkbox,
-  FormControlLabel,
   InputAdornment,
   Skeleton,
   TextField,
@@ -10,10 +9,10 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
-  Tooltip,
+  useTheme,
 } from "@mui/material";
 import { applyAppointmentAction } from "../../api/services/appointments";
-import { Plus, Search, Calendar as CalendarIcon, X } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight } from "lucide-react";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { Button } from "../../components/Button/Button";
@@ -49,6 +48,7 @@ const AppointmentsDailyList = ({
   appointments,
   isFetching = false,
 }: Props) => {
+  const theme = useTheme();
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [detailsModal, setDetailsModal] = useState<{
     open: boolean;
@@ -103,29 +103,30 @@ const AppointmentsDailyList = ({
     }
   };
 
-
-
   return (
     <>
       {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row", lg: "column", xl: "row" },
-          justifyContent: "space-between",
-          alignItems: { xs: "stretch", sm: "flex-start", lg: "stretch", xl: "flex-start" },
-          gap: { xs: 1.25, sm: 2 },
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: { xs: 1, sm: 2 } }}>
-          <Box>
+      {/* Header */}
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, width: "100%" }}>
+        {/* Linha 1: Título "Agendas do dia" + Seletor de data compacto na mesma linha */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 1,
+            width: "100%",
+          }}
+        >
+          <Box sx={{ minWidth: 0 }}>
             <Typography
               variant="h6"
               fontWeight={700}
               color="text.primary"
               sx={{
-                fontSize: { xs: "1.05rem", sm: "1.2rem", xl: "1.4rem" },
+                fontSize: { xs: "1.05rem", sm: "1.2rem", xl: "1.35rem" },
                 lineHeight: 1.2,
+                whiteSpace: "nowrap",
               }}
             >
               Agendas do dia
@@ -135,77 +136,108 @@ const AppointmentsDailyList = ({
               sx={{ 
                 color: "text.disabled", 
                 fontWeight: 500,
-                display: "block",
+                display: { xs: "none", md: "block" },
                 mt: 0.2,
                 textTransform: "capitalize",
-                fontSize: { xs: "0.75rem", sm: "0.85rem" }
+                fontSize: "0.85rem",
               }}
             >
               {date.format("dddd, DD [de] MMMM")}
             </Typography>
           </Box>
 
-          {/* Filtros de visualização inline (exibidos juntos quando há agendamentos) */}
-          {appointments.length > 0 && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1.5 }, flexWrap: "wrap" }}>
-              <FormControlLabel
-                sx={{ m: 0 }}
-                control={
-                  <Checkbox
-                    disableRipple
-                    size="small"
-                    checked={showFreeSlots}
-                    onChange={(e) => setShowFreeSlots(e.target.checked)}
-                    sx={{ color: "primary.main", p: 0.5 }}
-                  />
-                }
-                label={
-                  <Typography
-                    sx={{
-                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                      color: "text.primary",
-                      opacity: 0.8,
-                      userSelect: "none",
-                    }}
-                  >
-                    Horários livres
-                  </Typography>
-                }
-              />
+          {/* Seletor Compacto na mesma linha */}
+          {onDateChange && (
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                bgcolor: "white",
+                borderRadius: 2,
+                p: { xs: 0.25, sm: 0.4 },
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                flexShrink: 0,
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => onDateChange(date.subtract(1, "day"))}
+                sx={{ color: "text.primary", p: { xs: 0.35, sm: 0.5 } }}
+                aria-label="Dia anterior"
+              >
+                <ChevronLeft size={16} />
+              </IconButton>
 
-              <FormControlLabel
-                sx={{ m: 0 }}
-                control={
-                  <Checkbox
-                    disableRipple
-                    size="small"
-                    checked={showCanceled}
-                    onChange={(e) => setShowCanceled(e.target.checked)}
-                    sx={{ color: "primary.main", p: 0.5 }}
-                  />
-                }
-                label={
-                  <Typography
-                    sx={{
-                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                      color: "text.primary",
-                      opacity: 0.8,
-                      userSelect: "none",
-                    }}
-                  >
-                    Cancelados
-                  </Typography>
-                }
-              />
+              <Box
+                onClick={() => setCalendarModalOpen(true)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  cursor: "pointer",
+                  px: { xs: 0.6, sm: 1 },
+                  py: 0.2,
+                  borderRadius: 1,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <CalendarIcon size={14} color={theme.palette.primary.main} />
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: { xs: "0.78rem", sm: "0.85rem" },
+                    color: "text.primary",
+                    textTransform: "capitalize",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {date.isSame(dayjs(), "day")
+                    ? `Hoje, ${date.format("DD/MM")}`
+                    : date.format("ddd, DD/MM")}
+                </Typography>
+              </Box>
+
+              {!date.isSame(dayjs(), "day") && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => onDateChange(dayjs())}
+                  sx={{
+                    height: 22,
+                    fontSize: "0.68rem",
+                    py: 0,
+                    px: 0.6,
+                    minWidth: "auto",
+                    borderRadius: 0.8,
+                    mr: 0.25,
+                  }}
+                >
+                  Hoje
+                </Button>
+              )}
+
+              <IconButton
+                size="small"
+                onClick={() => onDateChange(date.add(1, "day"))}
+                sx={{ color: "text.primary", p: { xs: 0.35, sm: 0.5 } }}
+                aria-label="Próximo dia"
+              >
+                <ChevronRight size={16} />
+              </IconButton>
             </Box>
           )}
         </Box>
+
+        {/* Linha 2: Busca + Botão (+) + Filtros em chips */}
         <Box
           sx={{
             display: "flex",
-            gap: 1,
             alignItems: "center",
-            flex: { xs: "1 1 100%", sm: "0 1 auto", lg: "1 1 100%", xl: "0 1 auto" },
+            gap: 1,
+            width: "100%",
+            flexWrap: "wrap",
           }}
         >
           <TextField
@@ -215,7 +247,7 @@ const AppointmentsDailyList = ({
             onChange={(e) => setSearch(e.target.value)}
             sx={{ 
               flex: 1,
-              width: { xs: "100%", sm: 200, md: 260 }, 
+              minWidth: { xs: "140px", sm: 220 }, 
               backgroundColor: "white", 
               borderRadius: 1 
             }}
@@ -229,32 +261,7 @@ const AppointmentsDailyList = ({
               },
             }}
           />
-          {onDateChange && (
-            <Tooltip title="Selecionar Data">
-              <Button
-                size="small"
-                variant="outlined"
-                sx={{ 
-                  display: { xs: "inline-flex", md: "none" },
-                  minWidth: "38px", 
-                  width: "38px",
-                  height: "38px", 
-                  p: 0, 
-                  borderRadius: 1, 
-                  borderColor: "#e0e0e0",
-                  backgroundColor: "white",
-                  color: "text.primary",
-                  "&:hover": {
-                    borderColor: "primary.main",
-                    backgroundColor: "grey.50",
-                  }
-                }}
-                onClick={() => setCalendarModalOpen(true)}
-              >
-                <CalendarIcon size={18} />
-              </Button>
-            </Tooltip>
-          )}
+
           <Button
             size="small"
             sx={{ 
@@ -267,9 +274,83 @@ const AppointmentsDailyList = ({
               color: "white"
             }}
             onClick={openFlow}
+            title="Novo Agendamento"
           >
             <Plus size={20} />
           </Button>
+
+          {/* Filtros de visualização em formato de chips */}
+          {appointments.length > 0 && (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, width: { xs: "100%", sm: "auto" }, mt: { xs: 0.25, sm: 0 } }}>
+              <Box
+                onClick={() => setShowFreeSlots(!showFreeSlots)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  cursor: "pointer",
+                  px: 1,
+                  py: 0.35,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: showFreeSlots ? "primary.main" : "divider",
+                  bgcolor: showFreeSlots ? "rgba(49, 52, 133, 0.08)" : "white",
+                  userSelect: "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Checkbox
+                  disableRipple
+                  size="small"
+                  checked={showFreeSlots}
+                  sx={{ color: "primary.main", p: 0 }}
+                />
+                <Typography
+                  sx={{
+                    fontSize: { xs: "0.72rem", sm: "0.8rem" },
+                    fontWeight: showFreeSlots ? 700 : 500,
+                    color: showFreeSlots ? "primary.main" : "text.primary",
+                  }}
+                >
+                  Horários livres
+                </Typography>
+              </Box>
+
+              <Box
+                onClick={() => setShowCanceled(!showCanceled)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.5,
+                  cursor: "pointer",
+                  px: 1,
+                  py: 0.35,
+                  borderRadius: 2,
+                  border: "1px solid",
+                  borderColor: showCanceled ? "error.main" : "divider",
+                  bgcolor: showCanceled ? "rgba(239, 68, 68, 0.08)" : "white",
+                  userSelect: "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <Checkbox
+                  disableRipple
+                  size="small"
+                  checked={showCanceled}
+                  sx={{ color: "error.main", p: 0 }}
+                />
+                <Typography
+                  sx={{
+                    fontSize: { xs: "0.72rem", sm: "0.8rem" },
+                    fontWeight: showCanceled ? 700 : 500,
+                    color: showCanceled ? "error.main" : "text.primary",
+                  }}
+                >
+                  Cancelados
+                </Typography>
+              </Box>
+            </Box>
+          )}
         </Box>
       </Box>
 

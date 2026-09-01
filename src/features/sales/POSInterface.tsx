@@ -1029,16 +1029,16 @@ export default function POSInterface() {
           elevation={4}
           sx={{
             position: "fixed",
-            bottom: 12,
-            left: 12,
-            right: 12,
+            bottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
+            left: { xs: 8, sm: 12 },
+            right: { xs: 8, sm: 12 },
             zIndex: 1050,
             borderRadius: 3,
             p: 1.25,
             bgcolor: "background.paper",
             border: "1px solid",
             borderColor: "divider",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1130,11 +1130,12 @@ export default function POSInterface() {
             sx: {
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
-              maxHeight: "90vh",
+              maxHeight: "90dvh",
               display: "flex",
               flexDirection: "column",
               bgcolor: "background.paper",
               p: 2,
+              pb: "calc(16px + env(safe-area-inset-bottom, 0px))",
             },
           }}
         >
