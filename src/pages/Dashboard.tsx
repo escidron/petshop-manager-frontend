@@ -103,7 +103,7 @@ const Dashboard = () => {
               sx={{
                 display: "flex",
                 flexDirection: { xs: "column", lg: "row" },
-                gap: { xs: 2.5, md: 3, lg: 4 },
+                gap: { xs: 2, md: 2.5, lg: 2.5 },
                 alignItems: "flex-start",
               }}
             >
@@ -155,7 +155,7 @@ const Dashboard = () => {
                     md: "row",
                     lg: "column",
                   },
-                  gap: { xs: 3, lg: 4 },
+                  gap: { xs: 2, lg: 2.5 },
                   flex: {
                     xs: "1 1 100%",
                     lg: "0 0 340px",
@@ -175,7 +175,7 @@ const Dashboard = () => {
                     width: { xs: "100%", md: "340px" },
                     display: "flex",
                     flexDirection: "column",
-                    gap: 3,
+                    gap: 2,
                   }}
                 >
                   {/* Calendário (visível apenas em telas md+, no mobile abre pelo botão no topo) */}
@@ -267,7 +267,7 @@ const Dashboard = () => {
                   }}
                 >
                   <OpenInvoices
-                    initialOpenInvoices={startupData?.open_invoices}
+                    initialOpenComandas={startupData?.open_comandas}
                     initialUnpaidPackages={startupData?.unpaid_packages}
                     packagesCatalog={startupData?.packages_catalog}
                     isFetching={isFetching}
@@ -316,6 +316,9 @@ const Dashboard = () => {
             });
             queryClient.invalidateQueries({
               queryKey: ["appointments"],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["open-comandas"],
             });
             queryClient.invalidateQueries({
               queryKey: ["pos-startup"],

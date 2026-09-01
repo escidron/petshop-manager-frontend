@@ -20,12 +20,12 @@ import { User, ShoppingCart, X } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { fetchPOSStartup, fetchPOSClientDetails } from "../../api/services/sales";
+import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda } from "../../api/services/sales";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
 import { useAuth } from "../../hooks/useAuth";
-import type { SaleItem } from "./schemas";
+import type { SaleItem, Comanda } from "./schemas";
 import { useToast } from "../../hooks/useToast";
 import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
@@ -43,8 +43,7 @@ import POSClosedStateScreen from "./components/POSClosedStateScreen";
 import POSCashControlPill from "./components/POSCashControlPill";
 import { Button } from "../../components/Button/Button";
 
-// Cash Register components & services
-import { getCurrentCashStatus, listCashRegisters } from "../../api/services/cash";
+import { getCurrentCashStatus } from "../../api/services/cash";
 import type { CashSessionDetailResponse } from "../cash_register/types";
 import OpenCashModal from "../cash_register/OpenCashModal";
 import SupplyModal from "../cash_register/SupplyModal";
@@ -62,7 +61,6 @@ export default function POSInterface() {
   const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
-  const hasPulled = useRef(false);
 
   // ── State ───────────────────────────────────────────────────────────────
   const [searchTerm, setSearchTerm] = useState("");
@@ -77,10 +75,17 @@ export default function POSInterface() {
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   const [showAllPackages, setShowAllPackages] = useState(false);
 
+  const [activeComandaId, setActiveComandaId] = useState<number | null>(null);
+  const [comandaSyncStatus, setComandaSyncStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const isInitialLoadRef = useRef(false);
+  const autoSaveTimeoutRef = useRef<any>(null);
+
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientListLimit, setClientListLimit] = useState(20);
+  const [pendingRemoveItemIndex, setPendingRemoveItemIndex] = useState<number | null>(null);
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
   // Cash Register Selection (Multi-Terminal)
   const [selectedRegisterId, setSelectedRegisterId] = useState<number | null>(() => {
@@ -88,11 +93,15 @@ export default function POSInterface() {
     return saved ? parseInt(saved, 10) : null;
   });
 
-  const { data: registers = [] } = useQuery({
-    queryKey: ["cash-registers"],
-    queryFn: () => listCashRegisters(false),
-    staleTime: 1000 * 60 * 5,
+  const [hasSwitchedRegister, setHasSwitchedRegister] = useState(false);
+
+  const { data: startupData, isLoading: startupLoading } = useQuery({
+    queryKey: ["pos-startup"],
+    queryFn: fetchPOSStartup,
+    staleTime: 1000 * 60 * 5, // 5 minutos de cache
   });
+
+  const registers = startupData?.cash_registers || [];
 
   // Ensure selected register is valid
   useEffect(() => {
@@ -108,6 +117,7 @@ export default function POSInterface() {
   const handleSelectRegister = (id: number) => {
     setSelectedRegisterId(id);
     localStorage.setItem("pos_selected_cash_register_id", String(id));
+    setHasSwitchedRegister(true);
     queryClient.invalidateQueries({ queryKey: ["cash-status"] });
   };
 
@@ -143,12 +153,17 @@ export default function POSInterface() {
   const [pendingPackagePetIds, setPendingPackagePetIds] = useState<number[]>([]);
 
   // ── Data Fetching ────────────────────────────────────────────────────────
-  const { data: cashStatus, isLoading: isCashStatusLoading } = useQuery({
+  const { data: fetchedCashStatus, isLoading: isCashStatusLoading } = useQuery({
     queryKey: ["cash-status", selectedRegisterId],
     queryFn: () => getCurrentCashStatus(selectedRegisterId),
+    enabled: hasSwitchedRegister,
     placeholderData: keepPreviousData,
     staleTime: 1000 * 30, // 30s cache
   });
+
+  const cashStatus = hasSwitchedRegister
+    ? (fetchedCashStatus ?? startupData?.cash_status)
+    : (startupData?.cash_status ?? fetchedCashStatus);
 
   useEffect(() => {
     if (cashStatus?.is_open && isOpenCashModalOpen) {
@@ -156,17 +171,11 @@ export default function POSInterface() {
     }
   }, [cashStatus?.is_open, isOpenCashModalOpen]);
 
-  const { data: startupData, isLoading: startupLoading } = useQuery({
-    queryKey: ["pos-startup"],
-    queryFn: fetchPOSStartup,
-    staleTime: 1000 * 60 * 5, // 5 minutos de cache
-  });
-
   const { data: clientDetailsData, isLoading: clientDetailsLoading } = useQuery({
     queryKey: ["pos-client", selectedClientId],
     queryFn: () => fetchPOSClientDetails(selectedClientId!),
     enabled: !!selectedClientId,
-    staleTime: 1000 * 60 * 5,
+    staleTime: 0,
   });
 
   // Global Data
@@ -291,33 +300,134 @@ export default function POSInterface() {
   };
 
   // ── Session Control ──────────────────────────────────────────────────────
-  const startNewSession = (clientId?: number) => {
+  const handlePullComanda = (comanda: Comanda) => {
+    isInitialLoadRef.current = true;
+    setSelectedClientId(comanda.client_id);
+    setSelectedAppointmentId(comanda.appointment_id || null);
+    setActiveComandaId(comanda.id);
+    const discCents = Math.round((comanda.discount_amount || 0) * 100);
+    setDiscountCents(discCents);
+    const itemsSubtotal = (comanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
+    if (itemsSubtotal > 0 && comanda.discount_amount > 0) {
+      setDiscountPctInput(((comanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+    } else {
+      setDiscountPctInput("0");
+    }
+    setCart(
+      (comanda.items || []).map((item) => ({
+        item_id: item.item_id,
+        item_type: item.item_type,
+        name: item.name,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
+        subtotal: item.subtotal,
+        employee_id: item.employee_id || null,
+        pet_ids: item.pet_ids || undefined,
+        client_package_id_to_pay: item.client_package_id_to_pay || null,
+        unit: item.unit || "UN",
+      }))
+    );
+    setComandaSyncStatus("saved");
+    setIsPullDialogOpen(false);
+    setSearchTerm("");
+  };
+
+  const startNewSession = async (clientId?: number) => {
+    isInitialLoadRef.current = true;
+    setShowAllPackages(false);
+    setSearchTerm("");
+    setIsClientModalOpen(false);
+
+    if (!clientId) {
+      setCart([]);
+      setDiscountCents(0);
+      setDiscountPctInput("0");
+      setSelectedAppointmentId(null);
+      setSelectedClientId(null);
+      setActiveComandaId(null);
+      setComandaSyncStatus("idle");
+      return;
+    }
+
+    setSelectedClientId(clientId);
     setCart([]);
     setDiscountCents(0);
     setDiscountPctInput("0");
     setSelectedAppointmentId(null);
-    setSelectedClientId(clientId ?? null);
-    setShowAllPackages(false);
-    setSearchTerm("");
-    setIsClientModalOpen(false);
+    setActiveComandaId(null);
+    setComandaSyncStatus("idle");
+
+    try {
+      const details = await fetchPOSClientDetails(clientId);
+      if (details.open_comandas && details.open_comandas.length > 0) {
+        handlePullComanda(details.open_comandas[0]);
+      }
+    } catch {
+      // ignore
+    }
   };
 
+  useEffect(() => {
+    if (
+      selectedClientId &&
+      cart.length === 0 &&
+      !activeComandaId &&
+      clientDetailsData?.open_comandas &&
+      clientDetailsData.open_comandas.length > 0
+    ) {
+      handlePullComanda(clientDetailsData.open_comandas[0]);
+    }
+  }, [selectedClientId, clientDetailsData]);
+
   const endSession = () => {
+    isInitialLoadRef.current = true;
     setCart([]);
     setDiscountCents(0);
     setDiscountPctInput("0");
     setSelectedClientId(null);
     setSelectedAppointmentId(null);
+    setActiveComandaId(null);
+    setComandaSyncStatus("idle");
     setShowAllPackages(false);
     setSearchTerm("");
   };
 
   // ── Cart Handlers ────────────────────────────────────────────────────────
   const handleClearCart = () => {
+    const hasAppointmentServices = cart.some((i) => i.item_type === "service" && (selectedAppointmentId || (i.pet_ids && i.pet_ids.length > 0)));
+    if (hasAppointmentServices) {
+      setIsClearConfirmOpen(true);
+      return;
+    }
+    executeClearAll();
+  };
+
+  const executeClearOnlyExtras = () => {
+    const appointmentServices = cart.filter((i) => i.item_type === "service" && (selectedAppointmentId || (i.pet_ids && i.pet_ids.length > 0)));
+    setCart(appointmentServices);
+    setIsClearConfirmOpen(false);
+  };
+
+  const executeClearAll = () => {
+    if (activeComandaId) {
+      deleteComanda(activeComandaId)
+        .then(() => {
+          queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+          queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+          queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+          queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+          queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+        })
+        .catch(() => {});
+    }
+    isInitialLoadRef.current = true;
     setCart([]);
     setDiscountCents(0);
     setDiscountPctInput("0");
     setSelectedAppointmentId(null);
+    setActiveComandaId(null);
+    setComandaSyncStatus("idle");
+    setIsClearConfirmOpen(false);
   };
 
   const handleInitiateCheckout = () => {
@@ -425,15 +535,49 @@ export default function POSInterface() {
   };
 
   const handleRemoveItem = (index: number) => {
+    const item = cart[index];
+    if (item.item_type === "service" && (selectedAppointmentId || (item.pet_ids && item.pet_ids.length > 0))) {
+      setPendingRemoveItemIndex(index);
+      return;
+    }
+    executeRemoveItem(index);
+  };
+
+  const executeRemoveItem = (index: number) => {
     const newCart = cart.filter((_, i) => i !== index);
     setCart(newCart);
     if (newCart.length === 0) {
       setSelectedAppointmentId(null);
     }
+    setPendingRemoveItemIndex(null);
   };
 
-  // ── Appointment / Package Pull ────────────────────────────────────────────
-  const handlePullAppointment = (appointment: Appointment) => {
+  // ── Appointment / Package / Comanda Pull ──────────────────────────────────
+  const handlePullAppointment = async (appointment: Appointment) => {
+    isInitialLoadRef.current = true;
+    setShowAllPackages(false);
+    setSearchTerm("");
+    setIsPullDialogOpen(false);
+    setSelectedClientId(appointment.client.id);
+    setSelectedAppointmentId(appointment.id);
+    setCart([]);
+    setDiscountCents(0);
+    setDiscountPctInput("0");
+    setActiveComandaId(null);
+    setComandaSyncStatus("idle");
+
+    // Always fetch fresh client comanda directly from backend
+    try {
+      const details = await fetchPOSClientDetails(appointment.client.id);
+      if (details.open_comandas && details.open_comandas.length > 0) {
+        handlePullComanda(details.open_comandas[0]);
+        return;
+      }
+    } catch {
+      // fallback
+    }
+
+    // Fallback: if no open comanda on backend, pull appointment items
     const pulledItems: SaleItem[] = appointment.items.flatMap((item) =>
       item.services.map((s) => ({
         item_id: s.id,
@@ -449,18 +593,10 @@ export default function POSInterface() {
 
     if (pulledItems.length === 0) {
       toast.info("Nenhum serviço encontrado no agendamento.");
-      setIsPullDialogOpen(false);
       return;
     }
 
-    setSelectedClientId(appointment.client.id);
-    setSelectedAppointmentId(appointment.id);
-    setShowAllPackages(false);
     setCart(pulledItems);
-    setIsPullDialogOpen(false);
-    setSearchTerm("");
-    
-    toast.success(`Agendamento de ${appointment.client.name} carregado.`);
   };
 
   const handlePullPackage = (pkg: ClientPackage) => {
@@ -477,28 +613,98 @@ export default function POSInterface() {
       pet_ids: pkg.pets ? pkg.pets.map((p) => p.id) : undefined,
       client_package_id_to_pay: pkg.id,
     };
+    isInitialLoadRef.current = true;
     setSelectedClientId(pkg.client_id);
+    setSelectedAppointmentId(null);
+    setActiveComandaId(null);
     setShowAllPackages(false);
     setCart([item]);
     setIsPullDialogOpen(false);
-    toast.success("Venda de pacote pendente carregada.");
   };
+
+  // ── Auto-save Comanda for selected client ────────────────────────────────
+  useEffect(() => {
+    if (isInitialLoadRef.current) {
+      isInitialLoadRef.current = false;
+      return;
+    }
+
+    if (!selectedClientId) {
+      setComandaSyncStatus("idle");
+      return;
+    }
+
+    if (cart.length === 0) {
+      if (activeComandaId) {
+        deleteComanda(activeComandaId)
+          .then(() => {
+            setActiveComandaId(null);
+            setComandaSyncStatus("idle");
+            queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+            queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+            queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+            queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+            queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+          })
+          .catch(() => {});
+      } else {
+        setComandaSyncStatus("idle");
+      }
+      return;
+    }
+
+    setComandaSyncStatus("saving");
+
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+
+    autoSaveTimeoutRef.current = setTimeout(async () => {
+      try {
+        const saved = await saveComanda({
+          comanda_id: activeComandaId,
+          client_id: selectedClientId,
+          appointment_id: selectedAppointmentId,
+          items: cart,
+          discount_amount: discountAmount,
+        });
+        setActiveComandaId(saved.id);
+        setComandaSyncStatus("saved");
+        queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+        queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+        queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+        queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+        queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      } catch (err) {
+        setComandaSyncStatus("error");
+      }
+    }, 400);
+
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, [cart, discountAmount, selectedClientId, selectedAppointmentId]);
 
   // ── Effects ──────────────────────────────────────────────────────────────
   useEffect(() => {
-    const state = location.state as { pullAppointment?: Appointment; pullPackage?: ClientPackage } | null;
-    if (state && !hasPulled.current) {
-      if (state.pullAppointment) {
+    const state = location.state as {
+      pullAppointment?: Appointment;
+      pullPackage?: ClientPackage;
+      pullComanda?: Comanda;
+    } | null;
+    if (state?.pullComanda || state?.pullAppointment || state?.pullPackage) {
+      if (state.pullComanda) {
+        handlePullComanda(state.pullComanda);
+      } else if (state.pullAppointment) {
         handlePullAppointment(state.pullAppointment);
-        hasPulled.current = true;
-        navigate(location.pathname, { replace: true, state: {} });
       } else if (state.pullPackage) {
         handlePullPackage(state.pullPackage);
-        hasPulled.current = true;
-        navigate(location.pathname, { replace: true, state: {} });
       }
+      navigate(location.pathname, { replace: true, state: {} });
     }
-  }, [location, navigate, packages]);
+  }, [location, navigate]);
 
   useEffect(() => {
     if (pendingPackageItem) {
@@ -634,9 +840,6 @@ export default function POSInterface() {
                 clientPets={clientPets}
                 clientAppointments={clientAppointments}
                 clientActivePackages={clientActivePackages}
-                selectedAppointmentId={selectedAppointmentId}
-                getAppointmentPrice={getAppointmentPrice}
-                onPullAppointment={handlePullAppointment}
                 onClearClient={endSession}
                 hideHeader
               />
@@ -761,6 +964,8 @@ export default function POSInterface() {
             allowDiscount={tenant?.allow_discount !== false}
             maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
             clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
+            activeComandaId={activeComandaId}
+            comandaSyncStatus={comandaSyncStatus}
             cashControl={
               <POSCashControlPill
                 currentSession={cashStatus?.current_session}
@@ -920,6 +1125,8 @@ export default function POSInterface() {
               allowDiscount={tenant?.allow_discount !== false}
               maxDiscountPercentage={tenant?.max_discount_percentage ?? 100}
               clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
+              activeComandaId={activeComandaId}
+              comandaSyncStatus={comandaSyncStatus}
               cashControl={
                 <POSCashControlPill
                   currentSession={cashStatus?.current_session}
@@ -957,6 +1164,7 @@ export default function POSInterface() {
           discountAmount={discountAmount}
           clientId={selectedClientId}
           appointmentId={selectedAppointmentId}
+          comandaId={activeComandaId}
           cashRegisterId={selectedRegisterId}
           onSuccess={endSession}
         />
@@ -1137,6 +1345,75 @@ export default function POSInterface() {
           sessionData={receiptSessionData}
           tenantName={tenant?.name}
         />
+      )}
+
+      {/* ── Dialog de confirmação para remover serviço de agendamento ── */}
+      {pendingRemoveItemIndex !== null && (
+        <Dialog
+          open={pendingRemoveItemIndex !== null}
+          onClose={() => setPendingRemoveItemIndex(null)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 800 }}>Remover serviço do agendamento?</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.primary">
+              O serviço <strong>{cart[pendingRemoveItemIndex]?.name}</strong> pertence a um agendamento finalizado. Tem certeza de que deseja removê-lo da cobrança?
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 1 }}>
+            <Button onClick={() => setPendingRemoveItemIndex(null)}>
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => executeRemoveItem(pendingRemoveItemIndex)}
+            >
+              Sim, remover
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {/* ── Dialog de confirmação para limpar ticket com agendamento ── */}
+      {isClearConfirmOpen && (
+        <Dialog
+          open={isClearConfirmOpen}
+          onClose={() => setIsClearConfirmOpen(false)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 800 }}>Limpar Ticket de Venda</DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.primary">
+              Este ticket contém serviços de um agendamento finalizado. O que você deseja fazer?
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 1, flexDirection: "column", gap: 1, alignItems: "stretch" }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={executeClearOnlyExtras}
+            >
+              Limpar apenas produtos e itens extras
+            </Button>
+            <Button
+              variant="outlined"
+              onClick={() => setIsClearConfirmOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="text"
+              color="error"
+              onClick={executeClearAll}
+              sx={{ fontWeight: 700 }}
+            >
+              Limpar tudo (remover agendamento e produtos)
+            </Button>
+          </DialogActions>
+        </Dialog>
       )}
     </Box>
   );

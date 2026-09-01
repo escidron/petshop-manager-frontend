@@ -26,6 +26,8 @@ interface POSTicketProps {
   maxDiscountPercentage: number;
   clientPetNames?: Record<number, string>;
   cashControl?: React.ReactNode;
+  activeComandaId?: number | null;
+  comandaSyncStatus?: "idle" | "saving" | "saved" | "error";
   onUpdateQuantity: (index: number, delta: number) => void;
   onSetQuantity: (index: number, value: number) => void;
   onRemoveItem: (index: number) => void;
@@ -173,7 +175,7 @@ export default function POSTicket({
           flexShrink: 0,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1 }, minWidth: 0, flex: 1 }}>
+        <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1 }, minWidth: 0, flex: 1, flexWrap: "wrap" }}>
           <Typography
             variant="subtitle1"
             sx={{
@@ -185,6 +187,8 @@ export default function POSTicket({
           >
             Ticket de Venda
           </Typography>
+
+
           {cart.length > 0 && (
             <Chip
               label={`${cart.reduce((a, i) => a + i.quantity, 0)} ${cart.reduce((a, i) => a + i.quantity, 0) === 1 ? "item" : "itens"}`}

@@ -70,11 +70,18 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
       sx={{
         px: { xs: 1.25, sm: 2 },
         py: { xs: 0.85, sm: 1 },
+        border: "1px solid",
+        borderColor: "divider",
         borderLeft: "5px solid",
         borderLeftColor: p.main,
         width: "100%",
         opacity: appointment.status == "canceled" ? 0.5 : 1,
         cursor: "pointer",
+        transition: "border-color 0.15s ease",
+        "&:hover": {
+          borderColor: p.main,
+          borderLeftColor: p.main,
+        },
       }}
       onClick={() => {
         if (open) return;
@@ -197,19 +204,31 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
             flexShrink: 0,
           }}
         >
-          <Box sx={{ display: { xs: "none", sm: "block" } }}>
+          <Box
+            sx={{
+              display: { xs: "none", sm: "flex" },
+              justifyContent: "flex-end",
+              minWidth: 120,
+              flexShrink: 0,
+            }}
+          >
             <AppointmentStatusChip status={appointment.status} size="small" />
           </Box>
           <Box
             sx={{
               display: "flex",
-              gap: 0.75,
+              gap: 0.6,
               alignItems: "center",
+              justifyContent: "flex-end",
+              width: { xs: "auto", sm: 110 },
+              minWidth: { xs: "auto", sm: 110 },
               cursor: "pointer",
               borderRadius: 1,
-              px: { xs: 0.5, sm: 1 },
+              px: { xs: 0.75, sm: 1 },
               py: 0.5,
-              "&:hover": { backgroundColor: "secondary.main" },
+              flexShrink: 0,
+              transition: "background-color 0.15s ease",
+              "&:hover": { bgcolor: "grey.100" },
             }}
             onClick={(e) => {
               e.stopPropagation();

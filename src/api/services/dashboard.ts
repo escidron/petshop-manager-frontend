@@ -3,6 +3,7 @@ import type { Appointment } from "../../features/appointments/types";
 import type { ClientPackage } from "../../features/client_packages/types";
 import type { WaitingListEntry } from "../../features/appointments/waiting-list/types";
 import type { Package } from "../../features/packages/types";
+import type { Comanda } from "../../features/sales/schemas";
 
 export type DashboardStartupResponse = {
   appointments_today: Appointment[];
@@ -17,6 +18,10 @@ export type DashboardStartupResponse = {
   };
   packages_catalog: Package[];
   waiting_list_pending: WaitingListEntry[];
+  open_comandas?: {
+    items: Comanda[];
+    total: number;
+  };
 };
 
 export async function getDashboardStartup(

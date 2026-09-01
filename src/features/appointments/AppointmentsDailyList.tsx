@@ -95,6 +95,7 @@ const AppointmentsDailyList = ({
       await applyAppointmentAction(appointment.id, action, cancelAllFuture);
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
       queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       queryClient.invalidateQueries({ queryKey: ["pos-client"] });
     } finally {
@@ -112,7 +113,7 @@ const AppointmentsDailyList = ({
           display: "flex",
           flexDirection: { xs: "column", sm: "row", lg: "column", xl: "row" },
           justifyContent: "space-between",
-          alignItems: { xs: "stretch", sm: "center", lg: "stretch", xl: "center" },
+          alignItems: { xs: "stretch", sm: "flex-start", lg: "stretch", xl: "flex-start" },
           gap: { xs: 1.25, sm: 2 },
         }}
       >
