@@ -2,15 +2,21 @@ import axios, { type AxiosError, type AxiosRequestConfig, type AxiosInstance } f
 
 const getBaseUrl = () => {
   const envUrl = import.meta.env.VITE_API_BASE_URL;
-  // Se estiver acessando por IP local (ex: celular via 192.168.x.x),
-  // usa URL relativa para passar pelo proxy do Vite (evita CORS e garante cookies no mobile)
+
+  // Apenas no Vite DEV local quando acessado por IP da rede (ex: celular via 192.168.x.x),
+  // usa URL relativa para passar pelo proxy do Vite.
+  // Em staging e produção (build), sempre utiliza a VITE_API_BASE_URL configurada.
   if (
+    import.meta.env.DEV &&
     typeof window !== "undefined" &&
-    window.location.hostname !== "localhost" &&
-    window.location.hostname !== "127.0.0.1"
+    (window.location.hostname.startsWith("192.168.") ||
+      window.location.hostname.startsWith("10.") ||
+      window.location.hostname.startsWith("172.") ||
+      window.location.hostname.endsWith(".local"))
   ) {
     return "";
   }
+
   return envUrl || "";
 };
 
