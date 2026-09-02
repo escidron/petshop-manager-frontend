@@ -11,6 +11,7 @@ import {
   Autocomplete,
   TextField,
   alpha,
+  useMediaQuery,
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -78,6 +79,7 @@ const AppointmentDetailsModal = ({
   const toast = useToast();
   const queryClient = useQueryClient();
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // Fetch employees
   const { data: employees = [] } = useQuery({
@@ -318,15 +320,20 @@ const AppointmentDetailsModal = ({
       onClose={onClose}
       open={open}
       maxWidth={false}
+      fullScreen={isMobile}
       slotProps={{
         paper: {
           sx: {
-            width: { xs: "96vw", md: "90%", lg: "1200px" },
+            width: { xs: "100%", md: "90%", lg: "1200px" },
             maxWidth: "1250px",
             minWidth: "unset",
-            m: { xs: 1, sm: 2 },
-            maxHeight: { xs: "92vh", sm: "90vh" },
-            borderRadius: 3,
+            m: { xs: 0, sm: 2 },
+            height: { xs: "100dvh", sm: "auto" },
+            maxHeight: { xs: "100dvh", sm: "90vh" },
+            borderRadius: { xs: 0, sm: 3 },
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
           },
         },
         backdrop: {
@@ -335,17 +342,41 @@ const AppointmentDetailsModal = ({
       }}
     >
       <DialogTitle
-        sx={{ display: "flex", justifyContent: "space-between", pr: { xs: 2, sm: 4 }, pb: 0 }}
+        sx={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          px: { xs: 2, sm: 3 },
+          py: { xs: 1.5, sm: 2 },
+          pt: { xs: "calc(12px + env(safe-area-inset-top, 0px))", sm: 2 },
+          borderBottom: "1px solid",
+          borderColor: "divider",
+          bgcolor: "white",
+          flexShrink: 0,
+          zIndex: 10,
+        }}
       >
-        <Typography variant="h5" sx={{ fontSize: { xs: "1.2rem", sm: "1.5rem" }, fontWeight: 700 }}>
+        <Typography variant="h5" sx={{ fontSize: { xs: "1.15rem", sm: "1.4rem" }, fontWeight: 700 }}>
           Detalhes do agendamento
         </Typography>
-        <Box sx={{ cursor: "pointer" }}>
-          <X onClick={onClose} />
+        <Box
+          sx={{
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 36,
+            height: 36,
+            borderRadius: 2,
+            color: "text.secondary",
+            "&:hover": { bgcolor: "action.hover", color: "text.primary" },
+          }}
+          onClick={onClose}
+        >
+          <X size={22} />
         </Box>
       </DialogTitle>
 
-      <Divider />
       <DialogContent
         sx={{
           display: "flex",
@@ -353,7 +384,12 @@ const AppointmentDetailsModal = ({
           gap: { xs: 2.5, md: 3 },
           px: { xs: 1.5, sm: 3 },
           py: { xs: 1.5, sm: 2 },
+          pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 2 },
           overflowX: "hidden",
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          overscrollBehavior: "contain",
+          flex: 1,
         }}
       >
         <Box
@@ -1308,6 +1344,31 @@ const AppointmentDetailsModal = ({
           </Box>
         </Box>
       </DialogContent>
+
+      {isMobile && (
+        <Box
+          sx={{
+            p: 1.5,
+            pb: "calc(12px + env(safe-area-inset-bottom, 0px))",
+            borderTop: "1px solid",
+            borderColor: "divider",
+            bgcolor: "white",
+            flexShrink: 0,
+            display: "flex",
+            justifyContent: "flex-end",
+            zIndex: 10,
+          }}
+        >
+          <Button
+            variant="outlined"
+            fullWidth
+            onClick={onClose}
+            sx={{ minHeight: 44, borderRadius: 2, fontWeight: 600 }}
+          >
+            Fechar
+          </Button>
+        </Box>
+      )}
 
       <Dialog
         open={cancelConfirmOpen}
