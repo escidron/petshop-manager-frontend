@@ -17,6 +17,9 @@ import {
   TextField,
   Typography,
   alpha,
+  IconButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
@@ -87,6 +90,8 @@ export default function CommissionRuleFormModal({
   open, mode, rule, onClose, onSuccess,
 }: Props) {
   const toast = useToast();
+  const currentTheme = useTheme();
+  const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [services, setServices] = useState<Service[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
@@ -186,29 +191,63 @@ export default function CommissionRuleFormModal({
     display: "flex",
     flexDirection: "column" as const,
     gap: 2,
-    width: "47%",
+    width: { xs: "100%", md: "48%" },
   };
 
   return (
     <Dialog
       open={open}
-      maxWidth={false}
-      slotProps={{ paper: { sx: { width: "760px", maxWidth: "760px" } } }}
+      onClose={onClose}
+      fullScreen={isMobile}
+      maxWidth="md"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            width: { xs: "100%", md: "780px" },
+            maxWidth: { xs: "100%", md: "780px" },
+            m: { xs: 0, md: 2 },
+            borderRadius: { xs: 0, md: 3 },
+            maxHeight: { xs: "100dvh", md: "90vh" },
+            height: { xs: "100dvh", md: "auto" },
+          },
+        },
+      }}
     >
-      <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
-        <Typography variant="h5">
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: { xs: 2, sm: 3 },
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Typography variant="h6" fontWeight={700}>
           {mode === "create" ? "Nova Regra de Comissão" : "Editar Regra"}
         </Typography>
-        <Box sx={{ cursor: "pointer" }}>
-          <X onClick={onClose} />
-        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+          <X size={20} />
+        </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent
+        sx={{
+          p: { xs: 2, sm: 3 },
+          pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 },
+        }}
+      >
         <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Divider />
-
-          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column", md: "row" },
+              justifyContent: "space-between",
+              gap: { xs: 3, md: 3 },
+            }}
+          >
             {/* ── ESQUERDA — Campos obrigatórios ────────────────────── */}
             <Box sx={colStyle}>
               <Box>
@@ -833,11 +872,23 @@ export default function CommissionRuleFormModal({
           </Box>
 
           <Divider sx={{ mt: 1 }} />
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column-reverse", sm: "row" },
+              justifyContent: "flex-end",
+              gap: 1.5,
+              "& > button": {
+                width: { xs: "100%", sm: "auto" },
+                minHeight: 44,
+                borderRadius: 2,
+              },
+            }}
+          >
             <Button variant="outlined" onClick={onClose} disabled={isSubmitting}>
               Cancelar
             </Button>
-            <Button disabled={isSubmitting} onClick={handleSubmit(onSubmit)}>
+            <Button disabled={isSubmitting} onClick={handleSubmit(onSubmit)} sx={{ fontWeight: 700 }}>
               Salvar
             </Button>
           </Box>

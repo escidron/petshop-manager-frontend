@@ -13,6 +13,8 @@ import {
   TableRow,
   Typography,
   Button,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useMemo, useState } from "react";
 import dayjs, { type Dayjs } from "dayjs";
@@ -30,7 +32,6 @@ import {
 import { listSales } from "../api/services/sales";
 import { getAppointmentsByTenant } from "../api/services/appointments";
 import { getAppointmentTotal } from "../utils/getAppointmentTotalPrice";
-import CustomCard from "../components/Card/CustomCard";
 import theme from "../theme";
 import type { SaleResponse } from "../features/sales/schemas";
 import type { Appointment } from "../features/appointments/types";
@@ -82,25 +83,48 @@ const ReportCard = ({
   value: string | number;
   color: string;
 }) => (
-  <CustomCard
+  <Paper
+    elevation={0}
     sx={{
-      flex: 1,
+      p: { xs: 1.5, sm: 2 },
       display: "flex",
       flexDirection: "column",
-      gap: 1,
+      justifyContent: "space-between",
+      gap: 0.75,
+      border: "1.5px solid",
+      borderColor: "divider",
       borderTop: `4px solid ${color}`,
+      borderRadius: 2.5,
+      bgcolor: "#FFFFFF",
     }}
   >
     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <Typography variant="body2" color="text.disabled" fontWeight={600}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          color: "text.secondary",
+          fontSize: { xs: "0.68rem", sm: "0.75rem" },
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}
+      >
         {label}
       </Typography>
-      <Box sx={{ color }}>{icon}</Box>
+      <Box sx={{ color, display: "flex", alignItems: "center" }}>{icon}</Box>
     </Box>
-    <Typography variant="h5" fontWeight={700}>
+    <Typography
+      variant="h6"
+      sx={{
+        fontWeight: 800,
+        color: "#111827",
+        fontSize: { xs: "1.1rem", sm: "1.3rem" },
+        lineHeight: 1.2,
+      }}
+    >
       {value}
     </Typography>
-  </CustomCard>
+  </Paper>
 );
 
 const paymentColors: Record<string, string> = {
@@ -124,6 +148,9 @@ export default function FinancialReportPage({
   setEndDate?: (d: Dayjs | null) => void;
   hideFilters?: boolean;
 } = {}) {
+  const currentTheme = useTheme();
+  const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
+
   const [localStartDate, setLocalStartDate] = useState<Dayjs | null>(dayjs().startOf("month"));
   const [localEndDate, setLocalEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
   const [filterPayment, setFilterPayment] = useState("");
@@ -231,12 +258,32 @@ export default function FinancialReportPage({
   };
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1400px" }}>
-      <Typography variant="h5" fontWeight={700} mb={3}>
-        Relatório Financeiro
-      </Typography>
+    <Box
+      sx={{
+        width: "100%",
+        mx: "auto",
+        p: hideFilters ? 0 : { xs: 1.5, sm: 2.5, md: 3 },
+        maxWidth: "1400px",
+      }}
+    >
+      {!hideFilters && (
+        <Typography variant="h5" fontWeight={700} mb={3}>
+          Relatório Financeiro
+        </Typography>
+      )}
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+      {/* Indicadores em Grid 2x2 (mobile) e 4 colunas (desktop) */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2, sm: 3 },
+        }}
+      >
         <ReportCard
           icon={<DollarSign size={20} />}
           label="FATURAMENTO"
@@ -245,7 +292,7 @@ export default function FinancialReportPage({
         />
         <ReportCard
           icon={<ShoppingCart size={20} />}
-          label="TRANSAÇÕES CONCLUÍDAS"
+          label="TRANSAÇÕES"
           value={summary.completedCount}
           color={theme.palette.primary.main}
         />
@@ -264,82 +311,111 @@ export default function FinancialReportPage({
       </Box>
 
       {Object.keys(summary.byMethod).length > 0 && (
-        <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+        <Box sx={{ mb: 3 }}>
           <Typography
             variant="body2"
             color="text.disabled"
             fontWeight={700}
-            sx={{ width: "100%", mb: -1 }}
+            sx={{ mb: 1.5, textTransform: "uppercase", fontSize: "0.75rem", letterSpacing: 0.5 }}
           >
             MÉTODOS DE PAGAMENTO
           </Typography>
-          {Object.entries(summary.byMethod)
-            .sort(([, a], [, b]) => b - a)
-            .map(([method, cents]) => {
-              const pct =
-                summary.totalRevenue > 0
-                  ? ((cents / summary.totalRevenue) * 100).toFixed(1)
-                  : "0.0";
-              const color = paymentColors[method] ?? theme.palette.grey[400];
-              return (
-                <Paper
-                  key={method}
-                  variant="outlined"
-                  sx={{
-                    px: 3,
-                    py: 2.5,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 2,
-                    borderLeft: `4px solid ${color}`,
-                    minWidth: 220,
-                    position: "relative",
-                  }}
-                >
-                  <CreditCard size={24} color={color} />
-                  <Box sx={{ flex: 1 }}>
-                    <Typography variant="body2" color="text.disabled" fontWeight={700} display="block">
-                      {PAYMENT_LABELS[method] ?? method}
-                    </Typography>
-                    <Typography variant="h6" fontWeight={700}>
-                      {fmtBRL(cents)}
-                    </Typography>
-                  </Box>
-                  <Typography
-                    variant="caption"
-                    fontWeight={800}
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, 1fr)",
+                sm: "repeat(3, 1fr)",
+                md: "repeat(4, 1fr)",
+              },
+              gap: 1.5,
+            }}
+          >
+            {Object.entries(summary.byMethod)
+              .sort(([, a], [, b]) => b - a)
+              .map(([method, cents]) => {
+                const pct =
+                  summary.totalRevenue > 0
+                    ? ((cents / summary.totalRevenue) * 100).toFixed(1)
+                    : "0.0";
+                const color = paymentColors[method] ?? theme.palette.grey[400];
+                return (
+                  <Paper
+                    key={method}
+                    elevation={0}
                     sx={{
-                      position: "absolute",
-                      top: 8,
-                      right: 8,
-                      color: "info.dark",
-                      bgcolor: "info.50",
-                      backgroundColor: "#e3f2fd",
-                      px: 0.75,
-                      py: 0.25,
-                      borderRadius: 1,
-                      lineHeight: 1.6,
-                      whiteSpace: "nowrap",
+                      p: 1.5,
+                      borderRadius: 2,
+                      border: "1.5px solid",
+                      borderColor: "divider",
+                      borderLeft: `4px solid ${color}`,
+                      display: "flex",
+                      flexDirection: "column",
+                      justifyContent: "space-between",
+                      bgcolor: "#FFFFFF",
+                      position: "relative",
                     }}
                   >
-                    {pct}%
-                  </Typography>
-                </Paper>
-              );
-            })}
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 0.5 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                        <CreditCard size={18} color={color} />
+                        <Typography variant="caption" color="text.secondary" fontWeight={700} noWrap>
+                          {PAYMENT_LABELS[method] ?? method}
+                        </Typography>
+                      </Box>
+                      <Typography
+                        variant="caption"
+                        fontWeight={800}
+                        sx={{
+                          color: "primary.main",
+                          bgcolor: "rgba(49, 52, 133, 0.08)",
+                          px: 0.75,
+                          py: 0.2,
+                          borderRadius: 1,
+                          fontSize: "0.68rem",
+                        }}
+                      >
+                        {pct}%
+                      </Typography>
+                    </Box>
+                    <Typography variant="body1" fontWeight={800} color="#111827">
+                      {fmtBRL(cents)}
+                    </Typography>
+                  </Paper>
+                );
+              })}
+          </Box>
         </Box>
       )}
 
-      <Paper sx={{ p: 2, mb: 2 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          mb: 2.5,
+          borderRadius: 2.5,
+          border: "1.5px solid",
+          borderColor: "divider",
+          bgcolor: "#FFFFFF",
+        }}
+      >
         <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
-          <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 1.5,
+              alignItems: "center",
+            }}
+          >
             {!hideFilters && (
               <>
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: { xs: "100%", sm: "auto" } }}>
                   <Typography variant="body2" color="text.primary" fontWeight={500}>De:</Typography>
                   <DatePicker
                     value={startDate}
                     onChange={setStartDate}
+                    format="DD/MM/YYYY"
                     dayOfWeekFormatter={(day: Dayjs) => {
                       const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
                       return days[day.day()];
@@ -356,6 +432,7 @@ export default function FinancialReportPage({
                             color: "#3d4048 !important",
                             "&.Mui-selected": {
                               color: "white !important",
+                              bgcolor: "#313485 !important",
                             },
                           },
                           "& .MuiPickersCalendarHeader-label": {
@@ -366,16 +443,16 @@ export default function FinancialReportPage({
                           },
                         },
                       },
-                      textField: { size: "small" },
+                      textField: { size: "small", placeholder: "DD/MM/AAAA", sx: { flex: 1 } },
                     }}
                   />
                 </Box>
-
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: { xs: "100%", sm: "auto" } }}>
                   <Typography variant="body2" color="text.primary" fontWeight={500}>Até:</Typography>
                   <DatePicker
                     value={endDate}
                     onChange={setEndDate}
+                    format="DD/MM/YYYY"
                     dayOfWeekFormatter={(day: Dayjs) => {
                       const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
                       return days[day.day()];
@@ -392,6 +469,7 @@ export default function FinancialReportPage({
                             color: "#3d4048 !important",
                             "&.Mui-selected": {
                               color: "white !important",
+                              bgcolor: "#313485 !important",
                             },
                           },
                           "& .MuiPickersCalendarHeader-label": {
@@ -402,44 +480,63 @@ export default function FinancialReportPage({
                           },
                         },
                       },
-                      textField: { size: "small" },
+                      textField: { size: "small", placeholder: "DD/MM/AAAA", sx: { flex: 1 } },
                     }}
                   />
                 </Box>
               </>
             )}
-            <Select
-              size="small"
-              displayEmpty
-              value={filterPayment}
-              onChange={(e) => setFilterPayment(e.target.value)}
-              sx={{ minWidth: 150 }}
+
+            {/* No mobile: Método e Tipo dividem a mesma linha (50% cada)! */}
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "160px 180px" },
+                gap: 1.25,
+                width: { xs: "100%", sm: "auto" },
+                flex: { sm: "0 0 auto" },
+              }}
             >
-              <MenuItem value=""><em>Método (Todos)</em></MenuItem>
-              <MenuItem value="pix">PIX</MenuItem>
-              <MenuItem value="credit_card">Crédito</MenuItem>
-              <MenuItem value="debit_card">Débito</MenuItem>
-              <MenuItem value="money">Dinheiro</MenuItem>
-              <MenuItem value="other">Outro</MenuItem>
-            </Select>
-            <Select
-              size="small"
-              displayEmpty
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              sx={{ minWidth: 180 }}
-            >
-              <MenuItem value=""><em>Tipo (Todos)</em></MenuItem>
-              <MenuItem value="Venda PDV">Venda PDV</MenuItem>
-              <MenuItem value="Agendamento">Agendamento</MenuItem>
-              <MenuItem value="Pago via Pacote">Pago via Pacote</MenuItem>
-            </Select>
-            <Box sx={{ ml: "auto" }}>
+              <Select
+                size="small"
+                displayEmpty
+                value={filterPayment}
+                onChange={(e) => setFilterPayment(e.target.value)}
+                sx={{ width: "100%", bgcolor: "#FAFAFA" }}
+              >
+                <MenuItem value=""><em>Método (Todos)</em></MenuItem>
+                <MenuItem value="pix">PIX</MenuItem>
+                <MenuItem value="credit_card">Crédito</MenuItem>
+                <MenuItem value="debit_card">Débito</MenuItem>
+                <MenuItem value="money">Dinheiro</MenuItem>
+                <MenuItem value="other">Outro</MenuItem>
+              </Select>
+              <Select
+                size="small"
+                displayEmpty
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                sx={{ width: "100%", bgcolor: "#FAFAFA" }}
+              >
+                <MenuItem value=""><em>Tipo (Todos)</em></MenuItem>
+                <MenuItem value="Venda PDV">Venda PDV</MenuItem>
+                <MenuItem value="Agendamento">Agendamento</MenuItem>
+                <MenuItem value="Pago via Pacote">Pago via Pacote</MenuItem>
+              </Select>
+            </Box>
+
+            <Box sx={{ ml: { xs: 0, sm: "auto" }, width: { xs: "100%", sm: "auto" } }}>
               <Button
                 variant="outlined"
                 startIcon={<Download size={16} />}
                 onClick={exportCSV}
                 disabled={isLoading || filtered.length === 0}
+                sx={{
+                  width: { xs: "100%", sm: "auto" },
+                  minHeight: 38,
+                  fontWeight: 600,
+                  borderRadius: 2,
+                }}
               >
                 Exportar CSV
               </Button>
@@ -448,47 +545,103 @@ export default function FinancialReportPage({
         </LocalizationProvider>
       </Paper>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headerCellSx}>Data</TableCell>
-              <TableCell sx={headerCellSx}>Cliente</TableCell>
-              <TableCell sx={headerCellSx}>Tipo</TableCell>
-              <TableCell sx={headerCellSx}>Método</TableCell>
-              <TableCell sx={headerCellSx} align="right">Valor</TableCell>
-              <TableCell sx={headerCellSx}>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.map((t) => (
-              <TableRow key={t.id} hover>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {dayjs(t.date).format("DD/MM/YYYY HH:mm")}
-                </TableCell>
-                <TableCell>{t.client}</TableCell>
-                <TableCell>
-                  <Chip
-                    label={t.type}
-                    size="small"
-                    variant="outlined"
-                    color={t.type === "Venda PDV" ? "primary" : "default"}
-                    sx={
-                      t.type === "Pago via Pacote"
-                        ? {
-                            color: "#8b5cf6",
-                            borderColor: "#c084fc",
-                            fontWeight: 600,
-                          }
-                        : undefined
-                    }
-                  />
-                </TableCell>
-                <TableCell>{PAYMENT_LABELS[t.payment_method] ?? t.payment_method}</TableCell>
-                <TableCell align="right" sx={{ fontWeight: 700 }}>
-                  {fmtBRL(t.amount_cents)}
-                </TableCell>
-                <TableCell>
+      {isMobile ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : filtered.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 4, textAlign: "center", borderRadius: 2.5, border: "1px solid", borderColor: "divider" }}>
+              <Typography color="text.secondary">
+                Nenhuma transação encontrada para os filtros selecionados.
+              </Typography>
+            </Paper>
+          ) : (
+            filtered.map((t) => (
+              <Paper
+                key={t.id}
+                elevation={0}
+                sx={{
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  border: "1.5px solid",
+                  borderColor: "divider",
+                  bgcolor: "#FFFFFF",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.25,
+                }}
+              >
+                {/* Linha 1: Cliente e Valor */}
+                <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography
+                      variant="body1"
+                      fontWeight={700}
+                      color="#111827"
+                      sx={{
+                        fontSize: "0.98rem",
+                        lineHeight: 1.3,
+                        textTransform: "capitalize",
+                      }}
+                      noWrap
+                    >
+                      {t.client || "Cliente não informado"}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {dayjs(t.date).format("DD/MM/YYYY HH:mm")}
+                    </Typography>
+                  </Box>
+
+                  <Typography
+                    variant="body1"
+                    fontWeight={800}
+                    color="primary.main"
+                    sx={{ fontSize: "1.1rem", whiteSpace: "nowrap" }}
+                  >
+                    {fmtBRL(t.amount_cents)}
+                  </Typography>
+                </Box>
+
+                {/* Linha 2: Tags e Status em Linha Única sem quebra */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    pt: 1,
+                    borderTop: "1px dashed #E2E8F0",
+                    gap: 1,
+                  }}
+                >
+                  <Box sx={{ display: "flex", gap: 0.75, alignItems: "center", minWidth: 0 }}>
+                    <Chip
+                      label={t.type}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        bgcolor: t.type === "Venda PDV" ? "#EFF6FF" : t.type === "Pago via Pacote" ? "#F5F3FF" : "#F1F5F9",
+                        color: t.type === "Venda PDV" ? "#1D4ED8" : t.type === "Pago via Pacote" ? "#7C3AED" : "#475569",
+                      }}
+                    />
+                    <Chip
+                      label={PAYMENT_LABELS[t.payment_method] ?? t.payment_method}
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: "0.72rem",
+                        fontWeight: 600,
+                        bgcolor: "#F8FAFC",
+                        color: "#475569",
+                        border: "1px solid #E2E8F0",
+                        maxWidth: 140,
+                      }}
+                    />
+                  </Box>
+
                   <Chip
                     label={
                       t.status === "completed"
@@ -497,38 +650,114 @@ export default function FinancialReportPage({
                           ? "Cancelado"
                           : "Pendente"
                     }
-                    color={
-                      t.status === "completed"
-                        ? "success"
-                        : t.status === "canceled"
-                          ? "error"
-                          : "warning"
-                    }
                     size="small"
-                    variant="outlined"
+                    sx={{
+                      height: 22,
+                      fontSize: "0.72rem",
+                      fontWeight: 700,
+                      bgcolor:
+                        t.status === "completed"
+                          ? "#DCFCE7"
+                          : t.status === "canceled"
+                            ? "#FEE2E2"
+                            : "#FEF3C7",
+                      color:
+                        t.status === "completed"
+                          ? "#166534"
+                          : t.status === "canceled"
+                            ? "#991B1B"
+                            : "#92400E",
+                      flexShrink: 0,
+                    }}
                   />
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && !isLoading && (
+                </Box>
+              </Paper>
+            ))
+          )}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <Typography color="text.disabled">
-                    Nenhuma transação encontrada para os filtros selecionados.
-                  </Typography>
-                </TableCell>
+                <TableCell sx={headerCellSx}>Data</TableCell>
+                <TableCell sx={headerCellSx}>Cliente</TableCell>
+                <TableCell sx={headerCellSx}>Tipo</TableCell>
+                <TableCell sx={headerCellSx}>Método</TableCell>
+                <TableCell sx={headerCellSx} align="right">Valor</TableCell>
+                <TableCell sx={headerCellSx}>Status</TableCell>
               </TableRow>
-            )}
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filtered.map((t) => (
+                <TableRow key={t.id} hover>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    {dayjs(t.date).format("DD/MM/YYYY HH:mm")}
+                  </TableCell>
+                  <TableCell>{t.client}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={t.type}
+                      size="small"
+                      variant="outlined"
+                      color={t.type === "Venda PDV" ? "primary" : "default"}
+                      sx={
+                        t.type === "Pago via Pacote"
+                          ? {
+                              color: "#8b5cf6",
+                              borderColor: "#c084fc",
+                              fontWeight: 600,
+                            }
+                          : undefined
+                      }
+                    />
+                  </TableCell>
+                  <TableCell>{PAYMENT_LABELS[t.payment_method] ?? t.payment_method}</TableCell>
+                  <TableCell align="right" sx={{ fontWeight: 700 }}>
+                    {fmtBRL(t.amount_cents)}
+                  </TableCell>
+                  <TableCell>
+                    <Chip
+                      label={
+                        t.status === "completed"
+                          ? "Concluído"
+                          : t.status === "canceled"
+                            ? "Cancelado"
+                            : "Pendente"
+                      }
+                      color={
+                        t.status === "completed"
+                          ? "success"
+                          : t.status === "canceled"
+                            ? "error"
+                            : "warning"
+                      }
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && !isLoading && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <Typography color="text.disabled">
+                      Nenhuma transação encontrada para os filtros selecionados.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 }

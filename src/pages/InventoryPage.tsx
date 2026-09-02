@@ -12,7 +12,6 @@ import {
   TableRow,
   Chip,
   CircularProgress,
-  Skeleton,
   TablePagination,
   IconButton,
   useTheme,
@@ -59,18 +58,17 @@ function TabPanel(props: {
       aria-labelledby={`inventory-tab-${index}`}
       {...other}
       style={{
-        height: "100%",
         flexGrow: value === index ? 1 : 0,
-        overflow: "hidden",
         display: value === index ? "flex" : "none",
         flexDirection: "column",
+        minHeight: 0,
       }}
     >
       {value === index && (
         <Box
           sx={{
             p: { xs: 1.5, sm: 2.5 },
-            height: "100%",
+            flexGrow: 1,
             display: "flex",
             flexDirection: "column",
             minHeight: 0,
@@ -164,7 +162,7 @@ export default function InventoryPage() {
         color="error"
         variant="outlined"
         sx={{ fontWeight: 600 }}
-      );
+      />
     );
   };
 
@@ -176,7 +174,8 @@ export default function InventoryPage() {
         p: { xs: 1.5, sm: 2.5, md: 3 },
         pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 3 },
         maxWidth: "1200px",
-        height: "100%",
+        minHeight: "100%",
+        height: { xs: "auto", md: "100%" },
         display: "flex",
         flexDirection: "column",
       }}
@@ -222,7 +221,7 @@ export default function InventoryPage() {
           flexGrow: 1,
           display: "flex",
           flexDirection: "column",
-          overflow: "hidden",
+          overflow: { xs: "visible", md: "hidden" },
           borderRadius: 2.5,
           border: "1px solid",
           borderColor: "divider",
@@ -242,10 +241,10 @@ export default function InventoryPage() {
                 color: "text.secondary",
                 fontWeight: 600,
                 textTransform: "none",
-                fontSize: { xs: "0.82rem", sm: "0.9rem" },
+                fontSize: { xs: "0.85rem", sm: "0.9rem" },
                 py: 1,
-                px: { xs: 1.5, sm: 2.5 },
-                gap: 1,
+                px: { xs: 1, sm: 2.5 },
+                gap: 0.75,
               },
               "& .Mui-selected": {
                 color: "primary.main",
@@ -256,12 +255,12 @@ export default function InventoryPage() {
             <Tab
               icon={<Boxes size={18} />}
               iconPosition="start"
-              label="Posição de Estoque"
+              label={isMobile ? "Posição" : "Posição de Estoque"}
             />
             <Tab
               icon={<History size={18} />}
               iconPosition="start"
-              label="Histórico de Movimentações"
+              label={isMobile ? "Histórico" : "Histórico de Movimentações"}
             />
           </Tabs>
         </Box>

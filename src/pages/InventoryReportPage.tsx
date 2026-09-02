@@ -14,6 +14,8 @@ import {
   TableRow,
   TextField,
   Typography,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -25,7 +27,6 @@ dayjs.locale("pt-br");
 import { useQuery } from "@tanstack/react-query";
 import { AlertTriangle, BarChart2, Package, TrendingUp, Search } from "lucide-react";
 import { fetchGlobalInventoryLogs, fetchProducts } from "../api/services/products";
-import CustomCard from "../components/Card/CustomCard";
 import theme from "../theme";
 import type { Product } from "../features/products/types";
 import type { InventoryLog } from "../features/inventory/schemas";
@@ -71,25 +72,48 @@ const ReportCard = ({
   value: string | number;
   color: string;
 }) => (
-  <CustomCard
+  <Paper
+    elevation={0}
     sx={{
-      flex: 1,
+      p: { xs: 1.5, sm: 2 },
       display: "flex",
       flexDirection: "column",
-      gap: 1,
+      justifyContent: "space-between",
+      gap: 0.75,
+      border: "1.5px solid",
+      borderColor: "divider",
       borderTop: `4px solid ${color}`,
+      borderRadius: 2.5,
+      bgcolor: "#FFFFFF",
     }}
   >
     <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <Typography variant="body2" color="text.disabled" fontWeight={600}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          color: "text.secondary",
+          fontSize: { xs: "0.68rem", sm: "0.75rem" },
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}
+      >
         {label}
       </Typography>
-      <Box sx={{ color }}>{icon}</Box>
+      <Box sx={{ color, display: "flex", alignItems: "center" }}>{icon}</Box>
     </Box>
-    <Typography variant="h5" fontWeight={700}>
+    <Typography
+      variant="h6"
+      sx={{
+        fontWeight: 800,
+        color: "#111827",
+        fontSize: { xs: "1.1rem", sm: "1.3rem" },
+        lineHeight: 1.2,
+      }}
+    >
       {value}
     </Typography>
-  </CustomCard>
+  </Paper>
 );
 
 export default function InventoryReportPage({
@@ -101,6 +125,9 @@ export default function InventoryReportPage({
   endDate?: dayjs.Dayjs | null;
   hideFilters?: boolean;
 } = {}) {
+  const currentTheme = useTheme();
+  const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
+
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [filterType, setFilterType] = useState("");
@@ -160,17 +187,35 @@ export default function InventoryReportPage({
   }, [logs, filterFrom, filterTo, filterType, filterProduct, propStartDate, propEndDate]);
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1400px" }}>
+    <Box
+      sx={{
+        width: "100%",
+        mx: "auto",
+        p: hideFilters ? 0 : { xs: 1.5, sm: 2.5, md: 3 },
+        maxWidth: "1400px",
+      }}
+    >
       {!hideFilters && (
         <Typography variant="h5" fontWeight={700} mb={3}>
           Relatório de Estoque
         </Typography>
       )}
 
-      <Box sx={{ display: "flex", gap: 2, mb: 3, flexWrap: "wrap" }}>
+      {/* 4 Indicadores em Grid 2x2 (mobile) e 4 colunas (desktop) */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2, sm: 3 },
+        }}
+      >
         <ReportCard
           icon={<Package size={20} />}
-          label="TOTAL DE PRODUTOS"
+          label="TOTAL PRODUTOS"
           value={summary.totalProducts}
           color={theme.palette.primary.main}
         />
@@ -182,20 +227,20 @@ export default function InventoryReportPage({
         />
         <ReportCard
           icon={<TrendingUp size={20} />}
-          label="VALOR EM ESTOQUE"
+          label="VALOR ESTOQUE"
           value={fmtBRL(summary.stockValue)}
           color={theme.palette.success.main}
         />
         <ReportCard
           icon={<BarChart2 size={20} />}
-          label="MOVIMENTAÇÕES NO PERÍODO"
+          label="MOVIMENTAÇÕES"
           value={summary.movementsInPeriod}
           color={theme.palette.info.main}
         />
       </Box>
 
-      <Paper sx={{ p: 2, mb: 2 }}>
-        <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+      <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, borderRadius: 2.5, border: "1px solid", borderColor: "divider", bgcolor: "#FFFFFF" }}>
+        <Box sx={{ display: "flex", gap: 1.5, flexWrap: "wrap", alignItems: "center" }}>
           {!hideFilters && (
             <>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -263,7 +308,7 @@ export default function InventoryReportPage({
             displayEmpty
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
-            sx={{ minWidth: 160 }}
+            sx={{ width: { xs: "100%", sm: 160 } }}
           >
             <MenuItem value=""><em>Tipo (Todos)</em></MenuItem>
             <MenuItem value="in">Entrada</MenuItem>
@@ -286,74 +331,162 @@ export default function InventoryReportPage({
                 ),
               },
             }}
-            sx={{ minWidth: 200 }}
+            sx={{ width: { xs: "100%", sm: 220 } }}
           />
         </Box>
       </Paper>
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headerCellSx}>Data</TableCell>
-              <TableCell sx={headerCellSx}>Produto</TableCell>
-              <TableCell sx={headerCellSx}>Tipo</TableCell>
-              <TableCell sx={headerCellSx} align="right">Quantidade</TableCell>
-              <TableCell sx={headerCellSx}>Observações</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.map((log) => (
-              <TableRow key={log.id} hover>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>
-                  {dayjs(log.created_at).format("DD/MM/YYYY HH:mm")}
-                </TableCell>
-                <TableCell>{log.product_name ?? `#${log.product_id}`}</TableCell>
-                <TableCell>
+      {isMobile ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          {isLoading ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : filtered.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 4, textAlign: "center", borderRadius: 2.5, border: "1px solid", borderColor: "divider" }}>
+              <Typography color="text.secondary">
+                Nenhuma movimentação encontrada para os filtros selecionados.
+              </Typography>
+            </Paper>
+          ) : (
+            filtered.map((log) => (
+              <Paper
+                key={log.id}
+                elevation={0}
+                sx={{
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  border: "1.5px solid",
+                  borderColor: "divider",
+                  bgcolor: "#FFFFFF",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1,
+                }}
+              >
+                {/* Linha 1: Produto e Quantidade */}
+                <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                  <Box sx={{ minWidth: 0, flex: 1 }}>
+                    <Typography variant="body1" fontWeight={700} color="text.primary" sx={{ fontSize: "0.98rem", lineHeight: 1.3 }}>
+                      {log.product_name ?? `#${log.product_id}`}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {dayjs(log.created_at).format("DD/MM/YYYY HH:mm")}
+                    </Typography>
+                  </Box>
+
+                  <Typography
+                    variant="body1"
+                    fontWeight={800}
+                    sx={{
+                      fontSize: "1.1rem",
+                      whiteSpace: "nowrap",
+                      color:
+                        log.quantity_changed > 0
+                          ? theme.palette.success.main
+                          : theme.palette.error.main,
+                    }}
+                  >
+                    {log.quantity_changed > 0 ? "+" : ""}
+                    {log.quantity_changed}
+                  </Typography>
+                </Box>
+
+                {/* Linha 2: Tipo e Observações */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    pt: 0.75,
+                    borderTop: "1px dashed #E2E8F0",
+                    flexWrap: "wrap",
+                    gap: 0.75,
+                  }}
+                >
                   <Chip
                     label={LOG_TYPE_LABELS[log.log_type] ?? log.log_type}
                     color={LOG_TYPE_COLORS[log.log_type] ?? "default"}
                     size="small"
                     variant="outlined"
+                    sx={{ height: 22, fontSize: "0.72rem", fontWeight: 600 }}
                   />
-                </TableCell>
-                <TableCell
-                  align="right"
-                  sx={{
-                    fontWeight: 700,
-                    color:
-                      log.quantity_changed > 0
-                        ? theme.palette.success.main
-                        : theme.palette.error.main,
-                  }}
-                >
-                  {log.quantity_changed > 0 ? "+" : ""}
-                  {log.quantity_changed}
-                </TableCell>
-                <TableCell sx={{ color: "text.secondary" }}>
-                  {log.description ?? "—"}
-                </TableCell>
-              </TableRow>
-            ))}
-            {filtered.length === 0 && !isLoading && (
+
+                  {log.description && (
+                    <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 200 }} noWrap>
+                      {log.description}
+                    </Typography>
+                  )}
+                </Box>
+              </Paper>
+            ))
+          )}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
               <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                  <Typography color="text.disabled">
-                    Nenhuma movimentação encontrada para os filtros selecionados.
-                  </Typography>
-                </TableCell>
+                <TableCell sx={headerCellSx}>Data</TableCell>
+                <TableCell sx={headerCellSx}>Produto</TableCell>
+                <TableCell sx={headerCellSx}>Tipo</TableCell>
+                <TableCell sx={headerCellSx} align="right">Quantidade</TableCell>
+                <TableCell sx={headerCellSx}>Observações</TableCell>
               </TableRow>
-            )}
-            {isLoading && (
-              <TableRow>
-                <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {filtered.map((log) => (
+                <TableRow key={log.id} hover>
+                  <TableCell sx={{ whiteSpace: "nowrap" }}>
+                    {dayjs(log.created_at).format("DD/MM/YYYY HH:mm")}
+                  </TableCell>
+                  <TableCell>{log.product_name ?? `#${log.product_id}`}</TableCell>
+                  <TableCell>
+                    <Chip
+                      label={LOG_TYPE_LABELS[log.log_type] ?? log.log_type}
+                      color={LOG_TYPE_COLORS[log.log_type] ?? "default"}
+                      size="small"
+                      variant="outlined"
+                    />
+                  </TableCell>
+                  <TableCell
+                    align="right"
+                    sx={{
+                      fontWeight: 700,
+                      color:
+                        log.quantity_changed > 0
+                          ? theme.palette.success.main
+                          : theme.palette.error.main,
+                    }}
+                  >
+                    {log.quantity_changed > 0 ? "+" : ""}
+                    {log.quantity_changed}
+                  </TableCell>
+                  <TableCell sx={{ color: "text.secondary" }}>
+                    {log.description ?? "—"}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {filtered.length === 0 && !isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                    <Typography color="text.disabled">
+                      Nenhuma movimentação encontrada para os filtros selecionados.
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              )}
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
     </Box>
   );
 }
