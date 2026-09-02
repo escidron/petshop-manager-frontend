@@ -61,7 +61,12 @@ const ServiceForm = ({
         <Divider />
         <Box
           className="wrapper"
-          sx={{ display: "flex", justifyContent: "space-between" }}
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "space-between",
+            gap: { xs: 3, md: 3 },
+          }}
         >
           {/* ================= BÁSICO ================= */}
 
@@ -71,7 +76,7 @@ const ServiceForm = ({
               display: "flex",
               gap: 2,
               flexDirection: "column",
-              width: showAdditionalInfo ? "45%" : "100%",
+              width: { xs: "100%", md: showAdditionalInfo ? "47%" : "100%" },
             }}
           >
             <Box>
@@ -181,17 +186,19 @@ const ServiceForm = ({
             </Button>
           </Box>
 
-          {/* ================= Informacoes adicionais ================= */}
+          {/* ================= Informações adicionais ================= */}
           {showAdditionalInfo && (
-            <Box
-              className="block-2"
-              sx={{
-                display: "flex",
-                gap: 2,
-                flexDirection: "column",
-                width: "45%",
-              }}
-            >
+            <>
+              <Divider sx={{ display: { xs: "block", md: "none" } }} />
+              <Box
+                className="block-2"
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  flexDirection: "column",
+                  width: { xs: "100%", md: "48%" },
+                }}
+              >
               <Box>
                 <Typography variant="h6">Informações Adicionais</Typography>
                 <Typography fontSize="12px" color="text.disabled">
@@ -360,16 +367,30 @@ const ServiceForm = ({
                 />
               </FormControl>
             </Box>
+            </>
           )}
         </Box>
 
         {/* ================= BOTÕES ================= */}
         <Divider />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: { xs: "stretch", md: "flex-end" },
+            gap: 2,
+            width: "100%",
+            pt: 0.5,
+          }}
+        >
           <Button
             loading={isSubmitting}
             onClick={handleSubmit((data: ServiceFormData) => onSubmit(data))}
             data-action="save"
+            sx={{
+              width: { xs: "100%", md: "auto" },
+              minHeight: 44,
+              px: 4,
+            }}
           >
             Salvar
           </Button>

@@ -377,12 +377,14 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
             <Box
               sx={{
                 display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
                 justifyContent: "space-between",
-                alignItems: "flex-start",
+                alignItems: { xs: "flex-start", sm: "flex-start" },
+                gap: { xs: 1.5, sm: 2 },
                 mb: 1.5,
               }}
             >
-              <Box>
+              <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 0.5 }}>
                   <ShoppingBag size={18} color={theme.palette.primary.main} />
                   <Typography variant="subtitle2" fontWeight={700} color="text.primary">
@@ -424,7 +426,7 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
                 </Typography>
               </Box>
               
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: { xs: "100%", sm: "auto" }, justifyContent: { xs: "flex-end", sm: "flex-start" } }}>
                 <Tooltip title="Compartilhar por WhatsApp">
                   <span>
                     <Button

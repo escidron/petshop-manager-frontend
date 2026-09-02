@@ -77,7 +77,7 @@ export default function ServiceFormModal({
   };
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
     <Dialog
@@ -87,13 +87,13 @@ export default function ServiceFormModal({
       slotProps={{
         paper: {
           sx: {
-            width: { xs: "100%", sm: showAdditionalInfo ? "80%" : "500px" },
-            maxWidth: { xs: "100%", sm: "800px" },
-            minWidth: { xs: "unset", sm: showAdditionalInfo ? "650px" : "400px" },
-            m: { xs: 0, sm: 2 },
-            borderRadius: { xs: 0, sm: 3 },
-            maxHeight: { xs: "100dvh", sm: "90vh" },
-            height: { xs: "100dvh", sm: "auto" },
+            width: { xs: "100%", md: showAdditionalInfo ? "80%" : "500px" },
+            maxWidth: { xs: "100%", md: "800px" },
+            minWidth: { xs: "unset", md: showAdditionalInfo ? "650px" : "400px" },
+            m: { xs: 0, md: 2 },
+            borderRadius: { xs: 0, md: 3 },
+            maxHeight: { xs: "100dvh", md: "90vh" },
+            height: { xs: "100dvh", md: "auto" },
           },
         },
       }}
@@ -131,7 +131,7 @@ export default function ServiceFormModal({
         </Box>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent sx={{ p: { xs: 2, sm: 3 }, pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 } }}>
         <ServiceForm
           key={service?.id ?? "create"}
           defaultValues={defaultValues}

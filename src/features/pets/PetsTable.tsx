@@ -9,9 +9,7 @@ import TableFooter from "@mui/material/TableFooter";
 import TableHead from "@mui/material/TableHead";
 import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
-import Paper from "@mui/material/Paper";
-import IconButton from "@mui/material/IconButton";
-import { Typography, Skeleton, Chip } from "@mui/material";
+import { Typography, Skeleton, Chip, Avatar, useMediaQuery, IconButton, Paper } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,6 +17,10 @@ import {
   ChevronsRight,
   Pencil,
   Trash2,
+  Dog,
+  User,
+  Mars,
+  Venus,
 } from "lucide-react";
 import type { Pet } from "./types";
 import { formatePetGender } from "../../utils/formatPetGender";
@@ -91,7 +93,6 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 type Props = {
   rows: Pet[];
   loading: boolean;
-  onRowClick?: (id: number) => void;
   onEdit: (pet: Pet) => void;
   onDelete: (pet: Pet) => void;
 };
@@ -117,6 +118,259 @@ export default function PetsTable({ rows, loading, onEdit, onDelete }: Props) {
   React.useEffect(() => {
     setPage(0);
   }, [rows]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const paginatedRows = React.useMemo(() => {
+    return rowsPerPage > 0
+      ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+      : rows;
+  }, [rows, page, rowsPerPage]);
+
+  if (isMobile) {
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Paper key={i} sx={{ p: 2, borderRadius: 2.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                <Skeleton variant="circular" width={40} height={40} />
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton variant="text" width="60%" height={24} />
+                  <Skeleton variant="text" width="40%" height={18} />
+                </Box>
+              </Box>
+              <Skeleton variant="rectangular" height={32} sx={{ borderRadius: 1.5 }} />
+            </Paper>
+          ))
+        ) : rows.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2.5 }}>
+            <Typography color="text.disabled" variant="body1">
+              Nenhum pet cadastrado ainda.
+            </Typography>
+          </Paper>
+        ) : (
+          paginatedRows.map((pet) => {
+            const initials = pet.name
+              ? pet.name
+                  .split(" ")
+                  .filter(Boolean)
+                  .map((n) => n[0])
+                  .slice(0, 2)
+                  .join("")
+                  .toUpperCase()
+              : "PT";
+
+            return (
+              <Paper
+                key={pet.id}
+                onClick={() => onEdit(pet)}
+                elevation={0}
+                sx={{
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  border: "1.5px solid",
+                  borderColor: "divider",
+                  bgcolor: "#FFFFFF",
+                  cursor: "pointer",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.25,
+                  opacity: pet.is_deceased ? 0.7 : 1,
+                  transition: "all 0.15s ease",
+                  "&:active": {
+                    bgcolor: "action.hover",
+                    transform: "scale(0.99)",
+                  },
+                }}
+              >
+                {/* Linha 1: Avatar, Nome e Gênero/Óbito */}
+                <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: 0, flex: 1 }}>
+                    <Avatar
+                      sx={{
+                        width: 38,
+                        height: 38,
+                        bgcolor: pet.is_deceased ? "grey.300" : "rgba(49, 52, 133, 0.1)",
+                        color: pet.is_deceased ? "grey.700" : "primary.main",
+                        fontWeight: 700,
+                        fontSize: "0.85rem",
+                      }}
+                    >
+                      {initials}
+                    </Avatar>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography
+                        variant="body1"
+                        fontWeight={700}
+                        color="text.primary"
+                        noWrap
+                        sx={{ fontSize: "0.95rem" }}
+                      >
+                        {pet.name}
+                      </Typography>
+                      {pet.owner_name && (
+                        <Typography
+                          variant="caption"
+                          color="text.secondary"
+                          sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: 0.2 }}
+                          noWrap
+                        >
+                          <User size={12} />
+                          Tutor: {pet.owner_name}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Box>
+
+                  <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+                    {pet.gender && ["male", "female"].includes(pet.gender) && (
+                      <Chip
+                        label={pet.gender === "male" ? "Macho" : "Fêmea"}
+                        size="small"
+                        icon={
+                          pet.gender === "male" ? (
+                            <Mars color={theme.palette.text.primary} size={14} />
+                          ) : (
+                            <Venus color={theme.palette.text.primary} size={14} />
+                          )
+                        }
+                        sx={{
+                          bgcolor:
+                            pet.gender === "male"
+                              ? "rgba(33, 150, 243, 0.15)"
+                              : "rgba(233, 30, 99, 0.15)",
+                          color: "text.primary",
+                          height: 22,
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                        }}
+                      />
+                    )}
+                    {pet.is_deceased && (
+                      <Chip
+                        label="Óbito 🖤"
+                        size="small"
+                        sx={{
+                          bgcolor: "rgba(0, 0, 0, 0.6)",
+                          color: "#fff",
+                          fontWeight: 600,
+                          height: 22,
+                          fontSize: "0.72rem",
+                        }}
+                      />
+                    )}
+                  </Box>
+                </Box>
+
+                {/* Linha 2: Espécie e Raça */}
+                <Box
+                  sx={{
+                    bgcolor: "#F8FAFC",
+                    borderRadius: 1.5,
+                    p: 1,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.75,
+                  }}
+                >
+                  <Dog size={15} color="#64748B" style={{ flexShrink: 0 }} />
+                  <Typography
+                    variant="caption"
+                    color="text.primary"
+                    fontWeight={600}
+                    noWrap
+                  >
+                    {pet.species || "Pet"}{pet.breed ? ` • ${pet.breed}` : ""}
+                  </Typography>
+                </Box>
+
+                {/* Linha 3: Ações e Detalhes */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    pt: 0.75,
+                    borderTop: "1px dashed #E2E8F0",
+                  }}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.5,
+                      color: "text.secondary",
+                      fontSize: "0.75rem",
+                      fontWeight: 500,
+                    }}
+                  >
+                    <Pencil size={13} />
+                    Toque para editar
+                  </Box>
+
+                  <Box onClick={(e) => e.stopPropagation()}>
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onDelete?.(pet);
+                      }}
+                    >
+                      <Trash2 size={16} />
+                    </IconButton>
+                  </Box>
+                </Box>
+              </Paper>
+            );
+          })
+        )}
+
+        {/* Mobile Pagination */}
+        {rows.length > 0 && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              bgcolor: "#FFFFFF",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              {page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, rows.length)} de {rows.length}
+            </Typography>
+
+            <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+              <IconButton
+                size="small"
+                onClick={(e) => handleChangePage(e, page - 1)}
+                disabled={page === 0}
+              >
+                <ChevronLeft size={18} />
+              </IconButton>
+              <Typography variant="caption" fontWeight={700} color="primary.main">
+                {page + 1} / {Math.max(1, Math.ceil(rows.length / rowsPerPage))}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={(e) => handleChangePage(e, page + 1)}
+                disabled={page >= Math.ceil(rows.length / rowsPerPage) - 1}
+              >
+                <ChevronRight size={18} />
+              </IconButton>
+            </Box>
+          </Paper>
+        )}
+      </Box>
+    );
+  }
 
   return (
     <TableContainer
@@ -224,7 +478,9 @@ export default function PetsTable({ rows, loading, onEdit, onDelete }: Props) {
               ).map((row) => (
               <TableRow
                 key={row.id}
+                onClick={() => onEdit(row)}
                 sx={{
+                  cursor: "pointer",
                   transition: "background-color 0.2s ease",
                   opacity: row.is_deceased ? 0.65 : 1,
                   "&:hover": {

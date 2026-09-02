@@ -15,15 +15,37 @@ export default function PetsToolbar({
   onCreate,
 }: Props) {
   return (
-    <Box mb={2} display="flex" justifyContent="space-between" gap={2}>
-      <CustomTextField
-        icon={<Search size={18} />}
-        placeholder="Pesquisar pet"
-        value={search}
-        onChange={(e) => onSearchChange(e.target.value)}
-      />
+    <Box
+      mb={2}
+      display="flex"
+      flexDirection={{ xs: "column", md: "row" }}
+      justifyContent="space-between"
+      alignItems={{ xs: "stretch", md: "center" }}
+      gap={1.5}
+      sx={{ width: "100%" }}
+    >
+      <Box sx={{ flex: 1, width: "100%", maxWidth: { md: "420px" } }}>
+        <CustomTextField
+          fullWidth
+          icon={<Search size={18} />}
+          placeholder="Pesquisar pet ou tutor..."
+          value={search}
+          onChange={(e) => onSearchChange(e.target.value)}
+        />
+      </Box>
 
-      <Button startIcon={<Plus size={18} />} onClick={onCreate}>
+      <Button
+        startIcon={<Plus size={18} />}
+        onClick={onCreate}
+        sx={{
+          width: { xs: "100%", md: "auto" },
+          minHeight: 42,
+          fontWeight: 700,
+          borderRadius: 2,
+          whiteSpace: "nowrap",
+          px: 2,
+        }}
+      >
         Novo Pet
       </Button>
     </Box>

@@ -64,22 +64,27 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
     <CustomCard
       sx={{
         display: "flex",
-        gap: 2,
-        height: "150px",
-        mt: 2,
-        p: 1.5,
-        minWidth: "550px",
+        gap: { xs: 1.5, sm: 2 },
+        height: "auto",
+        minHeight: { xs: 120, sm: 150 },
+        mt: 1.5,
+        p: { xs: 1.25, sm: 1.75 },
+        width: "100%",
+        minWidth: 0,
       }}
     >
       <Box
         onClick={handleImageClick}
         sx={{
-          height: "100%",
-          borderRadius: 3,
+          width: { xs: 76, sm: 115, md: 125 },
+          height: { xs: 76, sm: "auto" },
           aspectRatio: 1,
+          borderRadius: 2.5,
           position: "relative",
           cursor: "pointer",
           overflow: "hidden",
+          flexShrink: 0,
+          alignSelf: { xs: "flex-start", sm: "stretch" },
           "&:hover .upload-overlay": {
             opacity: 1,
           },
@@ -94,7 +99,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
           disabled={uploading}
         />
 
-        <Box sx={{ height: "100%", backgroundColor: "text.primary", borderRadius: 3 }}>
+        <Box sx={{ height: "100%", backgroundColor: "text.primary", borderRadius: 2.5 }}>
           {uploading ? (
             <Box
               sx={{
@@ -109,7 +114,7 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
             </Box>
           ) : (
             <img
-              style={{ height: "100%", width: "100%", objectFit: "cover", borderRadius: 12 }}
+              style={{ height: "100%", width: "100%", objectFit: "cover", borderRadius: 10 }}
               alt="pet photo"
               src={
                 profilePhoto
@@ -137,37 +142,41 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
               justifyContent: "center",
               opacity: 0,
               transition: "opacity 0.2s ease-in-out",
-              borderRadius: 3,
+              borderRadius: 2.5,
             }}
           >
-            <Camera color="#fff" size={24} />
+            <Camera color="#fff" size={22} />
           </Box>
         )}
       </Box>
-      <Box sx={{ width: "100%" }}>
-        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <Typography variant="h6" fontWeight={600} mb={0}>
+
+      <Box sx={{ width: "100%", minWidth: 0, display: "flex", flexDirection: "column", justifyContent: "space-between" }}>
+        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+            <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: "0.95rem", sm: "1.15rem" } }}>
               {pet.name}
             </Typography>
             {pet.gender && ["male", "female"].includes(pet.gender) && (
               <Chip
-                label={pet.gender === "male" ? "Macho" : "Femea"}
+                label={pet.gender === "male" ? "Macho" : "Fêmea"}
                 size="small"
                 icon={
                   pet.gender === "male" ? (
-                    <Mars color={theme.palette.text.primary} size={16} />
+                    <Mars color={theme.palette.text.primary} size={14} />
                   ) : (
-                    <Venus color={theme.palette.text.primary} size={16} />
+                    <Venus color={theme.palette.text.primary} size={14} />
                   )
                 }
                 sx={{
                   bgcolor:
                     pet.gender === "male"
-                      ? "rgba(33, 150, 243, 0.3)"
-                      : "rgba(233, 30, 99, 0.3)",
+                      ? "rgba(33, 150, 243, 0.15)"
+                      : "rgba(233, 30, 99, 0.15)",
                   color: "text.primary",
-                  px: 1,
+                  height: 20,
+                  fontSize: "0.7rem",
+                  fontWeight: 600,
+                  px: 0.5,
                 }}
               />
             )}
@@ -179,7 +188,9 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
                   bgcolor: "rgba(0, 0, 0, 0.6)",
                   color: "#fff",
                   fontWeight: 600,
-                  px: 1,
+                  height: 20,
+                  fontSize: "0.7rem",
+                  px: 0.5,
                 }}
               />
             )}
@@ -190,79 +201,77 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
               size="small"
               startIcon={<Image size={14} />}
               onClick={() => onViewPhotos(pet)}
+              sx={{ height: 28, fontSize: "0.75rem", px: 1 }}
             >
               Fotos
             </Button>
           )}
         </Box>
-        <Divider sx={{ my: 1 }} />
+
+        <Divider sx={{ my: 0.75 }} />
+
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: "center",
+            alignItems: "flex-end",
+            gap: 1.5,
           }}
         >
-          <Box sx={{ display: "flex", gap: 4, flexWrap: "wrap" }}>
+          <Box sx={{ display: "flex", gap: { xs: 1.5, sm: 3 }, flexWrap: "wrap", flex: 1, minWidth: 0 }}>
             <Box>
-              <Typography color="text.primary">Espécie</Typography>
-              <Typography color="text.disabled">
+              <Typography color="text.primary" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" }, fontWeight: 600 }}>Espécie</Typography>
+              <Typography color="text.disabled" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" } }}>
                 {pet.species}
               </Typography>
             </Box>
             {pet.breed && (
               <Box>
-                <Typography color="text.primary">Raça</Typography>
-                <Typography color="text.disabled">{pet.breed}</Typography>
+                <Typography color="text.primary" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" }, fontWeight: 600 }}>Raça</Typography>
+                <Typography color="text.disabled" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" } }}>{pet.breed}</Typography>
               </Box>
             )}
 
             {pet.size && (
               <Box>
-                <Typography color="text.primary">Porte</Typography>
-                <Typography color="text.disabled">
+                <Typography color="text.primary" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" }, fontWeight: 600 }}>Porte</Typography>
+                <Typography color="text.disabled" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" } }}>
                   {PET_SIZES.find((s) => s.value === pet.size)?.label || pet.size}
                 </Typography>
               </Box>
             )}
             {pet.coat_type && (
               <Box>
-                <Typography color="text.primary">Pelagem</Typography>
-                <Typography color="text.disabled">
+                <Typography color="text.primary" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" }, fontWeight: 600 }}>Pelagem</Typography>
+                <Typography color="text.disabled" sx={{ fontSize: { xs: "0.72rem", sm: "0.85rem" } }}>
                   {COAT_TYPES.find((t) => t.value === pet.coat_type)?.label || pet.coat_type}
                 </Typography>
               </Box>
             )}
-
           </Box>
+
           <Box
             sx={{
               display: "flex",
-              height: "30px",
               alignItems: "center",
-              gap: 1,
+              gap: 0.5,
+              flexShrink: 0,
             }}
           >
-
-
             <IconButton
-              size="medium"
-              sx={{
-                color: "primary.main",
-              }}
+              size="small"
+              sx={{ color: "primary.main" }}
               onClick={() => onEdit(pet)}
             >
-              <Pencil size={16} />
+              <Pencil size={15} />
             </IconButton>
 
             <IconButton
-              size="medium"
-              sx={{
-                color: "error.main",
-              }}
+              size="small"
+              sx={{ color: "error.main" }}
               onClick={() => onDelete(pet)}
             >
-              <Trash2 size={16} />
+              <Trash2 size={15} />
             </IconButton>
           </Box>
         </Box>
