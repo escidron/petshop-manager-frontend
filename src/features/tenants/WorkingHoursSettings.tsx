@@ -6,6 +6,7 @@ import {
   Switch,
   Typography,
   Grid,
+  Chip,
 } from "@mui/material";
 import { TimePicker } from "@mui/x-date-pickers/TimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -99,8 +100,8 @@ export default function WorkingHoursSettings() {
   };
 
   return (
-    <Paper sx={{ p: 3, borderRadius: 3 }}>
-      <Typography variant="h6" fontWeight={700} gutterBottom>
+    <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, border: "1.5px solid", borderColor: "divider" }}>
+      <Typography variant="h6" fontWeight={700} gutterBottom sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
         Horários de Funcionamento
       </Typography>
       <Typography variant="body2" color="text.primary" mb={2}>
@@ -108,7 +109,7 @@ export default function WorkingHoursSettings() {
       </Typography>
       <Divider sx={{ mb: 2 }} />
 
-      <Grid container spacing={4}>
+      <Grid container spacing={{ xs: 3, md: 4 }}>
         {/* Left Column: Vertical Stack of Days */}
         <Grid size={{ xs: 12, md: 7 }}>
           <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
@@ -121,72 +122,106 @@ export default function WorkingHoursSettings() {
                     key={day}
                     sx={{
                       display: "flex",
-                      alignItems: "center",
-                      gap: 2,
-                      py: 1.25,
-                      opacity: closed ? 0.45 : 1,
+                      flexDirection: { xs: "column", sm: "row" },
+                      alignItems: { xs: "stretch", sm: "center" },
+                      gap: { xs: 1.25, sm: 2 },
+                      py: 1.5,
+                      opacity: closed ? 0.5 : 1,
                       transition: "opacity 0.15s",
                     }}
                   >
-                    <Typography
-                      variant="body2"
-                      fontWeight={600}
-                      sx={{ minWidth: 80 }}
-                    >
-                      {DAY_NAMES[parseInt(day)]}
-                    </Typography>
-
-                    <Switch
-                      size="small"
-                      checked={schedule.is_open}
-                      onChange={() => handleToggle(day)}
-                      color="success"
-                    />
-
-                    <Typography
-                      variant="caption"
-                      sx={{ minWidth: 50, color: closed ? "text.primary" : "success.main", fontWeight: 600 }}
-                    >
-                      {schedule.is_open ? "Aberto" : "Fechado"}
-                    </Typography>
-
-                    <Box sx={{ flexGrow: 1 }} />
-
-                    <TimePicker
-                      value={parseTime(schedule.open)}
-                      onChange={(v) => handleTimeChange(day, "open", v)}
-                      ampm={false}
-                      minutesStep={5}
-                      disabled={closed}
-                      slotProps={{
-                        textField: { size: "small", sx: { width: 120 } },
-                        actionBar: { actions: [] },
-                        popper: { sx: popperSx },
+                    {/* Top Row / Left: Day Name & Switch & Status */}
+                    <Box
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        minWidth: { sm: 170 },
+                        gap: 1,
                       }}
-                    />
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Switch
+                          size="small"
+                          checked={schedule.is_open}
+                          onChange={() => handleToggle(day)}
+                          color="success"
+                        />
+                        <Typography variant="body2" fontWeight={700} color="text.primary">
+                          {DAY_NAMES[parseInt(day)]}
+                        </Typography>
+                      </Box>
 
-                    <Typography variant="body2" color="text.disabled">–</Typography>
+                      <Chip
+                        label={schedule.is_open ? "Aberto" : "Fechado"}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: "0.72rem",
+                          fontWeight: 700,
+                          bgcolor: schedule.is_open ? "#DCFCE7" : "#F3F4F6",
+                          color: schedule.is_open ? "#166534" : "#64748B",
+                        }}
+                      />
+                    </Box>
 
-                    <TimePicker
-                      value={parseTime(schedule.close)}
-                      onChange={(v) => handleTimeChange(day, "close", v)}
-                      ampm={false}
-                      minutesStep={5}
-                      disabled={closed}
-                      slotProps={{
-                        textField: { size: "small", sx: { width: 120 } },
-                        actionBar: { actions: [] },
-                        popper: { sx: popperSx },
-                      }}
-                    />
+                    {/* Bottom Row / Right: Time Pickers */}
+                    {schedule.is_open ? (
+                      <Box
+                        sx={{
+                          display: "grid",
+                          gridTemplateColumns: "1fr auto 1fr",
+                          alignItems: "center",
+                          gap: 1,
+                          width: { xs: "100%", sm: "auto" },
+                          ml: { sm: "auto" },
+                        }}
+                      >
+                        <TimePicker
+                          value={parseTime(schedule.open)}
+                          onChange={(v) => handleTimeChange(day, "open", v)}
+                          ampm={false}
+                          minutesStep={5}
+                          disabled={closed}
+                          slotProps={{
+                            textField: { size: "small", sx: { width: { xs: "100%", sm: 110 } } },
+                            actionBar: { actions: [] },
+                            popper: { sx: popperSx },
+                          }}
+                        />
+
+                        <Typography variant="body2" color="text.secondary" fontWeight={700} sx={{ textAlign: "center" }}>
+                          às
+                        </Typography>
+
+                        <TimePicker
+                          value={parseTime(schedule.close)}
+                          onChange={(v) => handleTimeChange(day, "close", v)}
+                          ampm={false}
+                          minutesStep={5}
+                          disabled={closed}
+                          slotProps={{
+                            textField: { size: "small", sx: { width: { xs: "100%", sm: 110 } } },
+                            actionBar: { actions: [] },
+                            popper: { sx: popperSx },
+                          }}
+                        />
+                      </Box>
+                    ) : (
+                      <Box sx={{ ml: { sm: "auto" }, display: { xs: "none", sm: "block" } }}>
+                        <Typography variant="caption" color="text.secondary" fontStyle="italic">
+                          Fechado o dia todo
+                        </Typography>
+                      </Box>
+                    )}
                   </Box>
                 );
               })}
             </Stack>
           </LocalizationProvider>
 
-          <Box sx={{ mt: 3, display: "flex", justifyContent: "flex-end" }}>
-            <Button variant="contained" onClick={handleSave} disabled={saving}>
+          <Box sx={{ mt: 3, display: "flex", justifyContent: { xs: "stretch", sm: "flex-end" } }}>
+            <Button variant="contained" onClick={handleSave} disabled={saving} sx={{ width: { xs: "100%", sm: "auto" } }}>
               {saving ? "Salvando..." : "Salvar Horários"}
             </Button>
           </Box>

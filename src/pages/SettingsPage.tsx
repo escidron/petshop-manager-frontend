@@ -27,6 +27,8 @@ import {
   Checkbox,
   Tooltip,
   alpha,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Settings,
@@ -143,12 +145,15 @@ function CustomTabPanel(props: TabPanelProps) {
       aria-labelledby={`settings-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ py: 3 }}>{children}</Box>}
+      {value === index && <Box sx={{ py: 0 }}>{children}</Box>}
     </div>
   );
 }
 
 const SettingsPage = () => {
+  const currentTheme = useTheme();
+  const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
+
   const [searchParams] = useSearchParams();
   const [value, setValue] = useState(0);
   const [openCheckout, setOpenCheckout] = useState(false);
@@ -322,19 +327,19 @@ const SettingsPage = () => {
 
   const tabConfig = useMemo(
     () => [
-      { id: "general", label: "Geral", icon: <Settings size={18} /> },
+      { id: "general", label: "Geral", icon: <Settings size={16} /> },
       ...(isOwner
-        ? [{ id: "pos", label: "PDV / Caixa", icon: <ShoppingCart size={18} /> }]
+        ? [{ id: "pos", label: "PDV / Caixa", icon: <ShoppingCart size={16} /> }]
         : []),
       ...(isOwner
-        ? [{ id: "billing", label: "Planos e Cobrança", icon: <CreditCard size={18} /> }]
+        ? [{ id: "billing", label: "Planos", icon: <CreditCard size={16} /> }]
         : []),
-      { id: "profile", label: "Perfil", icon: <User size={18} /> },
+      { id: "profile", label: "Perfil", icon: <User size={16} /> },
       ...(isOwner
-        ? [{ id: "users", label: "Usuários", icon: <Users size={18} /> }]
+        ? [{ id: "users", label: "Usuários", icon: <Users size={16} /> }]
         : []),
       ...(isOwner
-        ? [{ id: "backup", label: "Exportar Dados", icon: <Download size={18} /> }]
+        ? [{ id: "backup", label: "Exportar", icon: <Download size={16} /> }]
         : []),
     ],
     [isOwner],
@@ -739,44 +744,86 @@ const SettingsPage = () => {
   };
 
   return (
-    <Box sx={{ width: "100%", maxWidth: 1000, margin: "0 auto" }}>
-      <Stack spacing={4}>
-        <Box>
-          <Typography variant="h4" fontWeight={800} color="primary.main">
-            Configurações
-          </Typography>
-          <Typography variant="body1" color="text.primary">
-            Gerencie as preferências da sua conta, empresa e assinaturas.
-          </Typography>
-        </Box>
+    <Box
+      sx={{
+        width: "100%",
+        maxWidth: 1000,
+        margin: "0 auto",
+        p: { xs: 1.5, sm: 2.5, md: 3 },
+        pb: { xs: "calc(24px + env(safe-area-inset-bottom, 0px))", md: 3 },
+      }}
+    >
+      <Box sx={{ mb: { xs: 1.5, sm: 2 } }}>
+        <Typography
+          variant="h4"
+          fontWeight={800}
+          color="primary.main"
+          sx={{ fontSize: { xs: "1.35rem", sm: "1.75rem" }, mb: 0.25 }}
+        >
+          Configurações
+        </Typography>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ fontSize: { xs: "0.82rem", sm: "0.95rem" } }}
+        >
+          Gerencie as preferências da sua conta, empresa e assinaturas.
+        </Typography>
+      </Box>
 
-        <Box sx={{ borderBottom: 1, borderColor: "divider" }}>
-          <Tabs
-            value={value}
-            onChange={handleChange}
-            sx={{
-              "& .MuiTab-root": { color: "text.primary", fontWeight: 600 },
-              "& .Mui-selected": { color: "primary.main !important" },
-            }}
-            indicatorColor="primary"
-          >
-            {tabConfig.map((tab) => (
-              <Tab
-                key={tab.id}
-                icon={tab.icon}
-                iconPosition="start"
-                label={tab.label}
-              />
-            ))}
-          </Tabs>
-        </Box>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: { xs: 2, sm: 2.5 } }}>
+        <Tabs
+          value={value}
+          onChange={handleChange}
+          variant="scrollable"
+          scrollButtons={false}
+          TabIndicatorProps={{
+            style: {
+              backgroundColor: "#313485",
+              height: 2.5,
+              borderRadius: "2.5px 2.5px 0 0",
+            },
+          }}
+          sx={{
+            minHeight: 40,
+            "& .MuiTabs-scrollButtons": {
+              display: "none",
+            },
+            "& .MuiTabs-flexContainer": {
+              gap: { xs: 0.5, sm: 1 },
+            },
+            "& .MuiTab-root": {
+              minWidth: "auto",
+              color: "text.secondary",
+              fontWeight: 700,
+              fontSize: { xs: "0.8rem", sm: "0.875rem" },
+              minHeight: 40,
+              py: 0.75,
+              px: { xs: 1.25, sm: 1.75 },
+              whiteSpace: "nowrap",
+              textTransform: "none",
+              gap: 0.75,
+            },
+            "& .Mui-selected": { color: "primary.main !important" },
+          }}
+        >
+          {tabConfig.map((tab) => (
+            <Tab
+              key={tab.id}
+              icon={tab.icon}
+              iconPosition="start"
+              label={tab.label}
+            />
+          ))}
+        </Tabs>
+      </Box>
 
         {/* --- ABA GERAL --- */}
         <CustomTabPanel value={value} index={getTabIndex("general")}>
           <Stack spacing={3}>
             
             {/* CARD 1: Dados Gerais */}
-            <Paper sx={{ p: 3, borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, border: "1.5px solid", borderColor: "divider" }}>
               <Stack spacing={2}>
                 <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
@@ -787,10 +834,10 @@ const SettingsPage = () => {
                 </Typography>
                 <Divider sx={{ mb: 1 }} />
                 
-                <Grid container spacing={3} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
-                  <Grid size={{ xs: 12, md: 4 }}>
+                <Grid container spacing={2} sx={{ bgcolor: "action.hover", p: { xs: 1.75, sm: 2.5 }, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <Box>
-                      <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
                         Nome do Petshop
                       </Typography>
                       <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
@@ -799,9 +846,9 @@ const SettingsPage = () => {
                     </Box>
                   </Grid>
 
-                  <Grid size={{ xs: 12, md: 4 }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <Box>
-                      <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
                         Telefone
                       </Typography>
                       <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
@@ -810,9 +857,9 @@ const SettingsPage = () => {
                     </Box>
                   </Grid>
 
-                  <Grid size={{ xs: 12, md: 4 }}>
+                  <Grid size={{ xs: 12, sm: 4 }}>
                     <Box>
-                      <Typography variant="caption" color="text.primary" fontWeight={500} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
                         CPF / CNPJ
                       </Typography>
                       <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
@@ -826,7 +873,7 @@ const SettingsPage = () => {
                   variant="outlined"
                   size="small"
                   onClick={() => setOpenTenantEdit(true)}
-                  sx={{ alignSelf: "flex-start", mt: 1, px: 3 }}
+                  sx={{ width: { xs: "100%", sm: "auto" }, alignSelf: { xs: "stretch", sm: "flex-start" }, mt: 1, px: 3 }}
                 >
                   Editar Informações
                 </Button>
@@ -834,7 +881,7 @@ const SettingsPage = () => {
             </Paper>
 
             {/* CARD 2: Agendamento Online */}
-            <Paper sx={{ p: 3, borderRadius: 3 }}>
+            <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, border: "1.5px solid", borderColor: "divider" }}>
               <Stack spacing={2}>
                 <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
@@ -845,7 +892,7 @@ const SettingsPage = () => {
                 </Typography>
                 <Divider sx={{ mb: 1 }} />
 
-                <Stack spacing={2} sx={{ bgcolor: "action.hover", p: 2.5, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
+                <Stack spacing={2} sx={{ bgcolor: "action.hover", p: { xs: 1.75, sm: 2.5 }, borderRadius: 2, border: "1px solid", borderColor: "divider" }}>
                   <Box>
                     <FormControlLabel
                       control={
@@ -864,7 +911,7 @@ const SettingsPage = () => {
                       sx={{ mb: 1 }}
                     />
                     
-                    <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
+                    <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
                       Ative para configurar a capacidade de agendamentos que a loja suporta atender no mesmo horário. Se desativado, o agendamento online ficará livre sem bloqueio de concorrência.
                     </Typography>
                   </Box>
@@ -875,7 +922,7 @@ const SettingsPage = () => {
                         <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 700, fontSize: "0.75rem" }}>
                           Limite de agendamentos por horário
                         </FormLabel>
-                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                        <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: { xs: "wrap", sm: "nowrap" } }}>
                           <TextField
                             type="number"
                             size="small"
@@ -884,8 +931,8 @@ const SettingsPage = () => {
                             onChange={(e) => setLimitValue(Math.max(1, parseInt(e.target.value) || 1))}
                             slotProps={{ htmlInput: { min: 1 } }}
                             sx={{ 
-                              width: 80,
-                              "& .MuiInputBase-input": { py: 0.5, fontWeight: 700, fontSize: "0.875rem" }
+                              width: { xs: 90, sm: 80 },
+                              "& .MuiInputBase-input": { py: 0.75, fontWeight: 700, fontSize: "0.875rem" }
                             }}
                           />
                           <Button
@@ -893,14 +940,14 @@ const SettingsPage = () => {
                             size="small"
                             onClick={handleSaveLimitValue}
                             disabled={savingLimit}
-                            sx={{ py: 0.5, px: 2 }}
+                            sx={{ py: 0.75, px: 2, flex: { xs: 1, sm: "none" } }}
                           >
                             {savingLimit ? <CircularProgress size={16} color="inherit" /> : "Salvar Limite"}
                           </Button>
                         </Box>
                       </FormControl>
 
-                      <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
+                      <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
                         Ex: se for {limitValue}, o horário será bloqueado para novos agendamentos online se já houver {limitValue} pets agendados nesse mesmo intervalo na loja inteira.
                       </Typography>
                     </Stack>
@@ -1742,49 +1789,55 @@ const SettingsPage = () => {
 
         {/* --- ABA PERFIL --- */}
         <CustomTabPanel value={value} index={getTabIndex("profile")}>
-          <Paper sx={{ p: 3, borderRadius: 3 }}>
+          <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, border: "1.5px solid", borderColor: "divider" }}>
             <Stack spacing={3}>
-              <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: { xs: 2, sm: 3 },
+                  alignItems: "center",
+                  flexDirection: { xs: "column", sm: "row" },
+                  textAlign: { xs: "center", sm: "left" },
+                }}
+              >
                 <Box
                   sx={{
-                    width: 80,
-                    height: 80,
+                    width: 72,
+                    height: 72,
                     borderRadius: "50%",
-                    bgcolor: "secondary.main",
+                    bgcolor: "primary.main",
                     display: "flex",
                     alignItems: "center",
                     justifyContent: "center",
+                    flexShrink: 0,
                   }}
                 >
-                  <User size={40} color="white" />
+                  <User size={36} color="white" />
                 </Box>
-                <Box>
-                  <Typography variant="h6" fontWeight={800}>
+                <Box sx={{ minWidth: 0, width: "100%" }}>
+                  <Typography variant="h6" fontWeight={800} noWrap sx={{ fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
                     {user?.name}
                   </Typography>
-                  <Typography variant="body2" color="text.primary">
+                  <Typography variant="body2" color="text.secondary" noWrap>
                     {user?.email}
                   </Typography>
-                  <Typography
-                    variant="caption"
+                  <Chip
+                    label={user?.role === "owner" ? "PROPRIETÁRIO" : "FUNCIONÁRIO"}
+                    size="small"
                     sx={{
-                      bgcolor: "rgba(0,0,0,0.05)",
-                      px: 1,
-                      py: 0.5,
-                      borderRadius: 1,
                       mt: 1,
-                      display: "inline-block",
-                      fontWeight: 700,
+                      fontWeight: 800,
+                      fontSize: "0.72rem",
+                      bgcolor: user?.role === "owner" ? "rgba(49, 52, 133, 0.08)" : "action.hover",
+                      color: user?.role === "owner" ? "primary.main" : "text.secondary",
                     }}
-                  >
-                    {user?.role === "owner" ? "PROPRIETÁRIO" : "FUNCIONÁRIO"}
-                  </Typography>
+                  />
                 </Box>
               </Box>
               <Divider />
               <Button
                 variant="outlined"
-                sx={{ alignSelf: "flex-start" }}
+                sx={{ width: { xs: "100%", sm: "auto" }, alignSelf: { xs: "stretch", sm: "flex-start" } }}
                 onClick={() => setOpenChangePassword(true)}
               >
                 Alterar Senha
@@ -1796,19 +1849,21 @@ const SettingsPage = () => {
         {/* --- ABA USUÁRIOS (owner only) --- */}
         {isOwner && (
           <CustomTabPanel value={value} index={getTabIndex("users")}>
-            <Stack spacing={3}>
+            <Stack spacing={{ xs: 2, sm: 3 }}>
               <Box
                 sx={{
                   display: "flex",
                   justifyContent: "space-between",
-                  alignItems: "center",
+                  alignItems: { xs: "stretch", sm: "center" },
+                  flexDirection: { xs: "column", sm: "row" },
+                  gap: 2,
                 }}
               >
                 <Box>
-                  <Typography variant="h6" fontWeight={700}>
+                  <Typography variant="h6" fontWeight={700} sx={{ fontSize: { xs: "1.05rem", sm: "1.25rem" } }}>
                     Usuários do Sistema
                   </Typography>
-                  <Typography variant="body2" color="text.primary">
+                  <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
                     Gerencie quem tem acesso ao PetControle.
                   </Typography>
                 </Box>
@@ -1816,6 +1871,7 @@ const SettingsPage = () => {
                   variant="contained"
                   startIcon={<Plus size={18} />}
                   onClick={() => setOpenCreateUser(true)}
+                  sx={{ width: { xs: "100%", sm: "auto" } }}
                 >
                   Novo Usuário
                 </Button>
@@ -1826,10 +1882,10 @@ const SettingsPage = () => {
                   <CircularProgress />
                 </Box>
               ) : (
-                <Paper sx={{ borderRadius: 3, overflow: "hidden" }}>
+                <Paper elevation={0} sx={{ borderRadius: 3, border: "1.5px solid", borderColor: "divider", overflow: "hidden" }}>
                   {tenantUsers.length === 0 ? (
                     <Box sx={{ p: 4, textAlign: "center" }}>
-                      <Typography color="text.primary">
+                      <Typography color="text.secondary">
                         Nenhum usuário cadastrado ainda.
                       </Typography>
                     </Box>
@@ -1838,19 +1894,20 @@ const SettingsPage = () => {
                       <React.Fragment key={u.id}>
                         <Box
                           sx={{
-                            p: 2,
+                            p: { xs: 1.75, sm: 2 },
                             display: "flex",
-                            alignItems: "center",
+                            flexDirection: { xs: "column", sm: "row" },
+                            alignItems: { xs: "stretch", sm: "center" },
                             justifyContent: "space-between",
+                            gap: { xs: 1.5, sm: 2 },
                           }}
                         >
-                          <Box
-                            sx={{ display: "flex", alignItems: "center", gap: 2 }}
-                          >
+                          {/* User Info */}
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0 }}>
                             <Box
                               sx={{
-                                width: 40,
-                                height: 40,
+                                width: 42,
+                                height: 42,
                                 borderRadius: "50%",
                                 bgcolor:
                                   u.role === "owner"
@@ -1859,35 +1916,50 @@ const SettingsPage = () => {
                                 display: "flex",
                                 alignItems: "center",
                                 justifyContent: "center",
+                                flexShrink: 0,
                               }}
                             >
                               <User size={20} color="white" />
                             </Box>
-                            <Box>
-                              <Typography variant="subtitle2" fontWeight={700}>
-                                {u.name}
-                              </Typography>
-                              <Typography variant="caption" color="text.primary">
+                            <Box sx={{ minWidth: 0, flex: 1 }}>
+                              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                                <Typography variant="subtitle2" fontWeight={700} color="#0F172A" noWrap>
+                                  {u.name}
+                                </Typography>
+                                <Chip
+                                  label={
+                                    u.role === "owner" ? "Proprietário" : "Funcionário"
+                                  }
+                                  color={u.role === "owner" ? "primary" : "default"}
+                                  size="small"
+                                  sx={{ height: 20, fontWeight: 700, fontSize: "0.68rem" }}
+                                />
+                              </Box>
+                              <Typography variant="caption" color="text.secondary" noWrap sx={{ display: "block" }}>
                                 {u.email}
                               </Typography>
                             </Box>
                           </Box>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-                            <Chip
-                              label={
-                                u.role === "owner" ? "Proprietário" : "Funcionário"
-                              }
-                              color={u.role === "owner" ? "primary" : "default"}
-                              size="small"
-                              sx={{ fontWeight: 700 }}
-                            />
+
+                          {/* Permissions & Actions */}
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: { xs: "space-between", sm: "flex-end" },
+                              gap: 1.25,
+                              pt: { xs: 1, sm: 0 },
+                              borderTop: { xs: "1px dashed", sm: "none" },
+                              borderColor: "divider",
+                            }}
+                          >
                             {u.role === "owner" ? (
                               <Chip
                                 label="Acesso Total"
                                 size="small"
                                 variant="outlined"
                                 color="primary"
-                                sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+                                sx={{ fontWeight: 600, fontSize: "0.75rem", height: 24 }}
                               />
                             ) : (
                               <Tooltip
@@ -1922,54 +1994,57 @@ const SettingsPage = () => {
                                   label={`${(u.permissions || ["dashboard", "clients", "pets", "services", "products", "packages", "pos", "inventory"]).length} de ${SYSTEM_MODULES.length} módulos`}
                                   size="small"
                                   variant="outlined"
-                                  sx={{ fontWeight: 600, fontSize: "0.75rem", cursor: "help" }}
+                                  sx={{ fontWeight: 600, fontSize: "0.72rem", height: 24, cursor: "help" }}
                                 />
                               </Tooltip>
                             )}
-                            {u.role !== "owner" && (
-                              <Tooltip title="Personalizar Permissões">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => {
-                                    setUserToEditPermissions(u);
-                                    setEditPermissionsList(
-                                      u.permissions || [
-                                        "dashboard",
-                                        "clients",
-                                        "pets",
-                                        "services",
-                                        "products",
-                                        "packages",
-                                        "pos",
-                                        "inventory",
-                                      ]
-                                    );
-                                  }}
-                                  sx={{
-                                    color: "primary.main",
-                                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-                                    "&:hover": { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16) },
-                                  }}
-                                >
-                                  <Edit2 size={16} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                            {u.id !== Number(user?.id) && (
-                              <Tooltip title="Remover Usuário">
-                                <IconButton
-                                  size="small"
-                                  onClick={() => setUserToDelete(u)}
-                                  sx={{
-                                    color: "error.main",
-                                    bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
-                                    "&:hover": { bgcolor: (theme) => alpha(theme.palette.error.main, 0.16) },
-                                  }}
-                                >
-                                  <Trash2 size={16} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
+
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                              {u.role !== "owner" && (
+                                <Tooltip title="Personalizar Permissões">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => {
+                                      setUserToEditPermissions(u);
+                                      setEditPermissionsList(
+                                        u.permissions || [
+                                          "dashboard",
+                                          "clients",
+                                          "pets",
+                                          "services",
+                                          "products",
+                                          "packages",
+                                          "pos",
+                                          "inventory",
+                                        ]
+                                      );
+                                    }}
+                                    sx={{
+                                      color: "primary.main",
+                                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                                      "&:hover": { bgcolor: (theme) => alpha(theme.palette.primary.main, 0.16) },
+                                    }}
+                                  >
+                                    <Edit2 size={15} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                              {u.id !== Number(user?.id) && (
+                                <Tooltip title="Remover Usuário">
+                                  <IconButton
+                                    size="small"
+                                    onClick={() => setUserToDelete(u)}
+                                    sx={{
+                                      color: "error.main",
+                                      bgcolor: (theme) => alpha(theme.palette.error.main, 0.08),
+                                      "&:hover": { bgcolor: (theme) => alpha(theme.palette.error.main, 0.16) },
+                                    }}
+                                  >
+                                    <Trash2 size={15} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                            </Box>
                           </Box>
                         </Box>
                         {i < tenantUsers.length - 1 && <Divider />}
@@ -2246,7 +2321,6 @@ const SettingsPage = () => {
             </Stack>
           </CustomTabPanel>
         )}
-      </Stack>
 
       {/* --- DIALOG CRIAR USUÁRIO --- */}
       <Dialog
@@ -2254,6 +2328,7 @@ const SettingsPage = () => {
         onClose={() => !creatingUser && setOpenCreateUser(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle
           sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
@@ -2485,6 +2560,7 @@ const SettingsPage = () => {
         onClose={() => !savingPermissions && setUserToEditPermissions(null)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
           <Box>
@@ -2650,6 +2726,7 @@ const SettingsPage = () => {
         onClose={() => !changingPassword && setOpenChangePassword(false)}
         maxWidth="xs"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle
           sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
@@ -2782,6 +2859,7 @@ const SettingsPage = () => {
         onClose={() => !savingTenant && setOpenTenantEdit(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle
           sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
@@ -3095,6 +3173,7 @@ const SettingsPage = () => {
         onClose={() => !updateCardLoading && setOpenUpdateCardDialog(false)}
         maxWidth="sm"
         fullWidth
+        fullScreen={isMobile}
       >
         <DialogTitle sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}>
           <Typography variant="h5">Pagar com outro cartão</Typography>

@@ -54,21 +54,25 @@ export default function UpdateCardModal({
       sx={{
         position: "fixed",
         inset: 0,
-        bgcolor: "rgba(0,0,0,0.5)",
+        bgcolor: "rgba(0,0,0,0.6)",
         backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 1300,
-        p: 2,
+        p: { xs: 0, sm: 2 },
       }}
     >
       <Box
         sx={{
           bgcolor: "#313485",
-          borderRadius: "16px",
+          borderRadius: { xs: 0, sm: "16px" },
           width: "100%",
-          maxWidth: 760,
+          maxWidth: 720,
+          height: { xs: "100dvh", sm: "auto" },
+          maxHeight: { xs: "100dvh", sm: "92vh" },
+          display: "flex",
+          flexDirection: "column",
           overflow: "hidden",
           boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
         }}
@@ -77,15 +81,16 @@ export default function UpdateCardModal({
         <Box
           sx={{
             bgcolor: "#313485",
-            p: "20px 24px",
+            p: { xs: "16px 20px", sm: "20px 24px" },
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            flexShrink: 0,
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Lock size={18} color="rgba(255,255,255,0.9)" />
-            <Typography variant="subtitle1" fontWeight={700} color="white">
+            <Typography variant="subtitle1" fontWeight={700} color="white" sx={{ fontSize: { xs: "0.95rem", sm: "1.05rem" } }}>
               {title}
             </Typography>
           </Box>
@@ -102,14 +107,23 @@ export default function UpdateCardModal({
         </Box>
 
         {/* Body */}
-        <Box sx={{ bgcolor: "#FFFFFF", p: { xs: 2.5, sm: 3.5 } }}>
-          <Typography variant="body2" color="text.primary" sx={{ mb: 3 }}>
+        <Box
+          sx={{
+            bgcolor: "#FFFFFF",
+            p: { xs: 2, sm: 3.5 },
+            flex: 1,
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            pb: { xs: "calc(24px + env(safe-area-inset-bottom, 0px))", sm: 3.5 },
+          }}
+        >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5, fontSize: { xs: "0.82rem", sm: "0.875rem" } }}>
             Insira os dados do cartão de crédito. Ele ficará salvo como sua forma de pagamento padrão para renovações e contratações.
           </Typography>
 
           {error && (
-            <Box sx={{ p: 2, bgcolor: "#FEE2E2", color: "#DC2626", borderRadius: 2, mb: 3 }}>
-              <Typography variant="body2" fontWeight={600}>
+            <Box sx={{ p: 1.75, bgcolor: "#FEE2E2", color: "#DC2626", borderRadius: 2, mb: 2.5 }}>
+              <Typography variant="body2" fontWeight={600} sx={{ fontSize: "0.85rem" }}>
                 {error}
               </Typography>
             </Box>
