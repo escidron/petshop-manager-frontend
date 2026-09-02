@@ -81,7 +81,7 @@ const Dashboard = () => {
           flexDirection: "column",
           gap: { xs: 1.5, sm: 2 },
           px: { xs: 0.5, sm: 1.5, md: 2 },
-          pb: { xs: 2, sm: 3, md: 5 },
+          pb: { xs: "calc(96px + env(safe-area-inset-bottom, 0px))", sm: "calc(96px + env(safe-area-inset-bottom, 0px))", md: 5 },
         }}
       >
         {isOnboarding ? (
@@ -302,7 +302,6 @@ const Dashboard = () => {
         )}
       </Box>
 
-      {/* Mobile Floating Action Button (FAB) para Novo Agendamento */}
       {/* Mobile Floating Action Button (FAB) para Novo Agendamento */}
       <Fab
         variant="extended"

@@ -283,7 +283,15 @@ export default function WaitingListForm({
         <Button
           disabled={isSubmitting}
           startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
-          onClick={handleSubmit(onSubmit)}
+          onClick={handleSubmit((data: WaitingListFormData) => {
+            const validItems = data.items.filter(
+              (item) => item.pet_id && item.service_ids && item.service_ids.length > 0
+            );
+            onSubmit({
+              ...data,
+              items: validItems,
+            });
+          })}
         >
           {initialData ? "Salvar Alterações" : "Adicionar à Lista"}
         </Button>
