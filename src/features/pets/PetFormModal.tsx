@@ -160,7 +160,7 @@ export default function PetFormModal({
   };
 
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   return (
     <>
@@ -171,13 +171,13 @@ export default function PetFormModal({
         slotProps={{
           paper: {
             sx: {
-              width: { xs: "100%", sm: showAdditionalInfo ? "85%" : "500px" },
-              maxWidth: { xs: "100%", sm: "1200px" },
-              minWidth: { xs: "unset", sm: showAdditionalInfo ? "750px" : "450px" },
-              m: { xs: 0, sm: 2 },
-              borderRadius: { xs: 0, sm: 3 },
-              maxHeight: { xs: "100dvh", sm: "90vh" },
-              height: { xs: "100dvh", sm: "auto" },
+              width: { xs: "100%", md: showAdditionalInfo ? "85%" : "500px" },
+              maxWidth: { xs: "100%", md: "1200px" },
+              minWidth: { xs: "unset", md: showAdditionalInfo ? "750px" : "450px" },
+              m: { xs: 0, md: 2 },
+              borderRadius: { xs: 0, md: 3 },
+              maxHeight: { xs: "100dvh", md: "90vh" },
+              height: { xs: "100dvh", md: "auto" },
             },
           },
         }}
@@ -215,7 +215,12 @@ export default function PetFormModal({
           </Box>
         </DialogTitle>
 
-      <DialogContent>
+        <DialogContent
+          sx={{
+            p: { xs: 2, sm: 3 },
+            pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 },
+          }}
+        >
         <PetForm
           open={open}
           defaultValues={defaultValues}
