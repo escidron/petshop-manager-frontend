@@ -1,18 +1,20 @@
 import { Box, Typography } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listPackages, deletePackage } from "../../api/services/packages";
-import { Plus } from "lucide-react";
-import { useState } from "react";
+import { Plus, Search } from "lucide-react";
+import { useState, useMemo } from "react";
 import PackageForm from "./PackageForm";
 import PackageTable from "./PackageTable";
 import { useToast } from "../../hooks/useToast";
 import type { Package } from "./types";
 import { Button } from "../../components/Button/Button";
 import PackageDeleteModal from "./PackageDeleteModal";
+import CustomTextField from "../../components/Textfield/CustomTextfield";
 
 export default function PackagesList() {
   const queryClient = useQueryClient();
   const toast = useToast();
+  const [search, setSearch] = useState("");
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
   const [packageToDelete, setPackageToDelete] = useState<Package | null>(null);
@@ -21,6 +23,16 @@ export default function PackagesList() {
     queryKey: ["packages"],
     queryFn: listPackages,
   });
+
+  const filteredPackages = useMemo(() => {
+    if (!search) return packages;
+    const term = search.toLowerCase();
+    return packages.filter(
+      (pkg) =>
+        pkg.name.toLowerCase().includes(term) ||
+        (pkg.description && pkg.description.toLowerCase().includes(term)),
+    );
+  }, [packages, search]);
 
   const deleteMutation = useMutation({
     mutationFn: deletePackage,
@@ -59,33 +71,51 @@ export default function PackagesList() {
 
   return (
     <Box>
+      <Box sx={{ mb: 2 }}>
+        <Typography variant="h5" fontWeight="bold">
+          Pacotes e Combos
+        </Typography>
+        <Typography variant="body2" color="text.secondary">
+          Gerencie seus pacotes promocionais de produtos e serviços.
+        </Typography>
+      </Box>
+
       <Box
-        sx={{
-          display: "flex",
-          justifyContent: "space-between",
-          mb: 3,
-          alignItems: "center",
-        }}
+        mb={2}
+        display="flex"
+        flexDirection={{ xs: "column", sm: "row" }}
+        justifyContent="space-between"
+        alignItems={{ xs: "stretch", sm: "center" }}
+        gap={1.5}
+        sx={{ width: "100%" }}
       >
-        <Box>
-          <Typography variant="h5" fontWeight="bold">
-            Pacotes e Combos
-          </Typography>
-          <Typography variant="body2" color="text.primary">
-            Gerencie seus pacotes promocionais de produtos e serviços.
-          </Typography>
+        <Box sx={{ flex: 1, width: "100%", maxWidth: { sm: "420px" } }}>
+          <CustomTextField
+            fullWidth
+            icon={<Search size={18} />}
+            placeholder="Pesquisar pacote..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+          />
         </Box>
+
         <Button
-          variant="contained"
           startIcon={<Plus size={18} />}
           onClick={() => setIsFormOpen(true)}
+          sx={{
+            minHeight: 42,
+            fontWeight: 700,
+            borderRadius: 2,
+            whiteSpace: "nowrap",
+            px: 2,
+          }}
         >
           Novo Pacote
         </Button>
       </Box>
 
       <PackageTable
-        rows={packages}
+        rows={filteredPackages}
         loading={isLoading}
         onEdit={handleEdit}
         onDelete={handleDeleteClick}

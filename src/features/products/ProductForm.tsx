@@ -83,7 +83,12 @@ const ProductForm = ({
         <Divider />
         <Box
           className="wrapper"
-          sx={{ display: "flex", justifyContent: "space-between" }}
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "space-between",
+            gap: { xs: 3, md: 2.5 },
+          }}
         >
           {/* ================= BÁSICO ================= */}
           <Box
@@ -92,7 +97,7 @@ const ProductForm = ({
               display: "flex",
               gap: 2,
               flexDirection: "column",
-              width: showAdditionalInfo ? "45%" : "100%",
+              width: { xs: "100%", md: showAdditionalInfo ? "48%" : "100%" },
             }}
           >
             <Box>
@@ -121,7 +126,7 @@ const ProductForm = ({
               />
             </FormControl>
 
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                   Preço de Venda
@@ -198,7 +203,7 @@ const ProductForm = ({
               </FormControl>
             </Box>
 
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                   Quantidade em Estoque
@@ -250,9 +255,7 @@ const ProductForm = ({
               </FormControl>
             </Box>
 
-
-
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                   Status do Produto
@@ -319,6 +322,10 @@ const ProductForm = ({
             </Button>
           </Box>
 
+          {showAdditionalInfo && (
+            <Divider sx={{ display: { xs: "block", md: "none" } }} />
+          )}
+
           {/* ================= ADICIONAL ================= */}
           {showAdditionalInfo && (
             <Box
@@ -327,7 +334,7 @@ const ProductForm = ({
                 display: "flex",
                 gap: 2,
                 flexDirection: "column",
-                width: "45%",
+                width: { xs: "100%", md: "48%" },
               }}
             >
               <Box>
@@ -337,7 +344,7 @@ const ProductForm = ({
                 </Typography>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
                 <FormControl fullWidth>
                   <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                     Categoria
@@ -386,7 +393,7 @@ const ProductForm = ({
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
                 <FormControl fullWidth>
                   <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                     Custo
@@ -445,7 +452,7 @@ const ProductForm = ({
                 </FormControl>
               </Box>
               
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
                 <FormControl fullWidth>
                   <Box sx={{ display: "flex", justifyContent: "space-between" }}>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Código de Barras</FormLabel>
@@ -473,7 +480,7 @@ const ProductForm = ({
                   />
                 </FormControl>
               </Box>
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
                 <FormControl fullWidth>
                   <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>CEST</FormLabel>
                   <Controller
@@ -499,7 +506,7 @@ const ProductForm = ({
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 2 }}>
+              <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
                 <FormControl fullWidth>
                   <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>CST PIS</FormLabel>
                   <Controller
@@ -517,8 +524,6 @@ const ProductForm = ({
                   />
                 </FormControl>
               </Box>
-
-
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
@@ -543,10 +548,24 @@ const ProductForm = ({
         </Box>
 
         <Divider />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            justifyContent: "flex-end",
+            gap: 1.5,
+            pt: 0.5,
+          }}
+        >
           <Button
             loading={isSubmitting}
             onClick={handleSubmit(onSubmitHandler)}
+            sx={{
+              width: { xs: "100%", sm: "auto" },
+              minHeight: 44,
+              borderRadius: 2,
+              fontWeight: 700,
+            }}
           >
             Salvar
           </Button>
