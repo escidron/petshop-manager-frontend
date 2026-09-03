@@ -12,8 +12,9 @@ import {
   Chip,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import { DesktopTimePicker } from "@mui/x-date-pickers/DesktopTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { ptBR as ptBRPickers } from "@mui/x-date-pickers/locales";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs from "dayjs";
 import "dayjs/locale/pt-br";
@@ -51,6 +52,26 @@ import ServicePickerDrawer from "./ServicePickerDrawer";
 import PetPickerDrawer from "./PetPickerDrawer";
 
 dayjs.locale("pt-br");
+
+function CustomDatePickerToolbar() {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        pt: 1.5,
+        pb: 0.5,
+        px: 2,
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+        Selecionar Data
+      </Typography>
+    </Box>
+  );
+}
 
 type Props = {
   defaultValues?: Partial<AppointmentFormData>;
@@ -539,12 +560,17 @@ export default function AppointmentMobileFlow({
               >
                 DATA E HORÁRIO
               </Typography>
-              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <LocalizationProvider
+                dateAdapter={AdapterDayjs}
+                adapterLocale="pt-br"
+                localeText={ptBRPickers.components.MuiLocalizationProvider.defaultProps.localeText}
+              >
                 <Box sx={{ display: "flex", flexDirection: "column", gap: 1.75 }}>
                   <DatePicker
                     label="Data do Agendamento"
                     format="DD/MM/YYYY"
                     value={scheduledDate}
+                    orientation="portrait"
                     onChange={(newDate) => setScheduledDate(newDate)}
                     onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
                     shouldDisableDate={(date) => {
@@ -557,15 +583,42 @@ export default function AppointmentMobileFlow({
                     }}
                     slots={{
                       day: CustomDay,
+                      toolbar: CustomDatePickerToolbar,
                     }}
                     slotProps={{
                       day: {
                         highlightedDays,
                       } as any,
+                      layout: {
+                        sx: {
+                          display: "flex",
+                          flexDirection: "column",
+                          overflow: "hidden",
+                        },
+                      },
                       dialog: {
                         sx: {
-                          "& .MuiPaper-root": {
+                          "& .MuiDialog-paper": {
                             borderRadius: 3,
+                            overflow: "hidden",
+                            maxWidth: "calc(100vw - 32px)",
+                            m: "auto",
+                          },
+                          "& .MuiPickersLayout-root": {
+                            display: "flex",
+                            flexDirection: "column",
+                            overflow: "hidden",
+                            maxWidth: "100%",
+                          },
+                          "& .MuiPickersLayout-contentWrapper": {
+                            overflow: "hidden",
+                            display: "flex",
+                            justifyContent: "center",
+                          },
+                          "& .MuiDateCalendar-root": {
+                            width: "100%",
+                            maxWidth: 320,
+                            margin: "0 auto",
                           },
                           "& .MuiDayCalendar-weekDayLabel": {
                             color: "#3d4048 !important",
@@ -639,7 +692,7 @@ export default function AppointmentMobileFlow({
                     }}
                   />
 
-                  <TimePicker
+                  <DesktopTimePicker
                     label="Horário"
                     value={scheduledTime}
                     ampm={false}
@@ -665,13 +718,6 @@ export default function AppointmentMobileFlow({
                       setTimePickerOpen(true);
                     }}
                     onClose={() => setTimePickerOpen(false)}
-                    onViewChange={(view) => {
-                      if (view === "minutes") {
-                        setTimeout(() => {
-                          pendingTimeCloseRef.current = true;
-                        }, 10);
-                      }
-                    }}
                     onChange={(newTime) => {
                       setScheduledTime(newTime);
                       if (pendingTimeCloseRef.current) {
@@ -697,63 +743,47 @@ export default function AppointmentMobileFlow({
                         },
                       },
                       actionBar: { actions: [] },
-                      toolbar: {
-                        sx: {
-                          "& .MuiPickersToolbarText-root": {
-                            color: "#64748B !important",
-                            "&.Mui-selected": {
-                              color: "#313485 !important",
-                              fontWeight: 800,
-                            },
-                          },
-                          "& .MuiPickersToolbar-root": {
-                            color: "#1E293B !important",
-                          },
-                          "& .MuiTypography-root": {
-                            color: "#1E293B !important",
-                          },
-                        },
-                      },
-                      dialog: {
-                        sx: {
-                          "& .MuiDialog-paper": {
-                            backgroundColor: "#FFFFFF",
-                            color: "#1E293B",
-                          },
-                          "& .MuiClock-root": {
-                            backgroundColor: "#F1F5F9",
-                          },
-                          "& .MuiClockNumber-root": {
-                            color: "#1E293B !important",
-                            fontWeight: 600,
-                            "&.Mui-selected": {
-                              color: "#FFFFFF !important",
-                            },
-                            "&.Mui-disabled": {
-                              color: "#94A3B8 !important",
-                            },
-                          },
-                          "& .MuiPickersToolbarText-root": {
-                            color: "#64748B !important",
-                            "&.Mui-selected": {
-                              color: "#313485 !important",
-                              fontWeight: 800,
-                            },
-                          },
-                          "& .MuiPickersToolbar-root": {
-                            color: "#1E293B !important",
-                          },
-                          "& .MuiTypography-root": {
-                            color: "#1E293B !important",
-                          },
-                        },
-                      },
                       popper: {
                         onClick: () => {
                           if (pendingTimeCloseRef.current) {
                             setTimePickerOpen(false);
                             pendingTimeCloseRef.current = false;
                           }
+                        },
+                        sx: {
+                          zIndex: 1400,
+                          "& .MuiMultiSectionDigitalClock-root": {
+                            maxHeight: 260,
+                            backgroundColor: "#FFFFFF",
+                          },
+                          "& .MuiMultiSectionDigitalClockSection-root": {
+                            maxHeight: 260,
+                            width: 60,
+                            scrollbarWidth: "none",
+                            msOverflowStyle: "none",
+                            "&::-webkit-scrollbar": { display: "none" },
+                          },
+                          "& .MuiMultiSectionDigitalClockSection-item": {
+                            minHeight: "unset",
+                            py: "5px",
+                            fontSize: "0.85rem",
+                            color: "#1E293B",
+                            "&.Mui-selected": {
+                              backgroundColor: "primary.main",
+                              color: "#FFFFFF",
+                              fontWeight: 700,
+                            },
+                            "&.Mui-disabled": {
+                              color: "#94A3B8",
+                            },
+                          },
+                          "& .MuiPaper-root": {
+                            maxHeight: 300,
+                            backgroundColor: "#FFFFFF",
+                            boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.12)",
+                            borderRadius: 2,
+                            border: "1px solid #E2E8F0",
+                          },
                         },
                       },
                     }}

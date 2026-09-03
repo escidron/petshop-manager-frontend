@@ -1,6 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 import { red, grey, green, amber, blue } from "@mui/material/colors";
 import { ptBR } from "@mui/material/locale";
+import { ptBR as ptBRPickers } from "@mui/x-date-pickers/locales";
 import type {} from "@mui/x-date-pickers/themeAugmentation";
 
 const theme = createTheme({
@@ -153,6 +154,6 @@ const theme = createTheme({
       },
     },
   },
-}, ptBR);
+}, ptBR, ptBRPickers);
 
 export default theme;
