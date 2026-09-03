@@ -1,6 +1,7 @@
 import { createTheme } from "@mui/material/styles";
 import { red, grey, green, amber, blue } from "@mui/material/colors";
 import { ptBR } from "@mui/material/locale";
+import type {} from "@mui/x-date-pickers/themeAugmentation";
 
 const theme = createTheme({
   palette: {
@@ -42,7 +43,7 @@ const theme = createTheme({
 
     text: {
       primary: "#3d4048",
-      secondary: "#FAFAFA",
+      secondary: "#64748B",
       disabled: "#9E9E9E",
     },
   },
@@ -63,6 +64,17 @@ const theme = createTheme({
 
   spacing: 8,
   components: {
+    MuiInputBase: {
+      styleOverrides: {
+        input: {
+          color: "#1E293B",
+          WebkitTextFillColor: "#1E293B",
+          "@media (max-width: 600px)": {
+            fontSize: "1rem", // 16px previne auto-zoom do iOS Safari
+          },
+        },
+      },
+    },
     MuiOutlinedInput: {
       styleOverrides: {
         root: {
@@ -85,6 +97,58 @@ const theme = createTheme({
       styleOverrides: {
         noOptions: {
           color: "#3d4048",
+        },
+        option: {
+          minHeight: 44,
+          paddingTop: 8,
+          paddingBottom: 8,
+        },
+      },
+    },
+    MuiPickersToolbarText: {
+      styleOverrides: {
+        root: {
+          color: "#64748B",
+          "&.Mui-selected": {
+            color: "#313485",
+            fontWeight: 800,
+          },
+        },
+      },
+    },
+    MuiClock: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#F1F5F9",
+        },
+        clock: {
+          backgroundColor: "#F1F5F9",
+        },
+      },
+    },
+    MuiClockNumber: {
+      styleOverrides: {
+        root: {
+          color: "#1E293B",
+          fontWeight: 600,
+          "&.Mui-selected": {
+            color: "#FFFFFF",
+            backgroundColor: "#313485",
+          },
+          "&.Mui-disabled": {
+            color: "#94A3B8",
+          },
+        },
+      },
+    },
+    MuiClockPointer: {
+      styleOverrides: {
+        root: {
+          backgroundColor: "#313485",
+        },
+        thumb: {
+          backgroundColor: "#FFFFFF",
+          borderColor: "#313485",
         },
       },
     },

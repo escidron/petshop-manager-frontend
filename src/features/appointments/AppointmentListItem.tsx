@@ -139,10 +139,15 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
         {/* Client & Pets Info */}
         <Box sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
           <Typography
-            fontSize={{ xs: "0.88rem", sm: "1rem" }}
-            fontWeight={600}
+            fontSize={{ xs: "0.84rem", sm: "0.95rem" }}
+            fontWeight={500}
+            color="text.primary"
             noWrap
-            sx={{ maxWidth: { xs: "100%", sm: "240px", md: "340px" }, lineHeight: 1.2 }}
+            sx={{
+              maxWidth: { xs: "100%", sm: "240px", md: "340px" },
+              lineHeight: 1.2,
+              opacity: 0.7,
+            }}
           >
             {appointment.client.name}
           </Typography>
@@ -153,10 +158,10 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
                 <Typography
                   variant="body2"
                   color="text.primary"
+                  fontWeight={700}
                   noWrap
                   sx={{
-                    opacity: 0.7,
-                    fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                    fontSize: { xs: "0.8rem", sm: "0.9rem" },
                     maxWidth: { xs: "110px", sm: "180px" },
                   }}
                 >

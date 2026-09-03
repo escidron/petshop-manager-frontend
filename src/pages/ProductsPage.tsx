@@ -55,7 +55,15 @@ export default function ProductsPage() {
   };
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
+    <Box
+      sx={{
+        width: "100%",
+        mx: "auto",
+        p: { xs: 1.5, sm: 2.5, md: 3 },
+        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 3 },
+        maxWidth: "1200px",
+      }}
+    >
       <ProductsToolbar
         search={search}
         onSearchChange={setSearch}
@@ -127,8 +135,8 @@ export default function ProductsPage() {
           onClick={() => setImportModalOpen(true)}
           sx={{
             position: "fixed",
-            bottom: 24,
-            right: 24,
+            bottom: { xs: 16, sm: 24 },
+            right: { xs: 16, sm: 24 },
             zIndex: 1400,
             fontWeight: 600,
             cursor: "pointer",

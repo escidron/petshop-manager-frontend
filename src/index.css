@@ -1,15 +1,37 @@
-/* Garantir que html e body ocupem 100% da tela */
-html, body {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
+:root {
+  color-scheme: light;
+  --sat: env(safe-area-inset-top, 0px);
+  --sab: env(safe-area-inset-bottom, 0px);
+  --sal: env(safe-area-inset-left, 0px);
+  --sar: env(safe-area-inset-right, 0px);
 }
 
-/* Root do React ocupando tudo */
+/* Garantir que html e body ocupem 100% da tela com suporte a dynamic viewport */
+html, body {
+  width: 100%;
+  min-height: 100%;
+  height: 100%;
+  height: 100dvh;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Root do React ocupando toda a tela dinâmica */
 #root {
   width: 100%;
+  min-height: 100%;
   height: 100%;
-  display: flex;       /* se quiser usar flex layouts internos */
+  height: 100dvh;
+  display: flex;
   flex-direction: column;
+  overflow-x: hidden;
+}
+
+/* Scroll com aceleração por hardware no mobile */
+@supports (-webkit-touch-callout: none) {
+  body {
+    -webkit-overflow-scrolling: touch;
+  }
 }

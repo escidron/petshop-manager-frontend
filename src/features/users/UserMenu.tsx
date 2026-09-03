@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Divider, Menu, MenuItem } from "@mui/material";
-import { LogOut, PlusCircle, Settings, User } from "lucide-react";
+import { LogOut, PlusCircle, Settings, User, Smartphone } from "lucide-react";
 import { logout } from "../../api/services/users";
 import { useNavigate } from "react-router";
 import { useAuth } from "../../hooks/useAuth";
@@ -10,9 +10,10 @@ type Props = {
   open: boolean;
   anchorEl: null | HTMLElement;
   handleClose: () => void;
+  onOpenPwaModal?: () => void;
 };
 
-const UserMenu = ({ open, anchorEl, handleClose }: Props) => {
+const UserMenu = ({ open, anchorEl, handleClose, onOpenPwaModal }: Props) => {
   const navigate = useNavigate();
   const { setUser, setTenant } = useAuth();
   const [newTenantOpen, setNewTenantOpen] = useState(false);
@@ -47,6 +48,16 @@ const UserMenu = ({ open, anchorEl, handleClose }: Props) => {
           <Settings size={18} />
           Configurações
         </MenuItem>
+
+        {onOpenPwaModal && (
+          <MenuItem
+            onClick={() => { handleClose(); onOpenPwaModal(); }}
+            sx={{ display: "flex", gap: 1 }}
+          >
+            <Smartphone size={18} />
+            Instalar no Celular
+          </MenuItem>
+        )}
 
         <Divider sx={{ my: 0.5 }} />
 

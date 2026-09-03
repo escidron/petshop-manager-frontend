@@ -1,7 +1,6 @@
 import {
   Box,
   Checkbox,
-  FormControlLabel,
   InputAdornment,
   Skeleton,
   TextField,
@@ -10,10 +9,10 @@ import {
   DialogTitle,
   DialogContent,
   IconButton,
-  Tooltip,
+  useTheme,
 } from "@mui/material";
 import { applyAppointmentAction } from "../../api/services/appointments";
-import { Plus, Search, Calendar as CalendarIcon, X } from "lucide-react";
+import { Plus, Search, Calendar as CalendarIcon, X, ChevronLeft, ChevronRight, Filter } from "lucide-react";
 import type { Dayjs } from "dayjs";
 import dayjs from "dayjs";
 import { Button } from "../../components/Button/Button";
@@ -49,6 +48,7 @@ const AppointmentsDailyList = ({
   appointments,
   isFetching = false,
 }: Props) => {
+  const theme = useTheme();
   const [calendarModalOpen, setCalendarModalOpen] = useState(false);
   const [detailsModal, setDetailsModal] = useState<{
     open: boolean;
@@ -57,6 +57,8 @@ const AppointmentsDailyList = ({
   const [search, setSearch] = useState("");
   const [showCanceled, setShowCanceled] = useState(false);
   const [showFreeSlots, setShowFreeSlots] = useState(false);
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const hasActiveFilters = showFreeSlots || showCanceled;
   const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
   const queryClient = useQueryClient();
 
@@ -103,121 +105,305 @@ const AppointmentsDailyList = ({
     }
   };
 
-
-
   return (
     <>
       {/* Header */}
-      <Box
-        sx={{
-          display: "flex",
-          flexDirection: { xs: "column", sm: "row", lg: "column", xl: "row" },
-          justifyContent: "space-between",
-          alignItems: { xs: "stretch", sm: "flex-start", lg: "stretch", xl: "flex-start" },
-          gap: { xs: 1.25, sm: 2 },
-        }}
-      >
-        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: { xs: 1, sm: 2 } }}>
-          <Box>
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1, width: "100%" }}>
+        {/* Topo:
+            - Desktop: Título + Data descritiva juntinhos à esquerda | Busca + Filtro + (+) e Checkboxes à direita
+            - Mobile: Título à esquerda | Seletor de data aumentado à direita */}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "flex-start",
+            justifyContent: "space-between",
+            gap: 1.5,
+            width: "100%",
+          }}
+        >
+          {/* Lado Esquerdo: Título e Data descritiva bem coladinhos (como era antes) */}
+          <Box sx={{ minWidth: 0 }}>
             <Typography
               variant="h6"
               fontWeight={700}
               color="text.primary"
               sx={{
-                fontSize: { xs: "1.05rem", sm: "1.2rem", xl: "1.4rem" },
+                fontSize: { xs: "1.1rem", sm: "1.25rem", xl: "1.35rem" },
                 lineHeight: 1.2,
+                whiteSpace: "nowrap",
               }}
             >
               Agendas do dia
             </Typography>
-            <Typography 
-              variant="body2" 
-              sx={{ 
-                color: "text.disabled", 
+            <Typography
+              variant="body2"
+              sx={{
+                color: "text.disabled",
                 fontWeight: 500,
-                display: "block",
+                display: { xs: "none", md: "block" },
                 mt: 0.2,
                 textTransform: "capitalize",
-                fontSize: { xs: "0.75rem", sm: "0.85rem" }
+                fontSize: "0.85rem",
               }}
             >
               {date.format("dddd, DD [de] MMMM")}
             </Typography>
           </Box>
 
-          {/* Filtros de visualização inline (exibidos juntos quando há agendamentos) */}
-          {appointments.length > 0 && (
-            <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.75, sm: 1.5 }, flexWrap: "wrap" }}>
-              <FormControlLabel
-                sx={{ m: 0 }}
-                control={
+          {/* Lado Direito Desktop: Busca + Botão Filtro + Botão (+) com Checkboxes alinhados embaixo */}
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              flexDirection: "column",
+              alignItems: "flex-end",
+              gap: 0.75,
+            }}
+          >
+            {/* Linha dos botões/inputs no desktop */}
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <TextField
+                size="small"
+                placeholder="Buscar tutor ou pet"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                sx={{
+                  width: { md: "200px", lg: "250px" },
+                  backgroundColor: "white",
+                  borderRadius: 1,
+                }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search size={16} />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+              <IconButton
+                onClick={() => setFiltersOpen((prev) => !prev)}
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 1,
+                  border: "1px solid",
+                  borderColor: filtersOpen || hasActiveFilters ? "primary.main" : "divider",
+                  bgcolor: filtersOpen || hasActiveFilters ? "rgba(49, 52, 133, 0.08)" : "white",
+                  color: filtersOpen || hasActiveFilters ? "primary.main" : "text.secondary",
+                  transition: "all 0.15s ease",
+                  "&:hover": {
+                    borderColor: "primary.main",
+                    bgcolor: "rgba(49, 52, 133, 0.04)",
+                  },
+                }}
+                title="Filtros"
+              >
+                <Filter size={18} />
+              </IconButton>
+              <Button
+                size="small"
+                sx={{
+                  minWidth: "38px",
+                  width: "38px",
+                  height: "38px",
+                  p: 0,
+                  borderRadius: 1,
+                  backgroundColor: "primary.main",
+                  color: "white",
+                }}
+                onClick={openFlow}
+                title="Novo Agendamento"
+              >
+                <Plus size={20} />
+              </Button>
+            </Box>
+
+            {/* Checkboxes de filtro no Desktop (alinhados à direita embaixo da busca/filtro) */}
+            {(filtersOpen || hasActiveFilters) && appointments.length > 0 && (
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Box
+                  onClick={() => setShowFreeSlots(!showFreeSlots)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    cursor: "pointer",
+                    px: 1,
+                    py: 0.35,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: showFreeSlots ? "primary.main" : "divider",
+                    bgcolor: showFreeSlots ? "rgba(49, 52, 133, 0.08)" : "white",
+                    userSelect: "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
                   <Checkbox
                     disableRipple
                     size="small"
                     checked={showFreeSlots}
-                    onChange={(e) => setShowFreeSlots(e.target.checked)}
-                    sx={{ color: "primary.main", p: 0.5 }}
+                    sx={{ color: "primary.main", p: 0 }}
                   />
-                }
-                label={
                   <Typography
                     sx={{
-                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                      color: "text.primary",
-                      opacity: 0.8,
-                      userSelect: "none",
+                      fontSize: "0.8rem",
+                      fontWeight: showFreeSlots ? 700 : 500,
+                      color: showFreeSlots ? "primary.main" : "text.primary",
                     }}
                   >
                     Horários livres
                   </Typography>
-                }
-              />
+                </Box>
 
-              <FormControlLabel
-                sx={{ m: 0 }}
-                control={
+                <Box
+                  onClick={() => setShowCanceled(!showCanceled)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    cursor: "pointer",
+                    px: 1,
+                    py: 0.35,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: showCanceled ? "error.main" : "divider",
+                    bgcolor: showCanceled ? "rgba(211, 47, 47, 0.08)" : "white",
+                    userSelect: "none",
+                    transition: "all 0.15s ease",
+                  }}
+                >
                   <Checkbox
                     disableRipple
                     size="small"
                     checked={showCanceled}
-                    onChange={(e) => setShowCanceled(e.target.checked)}
-                    sx={{ color: "primary.main", p: 0.5 }}
+                    sx={{ color: "error.main", p: 0 }}
                   />
-                }
-                label={
                   <Typography
                     sx={{
-                      fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                      color: "text.primary",
-                      opacity: 0.8,
-                      userSelect: "none",
+                      fontSize: "0.8rem",
+                      fontWeight: showFreeSlots ? 700 : 500,
+                      color: showCanceled ? "error.main" : "text.primary",
                     }}
                   >
                     Cancelados
                   </Typography>
-                }
-              />
+                </Box>
+              </Box>
+            )}
+          </Box>
+
+          {/* Lado Direito Mobile: Seletor de data compacto com altura maior e setas confortáveis (OCULTO NO DESKTOP) */}
+          {onDateChange && (
+            <Box
+              sx={{
+                display: { xs: "flex", md: "none" },
+                alignItems: "center",
+                bgcolor: "white",
+                borderRadius: 2,
+                p: 0.35,
+                height: 38,
+                border: "1px solid",
+                borderColor: "divider",
+                boxShadow: "0 1px 3px rgba(0,0,0,0.04)",
+                flexShrink: 0,
+              }}
+            >
+              <IconButton
+                size="small"
+                onClick={() => onDateChange(date.subtract(1, "day"))}
+                sx={{
+                  color: "text.primary",
+                  width: 32,
+                  height: 32,
+                  p: 0.5,
+                  borderRadius: 1.5,
+                  "&:active": { bgcolor: "action.selected" },
+                }}
+                aria-label="Dia anterior"
+              >
+                <ChevronLeft size={18} />
+              </IconButton>
+
+              <Box
+                onClick={() => setCalendarModalOpen(true)}
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 0.6,
+                  cursor: "pointer",
+                  px: 0.75,
+                  py: 0.4,
+                  height: "100%",
+                  borderRadius: 1,
+                  "&:hover": { bgcolor: "action.hover" },
+                }}
+              >
+                <CalendarIcon size={15} color={theme.palette.primary.main} />
+                <Typography
+                  sx={{
+                    fontWeight: 700,
+                    fontSize: "0.82rem",
+                    color: "text.primary",
+                    textTransform: "capitalize",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {date.isSame(dayjs(), "day")
+                    ? `Hoje, ${date.format("DD/MM")}`
+                    : date.format("ddd, DD/MM")}
+                </Typography>
+              </Box>
+
+              {!date.isSame(dayjs(), "day") && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  onClick={() => onDateChange(dayjs())}
+                  sx={{
+                    height: 24,
+                    fontSize: "0.7rem",
+                    py: 0,
+                    px: 0.6,
+                    minWidth: "auto",
+                    borderRadius: 0.8,
+                    mr: 0.25,
+                  }}
+                >
+                  Hoje
+                </Button>
+              )}
+
+              <IconButton
+                size="small"
+                onClick={() => onDateChange(date.add(1, "day"))}
+                sx={{
+                  color: "text.primary",
+                  width: 32,
+                  height: 32,
+                  p: 0.5,
+                  borderRadius: 1.5,
+                  "&:active": { bgcolor: "action.selected" },
+                }}
+                aria-label="Próximo dia"
+              >
+                <ChevronRight size={18} />
+              </IconButton>
             </Box>
           )}
         </Box>
-        <Box
-          sx={{
-            display: "flex",
-            gap: 1,
-            alignItems: "center",
-            flex: { xs: "1 1 100%", sm: "0 1 auto", lg: "1 1 100%", xl: "0 1 auto" },
-          }}
-        >
+
+        {/* Linha 2 Mobile: Busca + Botão Filtro */}
+        <Box sx={{ display: { xs: "flex", md: "none" }, width: "100%", gap: 1, alignItems: "center" }}>
           <TextField
             size="small"
             placeholder="Buscar tutor ou pet"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            sx={{ 
+            sx={{
               flex: 1,
-              width: { xs: "100%", sm: 200, md: 260 }, 
-              backgroundColor: "white", 
-              borderRadius: 1 
+              backgroundColor: "white",
+              borderRadius: 1,
             }}
             slotProps={{
               input: {
@@ -229,48 +415,104 @@ const AppointmentsDailyList = ({
               },
             }}
           />
-          {onDateChange && (
-            <Tooltip title="Selecionar Data">
-              <Button
-                size="small"
-                variant="outlined"
-                sx={{ 
-                  display: { xs: "inline-flex", md: "none" },
-                  minWidth: "38px", 
-                  width: "38px",
-                  height: "38px", 
-                  p: 0, 
-                  borderRadius: 1, 
-                  borderColor: "#e0e0e0",
-                  backgroundColor: "white",
-                  color: "text.primary",
-                  "&:hover": {
-                    borderColor: "primary.main",
-                    backgroundColor: "grey.50",
-                  }
-                }}
-                onClick={() => setCalendarModalOpen(true)}
-              >
-                <CalendarIcon size={18} />
-              </Button>
-            </Tooltip>
-          )}
-          <Button
-            size="small"
-            sx={{ 
-              minWidth: "38px", 
-              width: "38px",
-              height: "38px", 
-              p: 0, 
-              borderRadius: 1, 
-              backgroundColor: "primary.main",
-              color: "white"
+          <IconButton
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: 1,
+              border: "1px solid",
+              borderColor: filtersOpen || hasActiveFilters ? "primary.main" : "divider",
+              bgcolor: filtersOpen || hasActiveFilters ? "rgba(49, 52, 133, 0.08)" : "white",
+              color: filtersOpen || hasActiveFilters ? "primary.main" : "text.secondary",
+              flexShrink: 0,
+              transition: "all 0.15s ease",
             }}
-            onClick={openFlow}
+            title="Filtros"
           >
-            <Plus size={20} />
-          </Button>
+            <Filter size={18} />
+          </IconButton>
         </Box>
+
+        {/* Linha 3 Mobile: Checkboxes de filtro no Mobile (visíveis ao clicar no filtro) */}
+        {(filtersOpen || hasActiveFilters) && appointments.length > 0 && (
+          <Box
+            sx={{
+              display: { xs: "flex", md: "none" },
+              alignItems: "center",
+              gap: 0.75,
+              width: "100%",
+            }}
+          >
+            <Box
+              onClick={() => setShowFreeSlots(!showFreeSlots)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                cursor: "pointer",
+                px: 1,
+                py: 0.35,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: showFreeSlots ? "primary.main" : "divider",
+                bgcolor: showFreeSlots ? "rgba(49, 52, 133, 0.08)" : "white",
+                userSelect: "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Checkbox
+                disableRipple
+                size="small"
+                checked={showFreeSlots}
+                sx={{ color: "primary.main", p: 0 }}
+              />
+              <Typography
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: showFreeSlots ? 700 : 500,
+                  color: showFreeSlots ? "primary.main" : "text.primary",
+                }}
+              >
+                Horários livres
+              </Typography>
+            </Box>
+
+            <Box
+              onClick={() => setShowCanceled(!showCanceled)}
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                gap: 0.5,
+                cursor: "pointer",
+                px: 1,
+                py: 0.35,
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: showCanceled ? "error.main" : "divider",
+                bgcolor: showCanceled ? "rgba(239, 68, 68, 0.08)" : "white",
+                userSelect: "none",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <Checkbox
+                disableRipple
+                size="small"
+                checked={showCanceled}
+                sx={{ color: "error.main", p: 0 }}
+              />
+              <Typography
+                sx={{
+                  fontSize: "0.75rem",
+                  fontWeight: showFreeSlots ? 700 : 500,
+                  color: showCanceled ? "error.main" : "text.primary",
+                }}
+              >
+                Cancelados
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
 
       {/* Lista */}

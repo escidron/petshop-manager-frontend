@@ -231,136 +231,237 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
 
   return (
     <Box>
-      {/* KPI Cards Row */}
-      <Box sx={{ display: "flex", gap: 2, mb: 4, flexWrap: "wrap" }}>
+      {/* KPI Cards Grid */}
+      <Box
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, 1fr)",
+            sm: "repeat(3, 1fr)",
+            lg: "repeat(6, 1fr)",
+          },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2.5, sm: 3.5 },
+        }}
+      >
+        {/* Card 1: Faturamento Acumulado - Destacado em largura total no mobile */}
         <Paper
-          variant="outlined"
+          elevation={0}
           sx={{
-            flex: 1,
-            p: 2,
+            p: { xs: 1.75, sm: 2 },
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             gap: 0.5,
+            border: "1.5px solid",
+            borderColor: "divider",
             borderTop: `4px solid ${theme.palette.success.main}`,
-            minWidth: 200,
+            borderRadius: 2.5,
+            bgcolor: "#FFFFFF",
+            gridColumn: { xs: "span 2", sm: "span 1" },
           }}
         >
-          <Typography variant="caption" color="text.disabled" fontWeight={700}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "0.72rem", sm: "0.75rem" } }}
+          >
             FATURAMENTO ACUMULADO
           </Typography>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={800}
+            color="success.main"
+            sx={{ fontSize: { xs: "1.65rem", sm: "1.75rem" }, lineHeight: 1.2 }}
+          >
             {fmtBRL(stats.totalRevenue)}
           </Typography>
         </Paper>
 
+        {/* Card 2: Vendas Concluídas */}
         <Paper
-          variant="outlined"
+          elevation={0}
           sx={{
-            flex: 1,
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             gap: 0.5,
+            border: "1.5px solid",
+            borderColor: "divider",
             borderTop: `4px solid ${theme.palette.primary.main}`,
-            minWidth: 200,
+            borderRadius: 2.5,
+            bgcolor: "#FFFFFF",
           }}
         >
-          <Typography variant="caption" color="text.disabled" fontWeight={700}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+          >
             VENDAS CONCLUÍDAS
           </Typography>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "1.35rem", sm: "1.6rem" } }}
+          >
             {stats.salesCount}
           </Typography>
         </Paper>
 
+        {/* Card 3: Clientes Atendidos */}
         <Paper
-          variant="outlined"
+          elevation={0}
           sx={{
-            flex: 1,
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             gap: 0.5,
+            border: "1.5px solid",
+            borderColor: "divider",
             borderTop: `4px solid ${theme.palette.info.main}`,
-            minWidth: 200,
+            borderRadius: 2.5,
+            bgcolor: "#FFFFFF",
           }}
         >
-          <Typography variant="caption" color="text.disabled" fontWeight={700}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+          >
             CLIENTES ATENDIDOS
           </Typography>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "1.35rem", sm: "1.6rem" } }}
+          >
             {stats.uniqueClients}
           </Typography>
         </Paper>
 
+        {/* Card 4: Novos Clientes */}
         <Paper
-          variant="outlined"
+          elevation={0}
           sx={{
-            flex: 1,
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             gap: 0.5,
+            border: "1.5px solid",
+            borderColor: "divider",
             borderTop: "4px solid #8b5cf6",
-            minWidth: 200,
+            borderRadius: 2.5,
+            bgcolor: "#FFFFFF",
           }}
         >
-          <Typography variant="caption" color="text.disabled" fontWeight={700}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+          >
             NOVOS CLIENTES
           </Typography>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "1.35rem", sm: "1.6rem" } }}
+          >
             {stats.newClientsCount}
           </Typography>
         </Paper>
 
+        {/* Card 5: Serviços Realizados */}
         <Paper
-          variant="outlined"
+          elevation={0}
           sx={{
-            flex: 1,
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             gap: 0.5,
-            borderTop: `4px solid ${theme.palette.warning.main}`,
-            backgroundColor: "#e8f5e9", // highlight like the screenshot's light green
+            border: "1.5px solid",
             borderColor: "success.light",
-            minWidth: 200,
+            borderTop: `4px solid ${theme.palette.warning.main}`,
+            backgroundColor: "#e8f5e9",
+            borderRadius: 2.5,
           }}
         >
-          <Typography variant="caption" color="success.dark" fontWeight={800}>
+          <Typography
+            variant="caption"
+            color="success.dark"
+            fontWeight={800}
+            sx={{ fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+          >
             SERVIÇOS REALIZADOS
           </Typography>
-          <Typography variant="h4" fontWeight={700} color="success.dark">
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            color="success.dark"
+            sx={{ fontSize: { xs: "1.35rem", sm: "1.6rem" } }}
+          >
             {stats.servicesCount}
           </Typography>
         </Paper>
 
+        {/* Card 6: Ticket Médio */}
         <Paper
-          variant="outlined"
+          elevation={0}
           sx={{
-            flex: 1,
-            p: 2,
+            p: { xs: 1.5, sm: 2 },
             display: "flex",
             flexDirection: "column",
+            justifyContent: "center",
             gap: 0.5,
+            border: "1.5px solid",
+            borderColor: "divider",
             borderTop: `4px solid ${theme.palette.secondary.main}`,
-            minWidth: 200,
+            borderRadius: 2.5,
+            bgcolor: "#FFFFFF",
           }}
         >
-          <Typography variant="caption" color="text.disabled" fontWeight={700}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+          >
             TICKET MÉDIO
           </Typography>
-          <Typography variant="h4" fontWeight={700}>
+          <Typography
+            variant="h4"
+            fontWeight={700}
+            sx={{ fontSize: { xs: "1.18rem", sm: "1.45rem" }, lineHeight: 1.2 }}
+          >
             {fmtBRL(stats.avgTicket)}
           </Typography>
         </Paper>
       </Box>
 
       {/* Breakdowns 3 Columns */}
-      <Grid container spacing={3}>
+      <Grid container spacing={{ xs: 2, sm: 3 }}>
         {/* Column 1: Forma de Pagamento */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 320 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              height: "100%",
+              minHeight: 280,
+              borderRadius: 2.5,
+              border: "1.5px solid",
+              borderColor: "divider",
+              bgcolor: "#FFFFFF",
+            }}
+          >
             <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
               <DollarSign size={16} />
               FORMA DE PAGAMENTO
@@ -393,8 +494,19 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
         </Grid>
 
         {/* Column 2: Vendas por Tipo */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 320 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              height: "100%",
+              minHeight: 280,
+              borderRadius: 2.5,
+              border: "1.5px solid",
+              borderColor: "divider",
+              bgcolor: "#FFFFFF",
+            }}
+          >
             <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
               <Briefcase size={16} />
               VENDAS POR ÁREA
@@ -424,8 +536,21 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
         </Grid>
 
         {/* Column 3: Vendas por Dia */}
-        <Grid size={{ xs: 12, lg: 4 }}>
-          <Paper variant="outlined" sx={{ p: 2, height: "100%", minHeight: 320, display: "flex", flexDirection: "column" }}>
+        <Grid size={{ xs: 12, md: 4 }}>
+          <Paper
+            elevation={0}
+            sx={{
+              p: { xs: 2, sm: 2.5 },
+              height: "100%",
+              minHeight: 280,
+              display: "flex",
+              flexDirection: "column",
+              borderRadius: 2.5,
+              border: "1.5px solid",
+              borderColor: "divider",
+              bgcolor: "#FFFFFF",
+            }}
+          >
             <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
               <TrendingUp size={16} />
               VENDAS POR DIA

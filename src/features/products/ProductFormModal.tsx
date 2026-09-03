@@ -1,4 +1,12 @@
-import { Box, Dialog, DialogContent, DialogTitle, Typography } from "@mui/material";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  IconButton,
+  Typography,
+  useMediaQuery,
+  useTheme,
+} from "@mui/material";
 import { useMemo, useState } from "react";
 import axios from "axios";
 
@@ -28,6 +36,9 @@ export default function ProductFormModal({
   const toast = useToast();
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   const defaultValues = useMemo(() => {
     return product ? productToFormData(product) : DEFAULT_PRODUCT_FORM;
@@ -68,28 +79,46 @@ export default function ProductFormModal({
     <Dialog
       open={open}
       maxWidth={false}
+      fullScreen={isMobile}
       slotProps={{
         paper: {
           sx: {
-            width: showAdditionalInfo ? "85%" : "500px",
-            maxWidth: "1200px",
-            minWidth: showAdditionalInfo ? "1200px" : "500px",
+            width: { xs: "100%", md: showAdditionalInfo ? "85%" : "500px" },
+            maxWidth: { xs: "100%", md: "1200px" },
+            minWidth: { xs: "unset", md: showAdditionalInfo ? "750px" : "450px" },
+            m: { xs: 0, md: 2 },
+            borderRadius: { xs: 0, md: 3 },
+            maxHeight: { xs: "100dvh", md: "90vh" },
+            height: { xs: "100dvh", md: "auto" },
           },
         },
       }}
     >
       <DialogTitle
-        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: { xs: 2, sm: 3 },
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
       >
-        <Typography variant="h5">
+        <Typography variant="h6" fontWeight={700}>
           {mode === "create" ? "Novo Produto" : "Editar Produto"}
         </Typography>
-        <Box sx={{ cursor: "pointer" }} onClick={onClose}>
-          <X size={24} />
-        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+          <X size={20} />
+        </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent
+        sx={{
+          p: { xs: 2, sm: 3 },
+          pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 },
+        }}
+      >
         <ProductForm
           defaultValues={defaultValues}
           onSubmit={handleSubmit}

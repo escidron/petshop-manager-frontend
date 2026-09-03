@@ -1,6 +1,5 @@
 import { Box, Chip, CircularProgress } from "@mui/material";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 import { useToast } from "../hooks/useToast";
 import { useServices } from "../hooks/useServices";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,7 +28,6 @@ export default function ServicesPage() {
   }>({ open: false, mode: "create" });
   const queryClient = useQueryClient();
   const { services, loading, getServices } = useServices();
-  const navigate = useNavigate();
 
   const filteredRows = useMemo(() => {
     if (!search) return services;
@@ -57,7 +55,15 @@ export default function ServicesPage() {
   };
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
+    <Box
+      sx={{
+        width: "100%",
+        mx: "auto",
+        p: { xs: 1.5, sm: 2.5, md: 3 },
+        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 3 },
+        maxWidth: "1200px",
+      }}
+    >
       <ServiceToolbar
         search={search}
         onSearchChange={setSearch}
@@ -69,7 +75,6 @@ export default function ServicesPage() {
       <ServiceTable
         rows={filteredRows}
         loading={loading}
-        onRowClick={(id) => navigate(`/registration/pets/${id}`)}
         onEdit={(service) =>
           setServiceModal({ open: true, mode: "edit", service })
         }

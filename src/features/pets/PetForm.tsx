@@ -112,7 +112,12 @@ const PetForm = ({
         <Divider />
         <Box
           className="wrapper"
-          sx={{ display: "flex", justifyContent: "space-between" }}
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "space-between",
+            gap: { xs: 3, md: 2.5 },
+          }}
         >
           {/* ================= BÁSICO ================= */}
 
@@ -122,7 +127,7 @@ const PetForm = ({
               display: "flex",
               gap: 2,
               flexDirection: "column",
-              width: showAdditionalInfo ? "45%" : "100%",
+              width: { xs: "100%", md: showAdditionalInfo ? "47%" : "100%" },
             }}
           >
             <Box>
@@ -262,6 +267,10 @@ const PetForm = ({
             </Button>
           </Box>
 
+          {showAdditionalInfo && (
+            <Divider sx={{ display: { xs: "block", md: "none" } }} />
+          )}
+
           {/* ================= Informacoes adicionais ================= */}
           {showAdditionalInfo && (
             <Box
@@ -270,7 +279,7 @@ const PetForm = ({
                 display: "flex",
                 gap: 2,
                 flexDirection: "column",
-                width: "45%",
+                width: { xs: "100%", md: "48%" },
               }}
             >
               <Box>
@@ -487,8 +496,15 @@ const PetForm = ({
                 </FormControl>
               </Box>
 
-              <Box sx={{ display: "flex", gap: 2, alignItems: "center" }}>
-                <Box sx={{ width: "50%" }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  gap: 2,
+                  flexDirection: { xs: "column", sm: "row" },
+                  alignItems: { xs: "flex-start", sm: "center" },
+                }}
+              >
+                <Box sx={{ width: { xs: "100%", sm: "50%" } }}>
                   <FormControl fullWidth>
                     <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                       Data de nascimento
@@ -537,7 +553,7 @@ const PetForm = ({
                   </Box>
                 </Box>
 
-                <Box sx={{ width: "50%", pt: 0 }}>
+                <Box sx={{ width: { xs: "100%", sm: "50%" }, pt: 0 }}>
                   <Controller
                     name="is_deceased"
                     control={control}
@@ -711,11 +727,19 @@ const PetForm = ({
 
         {/* ================= BOTÕES ================= */}
         <Divider />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "flex-end",
+            gap: 2,
+            pt: 0.5,
+          }}
+        >
           <Button
             loading={isSubmitting}
             onClick={handleSubmit((data: PetFormData) => onSubmit(data))}
             data-action="save"
+            sx={{ width: { xs: "100%", sm: "auto" }, minHeight: 44, borderRadius: 2 }}
           >
             Salvar
           </Button>

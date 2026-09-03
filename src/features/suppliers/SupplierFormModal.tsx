@@ -7,6 +7,9 @@ import {
   FormControl,
   FormLabel,
   Typography,
+  IconButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useEffect, useState } from "react";
 import { X } from "lucide-react";
@@ -61,6 +64,9 @@ export default function SupplierFormModal({
   const toast = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const { control, handleSubmit, reset } = useForm<SupplierFormData>({
     resolver: zodResolver(supplierSchema),
     defaultValues: {
@@ -114,29 +120,46 @@ export default function SupplierFormModal({
     <Dialog
       open={open}
       maxWidth={false}
+      fullScreen={isMobile}
       slotProps={{
         paper: {
           sx: {
-            width: "550px",
-            maxWidth: "550px",
+            width: { xs: "100%", md: "550px" },
+            maxWidth: { xs: "100%", md: "550px" },
+            m: { xs: 0, md: 2 },
+            borderRadius: { xs: 0, md: 3 },
+            maxHeight: { xs: "100dvh", md: "90vh" },
+            height: { xs: "100dvh", md: "auto" },
           },
         },
       }}
     >
       <DialogTitle
-        sx={{ display: "flex", justifyContent: "space-between", pr: 4 }}
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: { xs: 2, sm: 3 },
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
       >
-        <Typography variant="h5">
+        <Typography variant="h6" fontWeight={700}>
           {mode === "create" ? "Novo Fornecedor" : "Editar Fornecedor"}
         </Typography>
-        <Box sx={{ cursor: "pointer" }}>
-          <X onClick={onClose} />
-        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+          <X size={20} />
+        </IconButton>
       </DialogTitle>
 
-      <DialogContent>
+      <DialogContent
+        sx={{
+          p: { xs: 2, sm: 3 },
+          pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 },
+        }}
+      >
         <Box component="form" sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-          <Divider />
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <FormControl fullWidth>
               <FormLabel required sx={{ color: "text.primary", mb: 0.5 }}>
@@ -176,7 +199,7 @@ export default function SupplierFormModal({
               />
             </FormControl>
 
-            <Box sx={{ display: "flex", gap: 2 }}>
+            <Box sx={{ display: "flex", flexDirection: { xs: "column", sm: "row" }, gap: 2 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                   Telefone Contato 1
@@ -238,8 +261,25 @@ export default function SupplierFormModal({
             </FormControl>
           </Box>
           <Divider sx={{ mt: 1 }} />
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-            <Button loading={isSubmitting} onClick={handleSubmit(onSubmit)}>
+          <Box
+            sx={{
+              display: "flex",
+              flexDirection: { xs: "column-reverse", sm: "row" },
+              justifyContent: "flex-end",
+              gap: 1.5,
+              pt: 0.5,
+            }}
+          >
+            <Button
+              loading={isSubmitting}
+              onClick={handleSubmit(onSubmit)}
+              sx={{
+                width: { xs: "100%", sm: "auto" },
+                minHeight: 44,
+                borderRadius: 2,
+                fontWeight: 700,
+              }}
+            >
               Salvar
             </Button>
           </Box>

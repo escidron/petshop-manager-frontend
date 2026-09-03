@@ -122,4 +122,21 @@ export const getCompatiblePetsForPackage = (
 ): Pet[] => {
     const activePets = pets.filter((p) => !p.is_deceased);
     return activePets.filter((pet) => isPackageCompatibleWithPet(pkg, pet, allServices));
+};
+
+export const isServiceCompatibleWithAnyPet = (
+    service: Service,
+    pets: Pet[]
+): boolean => {
+    const activePets = pets.filter((p) => !p.is_deceased);
+    if (activePets.length === 0) return true;
+    return activePets.some((pet) => isServiceCompatibleWithPet(service, pet));
+};
+
+export const getCompatiblePetsForService = (
+    service: Service,
+    pets: Pet[]
+): Pet[] => {
+    const activePets = pets.filter((p) => !p.is_deceased);
+    return activePets.filter((pet) => isServiceCompatibleWithPet(service, pet));
 };

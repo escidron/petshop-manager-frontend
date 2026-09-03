@@ -8,16 +8,21 @@ import {
   MenuItem,
   CircularProgress,
   Autocomplete,
+  Typography,
+  IconButton,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { adjustStock, fetchProducts } from "../../api/services/products";
-import { toast } from "react-toastify";
+import { useToast } from "../../hooks/useToast";
 import { InventoryAdjustmentSchema, type InventoryAdjustment } from "./schemas";
 import { type Product } from "../products/types";
 import { Button } from "../../components/Button/Button";
 import { useState } from "react";
+import { X } from "lucide-react";
 
 type AdjustStockModalProps = {
   open: boolean;
@@ -30,6 +35,9 @@ export default function AdjustStockModal({
   onClose,
   product,
 }: AdjustStockModalProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+  const toast = useToast();
   const queryClient = useQueryClient();
   const [productLimit, setProductLimit] = useState(20);
 
@@ -84,12 +92,50 @@ export default function AdjustStockModal({
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>
-        Ajustar Estoque {product ? `- ${product.name}` : ""}
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="sm"
+      fullWidth
+      fullScreen={isMobile}
+      slotProps={{
+        paper: {
+          sx: {
+            width: { xs: "100%", sm: "500px" },
+            maxWidth: { xs: "100%", sm: "500px" },
+            m: { xs: 0, sm: 2 },
+            borderRadius: { xs: 0, sm: 3 },
+            maxHeight: { xs: "100dvh", sm: "90vh" },
+            height: { xs: "100dvh", sm: "auto" },
+          },
+        },
+      }}
+    >
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          px: { xs: 2, sm: 3 },
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
+        }}
+      >
+        <Typography variant="h6" fontWeight={700}>
+          Ajustar Estoque {product ? `- ${product.name}` : ""}
+        </Typography>
+        <IconButton size="small" onClick={onClose} sx={{ color: "text.secondary" }}>
+          <X size={20} />
+        </IconButton>
       </DialogTitle>
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent dividers>
+        <DialogContent
+          sx={{
+            p: { xs: 2, sm: 3 },
+            pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 },
+          }}
+        >
           <Grid container spacing={2}>
             {!product && (
               <Grid size={{ xs: 12 }}>
@@ -217,8 +263,19 @@ export default function AdjustStockModal({
             </Grid>
           </Grid>
         </DialogContent>
-        <DialogActions>
-          <Button onClick={onClose} disabled={adjustMutation.isPending} variant="text">
+        <DialogActions
+          sx={{
+            p: { xs: 2, sm: 3 },
+            gap: 1.5,
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            "& > button": {
+              width: { xs: "100%", sm: "auto" },
+              minHeight: 44,
+              borderRadius: 2,
+            },
+          }}
+        >
+          <Button onClick={onClose} disabled={adjustMutation.isPending} variant="outlined">
             Cancelar
           </Button>
           <Button
@@ -227,6 +284,7 @@ export default function AdjustStockModal({
             disabled={
               adjustMutation.isPending || (product ? false : !selectedProductId)
             }
+            sx={{ fontWeight: 700 }}
           >
             {adjustMutation.isPending ? "Ajustando..." : "Confirmar"}
           </Button>

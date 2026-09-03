@@ -24,7 +24,7 @@ export default function ProductDeleteModal({
 }: Props) {
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>Excluir cliente</DialogTitle>
+      <DialogTitle>Excluir produto</DialogTitle>
 
       <DialogContent>
         Tem certeza que deseja excluir o produto <strong>{product.name}</strong>?

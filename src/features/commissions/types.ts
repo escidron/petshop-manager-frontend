@@ -2,6 +2,11 @@ export type AppliesTo = "service" | "product" | "both";
 export type CommissionType = "percentage" | "fixed";
 export type CommissionStatus = "pending" | "paid";
 
+export type CommissionRuleEmployeeInfo = {
+  id: number;
+  name: string;
+};
+
 export type CommissionRuleServiceInfo = {
   id: number;
   name: string;
@@ -15,7 +20,9 @@ export type CommissionRule = {
   tenant_id: number;
   name: string;
   employee_id?: number | null;
+  employee_ids?: number[];
   employee_name?: string | null;
+  employees?: CommissionRuleEmployeeInfo[];
   service_ids: number[];
   services?: CommissionRuleServiceInfo[];
   applies_to: AppliesTo;
@@ -31,6 +38,7 @@ export type CommissionRule = {
 export type CommissionRuleFormData = {
   name: string;
   employee_id?: number | null;
+  employee_ids?: number[];
   service_ids: number[];
   applies_to: AppliesTo;
   commission_type: CommissionType;

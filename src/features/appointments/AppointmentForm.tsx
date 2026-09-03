@@ -1,7 +1,6 @@
 import {
   Autocomplete,
   Box,
-  Divider,
   FormControl,
   FormLabel,
   TextField,
@@ -36,6 +35,8 @@ import { useAuth } from "../../hooks/useAuth";
 import { usePets } from "../../hooks/usePets";
 import { useQuery } from "@tanstack/react-query";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
+import { CustomDay } from "../dashboard/DashboardCalendar";
+import { getHighlightedDays } from "../../api/services/appointments";
 dayjs.locale("pt-br");
 
 type Props = {
@@ -57,6 +58,8 @@ type Props = {
   autoSelectService?: { index: number; id: number };
   initialDate?: string;
   loadedClientId?: number;
+  isMobile?: boolean;
+  onClose?: () => void;
 };
 
 export default function AppointmentForm({
@@ -78,11 +81,12 @@ export default function AppointmentForm({
   autoSelectService,
   initialDate,
   loadedClientId,
+  isMobile = false,
+  onClose,
 }: Props) {
   const { tenant } = useAuth();
   const { pets: allPets } = usePets();
   const workingHours = tenant?.working_hours ?? null;
-
 
   const [clientListLimit, setClientListLimit] = useState(20);
 
@@ -98,6 +102,16 @@ export default function AppointmentForm({
   );
   const [timePickerOpen, setTimePickerOpen] = useState(false);
   const pendingTimeCloseRef = useRef(false);
+  const clientInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!isMobile && mode === "create" && !selectedClient && !loadedClientId && !autoSelectClientId) {
+      const timer = setTimeout(() => {
+        clientInputRef.current?.focus();
+      }, 60);
+      return () => clearTimeout(timer);
+    }
+  }, [mode, selectedClient, loadedClientId, autoSelectClientId, isMobile]);
 
   const [isRecurrent, setIsRecurrent] = useState(false);
   const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "date" | "never">("occurrences");
@@ -129,6 +143,21 @@ export default function AppointmentForm({
     queryFn: () => listClientPackagesByClient(watchedClientId!),
     enabled: !!watchedClientId,
   });
+
+  const [calendarMonth, setCalendarMonth] = useState<dayjs.Dayjs>(
+    (scheduledDate || dayjs()).startOf("month")
+  );
+
+  const startDate = calendarMonth.subtract(1, "month").startOf("month").format("YYYY-MM-DD");
+  const endDate = calendarMonth.add(1, "month").endOf("month").format("YYYY-MM-DD");
+
+  const { data: highlightedData = [] } = useQuery({
+    queryKey: ["appointments", "highlights", calendarMonth.format("YYYY-MM")],
+    queryFn: () => getHighlightedDays(startDate, endDate),
+    staleTime: 1000 * 60 * 5,
+  });
+
+  const highlightedDays = useMemo(() => new Set<string>(highlightedData), [highlightedData]);
 
   const populatedClientIdRef = useRef<number | undefined>(defaultValues?.client_id);
 
@@ -259,10 +288,156 @@ export default function AppointmentForm({
 
   return (
     <Box
-        component="form"
-        onSubmit={handleSubmit(handleFormSubmit)}
-        sx={{ display: "flex", flexDirection: "column", gap: 3 }}
-      >{/* DATA E HORA */}
+      component="form"
+      onSubmit={handleSubmit(handleFormSubmit)}
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100%",
+        flex: 1,
+      }}
+    >
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: "column",
+          gap: { xs: 2.5, sm: 3 },
+          p: { xs: 2, sm: 3 },
+          flex: 1,
+        }}
+      >
+        {/* CLIENTE */}
+        <FormControl>
+          <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 600 }}>Cliente</FormLabel>
+          <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+            <Controller
+              name="client_id"
+              control={control}
+              render={({ field, fieldState }) => (
+                <Autocomplete<Client>
+                  sx={{ flex: 1, minWidth: 0 }}
+                  options={clients ?? []}
+                  openOnFocus={false}
+                  disablePortal={false}
+                  slotProps={{
+                    popper: {
+                      sx: { zIndex: 1400 },
+                    },
+                    paper: {
+                      sx: {
+                        borderRadius: 2,
+                        boxShadow: "0 8px 30px rgba(0,0,0,0.12)",
+                      },
+                    },
+                  }}
+                  autoHighlight
+                  filterOptions={(options, state) => {
+                    const input = state.inputValue.toLowerCase();
+                    return options
+                      .filter((option) => {
+                        const clientPets = allPets?.filter((p) => p.client_id === option.id) || [];
+                        const matchName = option.name.toLowerCase().includes(input);
+                        const matchPet = clientPets.some((p) => p.name.toLowerCase().includes(input));
+                        return matchName || matchPet;
+                      })
+                      .slice(0, clientListLimit);
+                  }}
+                  noOptionsText="Nenhum cliente cadastrado"
+                  size="small"
+                  value={
+                    selectedClient ??
+                    clients?.find((c) => c.id === field.value) ??
+                    null
+                  }
+                  getOptionLabel={(option) => option.name}
+                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                  onInputChange={(_, __, reason) => {
+                    if (reason === "input") setClientListLimit(20);
+                  }}
+                  ListboxProps={{
+                    sx: {
+                      maxHeight: { xs: "220px", sm: "280px" },
+                      overscrollBehavior: "contain",
+                      WebkitOverflowScrolling: "touch",
+                      "& .MuiAutocomplete-option": {
+                        minHeight: 48,
+                        py: 1,
+                      },
+                    },
+                    onScroll: (event: React.SyntheticEvent) => {
+                      const listboxNode = event.currentTarget;
+                      if (
+                        listboxNode.scrollTop + listboxNode.clientHeight >=
+                        listboxNode.scrollHeight - 10
+                      ) {
+                        setClientListLimit((prev) => prev + 20);
+                      }
+                    },
+                  }}
+                  renderOption={(props, option) => {
+                    const clientPets = allPets?.filter((p) => p.client_id === option.id) || [];
+                    const petsText =
+                      clientPets.length > 0
+                        ? clientPets.map((p) => p.name).join(", ")
+                        : "Sem pets cadastrados";
+                    return (
+                      <li {...props} key={option.id}>
+                        <Box sx={{ display: "flex", flexDirection: "column", py: 0.5 }}>
+                          <Typography variant="body2" fontWeight={600}>{option.name}</Typography>
+                          <Typography variant="caption" color="text.secondary">
+                            Pets: {petsText}
+                          </Typography>
+                        </Box>
+                      </li>
+                    );
+                  }}
+                  onChange={(_, value) => {
+                    const clientId = value?.id ?? 0;
+                    field.onChange(clientId);
+                    setClientId(clientId);
+                    resetField("items");
+                  }}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      inputRef={clientInputRef}
+                      autoFocus={
+                        !isMobile &&
+                        mode === "create" &&
+                        !selectedClient &&
+                        !loadedClientId &&
+                        !autoSelectClientId
+                      }
+                      placeholder="Pesquisar cliente"
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
+                    />
+                  )}
+                />
+              )}
+            />
+            <Button
+              sx={{
+                minWidth: { xs: "44px", sm: "140px" },
+                width: { xs: "44px", sm: "auto" },
+                height: "40px",
+                p: { xs: 0, sm: "6px 16px" },
+                flexShrink: 0,
+                borderRadius: 1.5,
+              }}
+              variant="outlined"
+              onClick={() => onCreateClient?.()}
+              title="Criar Cliente"
+            >
+              <Plus size={18} />
+              <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
+                Criar Cliente
+              </Box>
+            </Button>
+          </Box>
+        </FormControl>
+
+      {/* DATA E HORA */}
       <FormControl>
         <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
           Data e hora
@@ -295,6 +470,7 @@ export default function AppointmentForm({
                         field.onChange("");
                       }
                     }}
+                    onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
                     shouldDisableDate={(date) => {
                       if (!workingHours) return false;
                       return workingHours[String(date.day())]?.is_open === false;
@@ -303,7 +479,13 @@ export default function AppointmentForm({
                       const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
                       return days[day.day()];
                     }}
+                    slots={{
+                      day: CustomDay,
+                    }}
                     slotProps={{
+                      day: {
+                        highlightedDays,
+                      } as any,
                       popper: {
                         sx: {
                           "& .MuiDayCalendar-weekDayLabel": {
@@ -405,9 +587,64 @@ export default function AppointmentForm({
                         sx: {
                           backgroundColor: theme.palette.common.white,
                           width: "100%",
+                          "& .MuiInputBase-input": {
+                            color: "#1E293B",
+                            WebkitTextFillColor: "#1E293B",
+                          },
                         },
                       },
                       actionBar: { actions: [] },
+                      toolbar: {
+                        sx: {
+                          "& .MuiPickersToolbarText-root": {
+                            color: "#64748B !important",
+                            "&.Mui-selected": {
+                              color: "#313485 !important",
+                              fontWeight: 800,
+                            },
+                          },
+                          "& .MuiPickersToolbar-root": {
+                            color: "#1E293B !important",
+                          },
+                          "& .MuiTypography-root": {
+                            color: "#1E293B !important",
+                          },
+                        },
+                      },
+                      dialog: {
+                        sx: {
+                          "& .MuiDialog-paper": {
+                            backgroundColor: "#FFFFFF",
+                            color: "#1E293B",
+                          },
+                          "& .MuiClock-root": {
+                            backgroundColor: "#F1F5F9",
+                          },
+                          "& .MuiClockNumber-root": {
+                            color: "#1E293B !important",
+                            fontWeight: 600,
+                            "&.Mui-selected": {
+                              color: "#FFFFFF !important",
+                            },
+                            "&.Mui-disabled": {
+                              color: "#94A3B8 !important",
+                            },
+                          },
+                          "& .MuiPickersToolbarText-root": {
+                            color: "#64748B !important",
+                            "&.Mui-selected": {
+                              color: "#313485 !important",
+                              fontWeight: 800,
+                            },
+                          },
+                          "& .MuiPickersToolbar-root": {
+                            color: "#1E293B !important",
+                          },
+                          "& .MuiTypography-root": {
+                            color: "#1E293B !important",
+                          },
+                        },
+                      },
                       popper: {
                         onClick: () => {
                           if (pendingTimeCloseRef.current) {
@@ -418,6 +655,7 @@ export default function AppointmentForm({
                         sx: {
                           "& .MuiMultiSectionDigitalClock-root": {
                             maxHeight: 260,
+                            backgroundColor: "#FFFFFF",
                           },
                           "& .MuiMultiSectionDigitalClockSection-root": {
                             maxHeight: 260,
@@ -429,12 +667,50 @@ export default function AppointmentForm({
                             minHeight: "unset",
                             py: "4px",
                             fontSize: "0.85rem",
+                            color: "#1E293B",
+                            "&.Mui-selected": {
+                              backgroundColor: "primary.main",
+                              color: "#FFFFFF",
+                            },
+                            "&.Mui-disabled": {
+                              color: "#94A3B8",
+                            },
                           },
-                          "& .MuiPaper-root": { maxHeight: 300 },
+                          "& .MuiPaper-root": { maxHeight: 300, backgroundColor: "#FFFFFF" },
                         },
                       },
                       mobilePaper: {
-                        sx: { maxHeight: "90vh" },
+                        sx: {
+                          maxHeight: "90vh",
+                          backgroundColor: "#FFFFFF",
+                          color: "#1E293B",
+                          "& .MuiClock-root": {
+                            backgroundColor: "#F1F5F9",
+                          },
+                          "& .MuiClockNumber-root": {
+                            color: "#1E293B !important",
+                            fontWeight: 600,
+                            "&.Mui-selected": {
+                              color: "#FFFFFF !important",
+                            },
+                            "&.Mui-disabled": {
+                              color: "#94A3B8 !important",
+                            },
+                          },
+                          "& .MuiPickersToolbarText-root": {
+                            color: "#64748B !important",
+                            "&.Mui-selected": {
+                              color: "#313485 !important",
+                              fontWeight: 800,
+                            },
+                          },
+                          "& .MuiPickersToolbar-root": {
+                            color: "#1E293B !important",
+                          },
+                          "& .MuiTypography-root": {
+                            color: "#1E293B !important",
+                          },
+                        },
                       },
                     }}
                   />
@@ -443,104 +719,6 @@ export default function AppointmentForm({
             </LocalizationProvider>
           )}
         />
-      </FormControl>
-
-
-
-      {/* CLIENTE */}
-      <FormControl>
-        <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Cliente</FormLabel>
-        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-          <Controller
-            name="client_id"
-            control={control}
-            render={({ field, fieldState }) => (
-              <Autocomplete<Client>
-                sx={{ flex: 1, minWidth: 0 }}
-                options={clients ?? []}
-                filterOptions={(options, state) => {
-                  const input = state.inputValue.toLowerCase();
-                  return options
-                    .filter((option) => {
-                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
-                      const matchName = option.name.toLowerCase().includes(input);
-                      const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
-                      return matchName || matchPet;
-                    })
-                    .slice(0, clientListLimit);
-                }}
-                noOptionsText="Nenhum cliente cadastrado"
-                size="small"
-                value={
-                  selectedClient ??
-                  clients?.find((c) => c.id === field.value) ??
-                  null
-                }
-                getOptionLabel={(option) => option.name}
-                isOptionEqualToValue={(option, value) => option.id === value.id}
-                onInputChange={(_, __, reason) => {
-                  if (reason === 'input') setClientListLimit(20);
-                }}
-                ListboxProps={{
-                  onScroll: (event: React.SyntheticEvent) => {
-                    const listboxNode = event.currentTarget;
-                    if (
-                      listboxNode.scrollTop + listboxNode.clientHeight >=
-                      listboxNode.scrollHeight - 10
-                    ) {
-                      setClientListLimit((prev) => prev + 20);
-                    }
-                  }
-                }}
-                renderOption={(props, option) => {
-                  const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
-                  const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
-                  return (
-                    <li {...props} key={option.id}>
-                      <Box sx={{ display: "flex", flexDirection: "column" }}>
-                        <Typography variant="body2">{option.name}</Typography>
-                        <Typography variant="caption" color="text.primary">
-                          Pets: {petsText}
-                        </Typography>
-                      </Box>
-                    </li>
-                  );
-                }}
-                onChange={(_, value) => {
-                  const clientId = value?.id ?? 0;
-                  field.onChange(clientId);
-                  setClientId(clientId);
-                  resetField("items");
-                }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Pesquisar cliente"
-                    error={!!fieldState.error}
-                    helperText={fieldState.error?.message}
-                  />
-                )}
-              />
-            )}
-          />
-          <Button
-            sx={{
-              minWidth: { xs: "40px", sm: "140px" },
-              width: { xs: "40px", sm: "auto" },
-              height: "40px",
-              p: { xs: 0, sm: "6px 16px" },
-              flexShrink: 0,
-            }}
-            variant="outlined"
-            onClick={() => onCreateClient?.()}
-            title="Criar Cliente"
-          >
-            <Plus size={18} />
-            <Box component="span" sx={{ display: { xs: "none", sm: "inline" }, ml: 0.5 }}>
-              Criar Cliente
-            </Box>
-          </Button>
-        </Box>
       </FormControl>
 
       {/* PETS E SERVIÇOS */}
@@ -744,11 +922,54 @@ export default function AppointmentForm({
         </Box>
       )}
 
-      <Divider />
-      <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
+      </Box>
+
+      {/* RODAPÉ FIXO COM BOTÃO DE AÇÃO */}
+      <Box
+        sx={{
+          position: "sticky",
+          bottom: 0,
+          bgcolor: "background.paper",
+          borderTop: "1px solid",
+          borderColor: "divider",
+          p: { xs: 1.5, sm: 2 },
+          pb: { xs: "calc(12px + env(safe-area-inset-bottom, 0px))", sm: 2 },
+          boxShadow: "0 -4px 16px rgba(0, 0, 0, 0.06)",
+          zIndex: 10,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: { xs: "stretch", sm: "flex-end" },
+          gap: 1.5,
+        }}
+      >
+        {isMobile && onClose && (
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            disabled={isSubmitting}
+            sx={{
+              minWidth: 90,
+              minHeight: 48,
+              borderRadius: 2,
+              borderColor: "divider",
+              color: "text.secondary",
+            }}
+          >
+            Voltar
+          </Button>
+        )}
         <Button
+          fullWidth={isMobile}
+          size="large"
           loading={isSubmitting}
           onClick={handleSubmit(handleFormSubmit)}
+          sx={{
+            minHeight: 48,
+            fontSize: { xs: "0.95rem", sm: "1rem" },
+            fontWeight: 700,
+            borderRadius: 2,
+            boxShadow: "0 4px 12px rgba(49, 52, 133, 0.25)",
+          }}
         >
           {mode === "create" ? "Criar Agendamento" : "Salvar Alterações"}
         </Button>

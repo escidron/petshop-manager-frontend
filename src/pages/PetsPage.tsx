@@ -1,6 +1,5 @@
 import { Box } from "@mui/material";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router";
 
 import PetsTable from "../features/pets/PetsTable";
 import PetDeleteModal from "../features/pets/PetDeleteModal";
@@ -23,7 +22,6 @@ export default function PetsPage() {
     pet?: Pet;
   }>({ open: false, mode: "create" });
   const { pets, loading, getPets } = usePets();
-  const navigate = useNavigate();
 
   const filteredRows = useMemo(() => {
     if (!search) return pets;
@@ -47,7 +45,15 @@ export default function PetsPage() {
   };
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1200px" }}>
+    <Box
+      sx={{
+        width: "100%",
+        mx: "auto",
+        p: { xs: 1.5, sm: 2.5, md: 3 },
+        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 3 },
+        maxWidth: "1200px",
+      }}
+    >
       <PetsToolbar
         search={search}
         onSearchChange={setSearch}
@@ -57,7 +63,6 @@ export default function PetsPage() {
       <PetsTable
         rows={filteredRows}
         loading={loading}
-        onRowClick={(id) => navigate(`/registration/pets/${id}`)}
         onEdit={(pet) => setPetModal({ open: true, mode: "edit", pet })}
         onDelete={(pet) => setPetToDelete(pet)}
       />

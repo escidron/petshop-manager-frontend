@@ -1,6 +1,7 @@
 import { useState, useMemo } from "react";
 import AppointmentModal from "../features/appointments/AppointmentModal";
-import { Box, Typography } from "@mui/material";
+import { Box, Typography, Fab } from "@mui/material";
+import { Plus } from "lucide-react";
 import AppointmentsDailyList from "../features/appointments/AppointmentsDailyList";
 import DashboardSummaryCards from "../features/dashboard/DashboardSummaryCards";
 import DashboardCalendar from "../features/dashboard/DashboardCalendar";
@@ -80,7 +81,7 @@ const Dashboard = () => {
           flexDirection: "column",
           gap: { xs: 1.5, sm: 2 },
           px: { xs: 0.5, sm: 1.5, md: 2 },
-          pb: { xs: 10, sm: 5 },
+          pb: { xs: "calc(96px + env(safe-area-inset-bottom, 0px))", sm: "calc(96px + env(safe-area-inset-bottom, 0px))", md: 5 },
         }}
       >
         {isOnboarding ? (
@@ -300,6 +301,41 @@ const Dashboard = () => {
           </>
         )}
       </Box>
+
+      {/* Mobile Floating Action Button (FAB) para Novo Agendamento */}
+      <Fab
+        variant="extended"
+        color="primary"
+        aria-label="Novo Agendamento"
+        onClick={() =>
+          setFlow({
+            open: true,
+            step: "appointment",
+            mode: "create",
+            initialDate: date.toISOString(),
+          })
+        }
+        sx={{
+          position: "fixed",
+          bottom: "calc(20px + env(safe-area-inset-bottom, 0px))",
+          right: 16,
+          zIndex: 900,
+          boxShadow: "0 6px 20px rgba(49, 52, 133, 0.4)",
+          display: { xs: "flex", md: "none" },
+          height: 48,
+          minWidth: "auto",
+          borderRadius: "24px",
+          px: 2.5,
+          textTransform: "none",
+          fontWeight: 700,
+          fontSize: "0.9rem",
+          gap: 0.75,
+          whiteSpace: "nowrap",
+        }}
+      >
+        <Plus size={20} />
+        Agendar
+      </Fab>
 
       {isFlowOpen(flow) && (
         <AppointmentModal

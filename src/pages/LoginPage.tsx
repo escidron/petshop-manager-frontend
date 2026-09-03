@@ -97,9 +97,11 @@ const LoginPage = () => {
     <Box
       sx={{
         display: "flex",
-        height: "100vh",
+        minHeight: "100dvh",
+        height: { xs: "auto", md: "100vh" },
         width: "100vw",
-        overflow: "hidden",
+        overflowX: "hidden",
+        overflowY: { xs: "auto", md: "hidden" },
         bgcolor: "#F8FAFC",
       }}
     >
@@ -224,52 +226,74 @@ const LoginPage = () => {
           flexDirection: "column",
           position: "relative",
           overflowY: "auto",
+          minHeight: { xs: "100dvh", md: "auto" },
         }}
       >
+        {/* Top bar */}
         <Box
           sx={{
-            p: 4,
+            p: { xs: 2, sm: 3, md: 4 },
             display: "flex",
-            justifyContent: "flex-end",
+            justifyContent: "space-between",
             alignItems: "center",
+            width: "100%",
           }}
         >
-          <Typography variant="body2" color="text.disabled" fontWeight={600}>
-            Ainda não tem conta?{" "}
+          {/* Logo no mobile para identificação imediata */}
+          <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}>
+            <img src="/logo_dark.png" alt="PetControle" style={{ height: 24, objectFit: "contain" }} />
+          </Box>
+          <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Typography
+              variant="body2"
+              color="text.secondary"
+              fontWeight={600}
+              sx={{ display: { xs: "none", sm: "inline" }, fontSize: "0.875rem" }}
+            >
+              Ainda não tem conta?
+            </Typography>
             <Button
               onClick={() => navigate("/signup")}
-              sx={{ fontWeight: 800, textTransform: "none" }}
+              sx={{
+                fontWeight: 800,
+                textTransform: "none",
+                fontSize: { xs: "0.82rem", sm: "0.875rem" },
+                p: { xs: "4px 8px", sm: "6px 12px" },
+                minWidth: 0,
+              }}
             >
               Criar Conta
             </Button>
-          </Typography>
+          </Box>
         </Box>
 
+        {/* Center / Form Container (align-items flex-start no mobile para inputs ficarem no topo) */}
         <Box
           sx={{
             flex: 1,
             display: "flex",
             justifyContent: "center",
-            alignItems: "center",
+            alignItems: { xs: "flex-start", md: "center" },
             px: { xs: 2, sm: 4, lg: 8 },
-            pb: 8,
+            pt: { xs: 1.5, sm: 3, md: 0 },
+            pb: { xs: 5, sm: 8 },
           }}
         >
-          <Box sx={{ width: "100%", maxWidth: 500 }}>
-            <Box sx={{ mb: 4, textAlign: { xs: "center", md: "left" } }}>
-              <Typography variant="h4" fontWeight={900} color="primary.main">
+          <Box sx={{ width: "100%", maxWidth: 460 }}>
+            <Box sx={{ mb: { xs: 2, sm: 3.5 }, textAlign: { xs: "center", md: "left" } }}>
+              <Typography variant="h4" fontWeight={900} color="primary.main" sx={{ fontSize: { xs: "1.45rem", sm: "2rem" } }}>
                 Fazer Login
               </Typography>
-              <Typography variant="body1" color="text.secondary">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.85rem", sm: "0.95rem" }, mt: 0.5 }}>
                 Insira suas credenciais para acessar sua plataforma.
               </Typography>
             </Box>
 
             <CustomCard
               sx={{
-                p: 4,
-                borderRadius: 5,
-                boxShadow: "0 20px 40px rgba(0,0,0,0.05)",
+                p: { xs: 2.5, sm: 3.5, md: 4 },
+                borderRadius: { xs: 4, sm: 5 },
+                boxShadow: "0 12px 32px rgba(0,0,0,0.06)",
               }}
             >
               <UserLoginForm
@@ -280,7 +304,7 @@ const LoginPage = () => {
               />
             </CustomCard>
 
-            <Box sx={{ mt: 4, textAlign: "center" }}>
+            <Box sx={{ mt: { xs: 3, sm: 4 }, textAlign: "center" }}>
               <Typography variant="caption" color="text.disabled" sx={{ display: "block", mb: 1 }}>
                 Protegido por criptografia de ponta a ponta.
               </Typography>

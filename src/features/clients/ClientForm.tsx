@@ -144,7 +144,12 @@ export default function ClientForm({
         <Divider />
         <Box
           className="wrapper"
-          sx={{ display: "flex", justifyContent: "space-between" }}
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", md: "row" },
+            justifyContent: "space-between",
+            gap: { xs: 3, md: 2.5 },
+          }}
         >
           {/* ================= BÁSICO ================= */}
 
@@ -154,7 +159,7 @@ export default function ClientForm({
               display: "flex",
               gap: 2,
               flexDirection: "column",
-              width: showAdditionalInfo ? "30%" : "100%",
+              width: { xs: "100%", md: showAdditionalInfo ? "31%" : "100%" },
             }}
           >
             <Box>
@@ -261,6 +266,10 @@ export default function ClientForm({
             </Button>
           </Box>
 
+          {showAdditionalInfo && (
+            <Divider sx={{ display: { xs: "block", md: "none" } }} />
+          )}
+
           {/* ================= Informacoes adicionais ================= */}
           {showAdditionalInfo && (
             <Box
@@ -269,7 +278,7 @@ export default function ClientForm({
                 display: "flex",
                 gap: 2,
                 flexDirection: "column",
-                width: "30%",
+                width: { xs: "100%", md: "31%" },
               }}
             >
               <Box>
@@ -286,9 +295,12 @@ export default function ClientForm({
                 <Controller
                   name="email"
                   control={control}
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <CustomTextField
                       {...field}
+                      value={field.value ?? ""}
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
                       placeholder="email@exemplo.com"
                       inputProps={{ maxLength: 80 }}
                     />
@@ -427,6 +439,10 @@ export default function ClientForm({
             </Box>
           )}
 
+          {showAdditionalInfo && (
+            <Divider sx={{ display: { xs: "block", md: "none" } }} />
+          )}
+
           {/* ================= Endereco ================= */}
           {showAdditionalInfo && (
             <Box
@@ -435,7 +451,7 @@ export default function ClientForm({
                 display: "flex",
                 gap: 2,
                 flexDirection: "column",
-                width: "30%",
+                width: { xs: "100%", md: "31%" },
               }}
             >
               <Box>
@@ -620,7 +636,15 @@ export default function ClientForm({
 
         {/* ================= BOTÕES ================= */}
         <Divider />
-        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            justifyContent: "flex-end",
+            gap: 1.5,
+            pt: 0.5,
+          }}
+        >
           {!createPetMandatory && (
             <Button
               variant="outlined"
@@ -628,6 +652,7 @@ export default function ClientForm({
               startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : undefined}
               onClick={handleSubmit((data: ClientFormData) => onSubmit(data))}
               data-action="save"
+              sx={{ width: { xs: "100%", sm: "auto" }, minHeight: 44, borderRadius: 2 }}
             >
               Salvar
             </Button>
@@ -641,6 +666,7 @@ export default function ClientForm({
                 onSubmit(data, "addPet"),
               )}
               data-action="addPet"
+              sx={{ width: { xs: "100%", sm: "auto" }, minHeight: 44, borderRadius: 2, fontWeight: 700 }}
             >
               Salvar e cadastrar pet
             </Button>

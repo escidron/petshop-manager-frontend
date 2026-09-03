@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import { Typography, Skeleton } from "@mui/material";
+import { Typography, Skeleton, Chip, useMediaQuery } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -94,7 +94,6 @@ function TablePaginationActions(props: TablePaginationActionsProps) {
 type Props = {
   rows: Service[];
   loading: boolean;
-  onRowClick?: (id: number) => void;
   onEdit: (service: Service) => void;
   onDelete: (service: Service) => void;
 };
@@ -125,6 +124,220 @@ export default function ServiceTable({
   React.useEffect(() => {
     setPage(0);
   }, [rows]);
+
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
+  const paginatedRows = React.useMemo(() => {
+    return rowsPerPage > 0
+      ? rows.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+      : rows;
+  }, [rows, page, rowsPerPage]);
+
+  if (isMobile) {
+    return (
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <Paper key={i} sx={{ p: 2, borderRadius: 2.5 }}>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, mb: 1.5 }}>
+                <Skeleton variant="circular" width={40} height={40} />
+                <Box sx={{ flex: 1 }}>
+                  <Skeleton variant="text" width="60%" height={24} />
+                  <Skeleton variant="text" width="40%" height={18} />
+                </Box>
+              </Box>
+              <Skeleton variant="rectangular" height={32} sx={{ borderRadius: 1.5 }} />
+            </Paper>
+          ))
+        ) : rows.length === 0 ? (
+          <Paper sx={{ p: 4, textAlign: "center", borderRadius: 2.5 }}>
+            <Typography color="text.disabled" variant="body1">
+              Nenhum serviço cadastrado ainda.
+            </Typography>
+          </Paper>
+        ) : (
+          paginatedRows.map((service) => (
+            <Paper
+              key={service.id}
+              onClick={() => onEdit(service)}
+              elevation={0}
+              sx={{
+                p: 1.75,
+                borderRadius: 2.5,
+                border: "1.5px solid",
+                borderColor: "divider",
+                bgcolor: "#FFFFFF",
+                cursor: "pointer",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.25,
+                opacity: service.is_active ? 1 : 0.6,
+                transition: "all 0.15s ease",
+                "&:active": {
+                  bgcolor: "action.hover",
+                  transform: "scale(0.99)",
+                },
+              }}
+            >
+              {/* Linha 1: Nome, Status e Preço */}
+              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
+                  <Typography
+                    variant="body1"
+                    fontWeight={700}
+                    color="text.primary"
+                    sx={{ fontSize: "0.98rem", lineHeight: 1.3 }}
+                  >
+                    {service.name}
+                  </Typography>
+                  {!service.is_active && (
+                    <Chip
+                      label="Inativo"
+                      size="small"
+                      sx={{
+                        height: 18,
+                        fontSize: "0.65rem",
+                        fontWeight: 600,
+                        bgcolor: "grey.200",
+                        color: "grey.700",
+                        mt: 0.4,
+                      }}
+                    />
+                  )}
+                </Box>
+
+                {/* Preço em destaque */}
+                <Typography
+                  variant="body1"
+                  fontWeight={800}
+                  color="primary.main"
+                  sx={{ fontSize: "1.05rem", whiteSpace: "nowrap" }}
+                >
+                  R$ {formatBRLFromCents(service.price_cents) ?? "-"}
+                </Typography>
+              </Box>
+
+              {/* Linha 2: Compatibilidade do Animal (apenas quando registrado) */}
+              {(() => {
+                const compatParts: string[] = [];
+                if (service.species) compatParts.push(`Espécie: ${service.species}`);
+                if (service.size) compatParts.push(`Porte: ${service.size}`);
+                if (service.coat_type) {
+                  const coatLabel = getCoatTypeLabel(service.coat_type as CoatType);
+                  if (coatLabel && coatLabel !== "-") {
+                    compatParts.push(`Pelagem: ${coatLabel}`);
+                  }
+                }
+                if (compatParts.length === 0) return null;
+
+                return (
+                  <Box
+                    sx={{
+                      bgcolor: "#F8FAFC",
+                      borderRadius: 1.5,
+                      p: 1,
+                      display: "flex",
+                      alignItems: "center",
+                      gap: 0.75,
+                    }}
+                  >
+                    <Typography
+                      variant="caption"
+                      color="text.primary"
+                      fontWeight={600}
+                      noWrap
+                    >
+                      🐾 {compatParts.join(" • ")}
+                    </Typography>
+                  </Box>
+                );
+              })()}
+
+              {/* Linha 3: Rodapé com Ação */}
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  pt: 0.75,
+                  borderTop: "1px dashed #E2E8F0",
+                }}
+              >
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 0.5,
+                    color: "text.secondary",
+                    fontSize: "0.75rem",
+                    fontWeight: 500,
+                  }}
+                >
+                  <Pencil size={13} />
+                  Toque para editar
+                </Box>
+
+                <Box onClick={(e) => e.stopPropagation()}>
+                  <IconButton
+                    size="small"
+                    color="error"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDelete?.(service);
+                    }}
+                  >
+                    <Trash2 size={16} />
+                  </IconButton>
+                </Box>
+              </Box>
+            </Paper>
+          ))
+        )}
+
+        {/* Mobile Pagination */}
+        {rows.length > 0 && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 1,
+              borderRadius: 2,
+              border: "1px solid",
+              borderColor: "divider",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              bgcolor: "#FFFFFF",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              {page * rowsPerPage + 1}–{Math.min((page + 1) * rowsPerPage, rows.length)} de {rows.length}
+            </Typography>
+
+            <Box sx={{ display: "flex", gap: 0.5, alignItems: "center" }}>
+              <IconButton
+                size="small"
+                onClick={(e) => handleChangePage(e, page - 1)}
+                disabled={page === 0}
+              >
+                <ChevronLeft size={18} />
+              </IconButton>
+              <Typography variant="caption" fontWeight={700} color="primary.main">
+                {page + 1} / {Math.max(1, Math.ceil(rows.length / rowsPerPage))}
+              </Typography>
+              <IconButton
+                size="small"
+                onClick={(e) => handleChangePage(e, page + 1)}
+                disabled={page >= Math.ceil(rows.length / rowsPerPage) - 1}
+              >
+                <ChevronRight size={18} />
+              </IconButton>
+            </Box>
+          </Paper>
+        )}
+      </Box>
+    );
+  }
 
   return (
     <TableContainer
@@ -232,7 +445,9 @@ export default function ServiceTable({
               ).map((row) => (
               <TableRow
                 key={row.id}
+                onClick={() => onEdit(row)}
                 sx={{
+                  cursor: "pointer",
                   transition: "background-color 0.2s ease, opacity 0.2s ease",
                   opacity: row.is_active ? 1 : 0.5,
                   "&:hover": {

@@ -367,21 +367,25 @@ const CheckoutStepper = ({
       sx={{
         position: "fixed",
         inset: 0,
-        bgcolor: "rgba(0,0,0,0.5)",
+        bgcolor: "rgba(0,0,0,0.6)",
         backdropFilter: "blur(4px)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
         zIndex: 1300,
-        p: 2,
+        p: { xs: 0, sm: 2 },
       }}
     >
       <Box
         sx={{
           bgcolor: "#313485",
-          borderRadius: "16px",
+          borderRadius: { xs: 0, sm: "16px" },
           width: "100%",
           maxWidth: 760,
+          height: { xs: "100dvh", sm: "auto" },
+          maxHeight: { xs: "100dvh", sm: "92vh" },
+          display: "flex",
+          flexDirection: "column",
           overflow: "hidden",
           boxShadow: "0 25px 60px rgba(0,0,0,0.25)",
         }}
@@ -390,15 +394,16 @@ const CheckoutStepper = ({
         <Box
           sx={{
             bgcolor: "#313485",
-            p: "20px 24px",
+            p: { xs: "16px 20px", sm: "20px 24px" },
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
+            flexShrink: 0,
           }}
         >
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Lock size={18} color="rgba(255,255,255,0.9)" />
-            <Typography variant="subtitle1" fontWeight={700} color="white">
+            <Typography variant="subtitle1" fontWeight={700} color="white" sx={{ fontSize: { xs: "0.95rem", sm: "1.05rem" } }}>
               {modalTitle}
             </Typography>
           </Box>
@@ -415,9 +420,20 @@ const CheckoutStepper = ({
         </Box>
 
         {/* Modal Body Container */}
-        <Box sx={{ bgcolor: "#FFFFFF", width: "100%" }}>
+        <Box
+          sx={{
+            bgcolor: "#FFFFFF",
+            width: "100%",
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            overflowY: "auto",
+            WebkitOverflowScrolling: "touch",
+            pb: { xs: "calc(24px + env(safe-area-inset-bottom, 0px))", sm: 2 },
+          }}
+        >
           {/* Stepper */}
-          <Box sx={{ px: 3, pt: 2.5, pb: 1 }}>
+          <Box sx={{ px: { xs: 1.5, sm: 3 }, pt: 2, pb: 1, flexShrink: 0 }}>
             <Stepper activeStep={activeStepIdx} alternativeLabel>
             {STEPS.map((label) => (
               <Step key={label}>

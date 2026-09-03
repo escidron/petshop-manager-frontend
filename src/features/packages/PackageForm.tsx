@@ -18,6 +18,8 @@ import {
   Autocomplete,
   Chip,
   Stack,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import { formatPrice } from "../../utils/formatServiceLabel";
@@ -50,6 +52,8 @@ export default function PackageForm({
   onClose,
   editingPackage,
 }: PackageFormProps) {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const queryClient = useQueryClient();
   const toast = useToast();
 
@@ -122,7 +126,7 @@ export default function PackageForm({
         ],
       });
     }
-  }, [editingPackage, reset, open]);
+  }, [editingPackage, open, reset]);
 
   const mutation = useMutation({
     mutationFn: (data: PackageFormData) =>
@@ -148,38 +152,59 @@ export default function PackageForm({
 
   const onSubmit = (data: PackageFormData) => {
     const validItems = data.items.filter(
-      (item) =>
-        (item.type === "service" && item.service_id) ||
-        (item.type === "product" && item.product_id),
+      (item) => item.service_id !== null || item.product_id !== null,
     );
+
     if (validItems.length === 0) {
-      toast.warning(
-        "Adicione pelo menos um item válido (serviço ou produto) ao pacote.",
-      );
+      toast.error("O pacote deve conter pelo menos um item válido.");
       return;
     }
     mutation.mutate({ ...data, items: validItems });
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      fullScreen={isMobile}
+      slotProps={{
+        paper: {
+          sx: {
+            m: { xs: 0, md: 2 },
+            borderRadius: { xs: 0, md: 3 },
+            maxHeight: { xs: "100dvh", md: "90vh" },
+            height: { xs: "100dvh", md: "auto" },
+          },
+        },
+      }}
+    >
       <DialogTitle
         sx={{
           display: "flex",
           justifyContent: "space-between",
           alignItems: "center",
+          px: { xs: 2, sm: 3 },
+          py: 2,
+          borderBottom: "1px solid",
+          borderColor: "divider",
         }}
       >
         <Typography variant="h6" fontWeight="bold" color="text.primary">
           {editingPackage ? "Editar Pacote / Combo" : "Novo Pacote / Combo"}
         </Typography>
-        <IconButton onClick={onClose} size="small">
-          <X />
+        <IconButton onClick={onClose} size="small" sx={{ color: "text.secondary" }}>
+          <X size={20} />
         </IconButton>
       </DialogTitle>
-      <Divider />
       <form onSubmit={handleSubmit(onSubmit)}>
-        <DialogContent sx={{ py: 3 }}>
+        <DialogContent
+          sx={{
+            p: { xs: 2, sm: 3 },
+            pb: { xs: "calc(20px + env(safe-area-inset-bottom, 0px))", sm: 3 },
+          }}
+        >
           <Grid container spacing={2}>
             <Grid size={{ xs: 12, sm: 8 }}>
               <FormControl fullWidth>
@@ -394,8 +419,9 @@ export default function PackageForm({
                 key={field.id}
                 sx={{
                   display: "flex",
+                  flexDirection: { xs: "column", sm: "row" },
                   gap: 1.5,
-                  alignItems: "flex-end",
+                  alignItems: { xs: "stretch", sm: "flex-end" },
                   mb: 1.5,
                   p: 1.5,
                   borderRadius: 1.5,
@@ -404,7 +430,7 @@ export default function PackageForm({
                   borderColor: "divider",
                 }}
               >
-                <FormControl sx={{ minWidth: 120 }}>
+                <FormControl sx={{ minWidth: { xs: "100%", sm: 120 } }}>
                   <FormLabel
                     sx={{
                       fontSize: "12px",
@@ -725,47 +751,54 @@ export default function PackageForm({
                   )}
                 />
 
-                <FormControl sx={{ width: 100 }}>
-                  <FormLabel
-                    sx={{
-                      fontSize: "12px",
-                      mb: 0.5,
-                      fontWeight: 600,
-                      color: "text.primary",
-                    }}
-                  >
-                    Qtd
-                  </FormLabel>
-                  <Controller
-                    name={`items.${index}.quantity`}
-                    control={control}
-                    render={({ field, fieldState }) => (
-                      <TextField
-                        {...field}
-                        type="number"
-                        size="small"
-                        error={!!fieldState.error}
-                        sx={{
-                          backgroundColor: "#fff",
-                          "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button":
-                            {
-                              display: "block",
-                              opacity: 1,
-                            },
-                        }}
-                      />
-                    )}
-                  />
-                </FormControl>
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "flex-end",
+                    gap: 1,
+                    width: { xs: "100%", sm: "auto" },
+                  }}
+                >
+                  <FormControl sx={{ flex: { xs: 1, sm: "unset" }, width: { xs: "100%", sm: 100 } }}>
+                    <FormLabel
+                      sx={{
+                        fontSize: "12px",
+                        mb: 0.5,
+                        fontWeight: 600,
+                        color: "text.primary",
+                      }}
+                    >
+                      Qtd
+                    </FormLabel>
+                    <Controller
+                      name={`items.${index}.quantity`}
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <TextField
+                          {...field}
+                          type="number"
+                          size="small"
+                          error={!!fieldState.error}
+                          sx={{
+                            backgroundColor: "#fff",
+                            "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button":
+                              {
+                                display: "block",
+                                opacity: 1,
+                              },
+                          }}
+                        />
+                      )}
+                    />
+                  </FormControl>
 
-                <Box>
                   <IconButton
                     onClick={() => remove(index)}
                     color="error"
                     size="small"
-                    sx={{ mb: 0.5 }}
+                    sx={{ mb: 0.5, p: 1 }}
                   >
-                    <Trash2 size={16} />
+                    <Trash2 size={18} />
                   </IconButton>
                 </Box>
               </Box>
@@ -783,7 +816,18 @@ export default function PackageForm({
           </Box>
         </DialogContent>
         <Divider />
-        <DialogActions sx={{ p: 2, gap: 1 }}>
+        <DialogActions
+          sx={{
+            p: { xs: 2, sm: 3 },
+            gap: 1.5,
+            flexDirection: { xs: "column-reverse", sm: "row" },
+            "& > button": {
+              width: { xs: "100%", sm: "auto" },
+              minHeight: 44,
+              borderRadius: 2,
+            },
+          }}
+        >
           <Button onClick={onClose} variant="text">
             Cancelar
           </Button>
@@ -791,7 +835,7 @@ export default function PackageForm({
             type="submit"
             variant="contained"
             loading={mutation.isPending}
-            sx={{ px: 4 }}
+            sx={{ fontWeight: 700 }}
           >
             {editingPackage ? "Atualizar" : "Salvar"}
           </Button>

@@ -16,16 +16,17 @@ import {
   Checkbox,
   Alert,
   Autocomplete,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
-import { Clock, CheckCircle2, DollarSign } from "lucide-react";
+import { Clock, CheckCircle2, DollarSign, Receipt } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
 import {
   getCommissionEntries,
   payCommissionEntries,
 } from "../api/services/commissions";
 import { useToast } from "../hooks/useToast";
-import CustomCard from "../components/Card/CustomCard";
 import theme from "../theme";
 import type { CommissionEntry } from "../features/commissions/types";
 import SaleDetailsModal from "../features/sales/SaleDetailsModal";
@@ -56,31 +57,48 @@ const CommissionCard = ({
   value: string | number;
   color: string;
 }) => (
-  <CustomCard
+  <Paper
+    elevation={0}
     sx={{
-      flex: 1,
+      p: { xs: 1.5, sm: 2 },
       display: "flex",
       flexDirection: "column",
-      gap: 1,
+      justifyContent: "space-between",
+      gap: 0.75,
+      border: "1.5px solid",
+      borderColor: "divider",
       borderTop: `4px solid ${color}`,
+      borderRadius: 2.5,
+      bgcolor: "#FFFFFF",
     }}
   >
-    <Box
-      sx={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-      }}
-    >
-      <Typography variant="body2" color="text.disabled" fontWeight={600}>
+    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <Typography
+        variant="caption"
+        sx={{
+          fontWeight: 700,
+          color: "text.secondary",
+          fontSize: { xs: "0.68rem", sm: "0.75rem" },
+          textTransform: "uppercase",
+          letterSpacing: 0.5,
+        }}
+      >
         {label}
       </Typography>
-      <Box sx={{ color: color }}>{icon}</Box>
+      <Box sx={{ color, display: "flex", alignItems: "center" }}>{icon}</Box>
     </Box>
-    <Typography variant="h5" fontWeight={700}>
+    <Typography
+      variant="h6"
+      sx={{
+        fontWeight: 800,
+        color: "#111827",
+        fontSize: { xs: "1.1rem", sm: "1.3rem" },
+        lineHeight: 1.2,
+      }}
+    >
       {value}
     </Typography>
-  </CustomCard>
+  </Paper>
 );
 
 export default function CommissionReportPage({
@@ -92,6 +110,9 @@ export default function CommissionReportPage({
   endDate?: dayjs.Dayjs | null;
   hideFilters?: boolean;
 } = {}) {
+  const currentTheme = useTheme();
+  const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
+
   const { employees, getEmployees } = useEmployees();
   const toast = useToast();
 
@@ -219,25 +240,37 @@ export default function CommissionReportPage({
   };
 
   return (
-    <Box sx={{ width: "100%", mx: "auto", p: 3, maxWidth: "1400px" }}>
-      <Typography variant="h5" fontWeight={700} mb={3}>
-        Relatório de Comissões
-      </Typography>
+    <Box
+      sx={{
+        width: "100%",
+        mx: "auto",
+        p: hideFilters ? 0 : { xs: 1.5, sm: 2.5, md: 3 },
+        maxWidth: "1400px",
+      }}
+    >
+      {!hideFilters && (
+        <Typography variant="h5" fontWeight={700} mb={3}>
+          Relatório de Comissões
+        </Typography>
+      )}
 
-      {/* Summary cards */}
+      {/* 4 Indicadores em Grid 2x2 (mobile) e 4 colunas (desktop) */}
       <Box
         sx={{
-          display: "flex",
-          gap: 2,
-          mb: 4,
-          flexWrap: "wrap",
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "repeat(2, 1fr)",
+            md: "repeat(4, 1fr)",
+          },
+          gap: { xs: 1.5, sm: 2 },
+          mb: { xs: 2, sm: 3 },
         }}
       >
         <CommissionCard
-          icon={<Clock size={20} />}
-          label="TOTAL PENDENTE"
-          value={`R$ ${totalPending.toFixed(2)}`}
-          color={theme.palette.warning.main}
+          icon={<DollarSign size={20} />}
+          label="TOTAL GERAL"
+          value={`R$ ${(totalPending + totalPaid).toFixed(2)}`}
+          color={theme.palette.primary.main}
         />
         <CommissionCard
           icon={<CheckCircle2 size={20} />}
@@ -246,26 +279,32 @@ export default function CommissionReportPage({
           color={theme.palette.success.main}
         />
         <CommissionCard
-          icon={<DollarSign size={20} />}
-          label="TOTAL GERAL"
-          value={`R$ ${(totalPending + totalPaid).toFixed(2)}`}
-          color={theme.palette.primary.main}
+          icon={<Clock size={20} />}
+          label="TOTAL PENDENTE"
+          value={`R$ ${totalPending.toFixed(2)}`}
+          color={theme.palette.warning.main}
+        />
+        <CommissionCard
+          icon={<Receipt size={20} />}
+          label="LANÇAMENTOS"
+          value={entries.length}
+          color="#2563EB"
         />
       </Box>
 
       {/* Filters */}
-      <Paper sx={{ p: 2, mb: 2 }}>
+      <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2 }, mb: 2, borderRadius: 2.5, border: "1px solid", borderColor: "divider", bgcolor: "#FFFFFF" }}>
         <Box
           sx={{
             display: "flex",
-            gap: 2,
+            gap: 1.5,
             flexWrap: "wrap",
             alignItems: "center",
           }}
         >
           <Autocomplete
             size="small"
-            sx={{ minWidth: 220 }}
+            sx={{ width: { xs: "100%", sm: 220 } }}
             options={employees}
             filterOptions={(options, state) => {
               const input = state.inputValue.toLowerCase();
@@ -308,7 +347,7 @@ export default function CommissionReportPage({
             displayEmpty
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            sx={{ minWidth: 140 }}
+            sx={{ width: { xs: "100%", sm: 140 } }}
           >
             <MenuItem value="">
               <em>Status (Todos)</em>
@@ -458,122 +497,259 @@ export default function CommissionReportPage({
         </Alert>
       )}
 
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell sx={headerCellSx} padding="checkbox">
-                <Checkbox
-                  sx={{ color: "primary.main", py: 0 }}
-                  disableRipple
-                  indeterminate={
-                    selectedIds.size > 0 &&
-                    selectedIds.size < pendingEntries.length
-                  }
-                  checked={
-                    pendingEntries.length > 0 &&
-                    selectedIds.size === pendingEntries.length
-                  }
-                  onChange={toggleSelectAll}
-                />
-              </TableCell>
-              <TableCell sx={headerCellSx}>Funcionário</TableCell>
-              <TableCell sx={headerCellSx}>Origem</TableCell>
-              <TableCell sx={headerCellSx}>Base</TableCell>
-              <TableCell sx={headerCellSx}>Tipo</TableCell>
-              <TableCell sx={headerCellSx}>Taxa</TableCell>
-              <TableCell sx={headerCellSx}>Comissão</TableCell>
-              <TableCell sx={headerCellSx}>Data</TableCell>
-              <TableCell sx={headerCellSx}>Status</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {entries.map((entry) => {
+      {isMobile ? (
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+          {loading && entries.length === 0 ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress />
+            </Box>
+          ) : entries.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 4, textAlign: "center", borderRadius: 2.5, border: "1px solid", borderColor: "divider" }}>
+              <Typography color="text.secondary">Nenhuma comissão encontrada para os filtros selecionados.</Typography>
+            </Paper>
+          ) : (
+            entries.map((entry) => {
               const isPending = entry.status === "pending";
+              const isSelected = selectedIds.has(entry.id);
+
               return (
-                <TableRow key={entry.id} selected={selectedIds.has(entry.id)}>
-                  <TableCell padding="checkbox">
-                    {isPending && (
-                      <Checkbox
-                        sx={{ color: "primary.main", py: 0 }}
-                        disableRipple
-                        checked={selectedIds.has(entry.id)}
-                        onChange={() => toggleSelect(entry.id)}
-                      />
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    {employeeMap[entry.employee_id] ?? `#${entry.employee_id}`}
-                  </TableCell>
-                  <TableCell>
+                <Paper
+                  key={entry.id}
+                  elevation={0}
+                  onClick={() => isPending && toggleSelect(entry.id)}
+                  sx={{
+                    p: 1.75,
+                    borderRadius: 2.5,
+                    border: "1.5px solid",
+                    borderColor: isSelected ? "primary.main" : "divider",
+                    bgcolor: isSelected ? "rgba(49, 52, 133, 0.04)" : "#FFFFFF",
+                    cursor: isPending ? "pointer" : "default",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1.25,
+                  }}
+                >
+                  {/* Linha 1: Funcionário, Checkbox e Status */}
+                  <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0 }}>
+                      {isPending && (
+                        <Checkbox
+                          sx={{ color: "primary.main", p: 0 }}
+                          checked={isSelected}
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={() => toggleSelect(entry.id)}
+                        />
+                      )}
+                      <Typography variant="body1" fontWeight={700} color="text.primary" sx={{ fontSize: "0.98rem" }} noWrap>
+                        {employeeMap[entry.employee_id] ?? `#${entry.employee_id}`}
+                      </Typography>
+                    </Box>
+
+                    <Chip
+                      label={isPending ? "Pendente" : "Pago"}
+                      size="small"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "0.72rem",
+                        height: 22,
+                        bgcolor: isPending ? "#FEF3C7" : "#DCFCE7",
+                        color: isPending ? "#92400E" : "#166534",
+                      }}
+                    />
+                  </Box>
+
+                  {/* Linha 2: Quadro de Valores */}
+                  <Box
+                    sx={{
+                      bgcolor: "#F8FAFC",
+                      borderRadius: 1.75,
+                      p: 1.25,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                        Comissão
+                      </Typography>
+                      <Typography variant="body1" fontWeight={800} color="primary.main">
+                        R$ {Number(entry.commission_amount).toFixed(2)}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ textAlign: "right" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                        Base: R$ {Number(entry.base_amount).toFixed(2)}
+                      </Typography>
+                      <Typography variant="caption" display="block" color="text.secondary">
+                        Taxa: {entry.commission_type === "percentage" ? `${entry.rate}%` : `R$ ${Number(entry.rate).toFixed(2)}`}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {/* Linha 3: Origem e Data */}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      pt: 0.75,
+                      borderTop: "1px dashed #E2E8F0",
+                    }}
+                  >
                     {entry.sale_id ? (
                       <Typography
-                        variant="body2"
+                        variant="caption"
                         color="primary"
                         fontWeight={600}
-                        sx={{
-                          cursor: "pointer",
-                          textDecoration: "underline",
-                          textUnderlineOffset: 3,
-                          "&:hover": { opacity: 0.75 },
+                        sx={{ textDecoration: "underline", cursor: "pointer" }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenSaleDetails(entry.sale_id!);
                         }}
-                        onClick={() => handleOpenSaleDetails(entry.sale_id!)}
                       >
-                        #{entry.sale_id}
+                        Venda #{entry.sale_id}
                       </Typography>
                     ) : (
-                      <Typography variant="body2" color="text.disabled" fontStyle="italic">
-                        —
+                      <Typography variant="caption" color="text.secondary">
+                        Avulso
                       </Typography>
                     )}
-                  </TableCell>
-                  <TableCell>
-                    R$ {Number(entry.base_amount).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    {entry.commission_type === "percentage" ? "Porcentagem" : "Fixo"}
-                  </TableCell>
-                  <TableCell>
-                    {entry.commission_type === "percentage"
-                      ? `${Number(entry.rate).toFixed(2)}%`
-                      : `R$ ${Number(entry.rate).toFixed(2)}`}
-                  </TableCell>
-                  <TableCell sx={{ fontWeight: 700 }}>
-                    R$ {Number(entry.commission_amount).toFixed(2)}
-                  </TableCell>
-                  <TableCell>
-                    {new Date(entry.created_at).toLocaleDateString("pt-BR")}
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={entry.status === "pending" ? "Pendente" : "Pago"}
-                      color={entry.status === "paid" ? "success" : "warning"}
-                      size="small"
-                      variant="outlined"
-                    />
+
+                    <Typography variant="caption" color="text.secondary">
+                      {dayjs(entry.created_at).format("DD/MM/YYYY HH:mm")}
+                    </Typography>
+                  </Box>
+                </Paper>
+              );
+            })
+          )}
+        </Box>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell sx={headerCellSx} padding="checkbox">
+                  <Checkbox
+                    sx={{ color: "primary.main", py: 0 }}
+                    disableRipple
+                    indeterminate={
+                      selectedIds.size > 0 &&
+                      selectedIds.size < pendingEntries.length
+                    }
+                    checked={
+                      pendingEntries.length > 0 &&
+                      selectedIds.size === pendingEntries.length
+                    }
+                    onChange={toggleSelectAll}
+                  />
+                </TableCell>
+                <TableCell sx={headerCellSx}>Funcionário</TableCell>
+                <TableCell sx={headerCellSx}>Origem</TableCell>
+                <TableCell sx={headerCellSx}>Base</TableCell>
+                <TableCell sx={headerCellSx}>Tipo</TableCell>
+                <TableCell sx={headerCellSx}>Taxa</TableCell>
+                <TableCell sx={headerCellSx}>Comissão</TableCell>
+                <TableCell sx={headerCellSx}>Data</TableCell>
+                <TableCell sx={headerCellSx}>Status</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {entries.map((entry) => {
+                const isPending = entry.status === "pending";
+                return (
+                  <TableRow key={entry.id} selected={selectedIds.has(entry.id)}>
+                    <TableCell padding="checkbox">
+                      {isPending && (
+                        <Checkbox
+                          sx={{ color: "primary.main", py: 0 }}
+                          disableRipple
+                          checked={selectedIds.has(entry.id)}
+                          onChange={() => toggleSelect(entry.id)}
+                        />
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {employeeMap[entry.employee_id] ?? `#${entry.employee_id}`}
+                    </TableCell>
+                    <TableCell>
+                      {entry.sale_id ? (
+                        <Typography
+                          variant="body2"
+                          color="primary"
+                          fontWeight={600}
+                          sx={{
+                            cursor: "pointer",
+                            textDecoration: "underline",
+                            textUnderlineOffset: 3,
+                            "&:hover": { opacity: 0.75 },
+                          }}
+                          onClick={() => handleOpenSaleDetails(entry.sale_id!)}
+                        >
+                          #{entry.sale_id}
+                        </Typography>
+                      ) : (
+                        <Typography variant="body2" color="text.disabled" fontStyle="italic">
+                          —
+                        </Typography>
+                      )}
+                    </TableCell>
+                    <TableCell>R$ {Number(entry.base_amount).toFixed(2)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        label={
+                          entry.commission_type === "percentage"
+                            ? "Percentual"
+                            : "Fixo"
+                        }
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {entry.commission_type === "percentage"
+                        ? `${entry.rate}%`
+                        : `R$ ${Number(entry.rate).toFixed(2)}`}
+                    </TableCell>
+                    <TableCell sx={{ fontWeight: 700 }}>
+                      R$ {Number(entry.commission_amount).toFixed(2)}
+                    </TableCell>
+                    <TableCell sx={{ whiteSpace: "nowrap" }}>
+                      {dayjs(entry.created_at).format("DD/MM/YYYY HH:mm")}
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        label={isPending ? "Pendente" : "Pago"}
+                        color={isPending ? "warning" : "success"}
+                        size="small"
+                        variant="outlined"
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+              {entries.length === 0 && !loading && (
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                    <Typography color="text.disabled">
+                      Nenhuma comissão encontrada para os filtros selecionados.
+                    </Typography>
                   </TableCell>
                 </TableRow>
-              );
-            })}
-            {entries.length === 0 && !loading && (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                  <Typography color="text.disabled">
-                    Nenhuma comissão encontrada para os filtros selecionados.
-                  </Typography>
-                </TableCell>
-              </TableRow>
-            )}
-            {loading && entries.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
-                  <CircularProgress />
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
-      </TableContainer>
+              )}
+              {loading && entries.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                    <CircularProgress />
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
       <SaleDetailsModal
         open={isSaleModalOpen}

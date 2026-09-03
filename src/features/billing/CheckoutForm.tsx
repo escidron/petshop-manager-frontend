@@ -191,7 +191,7 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
   const fieldSx = {
     "& .MuiOutlinedInput-root": {
       borderRadius: 2,
-      bgcolor: "white",
+      bgcolor: "#FFFFFF",
       "&:hover fieldset": { borderColor: "primary.main" },
     },
   };
@@ -199,18 +199,18 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
   const labelSx = {
     fontSize: "0.75rem",
     fontWeight: 700,
-    color: "#1A1A2E",
+    color: "#334155",
     mb: 0.5,
     display: "block",
   };
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ width: "100%" }}>
-      <Box sx={{ display: "flex", gap: 3, alignItems: "flex-start", flexDirection: { xs: "column", md: "row" } }}>
-        <Stack spacing={2.5} sx={{ flex: 1, width: "100%" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: -1 }}>
-            <CreditCard size={18} color="#1A1A2E" />
-            <Typography variant="subtitle2" fontWeight={800} color="#1A1A2E">Dados do cartão</Typography>
+      <Box sx={{ display: "flex", gap: { xs: 2.5, md: 3 }, alignItems: "flex-start", flexDirection: { xs: "column", md: "row" } }}>
+        <Stack spacing={2} sx={{ flex: 1, width: "100%" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: -0.5 }}>
+            <CreditCard size={18} color="#313485" />
+            <Typography variant="subtitle2" fontWeight={800} color="#0F172A">Dados do cartão</Typography>
           </Box>
           <Box>
             <Typography sx={labelSx}>Número do cartão</Typography>
@@ -222,10 +222,19 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
               required
               size="small"
               sx={fieldSx}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CreditCard size={18} color="#64748B" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
             />
           </Box>
   
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Box sx={{ display: "flex", gap: 1.5 }}>
             <Box sx={{ flex: 1 }}>
               <Typography sx={labelSx}>Validade</Typography>
               <TextField
@@ -258,7 +267,7 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
               fullWidth
               value={card.holder_name}
               onChange={handleName}
-              placeholder="Como está no cartão"
+              placeholder="Como impresso no cartão"
               required
               size="small"
               sx={fieldSx}
@@ -281,10 +290,10 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
 
         <Divider orientation="vertical" flexItem sx={{ display: { xs: "none", md: "block" } }} />
 
-        <Stack spacing={2.5} sx={{ flex: 1, width: "100%" }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: -1 }}>
-            <MapPin size={18} color="#1A1A2E" />
-            <Typography variant="subtitle2" fontWeight={800} color="#1A1A2E">Endereço de cobrança</Typography>
+        <Stack spacing={2} sx={{ flex: 1, width: "100%" }}>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: -0.5 }}>
+            <MapPin size={18} color="#313485" />
+            <Typography variant="subtitle2" fontWeight={800} color="#0F172A">Endereço de cobrança</Typography>
           </Box>
           <Box>
             <Typography sx={labelSx}>CEP</Typography>
@@ -296,18 +305,25 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
               required
               size="small"
               sx={fieldSx}
-              InputProps={{
-                endAdornment: cepLoading ? (
-                  <InputAdornment position="end">
-                    <CircularProgress size={16} />
-                  </InputAdornment>
-                ) : undefined,
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <MapPin size={18} color="#64748B" />
+                    </InputAdornment>
+                  ),
+                  endAdornment: cepLoading ? (
+                    <InputAdornment position="end">
+                      <CircularProgress size={16} />
+                    </InputAdornment>
+                  ) : undefined,
+                },
               }}
             />
           </Box>
   
           <Box>
-            <Typography sx={labelSx}>Rua, número</Typography>
+            <Typography sx={labelSx}>Rua e número</Typography>
             <TextField
               fullWidth
               value={address.line_1}
@@ -331,7 +347,7 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
             />
           </Box>
   
-          <Box sx={{ display: "flex", gap: 2 }}>
+          <Box sx={{ display: "flex", gap: 1.5 }}>
             <Box sx={{ flex: 2 }}>
               <Typography sx={labelSx}>Cidade</Typography>
               <TextField
@@ -361,8 +377,8 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
       </Box>
 
       {errorMsg && (
-        <Box sx={{ mt: 2, p: 1.5, bgcolor: "rgba(211,47,47,0.06)", borderRadius: 2, border: "1px solid rgba(211,47,47,0.2)" }}>
-          <Typography color="error" variant="body2">
+        <Box sx={{ mt: 2.5, p: 1.5, bgcolor: "rgba(211,47,47,0.06)", borderRadius: 2, border: "1px solid rgba(211,47,47,0.2)" }}>
+          <Typography color="error" variant="body2" fontWeight={600}>
             {errorMsg}
           </Typography>
         </Box>
@@ -371,7 +387,18 @@ const CheckoutForm = ({ onSuccess, buttonLabel, defaultDocument }: Props) => {
       <Button
         type="submit"
         disabled={loading}
-        sx={{ mt: 3, width: "100%", py: 1.5, fontSize: "1rem", fontWeight: 700, borderRadius: 2 }}
+        variant="contained"
+        sx={{
+          mt: 3,
+          width: "100%",
+          py: 1.5,
+          fontSize: "0.95rem",
+          fontWeight: 800,
+          borderRadius: 2.5,
+          minHeight: 48,
+          bgcolor: "#313485",
+          "&:hover": { bgcolor: "#24276b" },
+        }}
       >
         {loading ? <CircularProgress size={22} sx={{ color: "white" }} /> : (
           <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>

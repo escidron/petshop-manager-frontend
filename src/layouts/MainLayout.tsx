@@ -26,6 +26,7 @@ import {
   AlertTriangle,
   Zap,
   MessageCircle,
+  Smartphone,
 } from "lucide-react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import Sidebar from "./Sidebar";
@@ -37,6 +38,7 @@ import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import PendingWhatsAppBanner from "../features/billing/PendingWhatsAppBanner";
 import WhatsappSimulator from "../features/whatsapp-simulator/WhatsappSimulator";
 import { ErrorBoundary } from "../components/ErrorBoundary/ErrorBoundary";
+import PWAInstallModal from "../components/PWAInstallModal";
 
 interface TopNavItem {
   id: string;
@@ -128,6 +130,7 @@ export default function MainLayout() {
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
   const openMenu = Boolean(anchorEl);
   const [whatsappSimulatorOpen, setWhatsappSimulatorOpen] = React.useState(false);
+  const [pwaModalOpen, setPwaModalOpen] = React.useState(false);
 
   const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
     setAnchorEl(event.currentTarget);
@@ -170,7 +173,7 @@ export default function MainLayout() {
   const isPOS = location.pathname === "/pos";
 
   return (
-    <Box sx={{ display: "flex", height: "100vh", overflow: "hidden" }}>
+    <Box sx={{ display: "flex", height: "100dvh", minHeight: "100dvh", overflow: "hidden" }}>
       <CssBaseline />
 
       <AppBar
@@ -181,6 +184,7 @@ export default function MainLayout() {
           color: "text.primary",
           borderBottom: "1px solid #e2e8f0",
           zIndex: (theme) => theme.zIndex.drawer + 1,
+          pt: "env(safe-area-inset-top, 0px)",
         }}
       >
         <Toolbar
@@ -203,11 +207,27 @@ export default function MainLayout() {
             }}
             onClick={() => navigate("/dashboard")}
           >
-            <img
+            {/* Ícone pequeno do favicon no mobile para liberar espaço */}
+            <Box
+              component="img"
+              src="/favicon.png"
+              alt="PetControle"
+              sx={{
+                display: { xs: "block", md: "none" },
+                width: 32,
+                height: 32,
+                borderRadius: 1.5,
+              }}
+            />
+            {/* Logo completa no desktop */}
+            <Box
+              component="img"
               src="/logo_dark.png"
               alt="PetControle"
-              width={isMobile ? 120 : 140}
-              style={{ display: "block" }}
+              sx={{
+                display: { xs: "none", md: "block" },
+                width: 140,
+              }}
             />
           </Box>
 
@@ -216,7 +236,7 @@ export default function MainLayout() {
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              gap: { xs: 0.5, sm: 1, md: 1.25, lg: 1.75 },
+              gap: { xs: 0.5, sm: 0.75, md: 1.25, lg: 1.75 },
               flex: 1,
               py: 0.5,
             }}
@@ -408,12 +428,35 @@ export default function MainLayout() {
         </Box>
         <Divider sx={{ borderColor: "rgba(255,255,255,0.15)" }} />
         <Sidebar collapsed={false} onNavigate={() => setDrawerOpen(false)} />
+        {isMobile && (
+          <Box sx={{ p: 2, mt: "auto", borderTop: "1px solid rgba(255,255,255,0.15)" }}>
+            <Button
+              fullWidth
+              variant="outlined"
+              onClick={() => {
+                setDrawerOpen(false);
+                setPwaModalOpen(true);
+              }}
+              startIcon={<Smartphone size={18} />}
+              sx={{
+                color: "white",
+                borderColor: "rgba(255,255,255,0.4)",
+                "&:hover": { borderColor: "white", bgcolor: "rgba(255,255,255,0.08)" },
+                fontWeight: 700,
+                fontSize: "0.8rem",
+              }}
+            >
+              Instalar App no Celular
+            </Button>
+          </Box>
+        )}
       </MuiDrawer>
 
       <UserMenu
         open={openMenu}
         anchorEl={anchorEl}
         handleClose={handleClose}
+        onOpenPwaModal={() => setPwaModalOpen(true)}
       />
 
       {/* --- CONTEÚDO PRINCIPAL (100% da Largura da Tela) --- */}
@@ -422,7 +465,7 @@ export default function MainLayout() {
         sx={{
           flexGrow: 1,
           px: { xs: 1, sm: 2, md: isPOS ? 2 : 2.5 },
-          pb: { xs: 1, sm: 2, md: 2.5 },
+          pb: { xs: 1, sm: 2, md: isPOS ? 2 : 2.5 },
           pt: 0,
           height: "100%",
           display: "flex",
@@ -515,17 +558,20 @@ export default function MainLayout() {
         </Box>
       </Box>
 
-      {/* WhatsApp Simulator (Dev / Admin) */}
-      {(import.meta.env.DEV || user?.role === "admin") && (
+      {/* WhatsApp Simulator (Dev / Admin - Ocultado a pedido do usuário) */}
+      {false && (import.meta.env.DEV || user?.role === "admin") && (
         <>
           <IconButton
             onClick={() => setWhatsappSimulatorOpen(true)}
             sx={{
               position: "fixed",
-              bottom: 24,
-              right: 24,
-              width: 54,
-              height: 54,
+              bottom: {
+                xs: "calc(82px + env(safe-area-inset-bottom, 0px))",
+                md: "calc(24px + env(safe-area-inset-bottom, 0px))",
+              },
+              right: { xs: 16, sm: 24 },
+              width: { xs: 48, sm: 54 },
+              height: { xs: 48, sm: 54 },
               bgcolor: "#25D366",
               color: "white",
               boxShadow: "0px 4px 10px rgba(0,0,0,0.3)",
@@ -543,6 +589,12 @@ export default function MainLayout() {
           />
         </>
       )}
+
+      {/* PWA Install Modal */}
+      <PWAInstallModal
+        open={pwaModalOpen}
+        onClose={() => setPwaModalOpen(false)}
+      />
     </Box>
   );
 }

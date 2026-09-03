@@ -25,6 +25,8 @@ import {
   FormControlLabel,
   Tooltip,
   CircularProgress,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import {
   Monitor,
@@ -65,6 +67,9 @@ const ACCOUNT_TYPE_LABELS: Record<string, { label: string; color: string; bg: st
 };
 
 export default function POSSettingsSection() {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down("md"));
+
   const { tenant, setTenant } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
@@ -267,25 +272,26 @@ export default function POSSettingsSection() {
   });
 
   return (
-    <Stack spacing={4}>
+    <Stack spacing={{ xs: 2.5, sm: 3.5 }}>
       {/* ── CARD 1: TERMINAIS DE CAIXA (PDV) ────────────────────────────────── */}
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2.5, sm: 3.5 },
+          p: { xs: 2, sm: 3 },
           bgcolor: "#ffffff",
-          borderRadius: 3.5,
-          border: "1px solid #E2E8F0",
+          borderRadius: 3,
+          border: "1.5px solid",
+          borderColor: "divider",
         }}
       >
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: { xs: "flex-start", sm: "center" },
+            alignItems: { xs: "stretch", sm: "center" },
             flexDirection: { xs: "column", sm: "row" },
             gap: 2,
-            mb: 3,
+            mb: { xs: 2, sm: 3 },
           }}
         >
           <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
@@ -298,15 +304,16 @@ export default function POSSettingsSection() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
               <Monitor size={22} />
             </Box>
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0F172A">
+              <Typography variant="h6" fontWeight={800} color="#0F172A" sx={{ fontSize: { xs: "1.05rem", sm: "1.25rem" } }}>
                 Terminais de Caixa
               </Typography>
-              <Typography variant="body2" color="#64748B">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
                 Cadastre os terminais físicos e estações de atendimento para abertura e fechamento de caixa.
               </Typography>
             </Box>
@@ -322,6 +329,7 @@ export default function POSSettingsSection() {
               setRegisterModalOpen(true);
             }}
             sx={{
+              width: { xs: "100%", sm: "auto" },
               borderRadius: 2,
               fontWeight: 700,
               textTransform: "none",
@@ -333,7 +341,8 @@ export default function POSSettingsSection() {
           </Button>
         </Box>
 
-        <TableContainer sx={{ border: "1px solid #F1F5F9", borderRadius: 2.5 }}>
+        {/* Visualização Desktop: Tabela */}
+        <TableContainer sx={{ border: "1px solid #F1F5F9", borderRadius: 2.5, display: { xs: "none", md: "block" } }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: "#F8FAFC" }}>
@@ -414,26 +423,113 @@ export default function POSSettingsSection() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Visualização Mobile: Cards */}
+        <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", gap: 1.25 }}>
+          {loadingRegisters ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : registers.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 2.5, textAlign: "center", borderRadius: 2, border: "1px dashed", borderColor: "divider" }}>
+              <Typography variant="body2" color="text.secondary">
+                Nenhum terminal cadastrado.
+              </Typography>
+            </Paper>
+          ) : (
+            registers.map((reg) => (
+              <Paper
+                key={reg.id}
+                elevation={0}
+                sx={{
+                  p: 1.75,
+                  borderRadius: 2.5,
+                  border: "1.5px solid",
+                  borderColor: "divider",
+                  bgcolor: "#FFFFFF",
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.25,
+                }}
+              >
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+                  <Box>
+                    <Typography variant="body2" fontWeight={700} color="#0F172A">
+                      {reg.name}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem" }}>
+                      Cadastrado em {dayjs(reg.created_at).format("DD/MM/YYYY")}
+                    </Typography>
+                  </Box>
+                  <Chip
+                    label={reg.is_active ? "Ativo" : "Inativo"}
+                    size="small"
+                    sx={{
+                      height: 22,
+                      fontWeight: 700,
+                      fontSize: "0.72rem",
+                      bgcolor: reg.is_active ? "#DCFCE7" : "#F1F5F9",
+                      color: reg.is_active ? "#166534" : "#64748B",
+                    }}
+                  />
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Edit2 size={14} />}
+                    onClick={() => {
+                      setEditingRegister(reg);
+                      setRegisterName(reg.name);
+                      setRegisterModalOpen(true);
+                    }}
+                    sx={{ fontSize: "0.75rem", py: 0.4, px: 1.5, borderRadius: 1.5 }}
+                  >
+                    Editar
+                  </Button>
+                  {registers.length > 1 && (
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        Status
+                      </Typography>
+                      <Switch
+                        size="small"
+                        checked={reg.is_active}
+                        onChange={(e) =>
+                          toggleRegisterActiveMutation.mutate({
+                            registerId: reg.id,
+                            isActive: e.target.checked,
+                          })
+                        }
+                      />
+                    </Box>
+                  )}
+                </Box>
+              </Paper>
+            ))
+          )}
+        </Box>
       </Paper>
 
       {/* ── CARD 2: CONTAS DE ORIGEM & DESTINO ──────────────────────────────── */}
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2.5, sm: 3.5 },
+          p: { xs: 2, sm: 3 },
           bgcolor: "#ffffff",
-          borderRadius: 3.5,
-          border: "1px solid #E2E8F0",
+          borderRadius: 3,
+          border: "1.5px solid",
+          borderColor: "divider",
         }}
       >
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
-            alignItems: { xs: "flex-start", sm: "center" },
+            alignItems: { xs: "stretch", sm: "center" },
             flexDirection: { xs: "column", sm: "row" },
             gap: 2,
-            mb: 3,
+            mb: { xs: 2, sm: 3 },
           }}
         >
           <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
@@ -446,15 +542,16 @@ export default function POSSettingsSection() {
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
+                flexShrink: 0,
               }}
             >
               <Building2 size={22} />
             </Box>
             <Box>
-              <Typography variant="h6" fontWeight={800} color="#0F172A">
-                Contas de Origem & Destino (Sangrias e Suprimentos)
+              <Typography variant="h6" fontWeight={800} color="#0F172A" sx={{ fontSize: { xs: "1.05rem", sm: "1.25rem" } }}>
+                Contas de Origem & Destino
               </Typography>
-              <Typography variant="body2" color="#64748B">
+              <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
                 Cadastre contas bancárias, cofres e caixas administrativos utilizados nas retiradas e abastecimentos.
               </Typography>
             </Box>
@@ -466,6 +563,7 @@ export default function POSSettingsSection() {
             startIcon={<Plus size={16} />}
             onClick={openNewAccountModal}
             sx={{
+              width: { xs: "100%", sm: "auto" },
               borderRadius: 2,
               fontWeight: 700,
               textTransform: "none",
@@ -477,7 +575,8 @@ export default function POSSettingsSection() {
           </Button>
         </Box>
 
-        <TableContainer sx={{ border: "1px solid #F1F5F9", borderRadius: 2.5 }}>
+        {/* Visualização Desktop: Tabela */}
+        <TableContainer sx={{ border: "1px solid #F1F5F9", borderRadius: 2.5, display: { xs: "none", md: "block" } }}>
           <Table size="small">
             <TableHead>
               <TableRow sx={{ bgcolor: "#F8FAFC" }}>
@@ -597,16 +696,139 @@ export default function POSSettingsSection() {
             </TableBody>
           </Table>
         </TableContainer>
+
+        {/* Visualização Mobile: Cards */}
+        <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", gap: 1.25 }}>
+          {loadingAccounts ? (
+            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
+              <CircularProgress size={24} />
+            </Box>
+          ) : destinationAccounts.length === 0 ? (
+            <Paper elevation={0} sx={{ p: 2.5, textAlign: "center", borderRadius: 2, border: "1px dashed", borderColor: "divider" }}>
+              <Typography variant="body2" color="text.secondary">
+                Nenhum destino cadastrado.
+              </Typography>
+            </Paper>
+          ) : (
+            destinationAccounts.map((acc) => {
+              const typeMeta = ACCOUNT_TYPE_LABELS[acc.account_type] || ACCOUNT_TYPE_LABELS.other;
+              return (
+                <Paper
+                  key={acc.id}
+                  elevation={0}
+                  sx={{
+                    p: 1.75,
+                    borderRadius: 2.5,
+                    border: "1.5px solid",
+                    borderColor: "divider",
+                    bgcolor: "#FFFFFF",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1.25,
+                  }}
+                >
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 1 }}>
+                    <Box>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                        <Typography variant="body2" fontWeight={700} color="#0F172A">
+                          {acc.name}
+                        </Typography>
+                        {acc.is_default && (
+                          <Chip
+                            icon={<Star size={11} fill="#D97706" color="#D97706" />}
+                            label="Padrão"
+                            size="small"
+                            sx={{
+                              height: 20,
+                              fontWeight: 800,
+                              fontSize: "0.68rem",
+                              bgcolor: "#FEF3C7",
+                              color: "#92400E",
+                            }}
+                          />
+                        )}
+                      </Box>
+                      <Box sx={{ display: "flex", gap: 0.75, mt: 0.75, flexWrap: "wrap" }}>
+                        <Chip
+                          label={typeMeta.label}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.72rem",
+                            height: 22,
+                            bgcolor: typeMeta.bg,
+                            color: typeMeta.color,
+                          }}
+                        />
+                        <Chip
+                          label={acc.is_active ? "Ativa" : "Inativa"}
+                          size="small"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.72rem",
+                            height: 22,
+                            bgcolor: acc.is_active ? "#DCFCE7" : "#F1F5F9",
+                            color: acc.is_active ? "#166534" : "#64748B",
+                          }}
+                        />
+                      </Box>
+                    </Box>
+                  </Box>
+
+                  {/* Actions Bar */}
+                  <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pt: 1, borderTop: "1px dashed", borderColor: "divider" }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                        {acc.is_active ? "Ativa" : "Inativa"}
+                      </Typography>
+                      {destinationAccounts.length > 1 && (
+                        <Switch
+                          size="small"
+                          checked={acc.is_active}
+                          onChange={(e) =>
+                            toggleAccountActiveMutation.mutate({
+                              accountId: acc.id,
+                              isActive: e.target.checked,
+                            })
+                          }
+                        />
+                      )}
+                    </Box>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => openEditAccountModal(acc)}
+                        sx={{ color: "text.secondary", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 0.75 }}
+                      >
+                        <Edit2 size={14} />
+                      </IconButton>
+                      {destinationAccounts.length > 1 && (
+                        <IconButton
+                          size="small"
+                          onClick={() => setAccountToDelete(acc)}
+                          sx={{ color: "#DC2626", border: "1px solid", borderColor: "divider", borderRadius: 1.5, p: 0.75 }}
+                        >
+                          <Trash2 size={14} />
+                        </IconButton>
+                      )}
+                    </Box>
+                  </Box>
+                </Paper>
+              );
+            })
+          )}
+        </Box>
       </Paper>
 
       {/* ── CARD 3: POLÍTICAS DE DESCONTO NO CAIXA ──────────────────────────── */}
       <Paper
         elevation={0}
         sx={{
-          p: { xs: 2.5, sm: 3.5 },
+          p: { xs: 2, sm: 3 },
           bgcolor: "#ffffff",
-          borderRadius: 3.5,
-          border: "1px solid #E2E8F0",
+          borderRadius: 3,
+          border: "1.5px solid",
+          borderColor: "divider",
         }}
       >
         <Stack spacing={3}>
@@ -675,7 +897,7 @@ export default function POSSettingsSection() {
                   </Typography>
                 </Box>
 
-                <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+                <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", width: { xs: "100%", sm: "auto" } }}>
                   <TextField
                     type="number"
                     size="small"
@@ -688,7 +910,7 @@ export default function POSSettingsSection() {
                     }
                     slotProps={{ htmlInput: { min: 0, max: 100, step: 1 } }}
                     sx={{
-                      width: 90,
+                      width: { xs: 80, sm: 90 },
                       bgcolor: "#ffffff",
                       borderRadius: 1.5,
                       "& .MuiInputBase-input": { py: 0.75, fontWeight: 800, fontSize: "0.9rem" },
@@ -699,7 +921,7 @@ export default function POSSettingsSection() {
                     size="small"
                     onClick={handleSaveDiscountValue}
                     loading={savingDiscount}
-                    sx={{ py: 0.75, px: 2.5, fontWeight: 700, borderRadius: 2 }}
+                    sx={{ py: 0.75, px: 2.5, fontWeight: 700, borderRadius: 2, flex: { xs: 1, sm: "none" } }}
                   >
                     Salvar Limite
                   </Button>
@@ -716,7 +938,8 @@ export default function POSSettingsSection() {
         onClose={() => setRegisterModalOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3.5, overflow: "hidden" } }}
+        fullScreen={isMobile}
+        PaperProps={{ sx: { borderRadius: isMobile ? 0 : 3.5, overflow: "hidden" } }}
       >
         <DialogTitle
           sx={{
@@ -778,7 +1001,8 @@ export default function POSSettingsSection() {
         onClose={() => setAccountModalOpen(false)}
         maxWidth="xs"
         fullWidth
-        PaperProps={{ sx: { borderRadius: 3.5, overflow: "hidden" } }}
+        fullScreen={isMobile}
+        PaperProps={{ sx: { borderRadius: isMobile ? 0 : 3.5, overflow: "hidden" } }}
       >
         <DialogTitle
           sx={{

@@ -8,9 +8,12 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Chip,
   IconButton,
   CircularProgress,
+  Button,
+  Chip,
+  useTheme,
+  useMediaQuery,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
@@ -30,6 +33,9 @@ export default function CashHistoryReport({
   startDate,
   endDate,
 }: CashHistoryReportProps) {
+  const currentTheme = useTheme();
+  const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
+
   const [selectedSessionId, setSelectedSessionId] = useState<number | null>(null);
   const [isStatementOpen, setIsStatementOpen] = useState(false);
   const [isPrintOpen, setIsPrintOpen] = useState(false);
@@ -63,7 +69,7 @@ export default function CashHistoryReport({
       <Paper
         elevation={0}
         sx={{
-          p: 3,
+          p: { xs: 1.5, sm: 2.5, md: 3 },
           bgcolor: "#ffffff",
           borderRadius: 3,
           border: "1px solid #E5E7EB",
@@ -71,10 +77,10 @@ export default function CashHistoryReport({
       >
         <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5 }}>
           <Box>
-            <Typography variant="h6" sx={{ fontWeight: 800, color: "#111827" }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: "#111827", fontSize: { xs: "1.1rem", sm: "1.25rem" } }}>
               Histórico de Sessões de Caixa
             </Typography>
-            <Typography variant="body2" sx={{ color: "#4B5563" }}>
+            <Typography variant="body2" sx={{ color: "#4B5563", fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
               Consulte e audite todas as aberturas, fechamentos e movimentações de caixa por período.
             </Typography>
           </Box>
@@ -89,6 +95,151 @@ export default function CashHistoryReport({
             <Typography variant="body1" sx={{ fontWeight: 600, color: "#374151" }}>
               Nenhuma sessão de caixa encontrada no período selecionado.
             </Typography>
+          </Box>
+        ) : isMobile ? (
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {sessions.map((item) => {
+              const s = item.session;
+              const isOpen = s.status === "open";
+              const diff = s.difference_amount ?? 0;
+              const finalBalance = s.actual_closing_amount ?? item.current_balance;
+
+              return (
+                <Paper
+                  key={s.id}
+                  elevation={0}
+                  sx={{
+                    p: 1.75,
+                    borderRadius: 2.5,
+                    border: "1.5px solid",
+                    borderColor: "divider",
+                    bgcolor: "#FFFFFF",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1.25,
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
+                    <Box sx={{ minWidth: 0, flex: 1 }}>
+                      <Typography variant="body1" fontWeight={800} color="#111827" sx={{ fontSize: "0.98rem" }}>
+                        Sessão #{s.id} • {item.cash_register.name}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Aberto por {s.opened_by_name || "-"} em {dayjs(s.opened_at).format("DD/MM/YY HH:mm")}
+                      </Typography>
+                    </Box>
+
+                    <Chip
+                      icon={isOpen ? <Unlock size={12} /> : <Lock size={12} />}
+                      label={isOpen ? "Aberto" : "Fechado"}
+                      size="small"
+                      sx={{
+                        fontWeight: 700,
+                        fontSize: "0.72rem",
+                        height: 22,
+                        bgcolor: isOpen ? "#DCFCE7" : "#F3F4F6",
+                        color: isOpen ? "#166534" : "#4B5563",
+                      }}
+                    />
+                  </Box>
+
+                  <Box
+                    sx={{
+                      bgcolor: "#F8FAFC",
+                      borderRadius: 1.75,
+                      p: 1.25,
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      flexWrap: "wrap",
+                      gap: 1,
+                    }}
+                  >
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                        Saldo Final
+                      </Typography>
+                      <Typography variant="body1" fontWeight={800} color="primary.main">
+                        R$ {finalBalance.toFixed(2)}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ textAlign: "center" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                        Vendas
+                      </Typography>
+                      <Typography variant="body2" fontWeight={700} color="success.main">
+                        +R$ {item.total_sales_amount.toFixed(2)}
+                      </Typography>
+                    </Box>
+
+                    <Box sx={{ textAlign: "right" }}>
+                      <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                        Fundo Inicial
+                      </Typography>
+                      <Typography variant="body2" fontWeight={600} color="text.primary">
+                        R$ {s.initial_amount.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "space-between",
+                      pt: 0.75,
+                      borderTop: "1px dashed #E2E8F0",
+                    }}
+                  >
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                      {!isOpen && (
+                        diff === 0 ? (
+                          <Chip
+                            icon={<CheckCircle2 size={12} />}
+                            label="Sem diferença"
+                            size="small"
+                            sx={{ height: 22, fontSize: "0.7rem", bgcolor: "#DCFCE7", color: "#166534", fontWeight: 700 }}
+                          />
+                        ) : (
+                          <Chip
+                            icon={<AlertTriangle size={12} />}
+                            label={`Dif: R$ ${diff.toFixed(2)}`}
+                            size="small"
+                            sx={{
+                              height: 22,
+                              fontSize: "0.7rem",
+                              bgcolor: diff < 0 ? "#FEE2E2" : "#FEF3C7",
+                              color: diff < 0 ? "#991B1B" : "#92400E",
+                              fontWeight: 700,
+                            }}
+                          />
+                        )
+                      )}
+                    </Box>
+
+                    <Box sx={{ display: "flex", gap: 1 }}>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Eye size={14} />}
+                        onClick={() => handleOpenDetail(s.id)}
+                        sx={{ minHeight: 34, fontSize: "0.78rem", fontWeight: 600, borderRadius: 1.75 }}
+                      >
+                        Extrato
+                      </Button>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleOpenPrint(s.id)}
+                        sx={{ bgcolor: "#F3F4F6", borderRadius: 1.75 }}
+                      >
+                        <Printer size={15} />
+                      </IconButton>
+                    </Box>
+                  </Box>
+                </Paper>
+              );
+            })}
           </Box>
         ) : (
           <TableContainer>
@@ -189,20 +340,26 @@ export default function CashHistoryReport({
                             icon={<CheckCircle2 size={12} />}
                             label="R$ 0,00"
                             size="small"
-                            sx={{ bgcolor: "#DCFCE7", color: "#166534", fontWeight: 700, height: 22, fontSize: "0.7rem" }}
-                          />
-                        ) : diff < 0 ? (
-                          <Chip
-                            icon={<AlertTriangle size={12} />}
-                            label={`-R$ ${Math.abs(diff).toFixed(2)}`}
-                            size="small"
-                            sx={{ bgcolor: "#FEE2E2", color: "#991B1B", fontWeight: 700, height: 22, fontSize: "0.7rem" }}
+                            sx={{
+                              bgcolor: "#DCFCE7",
+                              color: "#166534",
+                              fontWeight: 700,
+                              fontSize: "0.7rem",
+                              height: 20,
+                            }}
                           />
                         ) : (
                           <Chip
-                            label={`+R$ ${diff.toFixed(2)}`}
+                            icon={<AlertTriangle size={12} />}
+                            label={`R$ ${diff.toFixed(2)}`}
                             size="small"
-                            sx={{ bgcolor: "#DBEAFE", color: "#1E40AF", fontWeight: 700, height: 22, fontSize: "0.7rem" }}
+                            sx={{
+                              bgcolor: diff < 0 ? "#FEE2E2" : "#FEF3C7",
+                              color: diff < 0 ? "#991B1B" : "#92400E",
+                              fontWeight: 700,
+                              fontSize: "0.7rem",
+                              height: 20,
+                            }}
                           />
                         )}
                       </TableCell>
@@ -214,8 +371,7 @@ export default function CashHistoryReport({
                           size="small"
                           sx={{
                             fontWeight: 700,
-                            height: 22,
-                            fontSize: "0.7rem",
+                            fontSize: "0.75rem",
                             bgcolor: isOpen ? "#DCFCE7" : "#F3F4F6",
                             color: isOpen ? "#166534" : "#4B5563",
                           }}

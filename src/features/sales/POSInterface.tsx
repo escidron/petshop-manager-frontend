@@ -31,7 +31,7 @@ import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
 import type { ClientPackage } from "../client_packages/types";
 import type { Service } from "../tenant_services/types";
-import { isPackageCompatibleWithAnyPet, getIncompatibleServicesForPet } from "../../utils/serviceMatcher";
+import { isPackageCompatibleWithAnyPet, getIncompatibleServicesForPet, isServiceCompatibleWithAnyPet } from "../../utils/serviceMatcher";
 
 // Sub-components
 import POSSessionHeader from "./components/POSSessionHeader";
@@ -74,6 +74,7 @@ export default function POSInterface() {
   const [selectedClientId, setSelectedClientId] = useState<number | null>(null);
   const [selectedAppointmentId, setSelectedAppointmentId] = useState<number | null>(null);
   const [showAllPackages, setShowAllPackages] = useState(false);
+  const [showAllServices, setShowAllServices] = useState(false);
 
   const [activeComandaId, setActiveComandaId] = useState<number | null>(null);
   const [comandaSyncStatus, setComandaSyncStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
@@ -246,14 +247,39 @@ export default function POSInterface() {
     () => products.filter((p) => p.is_active && p.quantity > 0 && p.name.toLowerCase().includes(searchTerm.toLowerCase())),
     [products, searchTerm]
   );
-  const filteredServices = useMemo(
-    () => services.filter((s) => s.is_active && s.name.toLowerCase().includes(searchTerm.toLowerCase())),
-    [services, searchTerm]
-  );
   const activeClientPets = useMemo(
     () => clientPets.filter((p) => !p.is_deceased),
     [clientPets]
   );
+
+  const activeServices = useMemo(
+    () => services.filter((s) => s.is_active),
+    [services]
+  );
+
+  const compatibleServices = useMemo(() => {
+    if (!selectedClientId || activeClientPets.length === 0) {
+      return activeServices;
+    }
+    return activeServices.filter((s) =>
+      isServiceCompatibleWithAnyPet(s, activeClientPets)
+    );
+  }, [activeServices, selectedClientId, activeClientPets]);
+
+  const filteredServices = useMemo(() => {
+    const baseList =
+      selectedClientId && activeClientPets.length > 0 && !showAllServices
+        ? compatibleServices
+        : activeServices;
+
+    if (!searchTerm) return baseList;
+    const term = searchTerm.toLowerCase();
+    return baseList.filter(
+      (s) =>
+        s.name.toLowerCase().includes(term) ||
+        (s.description && s.description.toLowerCase().includes(term))
+    );
+  }, [selectedClientId, activeClientPets.length, showAllServices, compatibleServices, activeServices, searchTerm]);
 
   const activePackages = useMemo(
     () => packages.filter((pkg) => pkg.is_active),
@@ -335,6 +361,7 @@ export default function POSInterface() {
   const startNewSession = async (clientId?: number) => {
     isInitialLoadRef.current = true;
     setShowAllPackages(false);
+    setShowAllServices(false);
     setSearchTerm("");
     setIsClientModalOpen(false);
 
@@ -389,6 +416,7 @@ export default function POSInterface() {
     setActiveComandaId(null);
     setComandaSyncStatus("idle");
     setShowAllPackages(false);
+    setShowAllServices(false);
     setSearchTerm("");
   };
 
@@ -556,6 +584,7 @@ export default function POSInterface() {
   const handlePullAppointment = async (appointment: Appointment) => {
     isInitialLoadRef.current = true;
     setShowAllPackages(false);
+    setShowAllServices(false);
     setSearchTerm("");
     setIsPullDialogOpen(false);
     setSelectedClientId(appointment.client.id);
@@ -618,6 +647,7 @@ export default function POSInterface() {
     setSelectedAppointmentId(null);
     setActiveComandaId(null);
     setShowAllPackages(false);
+    setShowAllServices(false);
     setCart([item]);
     setIsPullDialogOpen(false);
   };
@@ -919,7 +949,7 @@ export default function POSInterface() {
               viewMode={viewMode}
               isLoading={isLoadingItems}
               products={filteredProducts}
-              services={filteredServices as any}
+              services={filteredServices}
               packages={filteredPackages as any}
               appointments={filteredAppointments}
               getAppointmentPrice={getAppointmentPrice}
@@ -937,6 +967,10 @@ export default function POSInterface() {
               onToggleShowAllPackages={() => setShowAllPackages((prev) => !prev)}
               totalPackagesCount={activePackages.length}
               compatiblePackagesCount={compatiblePackages.length}
+              showAllServices={showAllServices}
+              onToggleShowAllServices={() => setShowAllServices((prev) => !prev)}
+              totalServicesCount={activeServices.length}
+              compatibleServicesCount={compatibleServices.length}
             />
           </Box>
         </Box>
@@ -995,16 +1029,16 @@ export default function POSInterface() {
           elevation={4}
           sx={{
             position: "fixed",
-            bottom: 12,
-            left: 12,
-            right: 12,
+            bottom: "calc(12px + env(safe-area-inset-bottom, 0px))",
+            left: { xs: 8, sm: 12 },
+            right: { xs: 8, sm: 12 },
             zIndex: 1050,
             borderRadius: 3,
             p: 1.25,
             bgcolor: "background.paper",
             border: "1px solid",
             borderColor: "divider",
-            boxShadow: "0 8px 24px rgba(0,0,0,0.12)",
+            boxShadow: "0 8px 24px rgba(0,0,0,0.14)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
@@ -1096,11 +1130,12 @@ export default function POSInterface() {
             sx: {
               borderTopLeftRadius: 20,
               borderTopRightRadius: 20,
-              maxHeight: "90vh",
+              maxHeight: "90dvh",
               display: "flex",
               flexDirection: "column",
               bgcolor: "background.paper",
               p: 2,
+              pb: "calc(16px + env(safe-area-inset-bottom, 0px))",
             },
           }}
         >

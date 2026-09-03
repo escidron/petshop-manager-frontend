@@ -23,15 +23,41 @@ export default function CommissionRuleDeleteModal({
   onConfirm,
 }: Props) {
   return (
-    <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
-      <DialogTitle>Excluir Regra de Comissão</DialogTitle>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      maxWidth="xs"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 2.5,
+            m: { xs: 2, sm: 3 },
+          },
+        },
+      }}
+    >
+      <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+        Excluir Regra de Comissão
+      </DialogTitle>
 
-      <DialogContent>
-        Tem certeza que deseja excluir a regra <strong>{rule.name}</strong>?
+      <DialogContent sx={{ color: "text.secondary" }}>
+        Tem certeza que deseja excluir a regra <strong>{rule.name}</strong>? Esta ação não pode ser desfeita.
       </DialogContent>
 
-      <DialogActions sx={{ p: 3 }}>
-        <Button variant="text" onClick={onCancel}>
+      <DialogActions
+        sx={{
+          p: { xs: 2, sm: 3 },
+          gap: 1.5,
+          flexDirection: { xs: "column-reverse", sm: "row" },
+          "& > button": {
+            width: { xs: "100%", sm: "auto" },
+            minHeight: 42,
+            borderRadius: 2,
+          },
+        }}
+      >
+        <Button variant="outlined" onClick={onCancel} disabled={loading}>
           Cancelar
         </Button>
 
@@ -39,9 +65,10 @@ export default function CommissionRuleDeleteModal({
           variant="contained"
           onClick={onConfirm}
           disabled={loading}
-          sx={{ bgcolor: "error.light", "&:hover": { bgcolor: "error.main" } }}
+          color="error"
+          sx={{ fontWeight: 700 }}
         >
-          Excluir
+          {loading ? "Excluindo..." : "Excluir Regra"}
         </Button>
       </DialogActions>
     </Dialog>

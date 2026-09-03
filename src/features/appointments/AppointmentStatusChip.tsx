@@ -25,14 +25,14 @@ export function AppointmentStatusChip({ status, size = "small" }: Props) {
         px: isSmall ? 1 : 1.5,
         py: isSmall ? 0.5 : 0.75,
         borderRadius: 1,
-        color: "text.secondary",
+        color: "#FFFFFF",
       }}
     >
-      <statusUI.icon size={isSmall ? 12 : 16} />
+      <statusUI.icon size={isSmall ? 12 : 16} color="#FFFFFF" />
       <Typography
         fontSize={isSmall ? "12px" : "14px"}
-        fontWeight={500}
-        color="text.secondary"
+        fontWeight={600}
+        color="#FFFFFF"
       >
         {statusUI.label}
       </Typography>

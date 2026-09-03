@@ -16,5 +16,29 @@ createRoot(document.getElementById("root")!).render(
         <App />
       </QueryClientProvider>
     </ThemeProvider>
-  // </StrictMode>,
 );
+
+// Registrar Service Worker para PWA (permite instalação e funcionamento standalone)
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker
+      .register("/sw.js")
+      .then((reg) => {
+        // Se houver nova versão, atualizar silenciosamente
+        reg.onupdatefound = () => {
+          const installingWorker = reg.installing;
+          if (installingWorker) {
+            installingWorker.onstatechange = () => {
+              if (installingWorker.state === "installed" && navigator.serviceWorker.controller) {
+                // Nova versão disponível
+                console.log("Nova versão do PetControle disponível.");
+              }
+            };
+          }
+        };
+      })
+      .catch((err) => {
+        console.warn("Falha ao registrar Service Worker do PWA:", err);
+      });
+  });
+}

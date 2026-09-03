@@ -93,64 +93,85 @@ export default function ClientDetailsPage() {
         width: "100%",
         maxWidth: "1400px",
         mx: "auto",
-        p: 3,
+        p: { xs: 1.5, sm: 2.5, md: 3 },
+        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 3 },
       }}
     >
-      <Box display="flex" justifyContent="space-between" alignItems="flex-start" sx={{ gap: 4 }}>
-        <Box sx={{ width: "60%", minWidth: "550px" }}>
+      <Box
+        sx={{
+          display: "flex",
+          flexDirection: { xs: "column", lg: "row" },
+          justifyContent: "space-between",
+          alignItems: "flex-start",
+          gap: { xs: 3, md: 3.5, lg: 4 },
+          width: "100%",
+        }}
+      >
+        <Box
+          sx={{
+            width: { xs: "100%", lg: "60%" },
+            minWidth: { xs: "unset", lg: "550px" },
+            display: "flex",
+            flexDirection: "column",
+            gap: { xs: 2.5, sm: 3 },
+          }}
+        >
           <ClientePersonalInfo 
             client={client} 
             onEdit={() => setClientModal({ open: true })}
           />
 
           {/* Pets */}
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              mt: 4,
-            }}
-          >
-            <Typography variant="h6" fontWeight={600} color="text.primary" sx={{ mt: 1 }}>
-              Pets
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<Plus size={16} />}
-              onClick={() => setPetModal({ open: true, mode: "create" })}
+          <Box>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                mb: 1.5,
+              }}
             >
-              Novo Pet
-            </Button>
+              <Typography variant="h6" fontWeight={700} color="text.primary">
+                Pets
+              </Typography>
+              <Button
+                variant="contained"
+                startIcon={<Plus size={16} />}
+                onClick={() => setPetModal({ open: true, mode: "create" })}
+              >
+                Novo Pet
+              </Button>
+            </Box>
+
+            <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+              {pets.map((pet) => (
+                <PetDetailsCard
+                  key={pet.id}
+                  pet={pet}
+                  onEdit={(p) => setPetModal({ open: true, mode: "edit", pet: p })}
+                  onDelete={(p) => setPetToDelete(p)}
+                  onPhotoUploadSuccess={refetchPets}
+                  onViewPhotos={(p) => {
+                    setSelectedPetForPhotos(p);
+                    setPhotosModalOpen(true);
+                  }}
+                />
+              ))}
+            </Box>
           </Box>
 
-          {pets.map((pet) => (
-            <Box key={pet.id}>
-              <PetDetailsCard
-                pet={pet}
-                onEdit={(p) => setPetModal({ open: true, mode: "edit", pet: p })}
-                onDelete={(p) => setPetToDelete(p)}
-                onPhotoUploadSuccess={refetchPets}
-                onViewPhotos={(p) => {
-                  setSelectedPetForPhotos(p);
-                  setPhotosModalOpen(true);
-                }}
-              />
-            </Box>
-          ))}
-
           {/* Pacotes Ativos */}
-          <Box sx={{ mt: 4 }}>
+          <Box>
             <Box
               sx={{
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
-                mb: 2,
+                mb: 1.5,
               }}
             >
               <ShoppingBag size={20} />
-              <Typography variant="h6" fontWeight={600}>
+              <Typography variant="h6" fontWeight={700}>
                 Pacotes
               </Typography>
             </Box>
@@ -160,10 +181,9 @@ export default function ClientDetailsPage() {
               onRefresh={fetchClientPackages}
             />
           </Box>
-
         </Box>
 
-        <Box sx={{ width: "40%" }}>
+        <Box sx={{ width: { xs: "100%", lg: "40%" } }}>
           <ClientHistory
             clientId={parseInt(id!)}
             refreshTrigger={refreshHistoryTrigger}
