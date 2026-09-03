@@ -13,8 +13,9 @@ import {
   RadioGroup,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
-import { TimePicker } from "@mui/x-date-pickers/TimePicker";
+import { DesktopTimePicker } from "@mui/x-date-pickers/DesktopTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { ptBR as ptBRPickers } from "@mui/x-date-pickers/locales";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
@@ -38,6 +39,26 @@ import { listClientPackagesByClient } from "../../api/services/client_packages";
 import { CustomDay } from "../dashboard/DashboardCalendar";
 import { getHighlightedDays } from "../../api/services/appointments";
 dayjs.locale("pt-br");
+
+function CustomDatePickerToolbar() {
+  return (
+    <Box
+      sx={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "space-between",
+        pt: 1.5,
+        pb: 0.5,
+        px: 2,
+        backgroundColor: "#FFFFFF",
+      }}
+    >
+      <Typography variant="subtitle1" fontWeight={700} color="text.primary">
+        Selecionar Data
+      </Typography>
+    </Box>
+  );
+}
 
 type Props = {
   defaultValues?: Partial<AppointmentFormData>;
@@ -449,12 +470,14 @@ export default function AppointmentForm({
             <LocalizationProvider
               dateAdapter={AdapterDayjs}
               adapterLocale="pt-br"
+              localeText={ptBRPickers.components.MuiLocalizationProvider.defaultProps.localeText}
             >
               <Box sx={{ display: "flex", gap: { xs: 1, sm: 2 }, width: "100%" }}>
                 <Box sx={{ flex: { xs: "1 1 50%", sm: "1 1 0" }, minWidth: 0 }}>
                   <DatePicker
                     format="DD/MM/YYYY"
                     value={scheduledDate}
+                    orientation="portrait"
                     onChange={(newDate) => {
                       setScheduledDate(newDate);
                       if (newDate?.isValid() && scheduledTime?.isValid()) {
@@ -481,11 +504,45 @@ export default function AppointmentForm({
                     }}
                     slots={{
                       day: CustomDay,
+                      toolbar: CustomDatePickerToolbar,
                     }}
                     slotProps={{
                       day: {
                         highlightedDays,
                       } as any,
+                      layout: {
+                        sx: {
+                          display: "flex",
+                          flexDirection: "column",
+                          overflow: "hidden",
+                        },
+                      },
+                      dialog: {
+                        sx: {
+                          "& .MuiDialog-paper": {
+                            borderRadius: 3,
+                            overflow: "hidden",
+                            maxWidth: "calc(100vw - 32px)",
+                            m: "auto",
+                          },
+                          "& .MuiPickersLayout-root": {
+                            display: "flex",
+                            flexDirection: "column",
+                            overflow: "hidden",
+                            maxWidth: "100%",
+                          },
+                          "& .MuiPickersLayout-contentWrapper": {
+                            overflow: "hidden",
+                            display: "flex",
+                            justifyContent: "center",
+                          },
+                          "& .MuiDateCalendar-root": {
+                            width: "100%",
+                            maxWidth: 320,
+                            margin: "0 auto",
+                          },
+                        },
+                      },
                       popper: {
                         sx: {
                           "& .MuiDayCalendar-weekDayLabel": {
@@ -525,7 +582,7 @@ export default function AppointmentForm({
                   />
                 </Box>
                 <Box sx={{ flex: { xs: "1 1 50%", sm: "0 0 160px" }, minWidth: 0 }}>
-                  <TimePicker
+                  <DesktopTimePicker
                     value={scheduledTime}
                     ampm={false}
                     referenceDate={dayjs().hour(8).minute(0)}
@@ -550,13 +607,6 @@ export default function AppointmentForm({
                       setTimePickerOpen(true);
                     }}
                     onClose={() => setTimePickerOpen(false)}
-                    onViewChange={(view) => {
-                      if (view === "minutes") {
-                        setTimeout(() => {
-                          pendingTimeCloseRef.current = true;
-                        }, 10);
-                      }
-                    }}
                     onChange={(newTime) => {
                       setScheduledTime(newTime);
                       if (scheduledDate?.isValid() && newTime?.isValid()) {
@@ -571,13 +621,6 @@ export default function AppointmentForm({
                       } else {
                         field.onChange("");
                       }
-                      if (pendingTimeCloseRef.current) {
-                        setTimePickerOpen(false);
-                      }
-                    }}
-                    onAccept={() => {
-                      setTimePickerOpen(false);
-                      pendingTimeCloseRef.current = false;
                     }}
                     slotProps={{
                       textField: {
@@ -594,57 +637,6 @@ export default function AppointmentForm({
                         },
                       },
                       actionBar: { actions: [] },
-                      toolbar: {
-                        sx: {
-                          "& .MuiPickersToolbarText-root": {
-                            color: "#64748B !important",
-                            "&.Mui-selected": {
-                              color: "#313485 !important",
-                              fontWeight: 800,
-                            },
-                          },
-                          "& .MuiPickersToolbar-root": {
-                            color: "#1E293B !important",
-                          },
-                          "& .MuiTypography-root": {
-                            color: "#1E293B !important",
-                          },
-                        },
-                      },
-                      dialog: {
-                        sx: {
-                          "& .MuiDialog-paper": {
-                            backgroundColor: "#FFFFFF",
-                            color: "#1E293B",
-                          },
-                          "& .MuiClock-root": {
-                            backgroundColor: "#F1F5F9",
-                          },
-                          "& .MuiClockNumber-root": {
-                            color: "#1E293B !important",
-                            fontWeight: 600,
-                            "&.Mui-selected": {
-                              color: "#FFFFFF !important",
-                            },
-                            "&.Mui-disabled": {
-                              color: "#94A3B8 !important",
-                            },
-                          },
-                          "& .MuiPickersToolbarText-root": {
-                            color: "#64748B !important",
-                            "&.Mui-selected": {
-                              color: "#313485 !important",
-                              fontWeight: 800,
-                            },
-                          },
-                          "& .MuiPickersToolbar-root": {
-                            color: "#1E293B !important",
-                          },
-                          "& .MuiTypography-root": {
-                            color: "#1E293B !important",
-                          },
-                        },
-                      },
                       popper: {
                         onClick: () => {
                           if (pendingTimeCloseRef.current) {
@@ -653,62 +645,38 @@ export default function AppointmentForm({
                           }
                         },
                         sx: {
+                          zIndex: 1400,
                           "& .MuiMultiSectionDigitalClock-root": {
                             maxHeight: 260,
                             backgroundColor: "#FFFFFF",
                           },
                           "& .MuiMultiSectionDigitalClockSection-root": {
                             maxHeight: 260,
+                            width: 60,
                             scrollbarWidth: "none",
                             msOverflowStyle: "none",
                             "&::-webkit-scrollbar": { display: "none" },
                           },
                           "& .MuiMultiSectionDigitalClockSection-item": {
                             minHeight: "unset",
-                            py: "4px",
+                            py: "5px",
                             fontSize: "0.85rem",
                             color: "#1E293B",
                             "&.Mui-selected": {
                               backgroundColor: "primary.main",
                               color: "#FFFFFF",
+                              fontWeight: 700,
                             },
                             "&.Mui-disabled": {
                               color: "#94A3B8",
                             },
                           },
-                          "& .MuiPaper-root": { maxHeight: 300, backgroundColor: "#FFFFFF" },
-                        },
-                      },
-                      mobilePaper: {
-                        sx: {
-                          maxHeight: "90vh",
-                          backgroundColor: "#FFFFFF",
-                          color: "#1E293B",
-                          "& .MuiClock-root": {
-                            backgroundColor: "#F1F5F9",
-                          },
-                          "& .MuiClockNumber-root": {
-                            color: "#1E293B !important",
-                            fontWeight: 600,
-                            "&.Mui-selected": {
-                              color: "#FFFFFF !important",
-                            },
-                            "&.Mui-disabled": {
-                              color: "#94A3B8 !important",
-                            },
-                          },
-                          "& .MuiPickersToolbarText-root": {
-                            color: "#64748B !important",
-                            "&.Mui-selected": {
-                              color: "#313485 !important",
-                              fontWeight: 800,
-                            },
-                          },
-                          "& .MuiPickersToolbar-root": {
-                            color: "#1E293B !important",
-                          },
-                          "& .MuiTypography-root": {
-                            color: "#1E293B !important",
+                          "& .MuiPaper-root": {
+                            maxHeight: 300,
+                            backgroundColor: "#FFFFFF",
+                            boxShadow: "0px 8px 24px rgba(0, 0, 0, 0.12)",
+                            borderRadius: 2,
+                            border: "1px solid #E2E8F0",
                           },
                         },
                       },
