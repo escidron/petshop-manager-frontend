@@ -10,7 +10,13 @@ export const clientSchema = z.object({
     .min(1, "Telefone é obrigatório")
     .transform((v) => v.replace(/\D/g, ""))
     .refine((v) => v.length === 10 || v.length === 11, "Telefone inválido"),
-  email: z.email("E-mail inválido").max(80, "E-mail pode ter no máximo 80 caracteres").optional(),
+  email: z
+    .string()
+    .max(80, "E-mail pode ter no máximo 80 caracteres")
+    .transform((v) => v.trim())
+    .refine((v) => v === "" || z.string().email().safeParse(v).success, "E-mail inválido")
+    .transform((v) => (v === "" ? undefined : v))
+    .optional(),
   is_active: z.boolean(),
   document_type: z.enum(["CPF", "CNPJ"]).optional(),
   document: z

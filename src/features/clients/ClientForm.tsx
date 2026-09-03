@@ -295,9 +295,12 @@ export default function ClientForm({
                 <Controller
                   name="email"
                   control={control}
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <CustomTextField
                       {...field}
+                      value={field.value ?? ""}
+                      error={!!fieldState.error}
+                      helperText={fieldState.error?.message}
                       placeholder="email@exemplo.com"
                       inputProps={{ maxLength: 80 }}
                     />
