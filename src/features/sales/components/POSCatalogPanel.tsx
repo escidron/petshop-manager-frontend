@@ -39,6 +39,7 @@ import type { Product } from "../../products/types";
 import type { Package } from "../../packages/types";
 import { getCompatiblePetsForPackage, getCompatiblePetsForService } from "../../../utils/serviceMatcher";
 import { Button } from "../../../components/Button/Button";
+import ProductPhotosPreviewModal from "../../products/ProductPhotosPreviewModal";
 
 type CatalogTab = "appointments" | "products" | "services" | "packages" | null;
 
@@ -199,6 +200,7 @@ export default function POSCatalogPanel({
   compatibleServicesCount,
 }: POSCatalogPanelProps) {
   const [productLimit, setProductLimit] = useState(24);
+  const [previewProduct, setPreviewProduct] = useState<Product | null>(null);
 
   const activeClientPets = clientPets.filter((p) => !p.is_deceased);
   const hasClientWithPets = Boolean(selectedClient && activeClientPets.length > 0);
@@ -217,67 +219,136 @@ export default function POSCatalogPanel({
   // Derived state for the catalog
   const activeTabConfig = tabs.find((t) => t.id === activeTab);
 
-  const renderProduct = (product: Product) => (
-    <Grid
-      size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
-      key={`prod-${product.id}`}
-    >
-      {viewMode === "grid" ? (
-        <Paper
-          elevation={0}
-          onClick={() => onAddItem(product, "product")}
-          sx={{
-            p: 2, borderRadius: 3, cursor: "pointer", height: "100%",
-            display: "flex", flexDirection: "column", position: "relative",
-            transition: "all 0.2s ease-in-out", border: "1px solid",
-            borderColor: "divider", bgcolor: "background.paper",
-            "&:hover": {
-              borderColor: "primary.main",
-              "& .add-btn": { bgcolor: "primary.main", color: "white" },
-            },
-          }}
-        >
-          <Box sx={{ mb: 1.5, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-            <Box sx={{ width: 36, height: 36, borderRadius: 1.5, bgcolor: alpha("#1976d2", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "primary.main" }}>
-              <Barcode size={18} />
+  const renderProduct = (product: Product) => {
+    const primaryPhoto = product.photos?.find((p) => p.is_primary) || product.photos?.[0];
+
+    return (
+      <Grid
+        size={viewMode === "grid" ? { xs: 6, sm: 6, md: 6, lg: 4, xl: 3 } : { xs: 12 }}
+        key={`prod-${product.id}`}
+      >
+        {viewMode === "grid" ? (
+          <Paper
+            elevation={0}
+            onClick={() => onAddItem(product, "product")}
+            sx={{
+              p: 2, borderRadius: 3, cursor: "pointer", height: "100%",
+              display: "flex", flexDirection: "column", position: "relative",
+              transition: "all 0.2s ease-in-out", border: "1px solid",
+              borderColor: "divider", bgcolor: "background.paper",
+              "&:hover": {
+                borderColor: "primary.main",
+                "& .add-btn": { bgcolor: "primary.main", color: "white" },
+              },
+            }}
+          >
+            <Box sx={{ mb: 1.5, display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+              {primaryPhoto ? (
+                <Tooltip title="Clique para ampliar foto e ver galeria">
+                  <Box
+                    component="img"
+                    src={primaryPhoto.photo_url}
+                    alt={product.name}
+                    loading="lazy"
+                    decoding="async"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setPreviewProduct(product);
+                    }}
+                    sx={{
+                      width: 48,
+                      height: 48,
+                      borderRadius: 2,
+                      objectFit: "cover",
+                      border: "1.5px solid",
+                      borderColor: "divider",
+                      bgcolor: "grey.100",
+                      flexShrink: 0,
+                      cursor: "zoom-in",
+                      transition: "all 0.2s ease",
+                      "&:hover": {
+                        transform: "scale(1.08)",
+                        borderColor: "primary.main",
+                        boxShadow: "0 4px 12px rgba(0,0,0,0.15)",
+                      },
+                    }}
+                  />
+                </Tooltip>
+              ) : (
+                <Box sx={{ width: 40, height: 40, borderRadius: 2, bgcolor: alpha("#1976d2", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "primary.main" }}>
+                  <Barcode size={18} />
+                </Box>
+              )}
+              <Chip label={`${product.quantity} ${product.unit || "UN"}`} size="small" sx={{ fontSize: "0.65rem", height: 20, bgcolor: "action.hover", fontWeight: 700 }} />
             </Box>
-            <Chip label={`${product.quantity} ${product.unit || "UN"}`} size="small" sx={{ fontSize: "0.65rem", height: 20, bgcolor: "action.hover", fontWeight: 700 }} />
-          </Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, mb: 1, color: "text.primary", lineClamp: 2 }}>
-            {product.name}
-          </Typography>
-          <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "primary.main" }}>
-              R$ {((product.price_cents || (product as any).price || 0) / 100).toFixed(2)}
-              <Typography component="span" variant="caption" color="text.primary" sx={{ fontWeight: 600, ml: 0.25 }}>
-                /{product.unit?.toLowerCase() || "un"}
-              </Typography>
+            <Typography variant="body2" sx={{ fontWeight: 700, mb: 1, color: "text.primary", lineClamp: 2 }}>
+              {product.name}
             </Typography>
-            <Box className="add-btn" sx={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px solid", borderColor: "primary.main", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
-              <Plus size={18} />
+            <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "primary.main" }}>
+                R$ {((product.price_cents || (product as any).price || 0) / 100).toFixed(2)}
+                <Typography component="span" variant="caption" color="text.primary" sx={{ fontWeight: 600, ml: 0.25 }}>
+                  /{product.unit?.toLowerCase() || "un"}
+                </Typography>
+              </Typography>
+              <Box className="add-btn" sx={{ width: 28, height: 28, borderRadius: "50%", border: "1.5px solid", borderColor: "primary.main", display: "flex", alignItems: "center", justifyContent: "center", transition: "all 0.2s" }}>
+                <Plus size={18} />
+              </Box>
             </Box>
-          </Box>
-        </Paper>
-      ) : (
-        <Paper
-          elevation={0}
-          onClick={() => onAddItem(product, "product")}
-          sx={{ p: 1.5, borderRadius: 2, cursor: "pointer", display: "flex", alignItems: "center", gap: 2, transition: "all 0.2s", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.main" } }}
-        >
-          <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: alpha("#1976d2", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "primary.main", flexShrink: 0 }}>
-            <Barcode size={18} />
-          </Box>
-          <Typography variant="body2" sx={{ fontWeight: 700, flexGrow: 1 }}>{product.name}</Typography>
-          <Chip label={`${product.quantity} ${product.unit || "UN"}`} size="small" sx={{ fontSize: "0.65rem", height: 18, fontWeight: 700 }} />
-          <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main", minWidth: 80, textAlign: "right" }}>
-            R$ {((product.price_cents || (product as any).price || 0) / 100).toFixed(2)}
-            <Typography component="span" variant="caption" color="text.primary" sx={{ fontWeight: 600, ml: 0.25 }}>/{product.unit?.toLowerCase() || "un"}</Typography>
-          </Typography>
-          <IconButton size="small" color="primary"><Plus size={18} /></IconButton>
-        </Paper>
-      )}
-    </Grid>
-  );
+          </Paper>
+        ) : (
+          <Paper
+            elevation={0}
+            onClick={() => onAddItem(product, "product")}
+            sx={{ p: 1.5, borderRadius: 2, cursor: "pointer", display: "flex", alignItems: "center", gap: 2, transition: "all 0.2s", border: "1px solid", borderColor: "divider", bgcolor: "background.paper", "&:hover": { borderColor: "primary.main" } }}
+          >
+            {primaryPhoto ? (
+              <Tooltip title="Clique para ampliar foto">
+                <Box
+                  component="img"
+                  src={primaryPhoto.photo_url}
+                  alt={product.name}
+                  loading="lazy"
+                  decoding="async"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPreviewProduct(product);
+                  }}
+                  sx={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 1.5,
+                    objectFit: "cover",
+                    border: "1.5px solid",
+                    borderColor: "divider",
+                    bgcolor: "grey.100",
+                    flexShrink: 0,
+                    cursor: "zoom-in",
+                    transition: "all 0.15s ease",
+                    "&:hover": {
+                      transform: "scale(1.1)",
+                      borderColor: "primary.main",
+                    },
+                  }}
+                />
+              </Tooltip>
+            ) : (
+              <Box sx={{ width: 32, height: 32, borderRadius: 1, bgcolor: alpha("#1976d2", 0.08), display: "flex", alignItems: "center", justifyContent: "center", color: "primary.main", flexShrink: 0 }}>
+                <Barcode size={18} />
+              </Box>
+            )}
+            <Typography variant="body2" sx={{ fontWeight: 700, flexGrow: 1 }}>{product.name}</Typography>
+            <Chip label={`${product.quantity} ${product.unit || "UN"}`} size="small" sx={{ fontSize: "0.65rem", height: 18, fontWeight: 700 }} />
+            <Typography variant="body2" sx={{ fontWeight: 800, color: "primary.main", minWidth: 80, textAlign: "right" }}>
+              R$ {((product.price_cents || (product as any).price || 0) / 100).toFixed(2)}
+              <Typography component="span" variant="caption" color="text.primary" sx={{ fontWeight: 600, ml: 0.25 }}>/{product.unit?.toLowerCase() || "un"}</Typography>
+            </Typography>
+            <IconButton size="small" color="primary"><Plus size={18} /></IconButton>
+          </Paper>
+        )}
+      </Grid>
+    );
+  };
 
   const renderAppointment = (apt: Appointment) => {
     const isToday = dayjs(apt.scheduled_at).isSame(dayjs(), "day");
@@ -1246,6 +1317,13 @@ export default function POSCatalogPanel({
         )
       )}
       </Box>
+
+      <ProductPhotosPreviewModal
+        open={previewProduct !== null}
+        onClose={() => setPreviewProduct(null)}
+        product={previewProduct}
+        onAddToCart={(prod) => onAddItem(prod, "product")}
+      />
     </Box>
   );
 }

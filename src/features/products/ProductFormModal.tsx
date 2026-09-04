@@ -7,13 +7,13 @@ import {
   useMediaQuery,
   useTheme,
 } from "@mui/material";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 
-import { createProduct, updateProduct } from "../../api/services/products";
+import { createProduct, updateProduct, uploadProductPhotos } from "../../api/services/products";
 import ProductForm from "./ProductForm";
 import { useToast } from "../../hooks/useToast";
-import type { Product, ProductFormData } from "./types";
+import type { Product, ProductFormData, ProductPhoto } from "./types";
 import { productToFormData } from "./mapper";
 import { DEFAULT_PRODUCT_FORM } from "./constants";
 import { X } from "lucide-react";
@@ -36,6 +36,13 @@ export default function ProductFormModal({
   const toast = useToast();
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [existingPhotos, setExistingPhotos] = useState<ProductPhoto[]>(product?.photos || []);
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
+
+  useEffect(() => {
+    setExistingPhotos(product?.photos || []);
+    setPendingFiles([]);
+  }, [product, open]);
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
@@ -52,6 +59,18 @@ export default function ProductFormModal({
         mode === "create"
           ? await createProduct(data)
           : await updateProduct(product!.id, data);
+
+      if (pendingFiles.length > 0) {
+        try {
+          const uploaded = await uploadProductPhotos(saved.id, pendingFiles);
+          saved.photos = [...(existingPhotos || []), ...uploaded];
+        } catch (photoErr) {
+          console.error(photoErr);
+          toast.error("Produto salvo, mas houve erro ao subir as fotos.");
+        }
+      } else {
+        saved.photos = existingPhotos;
+      }
 
       toast.success(
         mode === "create"
@@ -83,9 +102,9 @@ export default function ProductFormModal({
       slotProps={{
         paper: {
           sx: {
-            width: { xs: "100%", md: showAdditionalInfo ? "85%" : "500px" },
+            width: { xs: "100%", md: showAdditionalInfo ? "85%" : "540px" },
             maxWidth: { xs: "100%", md: "1200px" },
-            minWidth: { xs: "unset", md: showAdditionalInfo ? "750px" : "450px" },
+            minWidth: { xs: "unset", md: showAdditionalInfo ? "750px" : "480px" },
             m: { xs: 0, md: 2 },
             borderRadius: { xs: 0, md: 3 },
             maxHeight: { xs: "100dvh", md: "90vh" },
@@ -125,6 +144,11 @@ export default function ProductFormModal({
           isSubmitting={isSubmitting}
           showAdditionalInfo={showAdditionalInfo}
           setShowAdditionalInfo={setShowAdditionalInfo}
+          productId={product?.id}
+          existingPhotos={existingPhotos}
+          onExistingPhotosChange={setExistingPhotos}
+          pendingFiles={pendingFiles}
+          onPendingFilesChange={setPendingFiles}
         />
       </DialogContent>
     </Dialog>

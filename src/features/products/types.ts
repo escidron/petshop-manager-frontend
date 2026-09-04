@@ -1,3 +1,11 @@
+export type ProductPhoto = {
+  id: number;
+  product_id: number;
+  photo_url: string;
+  is_primary: boolean;
+  created_at: string;
+};
+
 export type Product = {
   id: number;
   name: string;
@@ -21,6 +29,7 @@ export type Product = {
   
   is_active: boolean;
   is_internal_use: boolean;
+  photos?: ProductPhoto[];
 };
 
 export type { ProductFormData } from "./schemas";
