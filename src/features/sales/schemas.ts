@@ -22,7 +22,7 @@ export const SaleItemSchema = z.object({
 
 export const SalePaymentSchema = z.object({
   payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package"]),
-  amount: z.number().min(0.01, "O valor deve ser maior que zero"),
+  amount: z.number().min(0, "O valor deve ser maior ou igual a zero"),
 });
 
 export const SaleCreateSchema = z.object({

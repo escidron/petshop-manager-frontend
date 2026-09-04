@@ -217,11 +217,13 @@ export default function CheckoutModal({
   const canLeaveInComanda = differenceCents === 0 || !!effectiveClientId;
 
   const isCheckoutValid =
-    selectedMethods.length >= 1 &&
-    selectedMethods.every((m) => (methodAmounts[m] || 0) > 0) &&
-    isPositiveDistributed &&
-    isNotExceeded &&
-    canLeaveInComanda;
+    totalCents === 0
+      ? true
+      : selectedMethods.length >= 1 &&
+        selectedMethods.every((m) => (methodAmounts[m] || 0) > 0) &&
+        isPositiveDistributed &&
+        isNotExceeded &&
+        canLeaveInComanda;
 
   const saleMutation = useMutation({
     mutationFn: createSale,
@@ -267,10 +269,13 @@ export default function CheckoutModal({
       ? "multiple"
       : selectedMethods[0];
 
-    const paymentsPayload: SalePayment[] = selectedMethods.map((m) => ({
-      payment_method: m,
-      amount: Number(((methodAmounts[m] || 0) / 100).toFixed(2)),
-    }));
+    const paymentsPayload: SalePayment[] =
+      totalCents === 0
+        ? [{ payment_method: selectedMethods[0] || "other", amount: 0 }]
+        : selectedMethods.map((m) => ({
+            payment_method: m,
+            amount: Number(((methodAmounts[m] || 0) / 100).toFixed(2)),
+          }));
 
     const payload: SaleCreate = {
       client_id: effectiveClientId,
