@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
   Dialog,
@@ -69,6 +70,15 @@ export default function AppointmentModal({
   const { clients, getClients } = useClients();
   const { services, getServices } = useServices();
   const { pets, setClientId, refetchPets, loadedClientId } = useClient(initialClientId);
+  const queryClient = useQueryClient();
+
+  useEffect(() => {
+    if (open) {
+      queryClient.invalidateQueries({ queryKey: ["pets"] });
+      queryClient.invalidateQueries({ queryKey: ["clients"] });
+      refetchPets();
+    }
+  }, [open, queryClient, refetchPets]);
 
   // Sub-modal state
   const [clientModalOpen, setClientModalOpen] = useState(false);
@@ -144,6 +154,7 @@ export default function AppointmentModal({
   };
 
   const handlePetCreated = async (pet: Pet) => {
+    await queryClient.invalidateQueries({ queryKey: ["pets"] });
     await refetchPets();
     setAutoSelectPet({ index: petModal.index, id: pet.id });
   };

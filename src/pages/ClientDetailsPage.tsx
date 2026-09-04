@@ -66,6 +66,9 @@ export default function ClientDetailsPage() {
       setDeleting(true);
       await deletePet(petToDelete.id);
       toast.success("Pet excluído com sucesso");
+      await queryClient.invalidateQueries({ queryKey: ["pets"] });
+      await queryClient.invalidateQueries({ queryKey: ["clients"] });
+      await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       await refetchPets();
       setPetToDelete(null);
     } catch (error: unknown) {
@@ -198,6 +201,8 @@ export default function ClientDetailsPage() {
         client={client}
         onClose={() => setPetModal({ open: false, mode: "create" })}
         onSuccess={async () => {
+          await queryClient.invalidateQueries({ queryKey: ["pets"] });
+          await queryClient.invalidateQueries({ queryKey: ["clients"] });
           await refetchPets();
           setPetModal({ open: false, mode: "create" });
         }}

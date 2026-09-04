@@ -94,7 +94,7 @@ export default function WaitingListForm({
                   const input = state.inputValue.toLowerCase();
                   return options
                     .filter((option) => {
-                      const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                      const clientPets = allPets?.filter(p => p.client_id === option.id && !p.is_deceased) || [];
                       const matchName = option.name.toLowerCase().includes(input);
                       const matchPet = clientPets.some(p => p.name.toLowerCase().includes(input));
                       return matchName || matchPet;
@@ -121,7 +121,7 @@ export default function WaitingListForm({
                   }
                 }}
                 renderOption={(props, option) => {
-                  const clientPets = allPets?.filter(p => p.client_id === option.id) || [];
+                  const clientPets = allPets?.filter(p => p.client_id === option.id && !p.is_deceased) || [];
                   const petsText = clientPets.length > 0 ? clientPets.map(p => p.name).join(", ") : "Sem pets cadastrados";
                   return (
                     <li {...props} key={option.id}>
