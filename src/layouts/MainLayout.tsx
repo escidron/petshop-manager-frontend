@@ -10,6 +10,7 @@ import IconButton from "@mui/material/IconButton";
 import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import useMediaQuery from "@mui/material/useMediaQuery";
+import type { LucideIcon } from "lucide-react";
 import {
   Menu,
   X,
@@ -43,7 +44,7 @@ import PWAInstallModal from "../components/PWAInstallModal";
 interface TopNavItem {
   id: string;
   label: string;
-  icon: React.ReactNode;
+  icon: LucideIcon;
   path: string;
   module: string;
   hideBelow?: "md" | "lg" | "xl";
@@ -53,28 +54,28 @@ const topNavItems: TopNavItem[] = [
   {
     id: "home",
     label: "Início",
-    icon: <Home size={19} />,
+    icon: Home,
     path: "/dashboard",
     module: "dashboard",
   },
   {
     id: "pos",
     label: "Caixa",
-    icon: <ShoppingCart size={19} />,
+    icon: ShoppingCart,
     path: "/pos",
     module: "pos",
   },
   {
     id: "clients",
     label: "Clientes",
-    icon: <Users size={19} />,
+    icon: Users,
     path: "/registration/clients",
     module: "clients",
   },
   {
     id: "pets",
     label: "Pets",
-    icon: <PawPrint size={19} />,
+    icon: PawPrint,
     path: "/registration/pets",
     module: "pets",
     hideBelow: "md",
@@ -82,7 +83,7 @@ const topNavItems: TopNavItem[] = [
   {
     id: "services",
     label: "Serviços",
-    icon: <ClipboardList size={19} />,
+    icon: ClipboardList,
     path: "/registration/services",
     module: "services",
     hideBelow: "md",
@@ -90,7 +91,7 @@ const topNavItems: TopNavItem[] = [
   {
     id: "products",
     label: "Produtos",
-    icon: <Barcode size={19} />,
+    icon: Barcode,
     path: "/registration/products",
     module: "products",
     hideBelow: "xl",
@@ -98,7 +99,7 @@ const topNavItems: TopNavItem[] = [
   {
     id: "packages",
     label: "Pacotes",
-    icon: <ShoppingBag size={19} />,
+    icon: ShoppingBag,
     path: "/registration/packages",
     module: "packages",
     hideBelow: "lg",
@@ -106,7 +107,7 @@ const topNavItems: TopNavItem[] = [
   {
     id: "inventory",
     label: "Estoque",
-    icon: <Package size={19} />,
+    icon: Package,
     path: "/inventory",
     module: "inventory",
     hideBelow: "xl",
@@ -183,13 +184,12 @@ export default function MainLayout() {
           backgroundColor: "white",
           color: "text.primary",
           borderBottom: "1px solid #e2e8f0",
-          zIndex: (theme) => theme.zIndex.drawer + 1,
           pt: "env(safe-area-inset-top, 0px)",
         }}
       >
         <Toolbar
           sx={{
-            minHeight: { xs: 58, sm: 64 },
+            minHeight: { xs: 60, sm: 70 },
             px: { xs: 1.5, sm: 2.5 },
             display: "flex",
             alignItems: "center",
@@ -214,8 +214,8 @@ export default function MainLayout() {
               alt="PetControle"
               sx={{
                 display: { xs: "block", md: "none" },
-                width: 32,
-                height: 32,
+                width: 34,
+                height: 34,
                 borderRadius: 1.5,
               }}
             />
@@ -226,7 +226,7 @@ export default function MainLayout() {
               alt="PetControle"
               sx={{
                 display: { xs: "none", md: "block" },
-                width: 140,
+                width: 145,
               }}
             />
           </Box>
@@ -257,6 +257,8 @@ export default function MainLayout() {
                 xl: "flex",
               };
 
+              const IconComponent = item.icon;
+
               return (
                 <Box
                   key={item.id}
@@ -267,29 +269,29 @@ export default function MainLayout() {
                     flexDirection: "column",
                     alignItems: "center",
                     justifyContent: "center",
-                    background: "none",
+                    background: isActive ? "rgba(49, 52, 133, 0.06)" : "none",
                     border: "none",
                     cursor: "pointer",
-                    px: { xs: 0.6, sm: 0.9, md: 1.1, lg: 1.4 },
-                    py: 0.5,
-                    borderRadius: 2,
-                    minWidth: { xs: 44, sm: 48, md: 54, lg: 60 },
+                    px: { xs: 0.8, sm: 1.1, md: 1.4, lg: 1.75 },
+                    py: { xs: 0.5, sm: 0.7, md: 0.85 },
+                    borderRadius: 2.5,
+                    minWidth: { xs: 48, sm: 56, md: 66, lg: 72 },
                     color: isActive ? "primary.main" : "text.primary",
-                    opacity: isActive ? 1 : 0.65,
-                    gap: "2px",
+                    opacity: isActive ? 1 : 0.7,
+                    gap: "4px",
                     transition: "all 0.15s ease",
                     position: "relative",
                     flexShrink: 0,
                     "&:hover": {
                       opacity: 1,
                       color: "primary.main",
-                      bgcolor: "action.hover",
+                      bgcolor: isActive ? "rgba(49, 52, 133, 0.1)" : "action.hover",
                     },
                     ...(isActive && {
                       "&::after": {
                         content: '""',
                         position: "absolute",
-                        bottom: -4,
+                        bottom: -3,
                         left: "15%",
                         right: "15%",
                         height: "3px",
@@ -299,12 +301,12 @@ export default function MainLayout() {
                     }),
                   }}
                 >
-                  {item.icon}
+                  <IconComponent size={isMobile ? 21 : 23} strokeWidth={isActive ? 2.3 : 1.9} />
                   <Typography
                     sx={{
-                      fontSize: { xs: "0.65rem", sm: "0.72rem" },
-                      fontWeight: isActive ? 800 : 600,
-                      lineHeight: 1,
+                      fontSize: { xs: "0.72rem", sm: "0.8rem", md: "0.85rem" },
+                      fontWeight: isActive ? 700 : 600,
+                      lineHeight: 1.1,
                       letterSpacing: "-0.2px",
                       whiteSpace: "nowrap",
                     }}
@@ -406,7 +408,7 @@ export default function MainLayout() {
             justifyContent: "space-between",
             px: 2,
             py: 1.5,
-            minHeight: 64,
+            minHeight: { xs: 60, sm: 70 },
           }}
         >
           <img
@@ -479,7 +481,7 @@ export default function MainLayout() {
           boxSizing: "border-box",
         }}
       >
-        <Toolbar sx={{ minHeight: { xs: 58, sm: 64 }, height: { xs: 58, sm: 64 }, flexShrink: 0, mb: { xs: 0.5, sm: 1 } }} />
+        <Toolbar sx={{ minHeight: { xs: 60, sm: 70 }, height: { xs: 60, sm: 70 }, flexShrink: 0, mb: { xs: 0.5, sm: 1 } }} />
         <EmailVerificationBanner />
         <PendingWhatsAppBanner />
 
