@@ -117,29 +117,54 @@ export default function FinancialTable({ transactions, isLoading = false }: Prop
                     </TableCell>
                     <TableCell sx={{ fontWeight: 500 }}>{t.client}</TableCell>
                     <TableCell>
-                      <Chip
-                        label={
-                          isPackage
-                            ? "Pacote"
-                            : formatPaymentMethod(t.payment_method)
+                      {(() => {
+                        const salePayments = (t.original as any)?.payments as any[];
+                        if (salePayments && salePayments.length > 1) {
+                          return (
+                            <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+                              <Chip
+                                label="Múltiplo"
+                                size="small"
+                                sx={{
+                                  fontSize: "0.65rem",
+                                  fontWeight: 700,
+                                  bgcolor: "#F3E8FF",
+                                  color: "#7E22CE",
+                                  width: "fit-content",
+                                }}
+                              />
+                              <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.7rem" }}>
+                                {salePayments.map((p) => `${formatPaymentMethod(p.payment_method)}: R$ ${Number(p.amount).toFixed(2)}`).join(" • ")}
+                              </Typography>
+                            </Box>
+                          );
                         }
-                        size="small"
-                        variant="filled"
-                        sx={{
-                          fontSize: "0.65rem",
-                          fontWeight: 700,
-                          bgcolor: isPackage
-                            ? "success.light"
-                            : t.payment_method === "Pendente"
-                              ? "error.light"
-                              : "action.selected",
-                          color: isPackage
-                            ? "success.contrastText"
-                            : t.payment_method === "Pendente"
-                              ? "error.contrastText"
-                              : "text.primary",
-                        }}
-                      />
+                        return (
+                          <Chip
+                            label={
+                              isPackage
+                                ? "Pacote"
+                                : formatPaymentMethod(t.payment_method)
+                            }
+                            size="small"
+                            variant="filled"
+                            sx={{
+                              fontSize: "0.65rem",
+                              fontWeight: 700,
+                              bgcolor: isPackage
+                                ? "success.light"
+                                : t.payment_method === "Pendente"
+                                  ? "error.light"
+                                  : "action.selected",
+                              color: isPackage
+                                ? "success.contrastText"
+                                : t.payment_method === "Pendente"
+                                  ? "error.contrastText"
+                                  : "text.primary",
+                            }}
+                          />
+                        );
+                      })()}
                     </TableCell>
                     <TableCell>
                       <Typography variant="body2" noWrap sx={{ maxWidth: 300 }}>

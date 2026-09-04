@@ -1,4 +1,4 @@
-import type { Product, ProductFormData } from "../../features/products/types";
+import type { Product, ProductFormData, ProductPhoto } from "../../features/products/types";
 import apiClient from "../apiClient";
 
 
@@ -47,6 +47,45 @@ export const updateProduct= async (
 
 export const deleteProduct = async (productId: number) => {
   await apiClient.delete(`/api/v1/products/${productId}`);
+};
+
+export const uploadProductPhotos = async (
+  productId: number,
+  files: File[]
+): Promise<ProductPhoto[]> => {
+  const formData = new FormData();
+  files.forEach((file) => {
+    formData.append("files", file);
+  });
+
+  const response = await apiClient.post<ProductPhoto[]>(
+    `/api/v1/products/${productId}/photos`,
+    formData,
+    {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+      timeout: 60000,
+    }
+  );
+  return response.data;
+};
+
+export const deleteProductPhoto = async (
+  productId: number,
+  photoId: number
+): Promise<void> => {
+  await apiClient.delete(`/api/v1/products/${productId}/photos/${photoId}`);
+};
+
+export const setPrimaryProductPhoto = async (
+  productId: number,
+  photoId: number
+): Promise<ProductPhoto> => {
+  const response = await apiClient.patch<ProductPhoto>(
+    `/api/v1/products/${productId}/photos/${photoId}/set-primary`
+  );
+  return response.data;
 };
 
 export const exportProducts = async (): Promise<Blob> => {

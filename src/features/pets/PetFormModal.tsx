@@ -19,7 +19,9 @@ import {
   transferClientPackage,
   deactivateClientPackage,
 } from "../../api/services/client_packages";
-import { useClients } from "../../hooks/useClients";
+import { useClients, CLIENTS_QUERY_KEY } from "../../hooks/useClients";
+import { PETS_QUERY_KEY } from "../../hooks/usePets";
+import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "../../hooks/useToast";
 import type { Pet, PetFormData } from "./types";
 import { petToFormData } from "./mapper";
@@ -64,6 +66,7 @@ export default function PetFormModal({
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { clients } = useClients();
+  const queryClient = useQueryClient();
 
   // Estados para transferência de pacotes
   const [showTransferDialog, setShowTransferDialog] = useState(false);
@@ -86,6 +89,14 @@ export default function PetFormModal({
       mode === "create"
         ? await createPet(payload)
         : await updatePet(pet!.id, payload);
+
+    await queryClient.invalidateQueries({ queryKey: PETS_QUERY_KEY });
+    await queryClient.invalidateQueries({ queryKey: CLIENTS_QUERY_KEY });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+    await queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+    await queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+    await queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+    await queryClient.invalidateQueries({ queryKey: ["client-packages"] });
 
     toast.success(
       mode === "create"

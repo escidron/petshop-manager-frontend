@@ -22,6 +22,8 @@ import { useEffect } from "react";
 import { PRODUCT_CATEGORIES, PRODUCT_UNITS } from "./constants";
 import { formatBRLFromCents } from "../../utils/masks";
 import { useSuppliers } from "../../hooks/useSuppliers";
+import ProductPhotoUploader from "./ProductPhotoUploader";
+import type { ProductPhoto } from "./types";
 
 type Props = {
   defaultValues?: Partial<ProductFormData>;
@@ -29,6 +31,11 @@ type Props = {
   isSubmitting?: boolean;
   showAdditionalInfo: boolean;
   setShowAdditionalInfo: (value: boolean) => void;
+  productId?: number;
+  existingPhotos?: ProductPhoto[];
+  onExistingPhotosChange?: (photos: ProductPhoto[]) => void;
+  pendingFiles?: File[];
+  onPendingFilesChange?: (files: File[]) => void;
 };
 
 const ProductForm = ({
@@ -37,6 +44,11 @@ const ProductForm = ({
   isSubmitting = false,
   showAdditionalInfo,
   setShowAdditionalInfo,
+  productId,
+  existingPhotos = [],
+  onExistingPhotosChange = () => {},
+  pendingFiles = [],
+  onPendingFilesChange = () => {},
 }: Props) => {
   const { suppliers, getSuppliers } = useSuppliers();
 
@@ -106,6 +118,15 @@ const ProductForm = ({
                 Campos obrigatórios
               </Typography>
             </Box>
+
+            <ProductPhotoUploader
+              productId={productId}
+              existingPhotos={existingPhotos}
+              onExistingPhotosChange={onExistingPhotosChange}
+              pendingFiles={pendingFiles}
+              onPendingFilesChange={onPendingFilesChange}
+              disabled={isSubmitting}
+            />
 
             <FormControl fullWidth>
               <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>

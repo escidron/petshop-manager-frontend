@@ -187,7 +187,7 @@ export default function AppointmentForm({
     if (watchedClientId && watchedClientId !== populatedClientIdRef.current && watchedClientId === loadedClientId) {
       populatedClientIdRef.current = watchedClientId;
       if (mode === "create") {
-        const clientPets = pets?.filter(p => p.client_id === watchedClientId) || [];
+        const clientPets = pets?.filter(p => p.client_id === watchedClientId && !p.is_deceased) || [];
         
         if (autoSelectPet) {
           const selectedPetIndex = clientPets.findIndex(p => p.id === autoSelectPet.id);
@@ -214,7 +214,7 @@ export default function AppointmentForm({
   }, [watchedClientId, setClientId]);
 
   useEffect(() => {
-    if (selectedPet && fields.length > 0 && !getValues("items.0.pet_id")) {
+    if (selectedPet && !selectedPet.is_deceased && fields.length > 0 && !getValues("items.0.pet_id")) {
       setValue("items.0.pet_id", selectedPet.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -356,7 +356,7 @@ export default function AppointmentForm({
                     const input = state.inputValue.toLowerCase();
                     return options
                       .filter((option) => {
-                        const clientPets = allPets?.filter((p) => p.client_id === option.id) || [];
+                        const clientPets = allPets?.filter((p) => p.client_id === option.id && !p.is_deceased) || [];
                         const matchName = option.name.toLowerCase().includes(input);
                         const matchPet = clientPets.some((p) => p.name.toLowerCase().includes(input));
                         return matchName || matchPet;
@@ -396,7 +396,7 @@ export default function AppointmentForm({
                     },
                   }}
                   renderOption={(props, option) => {
-                    const clientPets = allPets?.filter((p) => p.client_id === option.id) || [];
+                    const clientPets = allPets?.filter((p) => p.client_id === option.id && !p.is_deceased) || [];
                     const petsText =
                       clientPets.length > 0
                         ? clientPets.map((p) => p.name).join(", ")

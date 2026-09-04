@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import { Typography, Chip, Skeleton, useMediaQuery } from "@mui/material";
+import { Typography, Chip, Skeleton, useMediaQuery, Tooltip } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { formatBRLFromCents } from "../../utils/masks";
 import type { Product } from "./types";
+import ProductPhotosPreviewModal from "./ProductPhotosPreviewModal";
 
 interface TablePaginationActionsProps {
   count: number;
@@ -106,6 +107,7 @@ export default function ProductsTable({
 }: Props) {
   const [page, setPage] = React.useState(0);
   const [rowsPerPage, setRowsPerPage] = React.useState(10);
+  const [previewProduct, setPreviewProduct] = React.useState<Product | null>(null);
 
   const handleChangePage = (
     _event: React.MouseEvent<HTMLButtonElement> | null,
@@ -181,38 +183,94 @@ export default function ProductsTable({
                 },
               }}
             >
-              {/* Linha 1: Nome e Preço */}
-              <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1 }}>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography
-                    variant="body1"
-                    fontWeight={700}
-                    color="text.primary"
-                    sx={{ fontSize: "0.98rem", lineHeight: 1.3 }}
-                  >
-                    {product.name}
-                  </Typography>
-                  {product.sku && (
-                    <Typography
-                      variant="caption"
-                      color="text.secondary"
-                      sx={{ display: "block", mt: 0.2 }}
-                    >
-                      SKU: {product.sku}
-                    </Typography>
-                  )}
-                </Box>
+              {/* Linha 1: Foto + Nome e Preço */}
+              {(() => {
+                const primaryPhoto = product.photos?.find((p) => p.is_primary) || product.photos?.[0];
+                return (
+                  <Box sx={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 1.5 }}>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, minWidth: 0, flex: 1 }}>
+                      {primaryPhoto ? (
+                        <Tooltip title="Clique para ampliar foto e ver galeria">
+                          <Box
+                            component="img"
+                            src={primaryPhoto.photo_url}
+                            alt={product.name}
+                            loading="lazy"
+                            decoding="async"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewProduct(product);
+                            }}
+                            sx={{
+                              width: 44,
+                              height: 44,
+                              borderRadius: 1.75,
+                              objectFit: "cover",
+                              border: "1.5px solid",
+                              borderColor: "divider",
+                              flexShrink: 0,
+                              cursor: "zoom-in",
+                              transition: "transform 0.15s ease",
+                              "&:hover": {
+                                transform: "scale(1.08)",
+                                borderColor: "primary.main",
+                              },
+                            }}
+                          />
+                        </Tooltip>
+                      ) : (
+                        <Box
+                          sx={{
+                            width: 44,
+                            height: 44,
+                            borderRadius: 1.75,
+                            bgcolor: "grey.100",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            border: "1px solid",
+                            borderColor: "divider",
+                            flexShrink: 0,
+                            color: "text.disabled",
+                          }}
+                        >
+                          <Package size={20} />
+                        </Box>
+                      )}
+                      <Box sx={{ minWidth: 0, flex: 1 }}>
+                        <Typography
+                          variant="body1"
+                          fontWeight={700}
+                          color="text.primary"
+                          sx={{ fontSize: "0.98rem", lineHeight: 1.3 }}
+                          noWrap
+                        >
+                          {product.name}
+                        </Typography>
+                        {product.sku && (
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{ display: "block", mt: 0.2 }}
+                          >
+                            SKU: {product.sku}
+                          </Typography>
+                        )}
+                      </Box>
+                    </Box>
 
-                {/* Preço em destaque */}
-                <Typography
-                  variant="body1"
-                  fontWeight={800}
-                  color="primary.main"
-                  sx={{ fontSize: "1.05rem", whiteSpace: "nowrap" }}
-                >
-                  R$ {formatBRLFromCents(product.price_cents) ?? "-"}
-                </Typography>
-              </Box>
+                    {/* Preço em destaque */}
+                    <Typography
+                      variant="body1"
+                      fontWeight={800}
+                      color="primary.main"
+                      sx={{ fontSize: "1.05rem", whiteSpace: "nowrap" }}
+                    >
+                      R$ {formatBRLFromCents(product.price_cents) ?? "-"}
+                    </Typography>
+                  </Box>
+                );
+              })()}
 
               {/* Linha 2: Categoria e Estoque */}
               <Box
@@ -365,15 +423,22 @@ export default function ProductsTable({
             </Box>
           </Paper>
         )}
+
+        <ProductPhotosPreviewModal
+          open={previewProduct !== null}
+          onClose={() => setPreviewProduct(null)}
+          product={previewProduct}
+        />
       </Box>
     );
   }
 
   return (
-    <TableContainer
-      component={Paper}
-      sx={{ borderRadius: 2, overflow: "hidden" }}
-    >
+    <>
+      <TableContainer
+        component={Paper}
+        sx={{ borderRadius: 2, overflow: "hidden" }}
+      >
         <Table sx={{ minWidth: 500 }} aria-label="products table">
           <TableHead>
             <TableRow>
@@ -491,7 +556,67 @@ export default function ProductsTable({
                 <TableCell component="th" scope="row">
                   {row.sku}
                 </TableCell>
-                <TableCell align="left">{row.name ?? "-"}</TableCell>
+                <TableCell align="left">
+                  {(() => {
+                    const primaryPhoto = row.photos?.find((p) => p.is_primary) || row.photos?.[0];
+                    return (
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+                        {primaryPhoto ? (
+                          <Tooltip title="Clique para ampliar foto e ver galeria">
+                            <Box
+                              component="img"
+                              src={primaryPhoto.photo_url}
+                              alt={row.name}
+                              loading="lazy"
+                              decoding="async"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setPreviewProduct(row);
+                              }}
+                              sx={{
+                                width: 38,
+                                height: 38,
+                                borderRadius: 1.5,
+                                objectFit: "cover",
+                                border: "1.5px solid",
+                                borderColor: "divider",
+                                flexShrink: 0,
+                                cursor: "zoom-in",
+                                transition: "all 0.15s ease",
+                                "&:hover": {
+                                  transform: "scale(1.15)",
+                                  borderColor: "primary.main",
+                                  boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+                                },
+                              }}
+                            />
+                          </Tooltip>
+                        ) : (
+                          <Box
+                            sx={{
+                              width: 38,
+                              height: 38,
+                              borderRadius: 1.5,
+                              bgcolor: "grey.100",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              border: "1px solid",
+                              borderColor: "divider",
+                              flexShrink: 0,
+                              color: "text.disabled",
+                            }}
+                          >
+                            <Package size={18} />
+                          </Box>
+                        )}
+                        <Typography variant="body2" fontWeight={600} color="text.primary">
+                          {row.name ?? "-"}
+                        </Typography>
+                      </Box>
+                    );
+                  })()}
+                </TableCell>
                 <TableCell align="left">{row.category ?? "-"}</TableCell>
                 <TableCell align="left">
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
@@ -590,6 +715,13 @@ export default function ProductsTable({
           </TableFooter>
         </Table>
 
-    </TableContainer>
+      </TableContainer>
+
+      <ProductPhotosPreviewModal
+        open={previewProduct !== null}
+        onClose={() => setPreviewProduct(null)}
+        product={previewProduct}
+      />
+    </>
   );
 }

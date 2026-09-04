@@ -219,10 +219,13 @@ export default function AppointmentMobileFlow({
   // Client's pets
   const currentClientPets = useMemo(() => {
     if (!watchedClientId) return [];
+    if (loadedClientId === watchedClientId) {
+      return pets.filter((p) => p.client_id === watchedClientId && !p.is_deceased);
+    }
     const clientPets = allPets.filter((p) => p.client_id === watchedClientId && !p.is_deceased);
     if (clientPets.length > 0) return clientPets;
     return pets.filter((p) => p.client_id === watchedClientId && !p.is_deceased);
-  }, [allPets, pets, watchedClientId]);
+  }, [allPets, pets, watchedClientId, loadedClientId]);
 
   // Auto-populate all client pets when client is selected in create mode
   const populatedClientIdRef = useRef<number | undefined>(defaultValues?.client_id);

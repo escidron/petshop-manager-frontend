@@ -108,9 +108,9 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
               </Paper>
               <Paper sx={{ p: 2, display: "flex", alignItems: "center", gap: 1.5 }}>
                 <ShoppingCart size={20} color="gray" />
-                <Box>
+                <Box sx={{ flex: 1 }}>
                   <Typography variant="caption" color="text.disabled" fontWeight={600}>STATUS / PAGAMENTO</Typography>
-                  <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                  <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: "wrap" }}>
                     <Chip
                       label={sale.status === "completed" ? "Finalizada" : "Cancelada"}
                       color={sale.status === "completed" ? "success" : "error"}
@@ -121,6 +121,19 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                       ({formatPaymentMethod(sale.payment_method)})
                     </Typography>
                   </Box>
+                  {sale.payments && sale.payments.length > 1 && (
+                    <Box sx={{ mt: 0.75, display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {sale.payments.map((p) => (
+                        <Chip
+                          key={p.id ?? p.payment_method}
+                          size="small"
+                          variant="outlined"
+                          label={`${formatPaymentMethod(p.payment_method)}: R$ ${p.amount.toFixed(2)}`}
+                          sx={{ fontSize: "0.72rem", height: 20, fontWeight: 600 }}
+                        />
+                      ))}
+                    </Box>
+                  )}
                 </Box>
               </Paper>
             </Box>

@@ -29,6 +29,7 @@ import {
   listClientPackagesByPet,
   listClientPackagesByClient,
 } from "../../api/services/client_packages";
+import { fetchClientById } from "../../api/services/clients";
 import { useToast } from "../../hooks/useToast";
 import {
   CalendarCheck,
@@ -119,6 +120,15 @@ const AppointmentDetailsModal = ({
     queryFn: () => listClientPackagesByClient(appointment.client.id),
     enabled: open && !!appointment?.client?.id,
   });
+
+  // Fetch full client details (to guarantee full details such as address even if loaded from older cache or summary)
+  const { data: fullClient } = useQuery({
+    queryKey: ["client", appointment?.client?.id],
+    queryFn: () => fetchClientById(appointment.client.id),
+    enabled: open && !!appointment?.client?.id,
+  });
+
+  const client = fullClient || appointment.client;
 
   const availablePackages = useMemo(() => {
     return clientPackages
@@ -769,7 +779,7 @@ const AppointmentDetailsModal = ({
               Tutor
             </Typography>
             <Box sx={{ mt: 1, width: "100%", minWidth: 0 }}>
-              <ClientePersonalInfo client={appointment.client} />
+              <ClientePersonalInfo client={client} variant="appointment" />
             </Box>
           </Box>
 

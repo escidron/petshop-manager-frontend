@@ -14,6 +14,12 @@ export function useClient(initialClientId?: number) {
   const [loadedClientId, setLoadedClientId] = useState<number | undefined>(initialClientId);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    if (initialClientId !== undefined) {
+      setClientId(initialClientId);
+    }
+  }, [initialClientId]);
+
   const fetchClient = useCallback(async () => {
     if (!clientId) return;
 

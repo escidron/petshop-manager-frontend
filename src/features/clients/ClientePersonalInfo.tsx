@@ -8,6 +8,7 @@ import {
   Facebook,
   User,
   Pencil,
+  ExternalLink,
 } from "lucide-react";
 import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip } from "@mui/material";
 import type { Client } from "./types";
@@ -17,6 +18,7 @@ import { isoToBrDate } from "../../utils/formatDates";
 type Props = {
   client: Client;
   onEdit?: () => void;
+  variant?: "full" | "appointment";
 };
 
 const InfoItem = ({
@@ -32,19 +34,27 @@ const InfoItem = ({
 }) => {
   if (!value) return null;
   return (
-    <Box sx={{ display: "flex", gap: 1.5, mb: 1.5 }}>
-      <Box sx={{ color: "primary.main", mt: 0.5 }}>
+    <Box sx={{ display: "flex", gap: 1.2, mb: 1.5, minWidth: 0 }}>
+      <Box sx={{ color: "primary.main", mt: 0.25, flexShrink: 0 }}>
         <Icon size={18} />
       </Box>
-      <Box>
-        <Typography variant="caption" color="text.disabled" sx={{ display: "block", lineHeight: 1 }}>
+      <Box sx={{ minWidth: 0, flex: 1, overflow: "hidden" }}>
+        <Typography variant="caption" color="text.disabled" sx={{ display: "block", lineHeight: 1, mb: 0.25 }}>
           {label}
         </Typography>
-        <Typography variant="body2" fontWeight={500} color="text.primary">
+        <Typography
+          variant="body2"
+          fontWeight={500}
+          color="text.primary"
+          sx={{
+            wordBreak: "break-word",
+            overflowWrap: "anywhere",
+          }}
+        >
           {value}
         </Typography>
         {secondaryValue && (
-          <Typography variant="caption" color="text.secondary">
+          <Typography variant="caption" color="text.secondary" sx={{ wordBreak: "break-word" }}>
             {secondaryValue}
           </Typography>
         )}
@@ -53,50 +63,69 @@ const InfoItem = ({
   );
 };
 
-const ClientePersonalInfo = ({ client, onEdit }: Props) => {
+const ClientePersonalInfo = ({
+  client,
+  onEdit,
+  variant = "full",
+}: Props) => {
   const formatDocument = (doc?: string | null, type?: string | null) => {
     if (!doc) return null;
     return type === "CPF" ? maskCpf(doc) : maskCnpj(doc);
   };
 
-  const getFullAddress = () => {
+  const getSingleLineAddress = () => {
+    const parts: string[] = [];
+
+    if (client.street) {
+      let streetPart = client.street;
+      if (client.number) {
+        streetPart += `, nº ${client.number}`;
+      }
+      parts.push(streetPart);
+    } else if (client.number) {
+      parts.push(`nº ${client.number}`);
+    }
+
+    if (client.complement) {
+      parts.push(client.complement);
+    }
+
+    if (client.neighborhood) {
+      parts.push(client.neighborhood);
+    }
+
+    if (client.city) {
+      let cityState = client.city;
+      if (client.state) {
+        cityState += ` - ${client.state}`;
+      }
+      parts.push(cityState);
+    } else if (client.state) {
+      parts.push(client.state);
+    }
+
+    if (client.cep) {
+      parts.push(`CEP: ${maskCep(client.cep)}`);
+    }
+
+    if (parts.length === 0) return null;
+    return parts.join(", ");
+  };
+
+  const getMapsQuery = () => {
     const parts = [
       client.street,
       client.number,
-      client.complement,
       client.neighborhood,
       client.city,
-      client.state ? ` - ${client.state}` : "",
-      client.cep ? `(CEP: ${maskCep(client.cep)})` : "",
-    ];
-    const filtered = parts.filter(Boolean);
-    if (filtered.length === 0) return null;
-    
-    return (
-      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
-        <Typography variant="body2" color="text.primary" fontWeight={600}>
-          {client.street}{client.number ? `, ${client.number}` : ""}
-        </Typography>
-        
-        {client.complement && (
-          <Typography variant="body2" color="text.primary">
-            {client.complement}
-          </Typography>
-        )}
-
-        <Typography variant="body2" color="text.primary">
-          {client.neighborhood ? `${client.neighborhood}, ` : ""}
-          {client.city}{client.state ? ` - ${client.state}` : ""}
-        </Typography>
-
-        {client.cep && (
-          <Typography variant="caption" color="text.primary" sx={{ mt: 0.25, fontWeight: 500 }}>
-            CEP: {maskCep(client.cep)}
-          </Typography>
-        )}
-      </Box>
-    );
+      client.state,
+      client.cep,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(", ") : null;
   };
+
+  const singleLineAddress = getSingleLineAddress();
+  const mapsQuery = getMapsQuery();
 
   const hasContact = !!(
     client.email ||
@@ -104,14 +133,232 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
     client.phone_secondary ||
     client.phone_tertiary
   );
+
+  // Componente da linha única de endereço compartilhado entre ambos os modos
+  const renderSingleLineAddressRow = (borderStyle: "dashed" | "solid" = "dashed") => {
+    if (!singleLineAddress) return null;
+    return (
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: 1.2,
+          mt: 1.5,
+          pt: 1.25,
+          borderTop: `1px ${borderStyle}`,
+          borderColor: "divider",
+          minWidth: 0,
+        }}
+      >
+        <Box sx={{ color: "primary.main", display: "flex", alignItems: "center", flexShrink: 0 }}>
+          <MapPin size={17} />
+        </Box>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{
+            minWidth: 0,
+            flex: 1,
+            lineHeight: 1.4,
+            fontSize: "0.85rem",
+            wordBreak: "break-word",
+          }}
+        >
+          <Box component="span" fontWeight={600} color="text.primary">
+            Endereço:{" "}
+          </Box>
+          {singleLineAddress}
+        </Typography>
+        {mapsQuery && (
+          <Tooltip title="Abrir no Google Maps">
+            <IconButton
+              component="a"
+              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              size="small"
+              sx={{
+                color: "primary.main",
+                bgcolor: "grey.50",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: 1.5,
+                p: 0.5,
+                flexShrink: 0,
+                "&:hover": { bgcolor: "grey.100" },
+              }}
+            >
+              <ExternalLink size={14} />
+            </IconButton>
+          </Tooltip>
+        )}
+      </Box>
+    );
+  };
+
+  // MODO AGENDAMENTO: Exibe somente nome, contato (email e telefones) e endereço em uma linha no rodapé
+  if (variant === "appointment") {
+    return (
+      <Paper
+        elevation={0}
+        sx={{
+          p: { xs: 1.5, sm: 2 },
+          borderRadius: 3,
+          border: "1px solid",
+          borderColor: "divider",
+          width: "100%",
+          minWidth: 0,
+        }}
+      >
+        {/* Header com dados básicos e botão WhatsApp */}
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            gap: 1,
+            mb: hasContact || singleLineAddress ? 1.5 : 0,
+          }}
+        >
+          <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", minWidth: 0, flex: 1 }}>
+            <Box
+              sx={{
+                width: { xs: 38, sm: 44 },
+                height: { xs: 38, sm: 44 },
+                borderRadius: "10px",
+                bgcolor: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                color: "white",
+                flexShrink: 0,
+              }}
+            >
+              <User size={20} />
+            </Box>
+            <Box sx={{ minWidth: 0, flex: 1 }}>
+              <Typography
+                variant="h6"
+                fontWeight={700}
+                color="text.primary"
+                noWrap
+                sx={{
+                  fontSize: { xs: "0.95rem", sm: "1.1rem" },
+                  lineHeight: 1.2,
+                }}
+              >
+                {client.name}
+              </Typography>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.25 }}>
+                <Chip
+                  label={client.is_active ? "Ativo" : "Inativo"}
+                  size="small"
+                  sx={{
+                    bgcolor: client.is_active ? "success.lighter" : "error.lighter",
+                    color: client.is_active ? "success.dark" : "error.dark",
+                    fontWeight: 600,
+                    fontSize: "0.65rem",
+                    height: "18px",
+                  }}
+                />
+              </Box>
+            </Box>
+          </Box>
+
+          {client.phone && (
+            <Button
+              variant="outlined"
+              size="small"
+              color="success"
+              startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 15, height: 15 }} />}
+              onClick={() => {
+                const cleanPhone = client.phone!.replace(/\D/g, "");
+                const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
+                window.open(`https://wa.me/${phoneWithCountry}`, "_blank");
+              }}
+              sx={{
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.75rem",
+                height: 30,
+                px: 1.5,
+                borderColor: "success.light",
+                color: "success.main",
+                flexShrink: 0,
+                "&:hover": {
+                  borderColor: "success.dark",
+                },
+              }}
+            >
+              WhatsApp
+            </Button>
+          )}
+        </Box>
+
+        {/* Linha de contatos (E-mail, Principal, Secundário, Terciário) */}
+        {hasContact && (
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: { xs: 2, sm: 3.5 },
+              alignItems: "flex-start",
+              pt: 1.5,
+              borderTop: "1px solid",
+              borderColor: "divider",
+            }}
+          >
+            {client.email && (
+              <InfoItem icon={Mail} label="E-mail" value={client.email} />
+            )}
+            {client.phone && (
+              <InfoItem icon={Phone} label="Principal" value={maskPhone(client.phone)} />
+            )}
+            {client.phone_secondary && (
+              <InfoItem
+                icon={Phone}
+                label={client.phone_secondary_name || "Contato 2"}
+                value={maskPhone(client.phone_secondary)}
+              />
+            )}
+            {client.phone_tertiary && (
+              <InfoItem
+                icon={Phone}
+                label={client.phone_tertiary_name || "Contato 3"}
+                value={maskPhone(client.phone_tertiary)}
+              />
+            )}
+          </Box>
+        )}
+
+        {/* Linha única de endereço no final */}
+        {renderSingleLineAddressRow(hasContact ? "dashed" : "solid")}
+      </Paper>
+    );
+  }
+
+  // MODO COMPLETO (Usado na página de detalhes do cliente)
   const hasPersonal = !!(client.document || client.birth_date);
   const hasSocial = !!(client.instagram || client.facebook);
-  const fullAddress = getFullAddress();
-  const hasAddress = !!fullAddress;
-  const hasAnyDetails = hasContact || hasPersonal || hasSocial || hasAddress;
+  const hasGridSections = hasContact || hasPersonal || hasSocial;
+
+  // Calcula tamanho das colunas do Grid (12, 6 ou 4 dependendo de quantas seções existem)
+  const activeGridCount = [hasContact, hasPersonal, hasSocial].filter(Boolean).length;
+  const colSize = activeGridCount === 1 ? 12 : activeGridCount === 2 ? 6 : 4;
 
   return (
-    <Paper elevation={0} sx={{ p: { xs: 1.5, sm: 2.5 }, borderRadius: 3, border: "1px solid", borderColor: "divider", width: "100%", minWidth: 0 }}>
+    <Paper
+      elevation={0}
+      sx={{
+        p: { xs: 1.5, sm: 2.5 },
+        borderRadius: 3,
+        border: "1px solid",
+        borderColor: "divider",
+        width: "100%",
+        minWidth: 0,
+      }}
+    >
       {/* Header */}
       <Box
         sx={{
@@ -119,7 +366,7 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
           justifyContent: "space-between",
           alignItems: "center",
           gap: 1,
-          mb: hasAnyDetails ? { xs: 1.5, sm: 2 } : 0,
+          mb: hasGridSections || singleLineAddress ? { xs: 1.5, sm: 2 } : 0,
         }}
       >
         <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", minWidth: 0, flex: 1 }}>
@@ -221,11 +468,12 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
         </Box>
       </Box>
 
-      {hasAnyDetails && (
+      {/* Grid com Contato, Dados Pessoais e Redes Sociais */}
+      {hasGridSections && (
         <Grid container spacing={{ xs: 2, md: 3 }}>
           {/* Coluna 1: Contato */}
           {hasContact && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: colSize }}>
               <Typography
                 variant="subtitle2"
                 fontWeight={700}
@@ -257,7 +505,7 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
 
           {/* Coluna 2: Dados Pessoais */}
           {hasPersonal && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: colSize }}>
               <Typography
                 variant="subtitle2"
                 fontWeight={700}
@@ -286,7 +534,7 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
 
           {/* Coluna 3: Redes Sociais */}
           {hasSocial && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
+            <Grid size={{ xs: 12, sm: 6, md: colSize }}>
               <Typography
                 variant="subtitle2"
                 fontWeight={700}
@@ -316,33 +564,11 @@ const ClientePersonalInfo = ({ client, onEdit }: Props) => {
               </Box>
             </Grid>
           )}
-
-          {/* Coluna 4: Endereço */}
-          {hasAddress && (
-            <Grid size={{ xs: 12, sm: 6, md: 4 }}>
-              <Typography
-                variant="subtitle2"
-                fontWeight={700}
-                sx={{
-                  mb: 1.5,
-                  textTransform: "uppercase",
-                  fontSize: "0.7rem",
-                  letterSpacing: 1,
-                  color: "text.disabled",
-                }}
-              >
-                Endereço
-              </Typography>
-              <Box sx={{ display: "flex", gap: 1.5 }}>
-                <Box sx={{ color: "primary.main", mt: 0.5 }}>
-                  <MapPin size={18} />
-                </Box>
-                {fullAddress}
-              </Box>
-            </Grid>
-          )}
         </Grid>
       )}
+
+      {/* Endereço em uma linha única no final também na tela de detalhes do cliente */}
+      {renderSingleLineAddressRow(hasGridSections ? "dashed" : "solid")}
     </Paper>
   );
 };

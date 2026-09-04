@@ -130,7 +130,11 @@ export default function WaitingListMobileFlow({
 
   const currentClientPets = useMemo(() => {
     if (!watchedClientId) return [];
-    return allPets?.filter((p) => p.client_id === watchedClientId) || pets || [];
+    return (
+      allPets?.filter((p) => p.client_id === watchedClientId && !p.is_deceased) ||
+      pets?.filter((p) => !p.is_deceased) ||
+      []
+    );
   }, [watchedClientId, allPets, pets]);
 
   // When client changes in create mode, auto-populate all pets if items are empty/unconfigured
@@ -156,7 +160,8 @@ export default function WaitingListMobileFlow({
     onClientIdChange(client.id);
     setStep1Error(null);
 
-    const clientPets = allPets?.filter((p) => p.client_id === client.id) || [];
+    const clientPets =
+      allPets?.filter((p) => p.client_id === client.id && !p.is_deceased) || [];
     if (clientPets.length > 0) {
       const newItems = clientPets.map((p) => ({
         pet_id: p.id,

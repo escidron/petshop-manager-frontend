@@ -77,7 +77,12 @@ export default function WaitingListPetItem({
           render={({ field }) => {
             const selectedPetIds =
               items?.map((i) => i.pet_id).filter((id) => id && id !== field.value) ?? [];
-            const availablePets = pets?.filter((pet) => !selectedPetIds.includes(pet.id)) ?? [];
+            const availablePets =
+              pets?.filter(
+                (pet) =>
+                  !selectedPetIds.includes(pet.id) &&
+                  (!pet.is_deceased || pet.id === field.value)
+              ) ?? [];
             return (
               <Autocomplete<Pet>
                 sx={{ flex: 1 }}

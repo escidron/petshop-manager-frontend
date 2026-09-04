@@ -52,7 +52,7 @@ export default function ClientPickerDrawer({
     return clients.filter((c) => {
       const matchName = c.name.toLowerCase().includes(term);
       const matchPhone = c.phone ? c.phone.replace(/\D/g, "").includes(term) : false;
-      const clientPets = allPets.filter((p) => p.client_id === c.id);
+      const clientPets = allPets.filter((p) => p.client_id === c.id && !p.is_deceased);
       const matchPet = clientPets.some((p) => p.name.toLowerCase().includes(term));
       return matchName || matchPhone || matchPet;
     });
@@ -165,7 +165,7 @@ export default function ClientPickerDrawer({
           <List disablePadding sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
             {filteredClients.map((client) => {
               const isSelected = client.id === selectedClientId;
-              const clientPets = allPets.filter((p) => p.client_id === client.id);
+              const clientPets = allPets.filter((p) => p.client_id === client.id && !p.is_deceased);
 
               return (
                 <ListItemButton
