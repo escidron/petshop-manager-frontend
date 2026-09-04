@@ -1198,6 +1198,10 @@ export default function POSInterface() {
           totalAmount={cartTotal - discountAmount}
           discountAmount={discountAmount}
           clientId={selectedClientId}
+          clientName={selectedClient?.name}
+          clients={clients}
+          allPets={allPets}
+          onSelectClient={(id) => setSelectedClientId(id)}
           appointmentId={selectedAppointmentId}
           comandaId={activeComandaId}
           cashRegisterId={selectedRegisterId}

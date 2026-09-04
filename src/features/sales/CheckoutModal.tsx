@@ -5,9 +5,6 @@ import {
   DialogActions,
   Typography,
   Box,
-  Radio,
-  RadioGroup,
-  FormControl,
   Divider,
   Paper,
   IconButton,
@@ -15,6 +12,8 @@ import {
   Alert,
   Autocomplete,
   TextField,
+  InputAdornment,
+  Chip,
 } from "@mui/material";
 import {
   ShoppingCart,
@@ -24,15 +23,27 @@ import {
   X,
   AlertTriangle,
   Check,
+  Trash2,
+  Clock,
+  UserCheck,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSale } from "../../api/services/sales";
 import { getEmployees } from "../../api/services/employees";
-import type { SaleItem, SaleCreate } from "./schemas";
+import { useClients } from "../../hooks/useClients";
+import type { SaleItem, SaleCreate, SalePayment } from "./schemas";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
 import type { Employee } from "../employees/types";
+import { formatBRLFromCents } from "../../utils/masks";
+
+const PAYMENT_METHODS = [
+  { value: "credit_card" as const, label: "Cartão de Crédito", icon: CreditCard, color: "#1976d2" },
+  { value: "debit_card" as const, label: "Cartão de Débito", icon: CreditCard, color: "#0288d1" },
+  { value: "pix" as const, label: "PIX", icon: QrCode, color: "#2e7d32" },
+  { value: "money" as const, label: "Dinheiro", icon: Banknote, color: "#ed6c02" },
+];
 
 interface CheckoutModalProps {
   open: boolean;
@@ -41,6 +52,10 @@ interface CheckoutModalProps {
   totalAmount: number;
   discountAmount?: number;
   clientId: number | null;
+  clientName?: string | null;
+  clients?: Array<{ id: number; name: string; phone?: string; [key: string]: any }>;
+  allPets?: Array<{ id: number; client_id: number; name: string; [key: string]: any }>;
+  onSelectClient?: (clientId: number | null) => void;
   appointmentId?: number | null;
   comandaId?: number | null;
   cashRegisterId?: number | null;
@@ -54,13 +69,34 @@ export default function CheckoutModal({
   totalAmount,
   discountAmount = 0,
   clientId,
+  clientName,
+  clients,
+  allPets,
+  onSelectClient,
   appointmentId,
   comandaId,
   cashRegisterId,
   onSuccess,
 }: CheckoutModalProps) {
-  const [paymentMethod, setPaymentMethod] =
-    useState<SaleCreate["payment_method"]>("credit_card");
+  const { clients: hookClients } = useClients();
+  const availableClients = clients && clients.length > 0 ? clients : hookClients;
+
+  const [selectedClientInternal, setSelectedClientInternal] = useState<number | null>(clientId);
+  const [clientSearchLimit, setClientSearchLimit] = useState(20);
+
+  useEffect(() => {
+    setSelectedClientInternal(clientId);
+  }, [clientId, open]);
+
+  const effectiveClientId = selectedClientInternal ?? clientId;
+  const currentClientObj = availableClients.find((c) => c.id === effectiveClientId);
+  const effectiveClientName =
+    clientName || currentClientObj?.name || (effectiveClientId ? `Cliente #${effectiveClientId}` : null);
+  const [selectedMethods, setSelectedMethods] = useState<SalePayment["payment_method"][]>([
+    "credit_card",
+  ]);
+  const [methodAmounts, setMethodAmounts] = useState<Record<string, number | undefined>>({});
+
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [employeeMap, setEmployeeMap] = useState<Record<number, number | null>>({});
   const [showNoEmployeeWarning, setShowNoEmployeeWarning] = useState(false);
@@ -78,6 +114,10 @@ export default function CheckoutModal({
 
   useEffect(() => {
     if (open) {
+      setSelectedMethods(["credit_card"]);
+      const totalCents = Math.round(totalAmount * 100);
+      setMethodAmounts({ credit_card: totalCents });
+
       getEmployees()
         .then((data) => setEmployees(data.filter((e) => e.is_active)))
         .catch(() => {});
@@ -93,12 +133,106 @@ export default function CheckoutModal({
     } else {
       setEmployeeMap({});
     }
-  }, [cart, open]);
+  }, [cart, open, totalAmount]);
+
+  const totalCents = Math.round(totalAmount * 100);
+
+  const totalDistributedCents = useMemo(() => {
+    return selectedMethods.reduce(
+      (acc, m) => acc + (methodAmounts[m] || 0),
+      0,
+    );
+  }, [selectedMethods, methodAmounts]);
+
+  const totalDistributed = totalDistributedCents / 100;
+  const differenceCents = totalCents - totalDistributedCents;
+  const difference = differenceCents / 100;
+  const isDifferenceZero = differenceCents === 0;
+
+  const handleCardClick = (value: SalePayment["payment_method"]) => {
+    // 1. If method is already selected:
+    if (selectedMethods.includes(value)) {
+      if (selectedMethods.length > 1) {
+        handleRemoveMethod(value);
+      }
+      return;
+    }
+
+    // 2. If only 1 method is selected and it has 100% of the value (no difference):
+    // Just switch the method for the sale
+    if (selectedMethods.length === 1 && differenceCents === 0) {
+      setSelectedMethods([value]);
+      setMethodAmounts({ [value]: totalCents });
+      return;
+    }
+
+    // 3. Otherwise (there is a remaining difference or already multiple methods):
+    // Add this method to the distribution, prefilled with the remaining amount!
+    const updated = [...selectedMethods, value];
+    setSelectedMethods(updated);
+
+    const currentSumCents = selectedMethods.reduce(
+      (acc, m) => acc + (methodAmounts[m] || 0),
+      0,
+    );
+    const remainderCents = Math.max(0, totalCents - currentSumCents);
+
+    setMethodAmounts((prev) => ({
+      ...prev,
+      [value]: remainderCents > 0 ? remainderCents : undefined,
+    }));
+  };
+
+  const handleRemoveMethod = (method: SalePayment["payment_method"]) => {
+    if (selectedMethods.length <= 1) return;
+    setSelectedMethods((prev) => prev.filter((m) => m !== method));
+    setMethodAmounts((prev) => {
+      const next = { ...prev };
+      delete next[method];
+      return next;
+    });
+  };
+
+  const handleAmountChange = (method: string, rawVal: string) => {
+    const digits = rawVal.replace(/\D/g, "").slice(0, 9);
+    setMethodAmounts((prev) => ({
+      ...prev,
+      [method]: digits === "" ? undefined : Number(digits),
+    }));
+  };
+
+  const handleFillRemainder = (method: string) => {
+    const otherSumCents = selectedMethods
+      .filter((m) => m !== method)
+      .reduce((acc, m) => acc + (methodAmounts[m] || 0), 0);
+    const remainderCents = Math.max(0, totalCents - otherSumCents);
+    setMethodAmounts((prev) => ({
+      ...prev,
+      [method]: remainderCents,
+    }));
+  };
+
+  const isPositiveDistributed = totalDistributedCents > 0;
+  const isNotExceeded = differenceCents >= 0;
+  const canLeaveInComanda = differenceCents === 0 || !!effectiveClientId;
+
+  const isCheckoutValid =
+    selectedMethods.length >= 1 &&
+    selectedMethods.every((m) => (methodAmounts[m] || 0) > 0) &&
+    isPositiveDistributed &&
+    isNotExceeded &&
+    canLeaveInComanda;
 
   const saleMutation = useMutation({
     mutationFn: createSale,
     onSuccess: () => {
-      toast.success("Venda finalizada com sucesso!");
+      if (differenceCents > 0) {
+        toast.success(
+          `Venda de R$ ${totalDistributed.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} finalizada! R$ ${difference.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} permaneceram em aberto na comanda${effectiveClientName ? ` de ${effectiveClientName}` : ""}.`
+        );
+      } else {
+        toast.success("Venda finalizada com sucesso!");
+      }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
@@ -125,16 +259,31 @@ export default function CheckoutModal({
       employee_id: item.item_type === "service" ? (employeeMap[idx] ?? null) : null,
     }));
 
+    const isPartial = differenceCents > 0;
+    const finalTotalAmount = isPartial ? totalDistributed : totalAmount;
+
+    const isMultiple = selectedMethods.length > 1;
+    const finalPaymentMethod: SaleCreate["payment_method"] = isMultiple
+      ? "multiple"
+      : selectedMethods[0];
+
+    const paymentsPayload: SalePayment[] = selectedMethods.map((m) => ({
+      payment_method: m,
+      amount: Number(((methodAmounts[m] || 0) / 100).toFixed(2)),
+    }));
+
     const payload: SaleCreate = {
-      client_id: clientId,
+      client_id: effectiveClientId,
       appointment_id: appointmentId,
       comanda_id: comandaId,
-      total_amount: totalAmount,
+      total_amount: Number(finalTotalAmount.toFixed(2)),
       discount_amount: discountAmount,
-      payment_method: paymentMethod,
+      payment_method: finalPaymentMethod,
       status: "completed",
       items: itemsWithEmployee,
+      payments: paymentsPayload,
       cash_register_id: cashRegisterId,
+      unpaid_remainder: isPartial ? Number(difference.toFixed(2)) : undefined,
     };
     saleMutation.mutate(payload);
   };
@@ -142,6 +291,16 @@ export default function CheckoutModal({
   const handleCheckout = () => {
     if (serviceItemsWithoutEmployee.length > 0) {
       setShowNoEmployeeWarning(true);
+      return;
+    }
+    if (differenceCents < 0) {
+      toast.error(
+        `O valor informado excede o total em R$ ${Math.abs(difference).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.`
+      );
+      return;
+    }
+    if (differenceCents > 0 && !effectiveClientId) {
+      toast.error("Para deixar saldo em aberto na comanda, é obrigatório vincular um cliente à venda.");
       return;
     }
     doCheckout();
@@ -258,7 +417,7 @@ export default function CheckoutModal({
                 letterSpacing: "-0.02em",
               }}
             >
-              R$ {totalAmount.toFixed(2)}
+              R$ {totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </Typography>
             {discountAmount > 0 && (
               <Box
@@ -273,7 +432,7 @@ export default function CheckoutModal({
                   fontWeight: 600,
                 }}
               >
-                Desconto aplicado: - R$ {discountAmount.toFixed(2)}
+                Desconto aplicado: - R$ {discountAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </Box>
             )}
           </Box>
@@ -359,54 +518,361 @@ export default function CheckoutModal({
             </Box>
           )}
 
-          <FormControl component="fieldset" fullWidth>
-            <Typography variant="subtitle1" sx={{ mb: 2, fontWeight: 700, color: "text.primary" }}>
-              Selecione a Forma de Pagamento
-            </Typography>
-            <RadioGroup
-              value={paymentMethod}
-              onChange={(e) =>
-                setPaymentMethod(e.target.value as SaleCreate["payment_method"])
-              }
+          <Box sx={{ width: "100%" }}>
+            <Box sx={{ mb: 1.5 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: "text.primary" }}>
+                Forma de Pagamento
+              </Typography>
+              <Typography variant="caption" sx={{ color: "text.secondary", display: "block" }}>
+                {selectedMethods.length > 1
+                  ? "Formas ativas na distribuição. Clique em uma forma para adicionar ou remover."
+                  : "Para dividir o pagamento, altere o valor abaixo e selecione outra forma."}
+              </Typography>
+            </Box>
+
+            <Box
+              sx={{
+                display: "grid",
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr" },
+                gap: { xs: 1.5, sm: 2 },
+              }}
             >
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "1fr 1fr", sm: "1fr 1fr" },
-                  gap: { xs: 1.5, sm: 2 },
-                }}
-              >
-                <PaymentMethodCard
-                  value="credit_card"
-                  label="Cartão de Crédito"
-                  icon={CreditCard}
-                  color="#1976d2"
-                  selectedPaymentMethod={paymentMethod}
-                />
-                <PaymentMethodCard
-                  value="debit_card"
-                  label="Cartão de Débito"
-                  icon={CreditCard}
-                  color="#0288d1"
-                  selectedPaymentMethod={paymentMethod}
-                />
-                <PaymentMethodCard
-                  value="pix"
-                  label="PIX"
-                  icon={QrCode}
-                  color="#2e7d32"
-                  selectedPaymentMethod={paymentMethod}
-                />
-                <PaymentMethodCard
-                  value="money"
-                  label="Dinheiro"
-                  icon={Banknote}
-                  color="#ed6c02"
-                  selectedPaymentMethod={paymentMethod}
-                />
+              {PAYMENT_METHODS.map((pm) => {
+                const isSelected = selectedMethods.includes(pm.value);
+                return (
+                  <PaymentMethodCard
+                    key={pm.value}
+                    value={pm.value}
+                    label={pm.label}
+                    icon={pm.icon}
+                    color={pm.color}
+                    isSelected={isSelected}
+                    assignedAmountCents={methodAmounts[pm.value]}
+                    showAmountSubtitle={selectedMethods.length > 1}
+                    hintAddCents={differenceCents > 0 && !isSelected ? differenceCents : undefined}
+                    onClick={() => handleCardClick(pm.value)}
+                  />
+                );
+              })}
+            </Box>
+
+            {/* Painel de distribuição dos valores (SEMPRE VISÍVEL) */}
+            <Paper
+              elevation={0}
+              sx={{
+                mt: 2.5,
+                p: { xs: 2, sm: 2.5 },
+                bgcolor: "#F8FAFC",
+                borderRadius: 3,
+                border: "1.5px solid #E2E8F0",
+              }}
+            >
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+                <Typography
+                  variant="subtitle2"
+                  sx={{
+                    fontWeight: 800,
+                    color: "#1E293B",
+                    fontSize: "0.8rem",
+                    textTransform: "uppercase",
+                    letterSpacing: 0.5,
+                  }}
+                >
+                  Distribuição dos Valores
+                </Typography>
+                <Typography variant="caption" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                  {selectedMethods.length} {selectedMethods.length === 1 ? "forma selecionada" : "formas selecionadas"}
+                </Typography>
               </Box>
-            </RadioGroup>
-          </FormControl>
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+                {selectedMethods.map((method) => {
+                  const methodInfo = PAYMENT_METHODS.find((p) => p.value === method) || {
+                    label: method,
+                    icon: CreditCard,
+                    color: "#1976d2",
+                  };
+                  const MethodIcon = methodInfo.icon;
+                  return (
+                    <Box
+                      key={method}
+                      sx={{
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "space-between",
+                        bgcolor: "#FFFFFF",
+                        p: 1.5,
+                        borderRadius: 2.5,
+                        border: "1px solid #E2E8F0",
+                        gap: 1.5,
+                      }}
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1.25, minWidth: { xs: 120, sm: 160 } }}>
+                        <Box
+                          sx={{
+                            width: 32,
+                            height: 32,
+                            borderRadius: 1.5,
+                            bgcolor: alpha(methodInfo.color, 0.1),
+                            color: methodInfo.color,
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                          }}
+                        >
+                          <MethodIcon size={18} />
+                        </Box>
+                        <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B" }}>
+                          {methodInfo.label}
+                        </Typography>
+                      </Box>
+
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1, flex: 1, justifyContent: "flex-end" }}>
+                        <TextField
+                          size="small"
+                          value={
+                            methodAmounts[method] !== undefined
+                              ? formatBRLFromCents(methodAmounts[method])
+                              : ""
+                          }
+                          onChange={(e) => handleAmountChange(method, e.target.value)}
+                          placeholder="0,00"
+                          inputProps={{ inputMode: "numeric" }}
+                          InputProps={{
+                            startAdornment: (
+                              <InputAdornment position="start">
+                                <Typography variant="caption" sx={{ fontWeight: 700, color: "text.secondary" }}>
+                                  R$
+                                </Typography>
+                              </InputAdornment>
+                            ),
+                          }}
+                          sx={{
+                            width: { xs: 110, sm: 140 },
+                            "& .MuiOutlinedInput-root": {
+                              borderRadius: 2,
+                              fontWeight: 700,
+                            },
+                          }}
+                        />
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          onClick={() => handleFillRemainder(method)}
+                          title="Preencher com o saldo restante"
+                          sx={{
+                            minWidth: { xs: "auto", sm: 80 },
+                            px: { xs: 1, sm: 1.5 },
+                            py: 0.6,
+                            fontSize: "0.75rem",
+                            fontWeight: 700,
+                            borderRadius: 2,
+                            whiteSpace: "nowrap",
+                          }}
+                        >
+                          Restante
+                        </Button>
+                        {selectedMethods.length > 1 && (
+                          <IconButton
+                            size="small"
+                            onClick={() => handleRemoveMethod(method)}
+                            title={`Remover ${methodInfo.label}`}
+                            sx={{
+                              color: "text.disabled",
+                              "&:hover": { color: "error.main", bgcolor: "rgba(211, 47, 47, 0.08)" },
+                              p: 0.75,
+                            }}
+                          >
+                            <Trash2 size={16} />
+                          </IconButton>
+                        )}
+                      </Box>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              {/* Live summary and difference check */}
+              <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed #CBD5E1" }}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.75 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                    Total da Venda:
+                  </Typography>
+                  <Typography variant="body2" sx={{ fontWeight: 700, color: "#1E293B" }}>
+                    R$ {totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.5 }}>
+                  <Typography variant="body2" sx={{ color: "text.secondary", fontWeight: 600 }}>
+                    Total Informado:
+                  </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontWeight: 800,
+                      color: isDifferenceZero ? "#16A34A" : "#DC2626",
+                    }}
+                  >
+                    R$ {totalDistributed.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Typography>
+                </Box>
+
+                {isDifferenceZero ? (
+                  <Alert
+                    severity="success"
+                    icon={<Check size={18} />}
+                    sx={{
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      fontSize: "0.825rem",
+                      "& .MuiAlert-message": { py: 0.25 },
+                    }}
+                  >
+                    {selectedMethods.length === 1
+                      ? `Valor integral (R$ ${totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}) pronto para finalizar!`
+                      : `Total de R$ ${totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} distribuído corretamente!`}
+                  </Alert>
+                ) : differenceCents > 0 ? (
+                  effectiveClientId ? (
+                    <Alert
+                      severity="warning"
+                      icon={<Clock size={20} />}
+                      sx={{
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        fontSize: "0.825rem",
+                        "& .MuiAlert-message": { py: 0.5, width: "100%" },
+                      }}
+                    >
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.6 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: 1 }}>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: "#b45309" }}>
+                            Saldo a deixar na comanda: R$ {difference.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                          <Chip
+                            icon={<UserCheck size={14} />}
+                            label={effectiveClientName}
+                            size="small"
+                            color="warning"
+                            variant="outlined"
+                            onDelete={() => {
+                              setSelectedClientInternal(null);
+                              onSelectClient?.(null);
+                            }}
+                            deleteIcon={<X size={14} />}
+                            sx={{ fontWeight: 600, fontSize: "0.75rem" }}
+                          />
+                        </Box>
+                        <Typography variant="caption" sx={{ color: "#92400e", lineHeight: 1.35 }}>
+                          R$ {totalDistributed.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} serão pagos agora.
+                          O valor restante de R$ {difference.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} permanecerá em aberto na comanda de {effectiveClientName}.
+                        </Typography>
+                      </Box>
+                    </Alert>
+                  ) : (
+                    <Alert
+                      severity="warning"
+                      icon={<AlertTriangle size={20} />}
+                      sx={{
+                        borderRadius: 2,
+                        fontWeight: 600,
+                        fontSize: "0.825rem",
+                        "& .MuiAlert-message": { py: 0.5, width: "100%" },
+                      }}
+                    >
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                        <Box>
+                          <Typography variant="body2" sx={{ fontWeight: 700, color: "#b45309" }}>
+                            Faltam distribuir R$ {difference.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </Typography>
+                          <Typography variant="caption" sx={{ color: "#92400e", lineHeight: 1.35, display: "block" }}>
+                            Para deixar esse saldo restante em aberto na comanda, vincule o cliente abaixo ou adicione outra forma de pagamento:
+                          </Typography>
+                        </Box>
+                        <Autocomplete
+                          size="small"
+                          options={availableClients}
+                          filterOptions={(options, state) => {
+                            const input = state.inputValue.toLowerCase();
+                            return options
+                              .filter((option) => {
+                                const matchName = option.name.toLowerCase().includes(input);
+                                const matchPhone = option.phone?.toLowerCase().includes(input);
+                                const clientPets = allPets?.filter((p: any) => p.client_id === option.id) || [];
+                                const matchPet = clientPets.some((p: any) => p.name.toLowerCase().includes(input));
+                                return matchName || matchPhone || matchPet;
+                              })
+                              .slice(0, clientSearchLimit);
+                          }}
+                          getOptionLabel={(option) => option.name}
+                          isOptionEqualToValue={(option, value) => option.id === value?.id}
+                          renderOption={(props, option) => {
+                            const clientPets = allPets?.filter((p: any) => p.client_id === option.id) || [];
+                            const petsText = clientPets.length > 0 ? clientPets.map((p: any) => p.name).join(", ") : "";
+                            return (
+                              <li {...props} key={option.id}>
+                                <Box sx={{ display: "flex", flexDirection: "column", py: 0.25 }}>
+                                  <Typography variant="body2" sx={{ fontWeight: 600 }}>{option.name}</Typography>
+                                  {petsText && (
+                                    <Typography variant="caption" color="text.secondary">
+                                      Pets: {petsText}
+                                    </Typography>
+                                  )}
+                                </Box>
+                              </li>
+                            );
+                          }}
+                          value={null}
+                          onChange={(_, newValue) => {
+                            if (newValue) {
+                              setSelectedClientInternal(newValue.id);
+                              onSelectClient?.(newValue.id);
+                            }
+                          }}
+                          onInputChange={(_, __, reason) => {
+                            if (reason === "input") setClientSearchLimit(20);
+                          }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              placeholder="Buscar cliente da comanda por nome ou pet..."
+                              variant="outlined"
+                              size="small"
+                              sx={{
+                                bgcolor: "background.paper",
+                                borderRadius: 1.5,
+                                "& .MuiOutlinedInput-root": { fontSize: "0.85rem" },
+                              }}
+                            />
+                          )}
+                        />
+                      </Box>
+                    </Alert>
+                  )
+                ) : (
+                  <Alert
+                    severity="error"
+                    icon={<AlertTriangle size={20} />}
+                    sx={{
+                      borderRadius: 2,
+                      fontWeight: 600,
+                      fontSize: "0.825rem",
+                      "& .MuiAlert-message": { py: 0.5 },
+                    }}
+                  >
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.4 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700, color: "#b91c1c" }}>
+                        Valor informado excede o total em R$ {Math.abs(difference).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#991b1b", lineHeight: 1.35 }}>
+                        Ajuste os valores para que a soma não ultrapasse o total a receber de R$ {totalAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}.
+                      </Typography>
+                    </Box>
+                  </Alert>
+                )}
+              </Box>
+            </Paper>
+          </Box>
         </DialogContent>
 
         <Divider />
@@ -428,20 +894,37 @@ export default function CheckoutModal({
           </Button>
           <Button
             variant="contained"
-            color="success"
+            color={differenceCents > 0 ? "primary" : "success"}
             size="large"
             fullWidth
             onClick={handleCheckout}
-            disabled={saleMutation.isPending}
+            disabled={saleMutation.isPending || !isCheckoutValid}
             sx={{
               borderRadius: 2.5,
               fontWeight: 700,
               py: 1.2,
               fontSize: { xs: "0.95rem", sm: "1rem" },
-              boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
+              ...(differenceCents > 0 && {
+                bgcolor: "#d97706",
+                "&:hover": { bgcolor: "#b45309" },
+                boxShadow: "0 4px 14px 0 rgba(217, 119, 6, 0.35)",
+              }),
+              ...(differenceCents === 0 && {
+                boxShadow: "0 4px 14px 0 rgba(46, 125, 50, 0.39)",
+              }),
             }}
           >
-            {saleMutation.isPending ? "Processando..." : "Confirmar e Finalizar"}
+            {saleMutation.isPending
+              ? "Processando..."
+              : differenceCents < 0
+              ? "Valor excede o total da venda"
+              : selectedMethods.some((m) => !(methodAmounts[m] && methodAmounts[m]! > 0))
+              ? "Preencha os valores de pagamento"
+              : differenceCents > 0
+              ? !effectiveClientId
+                ? "Vincule um cliente para deixar na comanda"
+                : `Confirmar e Deixar R$ ${difference.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} na Comanda`
+              : "Confirmar e Finalizar"}
           </Button>
         </DialogActions>
       </Dialog>
@@ -500,26 +983,32 @@ export default function CheckoutModal({
 }
 
 interface PaymentMethodCardProps {
-  value: SaleCreate["payment_method"];
+  value: SalePayment["payment_method"];
   label: string;
   icon: React.ElementType;
   color: string;
-  selectedPaymentMethod: string;
+  isSelected: boolean;
+  assignedAmountCents?: number;
+  showAmountSubtitle?: boolean;
+  hintAddCents?: number;
+  onClick: () => void;
 }
 
 const PaymentMethodCard = ({
-  value,
   label,
   icon: Icon,
   color,
-  selectedPaymentMethod,
+  isSelected,
+  assignedAmountCents,
+  showAmountSubtitle,
+  hintAddCents,
+  onClick,
 }: PaymentMethodCardProps) => {
-  const isSelected = selectedPaymentMethod === value;
-
   return (
     <Paper
       elevation={0}
-      component="label"
+      component="div"
+      onClick={onClick}
       sx={{
         p: { xs: 1.5, sm: 2 },
         display: "flex",
@@ -529,28 +1018,22 @@ const PaymentMethodCard = ({
         cursor: "pointer",
         border: "2px solid",
         borderColor: isSelected ? color : "divider",
-        bgcolor: isSelected ? alpha(color, 0.05) : "background.paper",
+        bgcolor: isSelected ? alpha(color, 0.06) : "background.paper",
         borderRadius: 3,
         transition: "all 0.2s ease-in-out",
-        gap: { xs: 1, sm: 1.75 },
+        gap: { xs: 1, sm: 1.5 },
         position: "relative",
         boxShadow: isSelected
           ? `0 4px 14px 0 ${alpha(color, 0.18)}`
           : "0 1px 3px rgba(0,0,0,0.03)",
         transform: isSelected ? "translateY(-1px)" : "none",
+        userSelect: "none",
         "&:hover": {
           borderColor: isSelected ? color : alpha(color, 0.5),
-          bgcolor: isSelected ? alpha(color, 0.07) : alpha(color, 0.02),
+          bgcolor: isSelected ? alpha(color, 0.08) : alpha(color, 0.02),
         },
       }}
     >
-      <Radio
-        value={value}
-        checked={isSelected}
-        sx={{
-          display: "none",
-        }}
-      />
       <Box
         sx={{
           width: { xs: 40, sm: 46 },
@@ -580,6 +1063,34 @@ const PaymentMethodCard = ({
         >
           {label}
         </Typography>
+        {isSelected && showAmountSubtitle && assignedAmountCents !== undefined && (
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: color,
+              fontSize: "0.78rem",
+              display: "block",
+              mt: 0.25,
+            }}
+          >
+            R$ {formatBRLFromCents(assignedAmountCents)}
+          </Typography>
+        )}
+        {!isSelected && hintAddCents !== undefined && hintAddCents > 0 && (
+          <Typography
+            variant="caption"
+            sx={{
+              fontWeight: 700,
+              color: "text.secondary",
+              fontSize: "0.75rem",
+              display: "block",
+              mt: 0.25,
+            }}
+          >
+            + R$ {formatBRLFromCents(hintAddCents)}
+          </Typography>
+        )}
       </Box>
 
       {/* Selected check badge on desktop */}

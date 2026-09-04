@@ -20,6 +20,11 @@ export const SaleItemSchema = z.object({
   unit: z.string().optional(),
 });
 
+export const SalePaymentSchema = z.object({
+  payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package"]),
+  amount: z.number().min(0.01, "O valor deve ser maior que zero"),
+});
+
 export const SaleCreateSchema = z.object({
   client_id: z.number().nullable().optional(),
   pet_id: z.number().nullable().optional(),
@@ -27,20 +32,29 @@ export const SaleCreateSchema = z.object({
   comanda_id: z.number().nullable().optional(),
   total_amount: z.number().min(0),
   discount_amount: z.number().min(0).default(0),
-  payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package"]),
+  payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package", "multiple"]),
   status: z.enum(["completed", "canceled"]).default("completed"),
   items: z.array(SaleItemSchema).min(1, "Adicione pelo menos um item"),
+  payments: z.array(SalePaymentSchema).optional(),
   cash_register_id: z.number().nullable().optional(),
+  unpaid_remainder: z.number().min(0).optional(),
 });
 
 export type SaleItem = z.infer<typeof SaleItemSchema>;
+export type SalePayment = z.infer<typeof SalePaymentSchema>;
 export type SaleCreate = z.infer<typeof SaleCreateSchema>;
+
+export interface SalePaymentResponse extends SalePayment {
+  id?: number;
+  sale_id?: number;
+}
 
 export interface SaleResponse extends SaleCreate {
   id: number;
   tenant_id: number;
   created_at: string;
   items: (SaleItem & { id: number; sale_id: number })[];
+  payments?: (SalePayment & { id: number; sale_id: number })[];
   client?: { id: number; name: string };
   pet?: { id: number; name: string };
   appointment_id?: number | null;

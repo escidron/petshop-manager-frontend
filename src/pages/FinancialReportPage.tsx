@@ -33,7 +33,7 @@ import { listSales } from "../api/services/sales";
 import { getAppointmentsByTenant } from "../api/services/appointments";
 import { getAppointmentTotal } from "../utils/getAppointmentTotalPrice";
 import theme from "../theme";
-import type { SaleResponse } from "../features/sales/schemas";
+import type { SaleResponse, SalePaymentResponse } from "../features/sales/schemas";
 import type { Appointment } from "../features/appointments/types";
 
 const PAYMENT_LABELS: Record<string, string> = {
@@ -44,6 +44,8 @@ const PAYMENT_LABELS: Record<string, string> = {
   other: "Outro",
   package: "Pacote",
   Pacote: "Pacote",
+  multiple: "Múltiplo",
+  Múltiplo: "Múltiplo",
   pending: "Pendente (A Receber)",
   Pendente: "Pendente (A Receber)",
 };
@@ -67,6 +69,7 @@ type Transaction = {
   payment_method: string;
   amount_cents: number;
   status: TxStatus;
+  payments?: SalePaymentResponse[];
 };
 
 const fmtBRL = (cents: number) =>
@@ -155,6 +158,7 @@ export default function FinancialReportPage({
   const [localEndDate, setLocalEndDate] = useState<Dayjs | null>(dayjs().endOf("day"));
   const [filterPayment, setFilterPayment] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
 
   const startDate = propStartDate !== undefined ? propStartDate : localStartDate;
   const endDate = propEndDate !== undefined ? propEndDate : localEndDate;
@@ -192,6 +196,7 @@ export default function FinancialReportPage({
       payment_method: s.payment_method,
       amount_cents: Math.round(s.total_amount * 100),
       status: s.status as TxStatus,
+      payments: s.payments,
     }));
 
     const aptRows: Transaction[] = allAppointments
@@ -211,31 +216,61 @@ export default function FinancialReportPage({
 
   const filtered = useMemo(() => {
     return allTransactions.filter((t) => {
-      if (filterPayment && t.payment_method !== filterPayment) return false;
+      if (filterPayment) {
+        if (t.payment_method === filterPayment) {
+          // match direct
+        } else if (t.payments && t.payments.length > 0) {
+          const hasMatch = t.payments.some((p) => p.payment_method === filterPayment);
+          if (!hasMatch) return false;
+        } else {
+          return false;
+        }
+      }
       if (filterType && t.type !== filterType) return false;
+      if (filterStatus && t.status !== filterStatus) return false;
       return true;
     });
-  }, [allTransactions, filterPayment, filterType]);
+  }, [allTransactions, filterPayment, filterType, filterStatus]);
 
   const summary = useMemo(() => {
     const completed = filtered.filter((t) => t.status === "completed");
     const revenue = completed.filter((t) => t.type !== "Pago via Pacote");
     const canceled = filtered.filter((t) => t.status === "canceled");
+    const pending = filtered.filter((t) => t.status === "pending");
+
     const totalRevenue = revenue.reduce((acc, t) => acc + t.amount_cents, 0);
+    const totalPending = pending.reduce((acc, t) => acc + t.amount_cents, 0);
+    const totalCanceled = canceled.reduce((acc, t) => acc + t.amount_cents, 0);
+
+    const isPendingOnly = filterStatus === "pending";
+    const isCanceledOnly = filterStatus === "canceled";
+
+    const displayTotal = isPendingOnly ? totalPending : isCanceledOnly ? totalCanceled : totalRevenue;
+    const displayCount = isPendingOnly ? pending.length : isCanceledOnly ? canceled.length : revenue.length;
+    const displayAvg = displayCount > 0 ? displayTotal / displayCount : 0;
 
     const byMethod: Record<string, number> = {};
-    for (const t of revenue) {
-      byMethod[t.payment_method] = (byMethod[t.payment_method] ?? 0) + t.amount_cents;
+    const methodTarget = isPendingOnly ? pending : revenue;
+    for (const t of methodTarget) {
+      if (t.payments && t.payments.length > 0) {
+        for (const p of t.payments) {
+          byMethod[p.payment_method] = (byMethod[p.payment_method] ?? 0) + Math.round(p.amount * 100);
+        }
+      } else {
+        byMethod[t.payment_method] = (byMethod[t.payment_method] ?? 0) + t.amount_cents;
+      }
     }
 
     return {
-      totalRevenue,
-      avgTicket: revenue.length > 0 ? totalRevenue / revenue.length : 0,
-      completedCount: revenue.length,
-      canceledCount: canceled.length,
+      totalRevenue: displayTotal,
+      avgTicket: displayAvg,
+      completedCount: displayCount,
+      canceledCount: isPendingOnly ? 0 : isCanceledOnly ? canceled.length : canceled.length,
       byMethod,
+      isPendingOnly,
+      isCanceledOnly,
     };
-  }, [filtered]);
+  }, [filtered, filterStatus]);
 
   const exportCSV = () => {
     const headers = ["Data", "Cliente", "Tipo", "Método", "Valor (R$)", "Status"];
@@ -243,7 +278,9 @@ export default function FinancialReportPage({
       dayjs(t.date).format("DD/MM/YYYY HH:mm"),
       t.client,
       t.type,
-      PAYMENT_LABELS[t.payment_method] ?? t.payment_method,
+      t.payments && t.payments.length > 1
+        ? t.payments.map((p) => `${PAYMENT_LABELS[p.payment_method] ?? p.payment_method}: R$ ${p.amount.toFixed(2)}`).join(" + ")
+        : (PAYMENT_LABELS[t.payment_method] ?? t.payment_method),
       (t.amount_cents / 100).toFixed(2),
       t.status === "completed" ? "Concluído" : t.status === "canceled" ? "Cancelado" : "Pendente",
     ]);
@@ -286,9 +323,9 @@ export default function FinancialReportPage({
       >
         <ReportCard
           icon={<DollarSign size={20} />}
-          label="FATURAMENTO"
+          label={summary.isPendingOnly ? "TOTAL PENDENTE" : summary.isCanceledOnly ? "TOTAL CANCELADO" : "FATURAMENTO"}
           value={fmtBRL(summary.totalRevenue)}
-          color={theme.palette.success.main}
+          color={summary.isPendingOnly ? theme.palette.warning.main : summary.isCanceledOnly ? theme.palette.error.main : theme.palette.success.main}
         />
         <ReportCard
           icon={<ShoppingCart size={20} />}
@@ -487,11 +524,11 @@ export default function FinancialReportPage({
               </>
             )}
 
-            {/* No mobile: Método e Tipo dividem a mesma linha (50% cada)! */}
+            {/* Filtros: Método, Tipo e Status */}
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr 1fr", sm: "160px 180px" },
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "160px 180px 160px" },
                 gap: 1.25,
                 width: { xs: "100%", sm: "auto" },
                 flex: { sm: "0 0 auto" },
@@ -522,6 +559,22 @@ export default function FinancialReportPage({
                 <MenuItem value="Venda PDV">Venda PDV</MenuItem>
                 <MenuItem value="Agendamento">Agendamento</MenuItem>
                 <MenuItem value="Pago via Pacote">Pago via Pacote</MenuItem>
+              </Select>
+              <Select
+                size="small"
+                displayEmpty
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                sx={{
+                  width: "100%",
+                  bgcolor: "#FAFAFA",
+                  gridColumn: { xs: "span 2", sm: "auto" },
+                }}
+              >
+                <MenuItem value=""><em>Status (Todos)</em></MenuItem>
+                <MenuItem value="completed">Concluído</MenuItem>
+                <MenuItem value="pending">Pendente</MenuItem>
+                <MenuItem value="canceled">Cancelado</MenuItem>
               </Select>
             </Box>
 
@@ -627,19 +680,39 @@ export default function FinancialReportPage({
                         color: t.type === "Venda PDV" ? "#1D4ED8" : t.type === "Pago via Pacote" ? "#7C3AED" : "#475569",
                       }}
                     />
-                    <Chip
-                      label={PAYMENT_LABELS[t.payment_method] ?? t.payment_method}
-                      size="small"
-                      sx={{
-                        height: 22,
-                        fontSize: "0.72rem",
-                        fontWeight: 600,
-                        bgcolor: "#F8FAFC",
-                        color: "#475569",
-                        border: "1px solid #E2E8F0",
-                        maxWidth: 140,
-                      }}
-                    />
+                    {t.payments && t.payments.length > 1 ? (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.25 }}>
+                        <Chip
+                          label="Múltiplo"
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                            bgcolor: "#F3E8FF",
+                            color: "#7E22CE",
+                            width: "fit-content",
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.68rem", lineHeight: 1.2 }}>
+                          {t.payments.map((p) => `${PAYMENT_LABELS[p.payment_method] ?? p.payment_method}: R$ ${p.amount.toFixed(2)}`).join(" • ")}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Chip
+                        label={PAYMENT_LABELS[t.payment_method] ?? t.payment_method}
+                        size="small"
+                        sx={{
+                          height: 22,
+                          fontSize: "0.72rem",
+                          fontWeight: 600,
+                          bgcolor: "#F8FAFC",
+                          color: "#475569",
+                          border: "1px solid #E2E8F0",
+                          maxWidth: 140,
+                        }}
+                      />
+                    )}
                   </Box>
 
                   <Chip
@@ -712,7 +785,31 @@ export default function FinancialReportPage({
                       }
                     />
                   </TableCell>
-                  <TableCell>{PAYMENT_LABELS[t.payment_method] ?? t.payment_method}</TableCell>
+                  <TableCell>
+                    {t.payments && t.payments.length > 1 ? (
+                      <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                        <Chip
+                          label="Múltiplo"
+                          size="small"
+                          sx={{
+                            height: 20,
+                            fontSize: "0.68rem",
+                            fontWeight: 700,
+                            bgcolor: "#F3E8FF",
+                            color: "#7E22CE",
+                            width: "fit-content",
+                          }}
+                        />
+                        <Typography variant="caption" sx={{ color: "text.secondary", fontSize: "0.72rem", lineHeight: 1.2 }}>
+                          {t.payments.map((p) => `${PAYMENT_LABELS[p.payment_method] ?? p.payment_method}: R$ ${p.amount.toFixed(2)}`).join(" • ")}
+                        </Typography>
+                      </Box>
+                    ) : (
+                      <Typography variant="body2">
+                        {PAYMENT_LABELS[t.payment_method] ?? t.payment_method}
+                      </Typography>
+                    )}
+                  </TableCell>
                   <TableCell align="right" sx={{ fontWeight: 700 }}>
                     {fmtBRL(t.amount_cents)}
                   </TableCell>

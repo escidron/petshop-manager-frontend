@@ -88,6 +88,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
       amount_cents: Math.round(s.total_amount * 100),
       status: s.status,
       items: s.items ?? [],
+      payments: s.payments ?? [],
     }));
 
     const aptRows = allAppointments
@@ -101,6 +102,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
         amount_cents: getAppointmentTotal(a),
         status: "completed",
         items: [],
+        payments: [],
       }));
 
     return [...saleRows, ...aptRows];
@@ -143,8 +145,14 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
     // Breakdown 1: Forma de Pagamento
     const byMethod: Record<string, number> = {};
     for (const t of revenueTxs) {
-      const m = t.payment_method;
-      byMethod[m] = (byMethod[m] ?? 0) + t.amount_cents;
+      if (t.payments && t.payments.length > 0) {
+        for (const p of t.payments) {
+          byMethod[p.payment_method] = (byMethod[p.payment_method] ?? 0) + Math.round(p.amount * 100);
+        }
+      } else {
+        const m = t.payment_method;
+        byMethod[m] = (byMethod[m] ?? 0) + t.amount_cents;
+      }
     }
     const paymentBreakdown = Object.entries(byMethod)
       .map(([method, cents]) => ({
