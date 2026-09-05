@@ -234,7 +234,21 @@ export default function ReportsPage() {
                     size: "small",
                     fullWidth: true,
                     placeholder: "DD/MM/AAAA",
-                    sx: { bgcolor: "#FAFAFA" },
+                    sx: {
+                      bgcolor: "#FAFAFA",
+                      "& .MuiInputBase-input": {
+                        fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                        whiteSpace: "nowrap",
+                        py: 1,
+                        px: { xs: 0.75, sm: 1 },
+                      },
+                      "& .MuiInputAdornment-root": {
+                        ml: 0.25,
+                      },
+                      "& .MuiIconButton-root": {
+                        p: 0.5,
+                      },
+                    },
                   },
                 }}
               />
@@ -274,7 +288,21 @@ export default function ReportsPage() {
                     size: "small",
                     fullWidth: true,
                     placeholder: "DD/MM/AAAA",
-                    sx: { bgcolor: "#FAFAFA" },
+                    sx: {
+                      bgcolor: "#FAFAFA",
+                      "& .MuiInputBase-input": {
+                        fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                        whiteSpace: "nowrap",
+                        py: 1,
+                        px: { xs: 0.75, sm: 1 },
+                      },
+                      "& .MuiInputAdornment-root": {
+                        ml: 0.25,
+                      },
+                      "& .MuiIconButton-root": {
+                        p: 0.5,
+                      },
+                    },
                   },
                 }}
               />

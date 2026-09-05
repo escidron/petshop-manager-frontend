@@ -8,6 +8,14 @@ export const fetchClients = async () => {
   return response.data;
 };
 
+export const fetchNewClientsCount = async (startDate?: string, endDate?: string): Promise<number> => {
+  const params: Record<string, string> = {};
+  if (startDate) params.start_date = startDate;
+  if (endDate) params.end_date = endDate;
+  const response = await apiClient.get<{ count: number }>("/api/v1/clients/new-count", { params });
+  return response.data.count;
+};
+
 export const fetchClientById = async (clientId: number) => {
   const response = await apiClient.get<Client>(
     `/api/v1/clients/${clientId}`,
