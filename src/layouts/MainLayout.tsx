@@ -89,20 +89,20 @@ const topNavItems: TopNavItem[] = [
     hideBelow: "md",
   },
   {
-    id: "products",
-    label: "Produtos",
-    icon: Barcode,
-    path: "/registration/products",
-    module: "products",
-    hideBelow: "xl",
-  },
-  {
     id: "packages",
     label: "Pacotes",
     icon: ShoppingBag,
     path: "/registration/packages",
     module: "packages",
     hideBelow: "lg",
+  },
+  {
+    id: "products",
+    label: "Produtos",
+    icon: Barcode,
+    path: "/registration/products",
+    module: "products",
+    hideBelow: "xl",
   },
   {
     id: "inventory",

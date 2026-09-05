@@ -60,18 +60,18 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         module: "services",
       },
       {
-        id: "products",
-        label: "Produtos",
-        icon: <Barcode size={20} />,
-        path: "/registration/products",
-        module: "products",
-      },
-      {
         id: "packages",
         label: "Pacotes",
         icon: <ShoppingBag size={20} />,
         path: "/registration/packages",
         module: "packages",
+      },
+      {
+        id: "products",
+        label: "Produtos",
+        icon: <Barcode size={20} />,
+        path: "/registration/products",
+        module: "products",
       },
       {
         id: "suppliers",
