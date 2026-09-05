@@ -169,12 +169,12 @@ export default function FinancialReportPage({
     queryKey: ["sales", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
     queryFn: () =>
       listSales(startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")),
+    staleTime: 1000 * 60 * 2,
   });
 
   const { data: allAppointments = [], isLoading: loadingApts } = useQuery<Appointment[]>({
     queryKey: [
       "appointments",
-      "financial-report",
       startDate?.format("YYYY-MM-DD"),
       endDate?.format("YYYY-MM-DD"),
     ],
@@ -183,6 +183,7 @@ export default function FinancialReportPage({
         startDate?.format("YYYY-MM-DD"),
         endDate?.format("YYYY-MM-DD"),
       ),
+    staleTime: 1000 * 60 * 2,
   });
 
   const isLoading = loadingSales || loadingApts;

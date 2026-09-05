@@ -14,12 +14,11 @@ import { useQuery } from "@tanstack/react-query";
 import { DollarSign, Briefcase, TrendingUp } from "lucide-react";
 import { listSales } from "../../api/services/sales";
 import { getAppointmentsByTenant } from "../../api/services/appointments";
-import { fetchClients } from "../../api/services/clients";
+import { fetchNewClientsCount } from "../../api/services/clients";
 import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import theme from "../../theme";
 import type { SaleResponse } from "../../features/sales/schemas";
 import type { Appointment } from "../../features/appointments/types";
-import type { Client } from "../../features/clients/types";
 
 const PAYMENT_LABELS: Record<string, string> = {
   pix: "Pix",
@@ -50,29 +49,26 @@ const fmtBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryReportProps) {
+  const formattedStart = startDate?.format("YYYY-MM-DD");
+  const formattedEnd = endDate?.format("YYYY-MM-DD");
+
   // Queries
   const { data: allSales = [], isLoading: loadingSales } = useQuery<SaleResponse[]>({
-    queryKey: ["sales-summary", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
-    queryFn: () =>
-      listSales(startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")),
+    queryKey: ["sales", formattedStart, formattedEnd],
+    queryFn: () => listSales(formattedStart, formattedEnd),
+    staleTime: 1000 * 60 * 2,
   });
 
   const { data: allAppointments = [], isLoading: loadingApts } = useQuery<Appointment[]>({
-    queryKey: [
-      "appointments-summary",
-      startDate?.format("YYYY-MM-DD"),
-      endDate?.format("YYYY-MM-DD"),
-    ],
-    queryFn: () =>
-      getAppointmentsByTenant(
-        startDate?.format("YYYY-MM-DD"),
-        endDate?.format("YYYY-MM-DD"),
-      ),
+    queryKey: ["appointments", formattedStart, formattedEnd],
+    queryFn: () => getAppointmentsByTenant(formattedStart, formattedEnd),
+    staleTime: 1000 * 60 * 2,
   });
 
-  const { data: allClients = [], isLoading: loadingClients } = useQuery<Client[]>({
-    queryKey: ["clients-summary-list"],
-    queryFn: fetchClients,
+  const { data: newClientsCount = 0, isLoading: loadingClients } = useQuery<number>({
+    queryKey: ["clients-new-count", formattedStart, formattedEnd],
+    queryFn: () => fetchNewClientsCount(formattedStart, formattedEnd),
+    staleTime: 1000 * 60 * 2,
   });
 
   const isLoading = loadingSales || loadingApts || loadingClients;
@@ -207,15 +203,6 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
 
-    // Calculation of new clients in the selected period
-    const newClientsCount = allClients.filter((c) => {
-      if (!c.created_at) return false;
-      const created = dayjs(c.created_at);
-      const isAfterStart = startDate ? !created.isBefore(startDate.startOf("day")) : true;
-      const isBeforeEnd = endDate ? !created.isAfter(endDate.endOf("day")) : true;
-      return isAfterStart && isBeforeEnd;
-    }).length;
-
     return {
       totalRevenue,
       salesCount: completedSalesCount,
@@ -227,7 +214,7 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
       salesByDay,
       newClientsCount,
     };
-  }, [transactions, allSales, allAppointments, allClients, startDate, endDate]);
+  }, [transactions, allSales, allAppointments, newClientsCount]);
 
   if (isLoading) {
     return (
