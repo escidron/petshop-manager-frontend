@@ -22,6 +22,7 @@ export type DashboardStartupResponse = {
     items: Comanda[];
     total: number;
   };
+  daily_revenue_cents?: number;
 };
 
 export async function getDashboardStartup(

@@ -2,12 +2,12 @@ import { Box, Skeleton, Typography, Grid, Divider } from "@mui/material";
 import { CalendarDays, CalendarCheck, DollarSign, CalendarX } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import type { Appointment } from "../appointments/types";
-import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import theme from "../../theme";
 import { useAuth } from "../../hooks/useAuth";
 
 type Props = {
   appointments: Appointment[];
+  revenueCents?: number;
   isFetching?: boolean;
 };
 
@@ -81,20 +81,11 @@ const SummaryCard = ({
   </CustomCard>
 );
 
-export default function DashboardSummaryCards({ appointments, isFetching = false }: Props) {
+export default function DashboardSummaryCards({ appointments, revenueCents = 0, isFetching = false }: Props) {
   const { user } = useAuth();
   const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin";
 
   const totalAppointments = appointments.length;
-
-  const completedAppointments = appointments.filter(
-    (a) => a.status === "completed",
-  );
-
-  const totalRevenueCents = completedAppointments.reduce(
-    (acc, a) => acc + getAppointmentTotal(a),
-    0,
-  );
 
   const confirmedCount = appointments.filter(
     (a) =>
@@ -107,7 +98,7 @@ export default function DashboardSummaryCards({ appointments, isFetching = false
     (a) => a.status === "canceled",
   ).length;
 
-  const formattedRevenue = (totalRevenueCents / 100).toLocaleString("pt-BR", {
+  const formattedRevenue = (revenueCents / 100).toLocaleString("pt-BR", {
     style: "currency",
     currency: "BRL",
   });

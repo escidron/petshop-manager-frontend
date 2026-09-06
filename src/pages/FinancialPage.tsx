@@ -7,7 +7,6 @@ import { getAppointmentsByTenant } from "../api/services/appointments";
 import { listSales } from "../api/services/sales";
 import FinancialSummaryCards from "../features/financial/FinancialSummaryCards";
 import FinancialTable from "../features/financial/FinancialTable";
-import { getAppointmentTotal } from "../utils/getAppointmentTotalPrice";
 import type { FinancialSummary } from "../features/financial/types";
 import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -41,20 +40,6 @@ export default function FinancialPage() {
   const isLoading = isLoadingAppointments || isLoadingSales;
 
   const filteredTransactions = useMemo(() => {
-    const appointmentRows = allAppointments
-      .filter((a) => a.status === "completed" && !a.is_paid)
-      .map((a) => ({
-        id: `apt-${a.id}`,
-        date: a.scheduled_at,
-        client: a.client.name,
-        type: a.is_fully_package_covered
-          ? ("Pago via Pacote" as const)
-          : ("Agendamento" as const),
-        amount_cents: getAppointmentTotal(a),
-        payment_method: a.is_fully_package_covered ? "Pacote" : "Pendente",
-        original: a,
-      }));
-
     const saleRows = allSales
       .filter((s) => s.status === "completed")
       .map((s) => {
@@ -74,17 +59,13 @@ export default function FinancialPage() {
         };
       });
 
-    return [...appointmentRows, ...saleRows].sort((a, b) =>
+    return saleRows.sort((a, b) =>
       dayjs(b.date).diff(dayjs(a.date)),
     );
-  }, [allAppointments, allSales]);
+  }, [allSales]);
 
   const summary = useMemo<FinancialSummary>(() => {
-    // "Pago via Pacote" não entra na receita — a receita já foi capturada na venda do pacote
-    const revenueTransactions = filteredTransactions.filter(
-      (t) => t.type !== "Pago via Pacote",
-    );
-    const totalRevenueCents = revenueTransactions.reduce(
+    const totalRevenueCents = filteredTransactions.reduce(
       (acc, t) => acc + t.amount_cents,
       0,
     );
@@ -94,11 +75,11 @@ export default function FinancialPage() {
 
     return {
       totalRevenueCents,
-      completedCount: revenueTransactions.length,
+      completedCount: filteredTransactions.length,
       canceledCount: canceledAppointmentsCount + canceledSalesCount,
       averageTicketCents:
-        revenueTransactions.length > 0
-          ? totalRevenueCents / revenueTransactions.length
+        filteredTransactions.length > 0
+          ? totalRevenueCents / filteredTransactions.length
           : 0,
     };
   }, [filteredTransactions, allAppointments, allSales]);
