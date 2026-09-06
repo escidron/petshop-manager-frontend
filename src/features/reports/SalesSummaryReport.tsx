@@ -15,7 +15,6 @@ import { DollarSign, Briefcase, TrendingUp } from "lucide-react";
 import { listSales } from "../../api/services/sales";
 import { getAppointmentsByTenant } from "../../api/services/appointments";
 import { fetchNewClientsCount } from "../../api/services/clients";
-import { getAppointmentTotal } from "../../utils/getAppointmentTotalPrice";
 import theme from "../../theme";
 import type { SaleResponse } from "../../features/sales/schemas";
 import type { Appointment } from "../../features/appointments/types";
@@ -73,9 +72,9 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
 
   const isLoading = loadingSales || loadingApts || loadingClients;
 
-  // Formatting Sales & Appointments into a transaction list
+  // Formatting Sales into a transaction list (strictly completed paid sales)
   const transactions = useMemo(() => {
-    const saleRows = allSales.map((s) => ({
+    return allSales.map((s) => ({
       id: `sale-${s.id}`,
       date: s.created_at,
       clientId: s.client_id,
@@ -86,31 +85,15 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
       items: s.items ?? [],
       payments: s.payments ?? [],
     }));
-
-    const aptRows = allAppointments
-      .filter((a) => a.status === "completed" && !a.is_paid)
-      .map((a) => ({
-        id: `apt-${a.id}`,
-        date: a.scheduled_at,
-        clientId: a.client.id,
-        type: a.is_fully_package_covered ? "Pago via Pacote" : "Agendamento",
-        payment_method: a.is_fully_package_covered ? "Pacote" : "Pendente",
-        amount_cents: getAppointmentTotal(a),
-        status: "completed",
-        items: [],
-        payments: [],
-      }));
-
-    return [...saleRows, ...aptRows];
-  }, [allSales, allAppointments]);
+  }, [allSales]);
 
   // KPI Calculations
   const stats = useMemo(() => {
     // Filter out canceled sales
     const completedTxs = transactions.filter((t) => t.status === "completed");
     
-    // Revenue calculations (exclude package covered appointments because revenue is captured in package sales)
-    const revenueTxs = completedTxs.filter((t) => t.type !== "Pago via Pacote");
+    // Revenue calculations: all completed sales represent real revenue collected
+    const revenueTxs = completedTxs;
     const totalRevenue = revenueTxs.reduce((acc, t) => acc + t.amount_cents, 0);
 
     // Count of PDV and completed sales
@@ -174,12 +157,6 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
           else if (item.item_type === "package") packageRevenue += amt;
         });
       });
-
-    // Also add revenue from standalone appointments (not fully package covered)
-    const standaloneApts = allAppointments.filter((a) => a.status === "completed" && !a.is_fully_package_covered && !a.is_paid);
-    standaloneApts.forEach((a) => {
-      serviceRevenue += getAppointmentTotal(a);
-    });
 
     const totalTypeRevenue = serviceRevenue + productRevenue + packageRevenue;
     const typeBreakdown = [

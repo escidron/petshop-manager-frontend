@@ -351,6 +351,7 @@ export default function POSInterface() {
         pet_ids: item.pet_ids || undefined,
         client_package_id_to_pay: item.client_package_id_to_pay || null,
         unit: item.unit || "UN",
+        appointment_id: item.appointment_id || comanda.appointment_id || undefined,
       }))
     );
     setComandaSyncStatus("saved");
@@ -617,6 +618,7 @@ export default function POSInterface() {
         subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
         employee_id: s.employee_id || null,
         pet_ids: [item.pet.id],
+        appointment_id: appointment.id,
       }))
     );
 

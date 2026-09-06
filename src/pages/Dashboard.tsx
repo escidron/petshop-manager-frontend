@@ -99,7 +99,11 @@ const Dashboard = () => {
           </>
         ) : (
           <>
-            <DashboardSummaryCards appointments={dailyAppointments} isFetching={isFetching} />
+            <DashboardSummaryCards
+              appointments={dailyAppointments}
+              revenueCents={startupData?.daily_revenue_cents ?? 0}
+              isFetching={isFetching}
+            />
             <Box
               sx={{
                 display: "flex",
