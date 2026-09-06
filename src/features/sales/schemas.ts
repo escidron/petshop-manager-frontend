@@ -18,6 +18,7 @@ export const SaleItemSchema = z.object({
   employee_id: z.number().nullable().optional(),
   client_package_id_to_pay: z.number().nullable().optional(),
   unit: z.string().optional(),
+  appointment_id: z.number().nullable().optional(),
 });
 
 export const SalePaymentSchema = z.object({
@@ -79,6 +80,7 @@ export interface ComandaItem {
   pet_ids?: number[];
   client_package_id_to_pay?: number | null;
   unit?: string;
+  appointment_id?: number | null;
 }
 
 export interface Comanda {
