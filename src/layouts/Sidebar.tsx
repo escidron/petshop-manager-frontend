@@ -20,6 +20,7 @@ import {
   Percent,
   ShoppingBag,
   Gift,
+  TrendingUp,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -119,6 +120,18 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         icon: <BarChart2 size={20} />,
         path: "/reports",
         module: "reports",
+      },
+    ],
+  },
+  {
+    title: "GERENCIAL",
+    items: [
+      {
+        id: "dre",
+        label: "DRE Gerencial",
+        icon: <TrendingUp size={20} />,
+        path: "/managerial/dre",
+        ownerOnly: true,
       },
     ],
   },
