@@ -30,6 +30,7 @@ import SharedSchedulePage from "./pages/SharedSchedulePage";
 import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
 import DREReportPage from "./pages/DREReportPage";
+import OperationalResultPage from "./pages/OperationalResultPage";
 
 import { usePermission } from "./hooks/usePermission";
 
@@ -152,6 +153,15 @@ export default function AppRoutes() {
           }
         />
         <Route path="/financial/dre" element={<Navigate to="/managerial/dre" replace />} />
+        <Route
+          path="/managerial/operational-result"
+          element={
+            <OwnerRoute>
+              <OperationalResultPage />
+            </OwnerRoute>
+          }
+        />
+        <Route path="/financial/operational-result" element={<Navigate to="/managerial/operational-result" replace />} />
         <Route path="/settings" element={<PermissionRoute module="settings"><SettingsPage /></PermissionRoute>} />
         <Route path="/admin/dashboard" element={<AdminRoute><AdminDashboardPage /></AdminRoute>} />
       </Route>

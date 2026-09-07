@@ -226,7 +226,7 @@ export default function DREReportPage() {
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
             <Typography variant="h5" fontWeight={800} color="text.primary">
-              DRE Gerencial
+              DRE
             </Typography>
             <Chip
               label="Visão Proprietário"
