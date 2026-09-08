@@ -930,6 +930,7 @@ export default function AppointmentForm({
           fullWidth={isMobile}
           size="large"
           loading={isSubmitting}
+          disabled={isSubmitting}
           onClick={handleSubmit(handleFormSubmit)}
           sx={{
             minHeight: 48,
