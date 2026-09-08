@@ -52,6 +52,13 @@ export type Tenant = {
   allow_discount?: boolean;
   max_discount_percentage?: number | null;
   feature_flags?: Record<string, any> | null;
+  cep?: string | null;
+  street?: string | null;
+  number?: string | null;
+  complement?: string | null;
+  neighborhood?: string | null;
+  city?: string | null;
+  state?: string | null;
 };
 
 export type TenantOption = {

@@ -11,8 +11,10 @@ import {
   Divider,
   Chip,
   Paper,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
-import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package } from "lucide-react";
+import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package, Receipt } from "lucide-react";
 import { listAppointmentsByClient } from "../../api/services/appointments";
 import { listSales } from "../../api/services/sales";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
@@ -21,6 +23,7 @@ import type { SaleResponse } from "../sales/schemas";
 import type { ClientPackage } from "../client_packages/types";
 import { APPOINTMENT_STATUS_LABEL } from "../../api/services/appointments";
 import { useQuery } from "@tanstack/react-query";
+import SaleReceiptModal from "../sales/SaleReceiptModal";
 type Props = {
   clientId: number;
   refreshTrigger?: number;
@@ -50,6 +53,7 @@ function CustomTabPanel(props: TabPanelProps) {
 
 export default function ClientHistory({ clientId }: Props) {
   const [tabValue, setTabValue] = useState(0);
+  const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleResponse | null>(null);
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery<Appointment[]>({
     queryKey: ["appointments", "client", clientId],
@@ -226,6 +230,22 @@ export default function ClientHistory({ clientId }: Props) {
                       </Box>
                     }
                   />
+                  <Tooltip title="Ver Comprovante / Enviar WhatsApp">
+                    <IconButton
+                      size="small"
+                      onClick={() => setSelectedReceiptSale(sale)}
+                      sx={{
+                        ml: 1.5,
+                        alignSelf: "center",
+                        color: "#313485",
+                        bgcolor: "#EEF2FF",
+                        p: 0.75,
+                        "&:hover": { bgcolor: "#E0E7FF" },
+                      }}
+                    >
+                      <Receipt size={16} />
+                    </IconButton>
+                  </Tooltip>
                 </ListItem>
                 {idx < productSales.length - 1 && <Divider component="li" />}
               </Box>
@@ -312,6 +332,16 @@ export default function ClientHistory({ clientId }: Props) {
           </List>
         )}
       </CustomTabPanel>
+
+      {selectedReceiptSale && (
+        <SaleReceiptModal
+          open={!!selectedReceiptSale}
+          onClose={() => setSelectedReceiptSale(null)}
+          sale={selectedReceiptSale}
+          clientName={selectedReceiptSale.client?.name || selectedReceiptSale.appointment?.client?.name}
+          clientPhone={selectedReceiptSale.client?.phone || selectedReceiptSale.appointment?.client?.phone}
+        />
+      )}
     </Paper>
   );
 }

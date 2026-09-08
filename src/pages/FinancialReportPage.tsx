@@ -13,6 +13,8 @@ import {
   TableRow,
   Typography,
   Button,
+  IconButton,
+  Tooltip,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
@@ -28,6 +30,7 @@ import {
   ShoppingCart,
   XCircle,
   CreditCard,
+  Receipt,
 } from "lucide-react";
 import { listSales } from "../api/services/sales";
 import { getAppointmentsByTenant } from "../api/services/appointments";
@@ -35,6 +38,7 @@ import { getAppointmentTotal } from "../utils/getAppointmentTotalPrice";
 import theme from "../theme";
 import type { SaleResponse, SalePaymentResponse } from "../features/sales/schemas";
 import type { Appointment } from "../features/appointments/types";
+import SaleReceiptModal from "../features/sales/SaleReceiptModal";
 
 const PAYMENT_LABELS: Record<string, string> = {
   pix: "PIX",
@@ -70,6 +74,7 @@ type Transaction = {
   amount_cents: number;
   status: TxStatus;
   payments?: SalePaymentResponse[];
+  rawSale?: SaleResponse;
 };
 
 const fmtBRL = (cents: number) =>
@@ -159,6 +164,7 @@ export default function FinancialReportPage({
   const [filterPayment, setFilterPayment] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleResponse | null>(null);
 
   const startDate = propStartDate !== undefined ? propStartDate : localStartDate;
   const endDate = propEndDate !== undefined ? propEndDate : localEndDate;
@@ -198,6 +204,7 @@ export default function FinancialReportPage({
       amount_cents: Math.round(s.total_amount * 100),
       status: s.status as TxStatus,
       payments: s.payments,
+      rawSale: s,
     }));
 
     const aptRows: Transaction[] = allAppointments
@@ -716,34 +723,51 @@ export default function FinancialReportPage({
                     )}
                   </Box>
 
-                  <Chip
-                    label={
-                      t.status === "completed"
-                        ? "Concluído"
-                        : t.status === "canceled"
-                          ? "Cancelado"
-                          : "Pendente"
-                    }
-                    size="small"
-                    sx={{
-                      height: 22,
-                      fontSize: "0.72rem",
-                      fontWeight: 700,
-                      bgcolor:
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0 }}>
+                    <Chip
+                      label={
                         t.status === "completed"
-                          ? "#DCFCE7"
+                          ? "Concluído"
                           : t.status === "canceled"
-                            ? "#FEE2E2"
-                            : "#FEF3C7",
-                      color:
-                        t.status === "completed"
-                          ? "#166534"
-                          : t.status === "canceled"
-                            ? "#991B1B"
-                            : "#92400E",
-                      flexShrink: 0,
-                    }}
-                  />
+                            ? "Cancelado"
+                            : "Pendente"
+                      }
+                      size="small"
+                      sx={{
+                        height: 22,
+                        fontSize: "0.72rem",
+                        fontWeight: 700,
+                        bgcolor:
+                          t.status === "completed"
+                            ? "#DCFCE7"
+                            : t.status === "canceled"
+                              ? "#FEE2E2"
+                              : "#FEF3C7",
+                        color:
+                          t.status === "completed"
+                            ? "#166534"
+                            : t.status === "canceled"
+                              ? "#991B1B"
+                              : "#92400E",
+                        flexShrink: 0,
+                      }}
+                    />
+                    {t.rawSale && (
+                      <IconButton
+                        size="small"
+                        onClick={() => setSelectedReceiptSale(t.rawSale!)}
+                        sx={{
+                          color: "#313485",
+                          bgcolor: "#EEF2FF",
+                          p: 0.5,
+                          "&:hover": { bgcolor: "#E0E7FF" },
+                        }}
+                        title="Ver Comprovante / WhatsApp"
+                      >
+                        <Receipt size={16} />
+                      </IconButton>
+                    )}
+                  </Box>
                 </Box>
               </Paper>
             ))
@@ -760,6 +784,7 @@ export default function FinancialReportPage({
                 <TableCell sx={headerCellSx}>Método</TableCell>
                 <TableCell sx={headerCellSx} align="right">Valor</TableCell>
                 <TableCell sx={headerCellSx}>Status</TableCell>
+                <TableCell sx={headerCellSx} align="center">Comprovante</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -834,11 +859,30 @@ export default function FinancialReportPage({
                       variant="outlined"
                     />
                   </TableCell>
+                  <TableCell align="center">
+                    {t.rawSale ? (
+                      <Tooltip title="Ver Comprovante / Enviar WhatsApp">
+                        <IconButton
+                          size="small"
+                          onClick={() => setSelectedReceiptSale(t.rawSale!)}
+                          sx={{
+                            color: "#313485",
+                            bgcolor: "#EEF2FF",
+                            "&:hover": { bgcolor: "#E0E7FF", color: "#1E1B4B" },
+                          }}
+                        >
+                          <Receipt size={17} />
+                        </IconButton>
+                      </Tooltip>
+                    ) : (
+                      <Typography variant="caption" color="text.disabled">-</Typography>
+                    )}
+                  </TableCell>
                 </TableRow>
               ))}
               {filtered.length === 0 && !isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <Typography color="text.disabled">
                       Nenhuma transação encontrada para os filtros selecionados.
                     </Typography>
@@ -847,7 +891,7 @@ export default function FinancialReportPage({
               )}
               {isLoading && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 6 }}>
+                  <TableCell colSpan={7} align="center" sx={{ py: 6 }}>
                     <CircularProgress />
                   </TableCell>
                 </TableRow>
@@ -855,6 +899,16 @@ export default function FinancialReportPage({
             </TableBody>
           </Table>
         </TableContainer>
+      )}
+
+      {selectedReceiptSale && (
+        <SaleReceiptModal
+          open={!!selectedReceiptSale}
+          onClose={() => setSelectedReceiptSale(null)}
+          sale={selectedReceiptSale}
+          clientName={selectedReceiptSale.client?.name || selectedReceiptSale.appointment?.client?.name}
+          clientPhone={selectedReceiptSale.client?.phone || selectedReceiptSale.appointment?.client?.phone}
+        />
       )}
     </Box>
   );

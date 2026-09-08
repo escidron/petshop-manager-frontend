@@ -16,16 +16,17 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import { User, ShoppingCart, X } from "lucide-react";
+import { User, ShoppingCart, X, Receipt } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
 import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda } from "../../api/services/sales";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
+import SaleReceiptModal from "./SaleReceiptModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
 import { useAuth } from "../../hooks/useAuth";
-import type { SaleItem, Comanda } from "./schemas";
+import type { SaleItem, Comanda, SaleResponse } from "./schemas";
 import { useToast } from "../../hooks/useToast";
 import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
@@ -82,6 +83,9 @@ export default function POSInterface() {
   const autoSaveTimeoutRef = useRef<any>(null);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
+  const [completedSaleForReceipt, setCompletedSaleForReceipt] = useState<SaleResponse | null>(null);
+  const [lastCompletedSale, setLastCompletedSale] = useState<SaleResponse | null>(null);
+  const [isSaleReceiptOpen, setIsSaleReceiptOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientListLimit, setClientListLimit] = useState(20);
@@ -924,22 +928,48 @@ export default function POSInterface() {
                   </Typography>
                 </Box>
               </Box>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={() => setIsClientModalOpen(true)}
-                sx={{
-                  color: "text.primary",
-                  flexShrink: 0,
-                  fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                  py: { xs: 0.5, sm: 0.75 },
-                  px: { xs: 1.25, sm: 1.5 },
-                  whiteSpace: "nowrap",
-                  "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) },
-                }}
-              >
-                Vincular
-              </Button>
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                {lastCompletedSale && (
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<Receipt size={15} />}
+                    onClick={() => {
+                      setCompletedSaleForReceipt(lastCompletedSale);
+                      setIsSaleReceiptOpen(true);
+                    }}
+                    sx={{
+                      color: "#313485",
+                      borderColor: "#C7D2FE",
+                      bgcolor: "#EEF2FF",
+                      flexShrink: 0,
+                      fontSize: { xs: "0.72rem", sm: "0.82rem" },
+                      py: { xs: 0.5, sm: 0.75 },
+                      px: { xs: 1, sm: 1.5 },
+                      whiteSpace: "nowrap",
+                      "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
+                    }}
+                  >
+                    Reimprimir Último
+                  </Button>
+                )}
+                <Button
+                  variant="outlined"
+                  size="small"
+                  onClick={() => setIsClientModalOpen(true)}
+                  sx={{
+                    color: "text.primary",
+                    flexShrink: 0,
+                    fontSize: { xs: "0.75rem", sm: "0.85rem" },
+                    py: { xs: 0.5, sm: 0.75 },
+                    px: { xs: 1.25, sm: 1.5 },
+                    whiteSpace: "nowrap",
+                    "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) },
+                  }}
+                >
+                  Vincular
+                </Button>
+              </Box>
             </Paper>
           )}
 
@@ -1207,7 +1237,28 @@ export default function POSInterface() {
           appointmentId={selectedAppointmentId}
           comandaId={activeComandaId}
           cashRegisterId={selectedRegisterId}
-          onSuccess={endSession}
+          onSuccess={(sale) => {
+            endSession();
+            if (sale) {
+              setCompletedSaleForReceipt(sale);
+              setLastCompletedSale(sale);
+              setIsSaleReceiptOpen(true);
+            }
+          }}
+        />
+      )}
+
+      {isSaleReceiptOpen && completedSaleForReceipt && (
+        <SaleReceiptModal
+          open={isSaleReceiptOpen}
+          onClose={() => {
+            setIsSaleReceiptOpen(false);
+            setCompletedSaleForReceipt(null);
+          }}
+          sale={completedSaleForReceipt}
+          clientName={completedSaleForReceipt.client?.name || selectedClient?.name}
+          clientPhone={completedSaleForReceipt.client?.phone || selectedClient?.phone}
+          tenantName={tenant?.name}
         />
       )}
 

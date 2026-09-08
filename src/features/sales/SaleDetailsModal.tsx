@@ -17,11 +17,12 @@ import {
   Chip,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
-import { X, Receipt, ShoppingCart, User, Calendar, Package } from "lucide-react";
+import { useMemo, useState } from "react";
+import { X, Receipt, ShoppingCart, User, Calendar, Package, Printer } from "lucide-react";
 import { getSale } from "../../api/services/sales";
 import { Button } from "../../components/Button/Button";
 import { formatPaymentMethod } from "../../utils/formatPaymentMethod";
+import SaleReceiptModal from "./SaleReceiptModal";
 
 type Props = {
   open: boolean;
@@ -30,6 +31,7 @@ type Props = {
 };
 
 export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
+  const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const { data: sale, isLoading } = useQuery({
     queryKey: ["sale", saleId],
     queryFn: () => getSale(saleId!),
@@ -56,8 +58,9 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
     (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
   return (
-    <Dialog
-      open={open}
+    <>
+      <Dialog
+        open={open}
       onClose={onClose}
       fullWidth
       maxWidth="md"
@@ -217,11 +220,36 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
       
       <Divider />
       
-      <DialogActions sx={{ p: 2 }}>
+      <DialogActions sx={{ p: 2, display: "flex", justifyContent: "space-between" }}>
+        <Button
+          variant="contained"
+          startIcon={<Printer size={16} />}
+          onClick={() => setIsReceiptModalOpen(true)}
+          disabled={!sale}
+          sx={{
+            bgcolor: "#2563EB",
+            color: "#ffffff",
+            fontWeight: 700,
+            "&:hover": { bgcolor: "#1D4ED8" },
+          }}
+        >
+          Comprovante / WhatsApp
+        </Button>
         <Button variant="outlined" onClick={onClose}>
           Fechar
         </Button>
       </DialogActions>
     </Dialog>
+
+    {isReceiptModalOpen && sale && (
+      <SaleReceiptModal
+        open={isReceiptModalOpen}
+        onClose={() => setIsReceiptModalOpen(false)}
+        sale={sale}
+        clientName={sale.client?.name || sale.appointment?.client?.name}
+        clientPhone={sale.client?.phone || sale.appointment?.client?.phone}
+      />
+    )}
+  </>
   );
 }
