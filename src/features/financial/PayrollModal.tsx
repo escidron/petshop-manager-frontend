@@ -25,14 +25,13 @@ import {
   RefreshCw,
   Plus,
   Trash2,
-  CheckCircle2,
   HeartPulse,
   Bus,
   Coffee,
   ShoppingBag,
   Send,
 } from "lucide-react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getPayrollProfiles,
   updatePayrollProfile,
@@ -41,8 +40,8 @@ import {
   calculateThirteenth,
   calculateVacation,
   calculateFGTS,
-  calculateINSSFlat12,
-  type PayrollProfileUpdate,
+  calculateINSSProgressive,
+  getINSSBracketDetails,
   type CustomBenefitItem,
 } from "../../api/services/payroll";
 import { type DREAccount } from "../../api/services/financial";
@@ -192,7 +191,12 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
         thirteenth_salary: selectedProfile.thirteenth_salary ?? 0,
         vacation_provision: selectedProfile.vacation_provision ?? 0,
         fgts_amount: selectedProfile.fgts_amount ?? 0,
-        inss_amount: selectedProfile.inss_amount ?? 0,
+        inss_amount:
+          selectedProfile.inss_amount && selectedProfile.inss_amount > 0
+            ? selectedProfile.inss_amount
+            : (selectedProfile.base_salary ?? 0) > 0
+              ? calculateINSSProgressive(selectedProfile.base_salary)
+              : 0,
         transport_voucher: selectedProfile.transport_voucher ?? 0,
         food_voucher: selectedProfile.food_voucher ?? 0,
         meal_voucher: selectedProfile.meal_voucher ?? 0,
@@ -274,12 +278,17 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
     };
   }, [formState]);
 
+  // Detalhes dinâmicos da faixa e alíquota de INSS (Tabela Oficial 2026)
+  const inssDetails = useMemo(() => {
+    return getINSSBracketDetails(formState.base_salary, formState.inss_amount);
+  }, [formState.base_salary, formState.inss_amount]);
+
   // Ao alterar o Salário Base, preenche automaticamente 13º, Férias, FGTS e INSS na hora
   const handleBaseSalaryChange = (newBaseSalary: number) => {
     const thirteenth = calculateThirteenth(newBaseSalary);
     const vacation = calculateVacation(newBaseSalary, 1.3);
     const fgts = calculateFGTS(newBaseSalary, 0.08);
-    const inss = calculateINSSFlat12(newBaseSalary);
+    const inss = calculateINSSProgressive(newBaseSalary);
 
     setFormState((prev) => ({
       ...prev,
@@ -291,36 +300,14 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
     }));
   };
 
-  // Mutação: Salvar perfil do colaborador
-  const saveMutation = useMutation({
-    mutationFn: (payload: { employeeId: number; data: PayrollProfileUpdate }) =>
-      updatePayrollProfile(payload.employeeId, payload.data),
-    onSuccess: () => {
-      toast.success("Perfil de remuneração salvo!");
-      queryClient.invalidateQueries({ queryKey: ["payroll-profiles"] });
-      queryClient.invalidateQueries({ queryKey: ["payroll-summary"] });
-    },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.detail || "Erro ao salvar remuneração.");
-    },
-  });
-
-  const handleSaveProfile = () => {
-    if (!selectedEmployeeId) return;
-    saveMutation.mutate({
-      employeeId: selectedEmployeeId,
-      data: formState,
-    });
-  };
-
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   const handleSyncToDRE = async () => {
     try {
       setIsSyncing(true);
 
-      // 1. Salva automaticamente o colaborador selecionado se tiver salário ou alterações
-      if (selectedEmployeeId && formState.base_salary > 0) {
+      // 1. Salva automaticamente o colaborador selecionado
+      if (selectedEmployeeId) {
         await updatePayrollProfile(selectedEmployeeId, formState);
       }
 
@@ -735,27 +722,28 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                     }
                   />
 
-                  <Button
-                    variant="contained"
-                    color="primary"
-                    size="small"
-                    onClick={handleSaveProfile}
-                    disabled={saveMutation.isPending}
-                    startIcon={
-                      saveMutation.isPending ? (
-                        <CircularProgress size={16} color="inherit" />
-                      ) : (
-                        <CheckCircle2 size={16} />
-                      )
-                    }
-                    sx={{
-                      textTransform: "none",
-                      fontWeight: 700,
-                      borderRadius: 2,
-                    }}
-                  >
-                    Salvar Colaborador
-                  </Button>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Typography
+                      variant="caption"
+                      fontWeight={700}
+                      color="text.secondary"
+                    >
+                      Ano:
+                    </Typography>
+                    <FormControl size="small" sx={{ minWidth: 105 }}>
+                      <Select
+                        value={selectedYear}
+                        onChange={(e) => setSelectedYear(Number(e.target.value))}
+                        sx={{ fontWeight: 700, borderRadius: 2 }}
+                      >
+                        {[initialYear - 1, initialYear, initialYear + 1].map((y) => (
+                          <MenuItem key={y} value={y} sx={{ fontWeight: 600 }}>
+                            {y}
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
                 </Box>
               </Box>
 
@@ -904,7 +892,7 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                     fontWeight={700}
                     color="text.secondary"
                   >
-                    INSS / CPP / Encargos
+                    INSS / Encargos
                   </Typography>
                   <MoneyInput
                     value={formState.inss_amount}
@@ -914,13 +902,56 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                     fullWidth
                     sx={{ mt: 0.5 }}
                   />
-                  <Typography
-                    variant="caption"
-                    color="text.secondary"
-                    sx={{ display: "block", mt: 0.5 }}
+                  <Box
+                    sx={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      mt: 0.5,
+                      gap: 1,
+                    }}
                   >
-                    12% da folha (editável conforme contador)
-                  </Typography>
+                    <Typography
+                      variant="caption"
+                      color={
+                        inssDetails.isCustom
+                          ? "warning.main"
+                          : inssDetails.nominalRate > 0
+                            ? "primary.main"
+                            : "text.secondary"
+                      }
+                      sx={{
+                        display: "block",
+                        fontWeight: 600,
+                        fontSize: "0.72rem",
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {inssDetails.displayText}
+                    </Typography>
+                    {inssDetails.isCustom && formState.base_salary > 0 && (
+                      <Button
+                        size="small"
+                        variant="text"
+                        onClick={() =>
+                          setFormState((prev) => ({
+                            ...prev,
+                            inss_amount: inssDetails.calculatedAmount,
+                          }))
+                        }
+                        sx={{
+                          fontSize: "0.68rem",
+                          p: 0,
+                          minWidth: 0,
+                          textTransform: "none",
+                          fontWeight: 700,
+                          flexShrink: 0,
+                        }}
+                      >
+                        Recalcular
+                      </Button>
+                    )}
+                  </Box>
                 </Box>
               </Box>
 
@@ -1413,7 +1444,7 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
           </Box>
         </Box>
 
-        {/* Linha Final de Ações: Seleção de Ano + Lançar no DRE */}
+        {/* Linha Final de Ações: Lançar no DRE */}
         <Box
           sx={{
             display: "flex",
@@ -1423,21 +1454,9 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
             gap: 1.5,
           }}
         >
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <Select
-                value={selectedYear}
-                onChange={(e) => setSelectedYear(Number(e.target.value))}
-                sx={{ fontWeight: 700, borderRadius: 2 }}
-              >
-                {[initialYear - 1, initialYear, initialYear + 1].map((y) => (
-                  <MenuItem key={y} value={y} sx={{ fontWeight: 600 }}>
-                    Ano {y}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
+          <Typography variant="caption" color="text.secondary">
+            * Ao lançar no DRE, as informações da folha são salvas e consolidadas automaticamente.
+          </Typography>
 
           <Box sx={{ display: "flex", gap: 1.5 }}>
             <Button

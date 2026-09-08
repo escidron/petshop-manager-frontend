@@ -150,8 +150,103 @@ export const calculateINSSProgressive = (salary: number): number => {
   }
 };
 
+export interface INSSBracketDetails {
+  calculatedAmount: number;
+  nominalRate: number;
+  deduction: number;
+  effectiveRate: number;
+  actualRate: number;
+  bracketLabel: string;
+  isCeiling: boolean;
+  isCustom: boolean;
+  displayText: string;
+}
+
+export const getINSSBracketDetails = (
+  salary: number,
+  currentInss?: number
+): INSSBracketDetails => {
+  const s = Math.max(0, Number(salary) || 0);
+  if (s <= 0) {
+    return {
+      calculatedAmount: 0,
+      nominalRate: 0,
+      deduction: 0,
+      effectiveRate: 0,
+      actualRate: 0,
+      bracketLabel: "Tabela INSS 2026",
+      isCeiling: false,
+      isCustom: false,
+      displayText: "Tabela 2026: 7,5% a 14% conforme faixa salarial",
+    };
+  }
+
+  let nominalRate = 0;
+  let deduction = 0;
+  let bracketLabel = "";
+  let isCeiling = false;
+  let calculatedAmount = 0;
+
+  if (s <= 1621.0) {
+    nominalRate = 7.5;
+    deduction = 0;
+    bracketLabel = "Faixa 1 (até R$ 1.621,00)";
+    calculatedAmount = Number((s * 0.075).toFixed(2));
+  } else if (s <= 2902.84) {
+    nominalRate = 9;
+    deduction = 24.32;
+    bracketLabel = "Faixa 2 (R$ 1.621,01 a R$ 2.902,84)";
+    calculatedAmount = Number((s * 0.09 - 24.32).toFixed(2));
+  } else if (s <= 4354.27) {
+    nominalRate = 12;
+    deduction = 111.40;
+    bracketLabel = "Faixa 3 (R$ 2.902,85 a R$ 4.354,27)";
+    calculatedAmount = Number((s * 0.12 - 111.40).toFixed(2));
+  } else if (s <= 8475.55) {
+    nominalRate = 14;
+    deduction = 198.49;
+    bracketLabel = "Faixa 4 (R$ 4.354,28 a R$ 8.475,55)";
+    calculatedAmount = Number((s * 0.14 - 198.49).toFixed(2));
+  } else {
+    nominalRate = 14;
+    deduction = 198.49;
+    bracketLabel = "Teto do INSS (acima de R$ 8.475,55)";
+    isCeiling = true;
+    calculatedAmount = 988.09;
+  }
+
+  const effectiveRate = Number(((calculatedAmount / s) * 100).toFixed(2));
+  const currentVal =
+    currentInss !== undefined && currentInss !== null && currentInss >= 0
+      ? Number(currentInss)
+      : calculatedAmount;
+  const actualRate = Number(((currentVal / s) * 100).toFixed(2));
+  const isCustom = Math.abs(currentVal - calculatedAmount) >= 0.05;
+
+  let displayText = "";
+  if (isCustom) {
+    displayText = `Faixa: ${nominalRate}% (Valor alterado manualmente)`;
+  } else if (isCeiling) {
+    displayText = `Faixa: 14% (Teto do INSS: R$ 988,09)`;
+  } else {
+    displayText = `Faixa: ${nominalRate}%`;
+  }
+
+  return {
+    calculatedAmount,
+    nominalRate,
+    deduction,
+    effectiveRate,
+    actualRate,
+    bracketLabel,
+    isCeiling,
+    isCustom,
+    displayText,
+  };
+};
+
 /**
- * Alíquota direta de 12% (como no exemplo da planilha do proprietário para R$ 3.000 -> R$ 360)
+ * Alíquota direta de 12% (fallback)
  */
 export const calculateINSSFlat12 = (salary: number): number => {
   if (!salary || salary <= 0) return 0;
