@@ -261,6 +261,8 @@ export default function AccountManagementModal({ open, onClose, year }: Props) {
                       <TableCell>
                         {acc.is_system ? (
                           <Chip label="Automática" size="small" color="primary" variant="outlined" />
+                        ) : acc.system_source?.startsWith("payroll_") ? (
+                          <Chip label="Folha (Auto)" size="small" color="primary" variant="outlined" sx={{ fontWeight: 700 }} />
                         ) : (
                           <Chip label="Manual" size="small" variant="outlined" />
                         )}
@@ -272,11 +274,11 @@ export default function AccountManagementModal({ open, onClose, year }: Props) {
                           onChange={(e) =>
                             updateMutation.mutate({ id: acc.id, is_active: e.target.checked })
                           }
-                          disabled={acc.is_system}
+                          disabled={acc.is_system || Boolean(acc.system_source?.startsWith("payroll_"))}
                         />
                       </TableCell>
                       <TableCell align="right">
-                        {!acc.is_system ? (
+                        {!acc.is_system && !acc.system_source?.startsWith("payroll_") ? (
                           <IconButton
                             size="small"
                             color="error"
@@ -290,7 +292,7 @@ export default function AccountManagementModal({ open, onClose, year }: Props) {
                           </IconButton>
                         ) : (
                           <Typography variant="caption" color="text.disabled">
-                            Padrão
+                            Protegida
                           </Typography>
                         )}
                       </TableCell>

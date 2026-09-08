@@ -33,6 +33,7 @@ import {
   CheckCircle2,
   AlertTriangle,
   Layers,
+  Users,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -45,6 +46,7 @@ import {
 import AccountManagementModal from "../features/financial/AccountManagementModal";
 import QuickExpenseModal from "../features/financial/QuickExpenseModal";
 import CellEditModal from "../features/financial/CellEditModal";
+import PayrollModal from "../features/financial/PayrollModal";
 import MoneyInput from "../features/financial/MoneyInput";
 import { toast } from "react-toastify";
 
@@ -82,6 +84,7 @@ export default function DREReportPage() {
   // Modais
   const [isAccountsOpen, setIsAccountsOpen] = useState<boolean>(false);
   const [isQuickExpenseOpen, setIsQuickExpenseOpen] = useState<boolean>(false);
+  const [isPayrollOpen, setIsPayrollOpen] = useState<boolean>(false);
   const [editTarget, setEditTarget] = useState<{
     accountId: number;
     accountName: string;
@@ -291,6 +294,17 @@ export default function DREReportPage() {
             sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
           >
             Lançar Despesas
+          </Button>
+
+          <Button
+            variant="outlined"
+            color="primary"
+            size="small"
+            startIcon={<Users size={16} />}
+            onClick={() => setIsPayrollOpen(true)}
+            sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
+          >
+            Gestão da Folha
           </Button>
 
           <Button
@@ -663,6 +677,26 @@ export default function DREReportPage() {
                                 <Tooltip title="Alimentado automaticamente pelas operações do sistema">
                                   <Chip label="Auto" size="small" variant="outlined" sx={{ height: 18, fontSize: "0.65rem", borderColor: "divider" }} />
                                 </Tooltip>
+                              ) : row.system_source?.startsWith("payroll_") ? (
+                                <Tooltip title="Alimentado automaticamente pela Folha de Pagamento. Clique para abrir o módulo.">
+                                  <Chip
+                                    label="Folha (Auto)"
+                                    size="small"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      setIsPayrollOpen(true);
+                                    }}
+                                    sx={{
+                                      height: 18,
+                                      fontSize: "0.65rem",
+                                      fontWeight: 700,
+                                      bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                      color: "primary.main",
+                                      cursor: "pointer",
+                                      "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.22) },
+                                    }}
+                                  />
+                                </Tooltip>
                               ) : (
                                 <Tooltip title="Clique na célula para editar direto ou duplo clique para anotações">
                                   <Chip label="Manual" size="small" sx={{ height: 18, fontSize: "0.65rem", bgcolor: "#F1F5F9", color: "text.secondary" }} />
@@ -689,7 +723,8 @@ export default function DREReportPage() {
                           {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                             const val = row.monthly_amounts[m] || 0;
                             const pct = row.monthly_percentages[m] || 0;
-                            const isEditable = !row.is_system && Boolean(row.account_id);
+                            const isPayroll = Boolean(row.system_source?.startsWith("payroll_"));
+                            const isEditable = !row.is_system && !isPayroll && Boolean(row.account_id) && (row.is_editable !== false);
                             const isEditingThis =
                               isEditable &&
                               editingCell?.accountId === row.account_id &&
@@ -740,6 +775,11 @@ export default function DREReportPage() {
                                 key={m}
                                 align="right"
                                 onClick={() => {
+                                  if (isPayroll) {
+                                    toast.info("Esta conta é automática. Abrindo a Gestão da Folha para gerenciar colaboradores.");
+                                    setIsPayrollOpen(true);
+                                    return;
+                                  }
                                   if (isEditable) {
                                     setEditingCell({
                                       accountId: row.account_id!,
@@ -749,6 +789,11 @@ export default function DREReportPage() {
                                   }
                                 }}
                                 onDoubleClick={() => {
+                                  if (isPayroll) {
+                                    toast.info("Esta conta é automática. Abrindo a Gestão da Folha para gerenciar colaboradores.");
+                                    setIsPayrollOpen(true);
+                                    return;
+                                  }
                                   if (isEditable) {
                                     setEditTarget({
                                       accountId: row.account_id!,
@@ -761,13 +806,17 @@ export default function DREReportPage() {
                                 }}
                                 sx={{
                                   fontSize: "0.825rem",
-                                  cursor: isEditable ? "pointer" : "default",
+                                  cursor: isEditable || isPayroll ? "pointer" : "default",
                                   position: "relative",
                                   transition: "background-color 0.15s",
                                   "&:hover": isEditable
                                     ? {
                                         bgcolor: alpha(theme.palette.primary.main, 0.12),
                                         fontWeight: 700,
+                                      }
+                                    : isPayroll
+                                    ? {
+                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
                                       }
                                     : undefined,
                                 }}
@@ -1039,6 +1088,7 @@ export default function DREReportPage() {
           year={selectedYear}
           accounts={accounts}
           reportRows={dreData?.all_rows}
+          onOpenPayroll={() => setIsPayrollOpen(true)}
         />
       )}
 
@@ -1047,6 +1097,18 @@ export default function DREReportPage() {
         onClose={() => setIsAccountsOpen(false)}
         year={selectedYear}
       />
+
+      {isPayrollOpen && (
+        <PayrollModal
+          open={isPayrollOpen}
+          onClose={() => setIsPayrollOpen(false)}
+          year={selectedYear}
+          accounts={accounts}
+          onSyncSuccess={() => {
+            queryClient.invalidateQueries({ queryKey: ["dre-report", selectedYear] });
+          }}
+        />
+      )}
 
       <CellEditModal
         target={editTarget}

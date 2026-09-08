@@ -13,8 +13,10 @@ import {
   Paper,
   CircularProgress,
   Tooltip,
+  useTheme,
+  alpha,
 } from "@mui/material";
-import { X, Save, Copy, ChevronDown, ChevronRight } from "lucide-react";
+import { X, Save, Copy, ChevronDown, ChevronRight, Users } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   batchUpsertDREEntries,
@@ -32,6 +34,7 @@ interface Props {
   year: number;
   accounts: DREAccount[];
   reportRows?: DRERowData[];
+  onOpenPayroll?: () => void;
 }
 
 const MONTH_NAMES = [
@@ -198,7 +201,9 @@ export default function QuickExpenseModal({
   year,
   accounts,
   reportRows = [],
+  onOpenPayroll,
 }: Props) {
+  const theme = useTheme();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<DREGroupType>("fixed_expense");
 
@@ -320,7 +325,11 @@ export default function QuickExpenseModal({
 
   const activeAccounts = useMemo(() => {
     return accounts.filter(
-      (a) => a.group_type === activeTab && !a.is_system && a.is_active
+      (a) =>
+        a.group_type === activeTab &&
+        !a.is_system &&
+        a.is_active &&
+        !a.system_source?.startsWith("payroll_")
     );
   }, [accounts, activeTab]);
 
@@ -353,6 +362,73 @@ export default function QuickExpenseModal({
             <Tab key={tab.value} value={tab.value} label={tab.label} sx={{ fontWeight: 600, textTransform: "none" }} />
           ))}
         </Tabs>
+
+        {/* ── BANNER INFORMATIVO: FOLHA DE PAGAMENTO AUTOMATIZADA ────────── */}
+        {activeTab === "fixed_expense" && (
+          <Paper
+            elevation={0}
+            sx={{
+              p: 2,
+              mb: 2.5,
+              borderRadius: 2.5,
+              backgroundColor: alpha(theme.palette.primary.main, 0.05),
+              border: "1px solid",
+              borderColor: alpha(theme.palette.primary.main, 0.2),
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "flex-start", sm: "center" },
+              justifyContent: "space-between",
+              gap: 1.5,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+              <Box
+                sx={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: "50%",
+                  bgcolor: alpha(theme.palette.primary.main, 0.12),
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  color: "primary.main",
+                  flexShrink: 0,
+                }}
+              >
+                <Users size={18} />
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" fontWeight={800} color="text.primary">
+                  Salários, Encargos e Benefícios são 100% Automáticos
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block" }}>
+                  Essas 3 contas são calculadas colaborador por colaborador (com 13º, férias, FGTS, INSS e benefícios) na Gestão da Folha.
+                </Typography>
+              </Box>
+            </Box>
+            {onOpenPayroll && (
+              <Button
+                size="small"
+                variant="contained"
+                color="primary"
+                startIcon={<Users size={14} />}
+                onClick={() => {
+                  onClose();
+                  onOpenPayroll();
+                }}
+                sx={{
+                  textTransform: "none",
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  whiteSpace: "nowrap",
+                  boxShadow: 1,
+                }}
+              >
+                Abrir Gestão da Folha
+              </Button>
+            )}
+          </Paper>
+        )}
 
         {/* ── LISTA DE CONTAS MEMOIZADAS ─────────────────────────────────── */}
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, maxHeight: "55vh", overflowY: "auto", pr: 0.5 }}>
