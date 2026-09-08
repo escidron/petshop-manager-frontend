@@ -80,7 +80,8 @@ import {
 } from "../api/services/users";
 import CustomTextField from "../components/Textfield/CustomTextfield";
 import { useToast } from "../hooks/useToast";
-import { maskPhone, maskDocument } from "../utils/masks";
+import { maskPhone, maskDocument, maskCep } from "../utils/masks";
+import { getAddressByCep } from "../api/services/address";
 import {
   listPaymentMethods,
   setDefaultPaymentMethod,
@@ -405,10 +406,13 @@ const SettingsPage = () => {
     }
   };
 
+  const [loadingCep, setLoadingCep] = useState(false);
+
   const {
     control,
     handleSubmit,
     reset,
+    setValue: setTenantValue,
     formState: { errors },
   } = useForm<TenantFormData>({
     resolver: zodResolver(tenantSchema),
@@ -416,8 +420,50 @@ const SettingsPage = () => {
       name: tenant?.name || "",
       phone: tenant?.phone || "",
       document: tenant?.document || "",
+      cep: tenant?.cep || "",
+      street: tenant?.street || "",
+      number: tenant?.number || "",
+      complement: tenant?.complement || "",
+      neighborhood: tenant?.neighborhood || "",
+      city: tenant?.city || "",
+      state: tenant?.state || "",
     },
   });
+
+  const handleCepLookup = async (cepInput: string) => {
+    const digits = (cepInput || "").replace(/\D/g, "");
+    if (digits.length !== 8) return;
+    setLoadingCep(true);
+    try {
+      try {
+        const address = await getAddressByCep(digits);
+        if (address && (address.street || address.neighborhood || address.city)) {
+          if (address.street) setTenantValue("street", address.street, { shouldValidate: true });
+          if (address.neighborhood) setTenantValue("neighborhood", address.neighborhood, { shouldValidate: true });
+          if (address.city) setTenantValue("city", address.city, { shouldValidate: true });
+          if (address.state) setTenantValue("state", address.state, { shouldValidate: true });
+          return;
+        }
+      } catch {
+        // Fallback direto ao ViaCEP caso o endpoint interno retorne erro
+      }
+
+      const resp = await fetch(`https://viacep.com.br/ws/${digits}/json/`);
+      const data = await resp.json();
+      if (!data.erro) {
+        if (data.logradouro) setTenantValue("street", data.logradouro, { shouldValidate: true });
+        if (data.bairro) setTenantValue("neighborhood", data.bairro, { shouldValidate: true });
+        if (data.localidade) setTenantValue("city", data.localidade, { shouldValidate: true });
+        if (data.uf) setTenantValue("state", data.uf, { shouldValidate: true });
+      } else {
+        toast.warning("CEP não encontrado. Preencha o endereço manualmente.");
+      }
+    } catch {
+      // Ignora erro de busca
+    } finally {
+      setLoadingCep(false);
+    }
+  };
 
   useEffect(() => {
     if (tenant) {
@@ -425,6 +471,13 @@ const SettingsPage = () => {
         name: tenant.name,
         phone: tenant.phone,
         document: tenant.document || "",
+        cep: tenant.cep || "",
+        street: tenant.street || "",
+        number: tenant.number || "",
+        complement: tenant.complement || "",
+        neighborhood: tenant.neighborhood || "",
+        city: tenant.city || "",
+        state: tenant.state || "",
       });
       setLimitEnabled(tenant.max_simultaneous_appointments !== null && tenant.max_simultaneous_appointments !== undefined);
       setLimitValue(tenant.max_simultaneous_appointments ?? 2);
@@ -864,6 +917,21 @@ const SettingsPage = () => {
                       </Typography>
                       <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
                         {tenant?.document ? maskDocument(tenant.document) : "Não informado"}
+                      </Typography>
+                    </Box>
+                  </Grid>
+
+                  <Grid size={{ xs: 12 }}>
+                    <Box>
+                      <Typography variant="caption" color="text.secondary" fontWeight={600} sx={{ textTransform: "uppercase", letterSpacing: 0.5, display: "block" }}>
+                        Endereço
+                      </Typography>
+                      <Typography variant="body2" fontWeight={700} mt={0.25} color="text.primary">
+                        {tenant?.street ? (
+                          `${tenant.street}, ${tenant.number || "s/n"}${tenant.complement ? ` (${tenant.complement})` : ""} - ${tenant.neighborhood ? `${tenant.neighborhood}, ` : ""}${tenant.city || ""}${tenant.state ? `/${tenant.state}` : ""}${tenant.cep ? ` - CEP: ${maskCep(tenant.cep)}` : ""}`
+                        ) : (
+                          "Não informado"
+                        )}
                       </Typography>
                     </Box>
                   </Grid>
@@ -2937,6 +3005,175 @@ const SettingsPage = () => {
                   )}
                 />
               </FormControl>
+
+              <Divider sx={{ my: 0.5 }}>
+                <Typography variant="caption" color="text.secondary" fontWeight={700} sx={{ textTransform: "uppercase", letterSpacing: 0.5 }}>
+                  Endereço do Estabelecimento
+                </Typography>
+              </Divider>
+
+              {/* CEP com busca automática */}
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  CEP
+                </FormLabel>
+                <Controller
+                  name="cep"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      value={field.value ? maskCep(field.value) : ""}
+                      error={!!errors.cep}
+                      helperText={errors.cep?.message || (loadingCep ? "Buscando dados do CEP..." : "")}
+                      placeholder="00000-000"
+                      disabled={loadingCep}
+                      InputProps={{
+                        endAdornment: loadingCep ? (
+                          <CircularProgress size={18} sx={{ color: "text.secondary", mr: 1 }} />
+                        ) : null,
+                      }}
+                      onBlur={() => handleCepLookup(field.value || "")}
+                      onChange={(e) => {
+                        const masked = maskCep(e.target.value);
+                        field.onChange(masked);
+                        if (masked.replace(/\D/g, "").length === 8) {
+                          handleCepLookup(masked);
+                        }
+                      }}
+                    />
+                  )}
+                />
+              </FormControl>
+
+              {/* Rua / Logradouro */}
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Logradouro (Rua / Avenida)
+                </FormLabel>
+                <Controller
+                  name="street"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      value={field.value || ""}
+                      error={!!errors.street}
+                      helperText={errors.street?.message}
+                      placeholder="Ex: Rua Serra de Botucatu"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              {/* Número e Complemento */}
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Número
+                    </FormLabel>
+                    <Controller
+                      name="number"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          value={field.value || ""}
+                          error={!!errors.number}
+                          helperText={errors.number?.message}
+                          placeholder="123 ou S/N"
+                        />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 8 }}>
+                  <FormControl fullWidth>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Complemento (Opcional)
+                    </FormLabel>
+                    <Controller
+                      name="complement"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          value={field.value || ""}
+                          error={!!errors.complement}
+                          helperText={errors.complement?.message}
+                          placeholder="Sala, Bloco, etc."
+                        />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
+              </Grid>
+
+              {/* Bairro */}
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                  Bairro
+                </FormLabel>
+                <Controller
+                  name="neighborhood"
+                  control={control}
+                  render={({ field }) => (
+                    <CustomTextField
+                      {...field}
+                      value={field.value || ""}
+                      error={!!errors.neighborhood}
+                      helperText={errors.neighborhood?.message}
+                      placeholder="Ex: Vila Gomes Cardim"
+                    />
+                  )}
+                />
+              </FormControl>
+
+              {/* Cidade e UF */}
+              <Grid container spacing={2}>
+                <Grid size={{ xs: 12, sm: 8 }}>
+                  <FormControl fullWidth>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      Cidade
+                    </FormLabel>
+                    <Controller
+                      name="city"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          value={field.value || ""}
+                          error={!!errors.city}
+                          helperText={errors.city?.message}
+                          placeholder="Ex: São Paulo"
+                        />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
+                <Grid size={{ xs: 12, sm: 4 }}>
+                  <FormControl fullWidth>
+                    <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
+                      UF
+                    </FormLabel>
+                    <Controller
+                      name="state"
+                      control={control}
+                      render={({ field }) => (
+                        <CustomTextField
+                          {...field}
+                          value={field.value || ""}
+                          error={!!errors.state}
+                          helperText={errors.state?.message}
+                          placeholder="SP"
+                          inputProps={{ maxLength: 2, style: { textTransform: "uppercase" } }}
+                        />
+                      )}
+                    />
+                  </FormControl>
+                </Grid>
+              </Grid>
 
 
               <Box

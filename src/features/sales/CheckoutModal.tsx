@@ -32,7 +32,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { createSale } from "../../api/services/sales";
 import { getEmployees } from "../../api/services/employees";
 import { useClients } from "../../hooks/useClients";
-import type { SaleItem, SaleCreate, SalePayment } from "./schemas";
+import type { SaleItem, SaleCreate, SalePayment, SaleResponse } from "./schemas";
 import { useToast } from "../../hooks/useToast";
 import { Button } from "../../components/Button/Button";
 import type { Employee } from "../employees/types";
@@ -59,7 +59,7 @@ interface CheckoutModalProps {
   appointmentId?: number | null;
   comandaId?: number | null;
   cashRegisterId?: number | null;
-  onSuccess: () => void;
+  onSuccess: (sale?: SaleResponse) => void;
 }
 
 export default function CheckoutModal({
@@ -227,7 +227,7 @@ export default function CheckoutModal({
 
   const saleMutation = useMutation({
     mutationFn: createSale,
-    onSuccess: () => {
+    onSuccess: (data: SaleResponse) => {
       if (differenceCents > 0) {
         toast.success(
           `Venda de R$ ${totalDistributed.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} finalizada! R$ ${difference.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} permaneceram em aberto na comanda${effectiveClientName ? ` de ${effectiveClientName}` : ""}.`
@@ -247,7 +247,14 @@ export default function CheckoutModal({
       queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
       queryClient.invalidateQueries({ queryKey: ["unpaid-packages"] });
       queryClient.invalidateQueries({ queryKey: ["cash-status"] });
-      onSuccess();
+
+      const finalSaleData: SaleResponse = {
+        ...data,
+        client: data.client || (currentClientObj ? { id: currentClientObj.id, name: currentClientObj.name, phone: currentClientObj.phone } : undefined),
+        items: data.items && data.items.length > 0 ? data.items : (cart as any),
+      };
+
+      onSuccess(finalSaleData);
       onClose();
     },
     onError: (error: any) => {

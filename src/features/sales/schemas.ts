@@ -56,13 +56,13 @@ export interface SaleResponse extends SaleCreate {
   created_at: string;
   items: (SaleItem & { id: number; sale_id: number })[];
   payments?: (SalePayment & { id: number; sale_id: number })[];
-  client?: { id: number; name: string };
+  client?: { id: number; name: string; phone?: string | null };
   pet?: { id: number; name: string };
   appointment_id?: number | null;
   comanda_id?: number | null;
   appointment?: {
     id: number;
-    client: { id: number; name: string };
+    client: { id: number; name: string; phone?: string | null };
     items: { services: { id: number; price_cents: number }[] }[];
   } | null;
 }

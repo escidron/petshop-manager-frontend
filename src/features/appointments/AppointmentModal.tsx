@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Box,
@@ -100,11 +100,13 @@ export default function AppointmentModal({
   >();
 
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const isSubmittingRef = useRef(false);
   const [editRecurrenceConfirmOpen, setEditRecurrenceConfirmOpen] = useState(false);
   const [pendingFormData, setPendingFormData] = useState<AppointmentFormData | null>(null);
 
   const executeSubmit = async (data: AppointmentFormData, updateAllFuture: boolean = false) => {
-    if (isSubmitting) return;
+    if (isSubmittingRef.current || isSubmitting) return;
+    isSubmittingRef.current = true;
     setIsSubmitting(true);
     try {
       if (mode === "create") {
@@ -129,6 +131,7 @@ export default function AppointmentModal({
     } catch {
       toast.error("Erro ao salvar agendamento. Tente novamente.");
     } finally {
+      isSubmittingRef.current = false;
       setIsSubmitting(false);
     }
   };

@@ -23,4 +23,11 @@ export const tenantSchema = z.object({
   max_simultaneous_appointments: z.number().nullable().optional(),
   allow_discount: z.boolean().optional(),
   max_discount_percentage: z.number().nullable().optional(),
+  cep: z.string().nullable().optional(),
+  street: z.string().nullable().optional(),
+  number: z.string().nullable().optional(),
+  complement: z.string().nullable().optional(),
+  neighborhood: z.string().nullable().optional(),
+  city: z.string().nullable().optional(),
+  state: z.string().nullable().optional(),
 });
