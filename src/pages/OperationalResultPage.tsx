@@ -35,7 +35,6 @@ import {
   Award,
   BarChart3,
   Layers,
-  Printer,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -80,10 +79,6 @@ export default function OperationalResultPage() {
     } else {
       setSelectedMonth((prev) => prev + 1);
     }
-  };
-
-  const handlePrint = () => {
-    window.print();
   };
 
   const handleExportExcel = async () => {
@@ -237,14 +232,6 @@ export default function OperationalResultPage() {
             {isExporting ? "Exportando..." : "Exportar Excel"}
           </Button>
 
-          <IconButton
-            size="small"
-            onClick={handlePrint}
-            title="Imprimir ou Salvar PDF"
-            sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 0.8 }}
-          >
-            <Printer size={18} />
-          </IconButton>
         </Box>
       </Box>
 

@@ -4,7 +4,6 @@ import {
   Paper,
   Typography,
   Button,
-  IconButton,
   Select,
   MenuItem,
   FormControl,
@@ -25,7 +24,6 @@ import {
 } from "@mui/material";
 import {
   Download,
-  Printer,
   DollarSign,
   PieChart,
   ChevronDown,
@@ -199,9 +197,6 @@ export default function DREReportPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
-  };
 
   const summary = dreData?.summary;
   const isNetProfitPositive = (summary?.net_profit_total ?? 0) >= 0;
@@ -327,14 +322,7 @@ export default function DREReportPage() {
             Exportar Excel
           </Button>
 
-          <IconButton
-            size="small"
-            onClick={handlePrint}
-            title="Imprimir ou Salvar PDF"
-            sx={{ border: "1px solid", borderColor: "divider", borderRadius: 2, p: 0.8 }}
-          >
-            <Printer size={18} />
-          </IconButton>
+
         </Box>
       </Box>
 
