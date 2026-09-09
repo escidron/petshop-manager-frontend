@@ -15,8 +15,6 @@ import {
   TableRow,
   CircularProgress,
   Tooltip,
-  Switch,
-  FormControlLabel,
   Chip,
   Card,
   useTheme,
@@ -69,7 +67,6 @@ export default function DREReportPage() {
   const queryClient = useQueryClient();
   const currentYear = new Date().getFullYear();
   const [selectedYear, setSelectedYear] = useState<number>(currentYear);
-  const [showPercentages, setShowPercentages] = useState<boolean>(false);
   const [collapsedGroups, setCollapsedGroups] = useState<Record<string, boolean>>({});
 
   // Célula ativa em edição inline
@@ -262,23 +259,6 @@ export default function DREReportPage() {
               ))}
             </Select>
           </FormControl>
-
-          <FormControlLabel
-            control={
-              <Switch
-                checked={showPercentages}
-                onChange={(e) => setShowPercentages(e.target.checked)}
-                size="small"
-                color="primary"
-              />
-            }
-            label={
-              <Typography variant="body2" fontWeight={600} color="text.secondary">
-                Mostrar %
-              </Typography>
-            }
-            sx={{ mr: 0.5 }}
-          />
 
           <Button
             variant="contained"
@@ -493,29 +473,35 @@ export default function DREReportPage() {
             size="small"
             sx={{
               width: "100%",
-              minWidth: 1200,
+              minWidth: 1570,
+              tableLayout: "fixed",
+              borderCollapse: "separate",
+              borderSpacing: 0,
               "& td, & th": { whiteSpace: "nowrap" },
             }}
           >
             <TableHead>
               <TableRow sx={{ bgcolor: "primary.main" }}>
-                {/* Coluna Fixa: Nome da Conta */}
+                {/* Coluna Fixa 1: Nome da Conta */}
                 <TableCell
                   sx={{
                     fontWeight: 700,
                     fontSize: "0.85rem",
                     bgcolor: "primary.main",
                     color: "white",
-                    minWidth: 280,
+                    width: 300,
+                    minWidth: 300,
+                    maxWidth: 300,
                     position: "sticky",
                     left: 0,
-                    zIndex: 10,
+                    zIndex: 12,
+                    borderRight: "1px solid rgba(255,255,255,0.2)",
                   }}
                 >
                   CONTA / CATEGORIA DRE
                 </TableCell>
 
-                {/* Coluna Total Acumulado */}
+                {/* Coluna Fixa 2: Total Acumulado */}
                 <TableCell
                   align="right"
                   sx={{
@@ -523,9 +509,14 @@ export default function DREReportPage() {
                     fontSize: "0.85rem",
                     bgcolor: "primary.main",
                     color: "white",
+                    width: 130,
                     minWidth: 130,
-                    borderLeft: "1px solid rgba(255,255,255,0.2)",
-                    borderRight: "2px solid rgba(255,255,255,0.3)",
+                    maxWidth: 130,
+                    position: "sticky",
+                    left: 300,
+                    zIndex: 12,
+                    borderRight: "2px solid rgba(255,255,255,0.35)",
+                    boxShadow: "3px 0 5px -2px rgba(0,0,0,0.25)",
                   }}
                 >
                   TOTAL {selectedYear}
@@ -541,7 +532,8 @@ export default function DREReportPage() {
                       fontSize: "0.825rem",
                       bgcolor: "primary.main",
                       color: "white",
-                      minWidth: 85,
+                      width: 95,
+                      minWidth: 95,
                       borderLeft: idx > 0 ? "1px solid rgba(255,255,255,0.12)" : undefined,
                     }}
                   >
@@ -566,7 +558,7 @@ export default function DREReportPage() {
                         borderBottom: "1px solid #E2E8F0",
                         cursor: "pointer",
                         "& td": { bgcolor: "#F1F5F9" },
-                        "&:hover, &:hover td": { bgcolor: "#E2E8F0" },
+                        "&:hover, &:hover td": { bgcolor: "#E2E8F0 !important" },
                       }}
                       onClick={() => toggleGroup(group.group_type)}
                     >
@@ -577,22 +569,25 @@ export default function DREReportPage() {
                           color: "#1E293B",
                           position: "sticky",
                           left: 0,
-                          zIndex: 5,
+                          zIndex: 8,
                           bgcolor: "#F1F5F9",
                           py: 1,
+                          width: 300,
+                          minWidth: 300,
+                          maxWidth: 300,
                           borderRight: "1px solid #E2E8F0",
                         }}
                       >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
                           {isCollapsed ? <ChevronRight size={18} color="#64748B" /> : <ChevronDown size={18} color="#64748B" />}
-                          <span style={{ letterSpacing: "0.2px" }}>{group.title}</span>
-                          <Typography variant="caption" sx={{ color: "text.secondary", ml: 0.5, fontWeight: 500 }}>
+                          <span style={{ letterSpacing: "0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{group.title}</span>
+                          <Typography variant="caption" sx={{ color: "text.secondary", ml: 0.5, fontWeight: 500, flexShrink: 0 }}>
                             ({group.rows.length} {group.rows.length === 1 ? "conta" : "contas"})
                           </Typography>
                         </Box>
                       </TableCell>
 
-                      {/* Total do Grupo */}
+                      {/* Total do Grupo (Coluna Fixa 2) */}
                       <TableCell
                         align="right"
                         sx={{
@@ -600,17 +595,23 @@ export default function DREReportPage() {
                           color: "#1E293B",
                           fontSize: "0.85rem",
                           py: 1,
-                          borderLeft: "1px solid #E2E8F0",
+                          position: "sticky",
+                          left: 300,
+                          zIndex: 8,
+                          bgcolor: "#F1F5F9",
+                          width: 130,
+                          minWidth: 130,
+                          maxWidth: 130,
                           borderRight: "2px solid #CBD5E1",
+                          boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
                         }}
                       >
-                        {showPercentages ? fmtPct(sub.total_percentage) : fmtBRL(sub.total_amount)}
+                        {fmtBRL(sub.total_amount)}
                       </TableCell>
 
                       {/* Meses do Grupo */}
                       {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                         const val = sub.monthly_amounts[m] || 0;
-                        const pct = sub.monthly_percentages[m] || 0;
                         return (
                           <TableCell
                             key={m}
@@ -622,7 +623,7 @@ export default function DREReportPage() {
                               py: 1,
                             }}
                           >
-                            {showPercentages ? fmtPct(pct) : fmtBRL(val)}
+                            {fmtBRL(val)}
                           </TableCell>
                         );
                       })}
@@ -630,203 +631,226 @@ export default function DREReportPage() {
 
                     {/* Linhas das Contas do Grupo (se não estiver recolhido) */}
                     {!isCollapsed &&
-                      group.rows.map((row) => (
-                        <TableRow
-                          key={row.id}
-                          hover
-                          sx={{
-                            "&:nth-of-type(even)": { bgcolor: "#F8FAFC" },
-                          }}
-                        >
-                          {/* Coluna Nome da Conta */}
-                          <TableCell
+                      group.rows.map((row, rowIdx) => {
+                        const isEven = rowIdx % 2 === 1;
+                        const rowBg = isEven ? "#F8FAFC" : "#FFFFFF";
+                        return (
+                          <TableRow
+                            key={row.id}
+                            hover
                             sx={{
-                              fontSize: "0.825rem",
-                              pl: 4,
-                              position: "sticky",
-                              left: 0,
-                              zIndex: 4,
-                              bgcolor: "background.paper",
-                              borderRight: "1px solid #E2E8F0",
+                              bgcolor: rowBg,
+                              "&:hover td": { bgcolor: "#F1F5F9 !important" },
                             }}
                           >
-                            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                              <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                                {row.code && (
-                                  <Typography variant="caption" color="text.secondary">
-                                    [{row.code}]
+                            {/* Coluna Fixa 1: Nome da Conta */}
+                            <TableCell
+                              sx={{
+                                fontSize: "0.825rem",
+                                pl: 3,
+                                position: "sticky",
+                                left: 0,
+                                zIndex: 6,
+                                width: 300,
+                                minWidth: 300,
+                                maxWidth: 300,
+                                bgcolor: rowBg,
+                                borderRight: "1px solid #E2E8F0",
+                              }}
+                            >
+                              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, overflow: "hidden" }}>
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0, overflow: "hidden" }}>
+                                  {row.code && (
+                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontWeight: 600 }}>
+                                      [{row.code}]
+                                    </Typography>
+                                  )}
+                                  <Typography
+                                    variant="body2"
+                                    fontWeight={500}
+                                    color="text.primary"
+                                    noWrap
+                                    title={row.name}
+                                    sx={{ textOverflow: "ellipsis", overflow: "hidden" }}
+                                  >
+                                    {row.name}
                                   </Typography>
+                                </Box>
+                                {row.is_system ? (
+                                  <Tooltip title="Alimentado automaticamente pelas operações do sistema">
+                                    <Chip label="Auto" size="small" variant="outlined" sx={{ height: 18, fontSize: "0.65rem", borderColor: "divider", flexShrink: 0 }} />
+                                  </Tooltip>
+                                ) : row.system_source?.startsWith("payroll_") ? (
+                                  <Tooltip title="Alimentado automaticamente pela Folha de Pagamento. Clique para abrir o módulo.">
+                                    <Chip
+                                      label="Folha (Auto)"
+                                      size="small"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        setIsPayrollOpen(true);
+                                      }}
+                                      sx={{
+                                        height: 18,
+                                        fontSize: "0.65rem",
+                                        fontWeight: 700,
+                                        bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                        color: "primary.main",
+                                        cursor: "pointer",
+                                        flexShrink: 0,
+                                        "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.22) },
+                                      }}
+                                    />
+                                  </Tooltip>
+                                ) : (
+                                  <Tooltip title="Clique na célula para editar direto ou duplo clique para anotações">
+                                    <Chip label="Manual" size="small" sx={{ height: 18, fontSize: "0.65rem", bgcolor: "#F1F5F9", color: "text.secondary", flexShrink: 0 }} />
+                                  </Tooltip>
                                 )}
-                                <Typography variant="body2" fontWeight={500} color="text.primary">
-                                  {row.name}
-                                </Typography>
                               </Box>
-                              {row.is_system ? (
-                                <Tooltip title="Alimentado automaticamente pelas operações do sistema">
-                                  <Chip label="Auto" size="small" variant="outlined" sx={{ height: 18, fontSize: "0.65rem", borderColor: "divider" }} />
-                                </Tooltip>
-                              ) : row.system_source?.startsWith("payroll_") ? (
-                                <Tooltip title="Alimentado automaticamente pela Folha de Pagamento. Clique para abrir o módulo.">
-                                  <Chip
-                                    label="Folha (Auto)"
-                                    size="small"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      setIsPayrollOpen(true);
-                                    }}
+                            </TableCell>
+
+                            {/* Coluna Fixa 2: Total da Linha */}
+                            <TableCell
+                              align="right"
+                              sx={{
+                                fontWeight: 700,
+                                fontSize: "0.825rem",
+                                position: "sticky",
+                                left: 300,
+                                zIndex: 6,
+                                width: 130,
+                                minWidth: 130,
+                                maxWidth: 130,
+                                bgcolor: rowBg,
+                                borderRight: "2px solid #CBD5E1",
+                                color: "text.primary",
+                                boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
+                              }}
+                            >
+                              {fmtBRL(row.total_amount)}
+                            </TableCell>
+
+                            {/* Meses da Linha (Dinâmicos: Edição Inline na própria célula!) */}
+                            {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
+                              const val = row.monthly_amounts[m] || 0;
+                              const isPayroll = Boolean(row.system_source?.startsWith("payroll_"));
+                              const isEditable = !row.is_system && !isPayroll && Boolean(row.account_id) && (row.is_editable !== false);
+                              const isEditingThis =
+                                isEditable &&
+                                editingCell?.accountId === row.account_id &&
+                                editingCell?.month === m;
+
+                              if (isEditingThis) {
+                                return (
+                                  <TableCell
+                                    key={m}
                                     sx={{
-                                      height: 18,
-                                      fontSize: "0.65rem",
-                                      fontWeight: 700,
-                                      bgcolor: alpha(theme.palette.primary.main, 0.12),
-                                      color: "primary.main",
-                                      cursor: "pointer",
-                                      "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.22) },
+                                      p: 0.5,
+                                      minWidth: 120,
+                                      bgcolor: alpha(theme.palette.primary.main, 0.08),
                                     }}
-                                  />
-                                </Tooltip>
-                              ) : (
-                                <Tooltip title="Clique na célula para editar direto ou duplo clique para anotações">
-                                  <Chip label="Manual" size="small" sx={{ height: 18, fontSize: "0.65rem", bgcolor: "#F1F5F9", color: "text.secondary" }} />
-                                </Tooltip>
-                              )}
-                            </Box>
-                          </TableCell>
+                                  >
+                                    <MoneyInput
+                                      autoFocus
+                                      value={editingCell.value}
+                                      onChange={(newVal) =>
+                                        setEditingCell((prev) => (prev ? { ...prev, value: newVal } : null))
+                                      }
+                                      onKeyDown={(e) => {
+                                        if (e.key === "Enter") {
+                                          handleSaveInlineCell();
+                                        } else if (e.key === "Escape") {
+                                          setEditingCell(null);
+                                        }
+                                      }}
+                                      onBlur={handleSaveInlineCell}
+                                      size="small"
+                                      sx={{
+                                        "& .MuiInputBase-root": { bgcolor: "background.paper", borderRadius: 1.5 },
+                                        "& .MuiInputBase-input": {
+                                          py: 0.5,
+                                          px: 0.5,
+                                          fontSize: "0.825rem",
+                                          textAlign: "right",
+                                          fontWeight: 700,
+                                        },
+                                      }}
+                                    />
+                                  </TableCell>
+                                );
+                              }
 
-                          {/* Total da Linha */}
-                          <TableCell
-                            align="right"
-                            sx={{
-                              fontWeight: 700,
-                              fontSize: "0.825rem",
-                              bgcolor: "#F8FAFC",
-                              borderRight: "2px solid #E2E8F0",
-                              color: "text.primary",
-                            }}
-                          >
-                            {showPercentages ? fmtPct(row.total_percentage) : fmtBRL(row.total_amount)}
-                          </TableCell>
-
-                          {/* Meses da Linha (Dinâmicos: Edição Inline na própria célula!) */}
-                          {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
-                            const val = row.monthly_amounts[m] || 0;
-                            const pct = row.monthly_percentages[m] || 0;
-                            const isPayroll = Boolean(row.system_source?.startsWith("payroll_"));
-                            const isEditable = !row.is_system && !isPayroll && Boolean(row.account_id) && (row.is_editable !== false);
-                            const isEditingThis =
-                              isEditable &&
-                              editingCell?.accountId === row.account_id &&
-                              editingCell?.month === m;
-
-                            if (isEditingThis) {
                               return (
                                 <TableCell
                                   key={m}
+                                  align="right"
+                                  onClick={() => {
+                                    if (isPayroll) {
+                                      toast.info("Esta conta é automática. Abrindo a Gestão da Folha para gerenciar colaboradores.");
+                                      setIsPayrollOpen(true);
+                                      return;
+                                    }
+                                    if (isEditable) {
+                                      setEditingCell({
+                                        accountId: row.account_id!,
+                                        month: m,
+                                        value: val,
+                                      });
+                                    }
+                                  }}
+                                  onDoubleClick={() => {
+                                    if (isPayroll) {
+                                      toast.info("Esta conta é automática. Abrindo a Gestão da Folha para gerenciar colaboradores.");
+                                      setIsPayrollOpen(true);
+                                      return;
+                                    }
+                                    if (isEditable) {
+                                      setEditTarget({
+                                        accountId: row.account_id!,
+                                        accountName: row.name,
+                                        year: selectedYear,
+                                        month: m,
+                                        currentAmount: val,
+                                      });
+                                    }
+                                  }}
                                   sx={{
-                                    p: 0.5,
-                                    minWidth: 120,
-                                    bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                    fontSize: "0.825rem",
+                                    cursor: isEditable || isPayroll ? "pointer" : "default",
+                                    position: "relative",
+                                    transition: "background-color 0.15s",
+                                    "&:hover": isEditable
+                                      ? {
+                                          bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                          fontWeight: 700,
+                                        }
+                                      : isPayroll
+                                      ? {
+                                          bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                        }
+                                      : undefined,
                                   }}
                                 >
-                                  <MoneyInput
-                                    autoFocus
-                                    value={editingCell.value}
-                                    onChange={(newVal) =>
-                                      setEditingCell((prev) => (prev ? { ...prev, value: newVal } : null))
-                                    }
-                                    onKeyDown={(e) => {
-                                      if (e.key === "Enter") {
-                                        handleSaveInlineCell();
-                                      } else if (e.key === "Escape") {
-                                        setEditingCell(null);
-                                      }
-                                    }}
-                                    onBlur={handleSaveInlineCell}
-                                    size="small"
-                                    sx={{
-                                      "& .MuiInputBase-root": { bgcolor: "background.paper", borderRadius: 1.5 },
-                                      "& .MuiInputBase-input": {
-                                        py: 0.5,
-                                        px: 0.5,
-                                        fontSize: "0.8rem",
-                                        textAlign: "right",
-                                        fontWeight: 700,
-                                      },
-                                    }}
-                                  />
+                                  {fmtBRL(val)}
                                 </TableCell>
                               );
-                            }
-
-                            return (
-                              <TableCell
-                                key={m}
-                                align="right"
-                                onClick={() => {
-                                  if (isPayroll) {
-                                    toast.info("Esta conta é automática. Abrindo a Gestão da Folha para gerenciar colaboradores.");
-                                    setIsPayrollOpen(true);
-                                    return;
-                                  }
-                                  if (isEditable) {
-                                    setEditingCell({
-                                      accountId: row.account_id!,
-                                      month: m,
-                                      value: val,
-                                    });
-                                  }
-                                }}
-                                onDoubleClick={() => {
-                                  if (isPayroll) {
-                                    toast.info("Esta conta é automática. Abrindo a Gestão da Folha para gerenciar colaboradores.");
-                                    setIsPayrollOpen(true);
-                                    return;
-                                  }
-                                  if (isEditable) {
-                                    setEditTarget({
-                                      accountId: row.account_id!,
-                                      accountName: row.name,
-                                      year: selectedYear,
-                                      month: m,
-                                      currentAmount: val,
-                                    });
-                                  }
-                                }}
-                                sx={{
-                                  fontSize: "0.825rem",
-                                  cursor: isEditable || isPayroll ? "pointer" : "default",
-                                  position: "relative",
-                                  transition: "background-color 0.15s",
-                                  "&:hover": isEditable
-                                    ? {
-                                        bgcolor: alpha(theme.palette.primary.main, 0.12),
-                                        fontWeight: 700,
-                                      }
-                                    : isPayroll
-                                    ? {
-                                        bgcolor: alpha(theme.palette.primary.main, 0.08),
-                                      }
-                                    : undefined,
-                                }}
-                              >
-                                {showPercentages ? fmtPct(pct) : fmtBRL(val)}
-                              </TableCell>
-                            );
-                          })}
-                        </TableRow>
-                      ))}
+                            })}
+                          </TableRow>
+                        );
+                      })}
 
                     {/* Linha de Resultado Intermediário: MARGEM BRUTA */}
                     {group.group_type === "cmv" && (
                       <TableRow
                         sx={{
-                          bgcolor: alpha(theme.palette.primary.main, 0.08),
-                          borderTop: "2px solid",
-                          borderTopColor: alpha(theme.palette.primary.main, 0.25),
-                          borderBottom: "1.5px solid",
-                          borderBottomColor: alpha(theme.palette.primary.main, 0.2),
+                          bgcolor: "#ECEEF8",
+                          borderTop: "2px solid #D5D8ED",
+                          borderBottom: "1.5px solid #D5D8ED",
                           "& td": {
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            bgcolor: "#ECEEF8",
+                          },
+                          "&:hover td": {
+                            bgcolor: "#E3E6F4 !important",
                           },
                         }}
                       >
@@ -837,11 +861,13 @@ export default function DREReportPage() {
                             fontSize: "0.85rem",
                             position: "sticky",
                             left: 0,
-                            zIndex: 5,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            zIndex: 8,
+                            bgcolor: "#ECEEF8",
                             py: 1.25,
-                            borderRight: "1px solid",
-                            borderRightColor: alpha(theme.palette.primary.main, 0.2),
+                            width: 300,
+                            minWidth: 300,
+                            maxWidth: 300,
+                            borderRight: "1px solid #D5D8ED",
                           }}
                         >
                           (=) RECEITA LÍQUIDA / MARGEM BRUTA
@@ -852,22 +878,26 @@ export default function DREReportPage() {
                             fontWeight: 800,
                             color: "primary.main",
                             fontSize: "0.875rem",
-                            borderRight: "2px solid",
-                            borderRightColor: alpha(theme.palette.primary.main, 0.25),
+                            position: "sticky",
+                            left: 300,
+                            zIndex: 8,
+                            bgcolor: "#ECEEF8",
+                            width: 130,
+                            minWidth: 130,
+                            maxWidth: 130,
+                            borderRight: "2px solid #CBD5E1",
+                            boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
                           }}
                         >
-                          {showPercentages
-                            ? fmtPct(summary?.gross_margin_pct ?? 0)
-                            : fmtBRL(summary?.gross_margin_total ?? 0)}
+                          {fmtBRL(summary?.gross_margin_total ?? 0)}
                         </TableCell>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                           const rev = dreData?.groups.find((g) => g.group_type === "gross_revenue")?.subtotal_row.monthly_amounts[m] || 0;
                           const cmv = dreData?.groups.find((g) => g.group_type === "cmv")?.subtotal_row.monthly_amounts[m] || 0;
                           const marg = rev - cmv;
-                          const pct = rev > 0 ? (marg / rev) * 100 : 0;
                           return (
                             <TableCell key={m} align="right" sx={{ fontWeight: 800, color: "primary.main", fontSize: "0.825rem" }}>
-                              {showPercentages ? fmtPct(pct) : fmtBRL(marg)}
+                              {fmtBRL(marg)}
                             </TableCell>
                           );
                         })}
@@ -878,13 +908,14 @@ export default function DREReportPage() {
                     {group.group_type === "variable_expense" && (
                       <TableRow
                         sx={{
-                          bgcolor: alpha(theme.palette.primary.main, 0.08),
-                          borderTop: "2px solid",
-                          borderTopColor: alpha(theme.palette.primary.main, 0.25),
-                          borderBottom: "1.5px solid",
-                          borderBottomColor: alpha(theme.palette.primary.main, 0.2),
+                          bgcolor: "#ECEEF8",
+                          borderTop: "2px solid #D5D8ED",
+                          borderBottom: "1.5px solid #D5D8ED",
                           "& td": {
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            bgcolor: "#ECEEF8",
+                          },
+                          "&:hover td": {
+                            bgcolor: "#E3E6F4 !important",
                           },
                         }}
                       >
@@ -895,11 +926,13 @@ export default function DREReportPage() {
                             fontSize: "0.85rem",
                             position: "sticky",
                             left: 0,
-                            zIndex: 5,
-                            bgcolor: alpha(theme.palette.primary.main, 0.08),
+                            zIndex: 8,
+                            bgcolor: "#ECEEF8",
                             py: 1.25,
-                            borderRight: "1px solid",
-                            borderRightColor: alpha(theme.palette.primary.main, 0.2),
+                            width: 300,
+                            minWidth: 300,
+                            maxWidth: 300,
+                            borderRight: "1px solid #D5D8ED",
                           }}
                         >
                           (=) RESULTADO OPERACIONAL (EBITDA)
@@ -910,13 +943,18 @@ export default function DREReportPage() {
                             fontWeight: 800,
                             color: "primary.main",
                             fontSize: "0.875rem",
-                            borderRight: "2px solid",
-                            borderRightColor: alpha(theme.palette.primary.main, 0.25),
+                            position: "sticky",
+                            left: 300,
+                            zIndex: 8,
+                            bgcolor: "#ECEEF8",
+                            width: 130,
+                            minWidth: 130,
+                            maxWidth: 130,
+                            borderRight: "2px solid #CBD5E1",
+                            boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
                           }}
                         >
-                          {showPercentages
-                            ? fmtPct(summary?.ebitda_pct ?? 0)
-                            : fmtBRL(summary?.ebitda_total ?? 0)}
+                          {fmtBRL(summary?.ebitda_total ?? 0)}
                         </TableCell>
                         {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                           const rev = dreData?.groups.find((g) => g.group_type === "gross_revenue")?.subtotal_row.monthly_amounts[m] || 0;
@@ -924,10 +962,9 @@ export default function DREReportPage() {
                           const fix = dreData?.groups.find((g) => g.group_type === "fixed_expense")?.subtotal_row.monthly_amounts[m] || 0;
                           const varExp = dreData?.groups.find((g) => g.group_type === "variable_expense")?.subtotal_row.monthly_amounts[m] || 0;
                           const ebit = rev - cmv - fix - varExp;
-                          const pct = rev > 0 ? (ebit / rev) * 100 : 0;
                           return (
                             <TableCell key={m} align="right" sx={{ fontWeight: 800, color: "primary.main", fontSize: "0.825rem" }}>
-                              {showPercentages ? fmtPct(pct) : fmtBRL(ebit)}
+                              {fmtBRL(ebit)}
                             </TableCell>
                           );
                         })}
@@ -950,6 +987,9 @@ export default function DREReportPage() {
                       "& td": {
                         bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
                       },
+                      "&:hover td": {
+                        bgcolor: isNetProfitPositive ? "#D1FAE5 !important" : "#FEE2E2 !important",
+                      },
                     }}
                   >
                     <TableCell
@@ -959,9 +999,12 @@ export default function DREReportPage() {
                         color: isNetProfitPositive ? "#065F46" : "#991B1B",
                         position: "sticky",
                         left: 0,
-                        zIndex: 5,
+                        zIndex: 8,
                         bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
                         py: 1.25,
+                        width: 300,
+                        minWidth: 300,
+                        maxWidth: 300,
                         borderRight: "1px solid",
                         borderRightColor: isNetProfitPositive ? "#A7F3D0" : "#FECDD3",
                       }}
@@ -974,20 +1017,23 @@ export default function DREReportPage() {
                         fontWeight: 900,
                         fontSize: "0.95rem",
                         color: isNetProfitPositive ? "#065F46" : "#991B1B",
-                        borderLeft: "1px solid",
-                        borderLeftColor: isNetProfitPositive ? "#A7F3D0" : "#FECDD3",
+                        position: "sticky",
+                        left: 300,
+                        zIndex: 8,
+                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
+                        width: 130,
+                        minWidth: 130,
+                        maxWidth: 130,
                         borderRight: "2px solid",
                         borderRightColor: isNetProfitPositive ? "#6EE7B7" : "#FDA4AF",
+                        boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
                       }}
                     >
-                      {showPercentages
-                        ? fmtPct(summary.net_margin_pct)
-                        : fmtBRL(summary.net_profit_total)}
+                      {fmtBRL(summary.net_profit_total)}
                     </TableCell>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                       const netRow = dreData?.all_rows.find((r) => r.id === "result-net-profit");
                       const val = netRow?.monthly_amounts[m] || 0;
-                      const pct = netRow?.monthly_percentages[m] || 0;
                       const isPositive = val >= 0;
                       return (
                         <TableCell
@@ -999,7 +1045,7 @@ export default function DREReportPage() {
                             color: isPositive ? "#065F46" : "#991B1B",
                           }}
                         >
-                          {showPercentages ? fmtPct(pct) : fmtBRL(val)}
+                          {fmtBRL(val)}
                         </TableCell>
                       );
                     })}
@@ -1012,6 +1058,9 @@ export default function DREReportPage() {
                       "& td": {
                         bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
                       },
+                      "&:hover td": {
+                        bgcolor: isNetProfitPositive ? "#DCFCE7 !important" : "#FFE4E6 !important",
+                      },
                     }}
                   >
                     <TableCell
@@ -1021,9 +1070,12 @@ export default function DREReportPage() {
                         color: isNetProfitPositive ? "#047857" : "#B91C1C",
                         position: "sticky",
                         left: 0,
-                        zIndex: 5,
+                        zIndex: 8,
                         bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
                         py: 0.85,
+                        width: 300,
+                        minWidth: 300,
+                        maxWidth: 300,
                         borderRight: "1px solid",
                         borderRightColor: isNetProfitPositive ? "#BBF7D0" : "#FECDD3",
                       }}
@@ -1036,8 +1088,16 @@ export default function DREReportPage() {
                         fontWeight: 800,
                         fontSize: "0.85rem",
                         color: isNetProfitPositive ? "#047857" : "#B91C1C",
+                        position: "sticky",
+                        left: 300,
+                        zIndex: 8,
+                        bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
+                        width: 130,
+                        minWidth: 130,
+                        maxWidth: 130,
                         borderRight: "2px solid",
                         borderRightColor: isNetProfitPositive ? "#86EFAC" : "#FCA5A5",
+                        boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
                       }}
                     >
                       {fmtPct(summary.net_margin_pct)}
