@@ -10,7 +10,7 @@ import {
   Pencil,
   ExternalLink,
 } from "lucide-react";
-import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip } from "@mui/material";
+import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip, alpha } from "@mui/material";
 import type { Client } from "./types";
 import { maskPhone, maskCpf, maskCnpj, maskCep } from "../../utils/masks";
 import { isoToBrDate } from "../../utils/formatDates";
@@ -18,6 +18,7 @@ import { isoToBrDate } from "../../utils/formatDates";
 type Props = {
   client: Client;
   onEdit?: () => void;
+  onClientClick?: () => void;
   variant?: "full" | "appointment";
 };
 
@@ -66,6 +67,7 @@ const InfoItem = ({
 const ClientePersonalInfo = ({
   client,
   onEdit,
+  onClientClick,
   variant = "full",
 }: Props) => {
   const formatDocument = (doc?: string | null, type?: string | null) => {
@@ -220,7 +222,33 @@ const ClientePersonalInfo = ({
             mb: hasContact || singleLineAddress ? 1.5 : 0,
           }}
         >
-          <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", minWidth: 0, flex: 1 }}>
+          <Box
+            onClick={onClientClick}
+            sx={{
+              display: "flex",
+              gap: 1.25,
+              alignItems: "center",
+              minWidth: 0,
+              flex: 1,
+              ...(onClientClick && {
+                cursor: "pointer",
+                borderRadius: 2,
+                p: 0.75,
+                m: -0.75,
+                transition: "all 0.2s ease-in-out",
+                "&:hover": {
+                  bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                  "& .client-name-text": {
+                    color: "primary.main",
+                  },
+                  "& .client-link-icon": {
+                    color: "primary.main",
+                    transform: "translate(2px, -2px)",
+                  },
+                },
+              }),
+            }}
+          >
             <Box
               sx={{
                 width: { xs: 38, sm: 44 },
@@ -237,18 +265,38 @@ const ClientePersonalInfo = ({
               <User size={20} />
             </Box>
             <Box sx={{ minWidth: 0, flex: 1 }}>
-              <Typography
-                variant="h6"
-                fontWeight={700}
-                color="text.primary"
-                noWrap
-                sx={{
-                  fontSize: { xs: "0.95rem", sm: "1.1rem" },
-                  lineHeight: 1.2,
-                }}
-              >
-                {client.name}
-              </Typography>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                <Typography
+                  className="client-name-text"
+                  variant="h6"
+                  fontWeight={700}
+                  color="text.primary"
+                  noWrap
+                  sx={{
+                    fontSize: { xs: "0.95rem", sm: "1.1rem" },
+                    lineHeight: 1.2,
+                    transition: "color 0.2s ease",
+                  }}
+                >
+                  {client.name}
+                </Typography>
+                {onClientClick && (
+                  <Tooltip title="Ver detalhes do cliente">
+                    <Box
+                      className="client-link-icon"
+                      component="span"
+                      sx={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        color: "text.disabled",
+                        transition: "all 0.2s ease",
+                      }}
+                    >
+                      <ExternalLink size={15} />
+                    </Box>
+                  </Tooltip>
+                )}
+              </Box>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.25 }}>
                 <Chip
                   label={client.is_active ? "Ativo" : "Inativo"}
@@ -271,7 +319,8 @@ const ClientePersonalInfo = ({
               size="small"
               color="success"
               startIcon={<img src="/whatsapp.png" alt="WhatsApp" style={{ width: 15, height: 15 }} />}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 const cleanPhone = client.phone!.replace(/\D/g, "");
                 const phoneWithCountry = cleanPhone.startsWith("55") ? cleanPhone : `55${cleanPhone}`;
                 window.open(`https://wa.me/${phoneWithCountry}`, "_blank");

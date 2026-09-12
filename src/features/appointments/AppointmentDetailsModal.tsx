@@ -45,6 +45,7 @@ import {
   X,
   AlertTriangle,
   AlertCircle,
+  ExternalLink,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -129,6 +130,13 @@ const AppointmentDetailsModal = ({
   });
 
   const client = fullClient || appointment.client;
+
+  const handleClientClick = () => {
+    if (client?.id) {
+      onClose();
+      navigate(`/registration/clients/${client.id}`);
+    }
+  };
 
   const availablePackages = useMemo(() => {
     return clientPackages
@@ -775,11 +783,47 @@ const AppointmentDetailsModal = ({
             </CustomCard>
           </Box>
           <Box sx={{ mt: 2 }}>
-            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
-              Tutor
-            </Typography>
-            <Box sx={{ mt: 1, width: "100%", minWidth: 0 }}>
-              <ClientePersonalInfo client={client} variant="appointment" />
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                mb: 1,
+              }}
+            >
+              <Typography
+                variant="h5"
+                fontWeight={600}
+                sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}
+              >
+                Tutor
+              </Typography>
+              <Button
+                variant="text"
+                size="small"
+                endIcon={<ExternalLink size={14} />}
+                onClick={handleClientClick}
+                sx={{
+                  textTransform: "none",
+                  fontSize: "0.8rem",
+                  fontWeight: 600,
+                  color: "primary.main",
+                  p: 0.5,
+                  minWidth: "auto",
+                  "&:hover": {
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                  },
+                }}
+              >
+                Ver perfil completo
+              </Button>
+            </Box>
+            <Box sx={{ width: "100%", minWidth: 0 }}>
+              <ClientePersonalInfo
+                client={client}
+                variant="appointment"
+                onClientClick={handleClientClick}
+              />
             </Box>
           </Box>
 
