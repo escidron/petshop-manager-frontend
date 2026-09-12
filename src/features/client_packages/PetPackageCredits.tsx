@@ -31,10 +31,11 @@ import { formatServiceLabel } from "../../utils/formatServiceLabel";
 import { Button } from "../../components/Button/Button";
 import { useToast } from "../../hooks/useToast";
 import { useAuth } from "../../hooks/useAuth";
+import { sharePackageViaWhatsApp } from "./packageWhatsAppMessage";
 
 type Props = {
   packages: ClientPackage[];
-  clientPhone?: string;
+  clientPhone?: string | null;
   onRefresh: () => void;
 };
 
@@ -154,48 +155,15 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
   };
 
   const handleShareWhatsApp = (pkg: ClientPackage) => {
-    if (!clientPhone) {
-      toast.warning("Telefone do cliente não cadastrado.");
-      return;
+    const result = sharePackageViaWhatsApp(
+      pkg,
+      clientPhone,
+      tenant?.name,
+      pkg.client?.name,
+    );
+    if (!result.success && result.error) {
+      toast.warning(result.error);
     }
-
-    const cleanPhone = clientPhone.replace(/\D/g, "");
-    const petshopName = tenant?.name ? `*${tenant.name}*\n` : "";
-    const purchaseDate = new Date(pkg.created_at).toLocaleDateString();
-    const expirationDate = pkg.expires_at ? new Date(pkg.expires_at).toLocaleDateString() : null;
-    
-    let text = `${petshopName}`;
-    text += `Olá, *${pkg.client.name}*!\n\n`;
-    text += `Aqui está o saldo do pacote *${pkg.package_name}* para os pets *${pkg.pets.map(p => p.name).join(', ')}*:\n`;
-    text += `*Data da compra:* ${purchaseDate}\n`;
-    if (expirationDate) {
-      text += `*Validade do pacote:* ${expirationDate}\n`;
-    }
-    text += `\n*Status dos itens:*\n`;
-
-    pkg.credits.forEach((credit) => {
-      const creditUsages = pkg.usages
-        .filter((u) => u.credit_id === credit.id && u.change_qty > 0)
-        .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
-
-      for (let i = 0; i < credit.total_qty; i++) {
-        const isUsed = i < credit.used_qty;
-        const usage = isUsed ? creditUsages[i] : null;
-        const serviceName = credit.service ? formatServiceLabel(credit.service) : credit.service_name;
-
-        if (isUsed) {
-          const dateStr = usage ? ` em ${new Date(usage.created_at).toLocaleDateString()}` : "";
-          text += `~${serviceName}~ (Utilizado${dateStr})\n`;
-        } else {
-          text += `*${serviceName}* (A utilizar)\n`;
-        }
-      }
-    });
-
-    text += `\nAgradecemos a preferência!`;
-
-    const url = `https://wa.me/55${cleanPhone}?text=${encodeURIComponent(text)}`;
-    window.open(url, "_blank");
   };
 
   if (packages.length === 0) {

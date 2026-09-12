@@ -190,6 +190,8 @@ export default function ClientDetailsPage() {
           <ClientHistory
             clientId={parseInt(id!)}
             refreshTrigger={refreshHistoryTrigger}
+            clientPhone={client?.phone}
+            clientName={client?.name}
           />
         </Box>
       </Box>

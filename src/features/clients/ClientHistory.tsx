@@ -14,19 +14,27 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package, Receipt } from "lucide-react";
+import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package, Receipt, MessageCircle } from "lucide-react";
 import { listAppointmentsByClient } from "../../api/services/appointments";
 import { listSales } from "../../api/services/sales";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
+import { fetchClientById } from "../../api/services/clients";
 import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../sales/schemas";
 import type { ClientPackage } from "../client_packages/types";
 import { APPOINTMENT_STATUS_LABEL } from "../../api/services/appointments";
 import { useQuery } from "@tanstack/react-query";
 import SaleReceiptModal from "../sales/SaleReceiptModal";
+import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../hooks/useAuth";
+import { sharePackageViaWhatsApp } from "../client_packages/packageWhatsAppMessage";
+import { Button } from "../../components/Button/Button";
+
 type Props = {
   clientId: number;
   refreshTrigger?: number;
+  clientPhone?: string | null;
+  clientName?: string | null;
 };
 
 interface TabPanelProps {
@@ -51,9 +59,37 @@ function CustomTabPanel(props: TabPanelProps) {
   );
 }
 
-export default function ClientHistory({ clientId }: Props) {
+export default function ClientHistory({
+  clientId,
+  clientPhone,
+  clientName,
+}: Props) {
   const [tabValue, setTabValue] = useState(0);
   const [selectedReceiptSale, setSelectedReceiptSale] = useState<SaleResponse | null>(null);
+  const toast = useToast();
+  const { tenant } = useAuth();
+
+  // If clientPhone is not provided, fetch client as fallback
+  const { data: fetchedClient } = useQuery({
+    queryKey: ["client", clientId],
+    queryFn: () => fetchClientById(clientId),
+    enabled: !clientPhone,
+  });
+
+  const resolvedPhone = clientPhone ?? fetchedClient?.phone ?? null;
+  const resolvedName = clientName ?? fetchedClient?.name ?? null;
+
+  const handleShareWhatsApp = (pkg: ClientPackage) => {
+    const result = sharePackageViaWhatsApp(
+      pkg,
+      resolvedPhone,
+      tenant?.name,
+      resolvedName || pkg.client?.name,
+    );
+    if (!result.success && result.error) {
+      toast.warning(result.error);
+    }
+  };
 
   const { data: appointments = [], isLoading: loadingAppts } = useQuery<Appointment[]>({
     queryKey: ["appointments", "client", clientId],
@@ -285,45 +321,63 @@ export default function ClientHistory({ clientId }: Props) {
 
               return (
                 <Box key={pkg.id}>
-                  <ListItem alignItems="flex-start" sx={{ px: 0, py: 1.5 }}>
-                    <ListItemText
-                      primary={
-                        <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                          <Typography variant="body2" fontWeight={700}>
-                            {pkg.package_name}
-                          </Typography>
-                          <Chip 
-                            label={statusLabel} 
+                  <ListItem alignItems="flex-start" sx={{ px: 0, py: 1.5, display: "flex", flexDirection: "column" }}>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", mb: 0.5, flexWrap: "wrap", gap: 1 }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="body2" fontWeight={700}>
+                          {pkg.package_name}
+                        </Typography>
+                        <Chip 
+                          label={statusLabel} 
+                          size="small"
+                          color={statusColor}
+                          variant="outlined"
+                          sx={{ height: 20, fontSize: "0.65rem" }}
+                        />
+                      </Box>
+                      <Tooltip
+                        title={
+                          resolvedPhone
+                            ? "Compartilhar por WhatsApp"
+                            : "Telefone do cliente não cadastrado"
+                        }
+                      >
+                        <span>
+                          <Button
                             size="small"
-                            color={statusColor}
                             variant="outlined"
-                            sx={{ height: 20, fontSize: "0.65rem" }}
-                          />
-                        </Box>
-                      }
-                      secondary={
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.5 }}>
-                          <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
-                            Pets: <strong>{pkg.pets ? pkg.pets.map(p => p.name).join(', ') : "N/A"}</strong>
+                            color="success"
+                            startIcon={<MessageCircle size={14} />}
+                            onClick={() => handleShareWhatsApp(pkg)}
+                            disabled={!resolvedPhone}
+                            sx={{ fontSize: "0.75rem", py: 0.25, px: 1 }}
+                          >
+                            Enviar pacote
+                          </Button>
+                        </span>
+                      </Tooltip>
+                    </Box>
+
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5, mt: 0.5, width: "100%" }}>
+                      <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
+                        Pets: <strong>{pkg.pets ? pkg.pets.map(p => p.name).join(', ') : "N/A"}</strong>
+                      </Typography>
+                      <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
+                        Comprado em: {new Date(pkg.created_at).toLocaleDateString("pt-BR")}
+                      </Typography>
+                      {pkg.expires_at && (
+                        <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
+                          Vence em: {new Date(pkg.expires_at).toLocaleDateString("pt-BR")}
+                        </Typography>
+                      )}
+                      <Box sx={{ mt: 1, pl: 1, borderLeft: "2px solid", borderColor: "grey.300" }}>
+                        {pkg.credits.map((credit, cIdx) => (
+                          <Typography key={cIdx} variant="caption" display="block" color="text.primary">
+                            • {credit.service_name}: {credit.used_qty}/{credit.total_qty} consumidos
                           </Typography>
-                          <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
-                            Comprado em: {new Date(pkg.created_at).toLocaleDateString("pt-BR")}
-                          </Typography>
-                          {pkg.expires_at && (
-                            <Typography variant="caption" color="text.primary" sx={{ opacity: 0.8 }}>
-                              Vence em: {new Date(pkg.expires_at).toLocaleDateString("pt-BR")}
-                            </Typography>
-                          )}
-                          <Box sx={{ mt: 1, pl: 1, borderLeft: "2px solid", borderColor: "grey.300" }}>
-                            {pkg.credits.map((credit, cIdx) => (
-                              <Typography key={cIdx} variant="caption" display="block" color="text.primary">
-                                • {credit.service_name}: {credit.used_qty}/{credit.total_qty} consumidos
-                              </Typography>
-                            ))}
-                          </Box>
-                        </Box>
-                      }
-                    />
+                        ))}
+                      </Box>
+                    </Box>
                   </ListItem>
                   {idx < clientPackages.length - 1 && <Divider component="li" />}
                 </Box>
