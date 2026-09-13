@@ -361,7 +361,7 @@ const Sidebar = ({
                     fontSize: "0.78rem",
                   }}
                 >
-                  PetControle Pro
+                  Data Pet Pro
                 </Typography>
                 <Typography
                   variant="caption"

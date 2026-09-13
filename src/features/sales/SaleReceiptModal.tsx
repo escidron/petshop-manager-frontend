@@ -342,7 +342,7 @@ export default function SaleReceiptModal({
             >
               <span>{dayjs().format("DD/MM/YYYY, HH:mm")}</span>
               <span style={{ maxWidth: "230px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {typeof window !== "undefined" ? window.location.host : "app.petcontrole.com.br"}
+                {typeof window !== "undefined" ? window.location.host : "app.datapet.com.br"}
               </span>
             </Box>
 

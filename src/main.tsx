@@ -31,7 +31,7 @@ if ("serviceWorker" in navigator) {
             installingWorker.onstatechange = () => {
               if (installingWorker.state === "installed" && navigator.serviceWorker.controller) {
                 // Nova versão disponível
-                console.log("Nova versão do PetControle disponível.");
+                console.log("Nova versão do Data Pet disponível.");
               }
             };
           }

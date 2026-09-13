@@ -149,7 +149,7 @@ const LandingPage = () => {
             disableGutters
             sx={{ justifyContent: "space-between", height: 80 }}
           >
-            <img src="/logo_dark.png" alt="PetControle" height={40} />
+            <img src="/logo_dark.png" alt="Data Pet" height={40} />
 
             {!isMobile && (
               <Stack direction="row" spacing={4} alignItems="center">
@@ -361,12 +361,13 @@ const LandingPage = () => {
               />
               <Box
                 component="img"
-                src="https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?auto=format&fit=crop&q=80&w=800"
-                alt="Petshop"
+                src="/hero_dog.jpg"
+                alt="Data Pet - Gestão para Petshops"
                 sx={{
                   width: "100%",
                   height: 500,
                   objectFit: "cover",
+                  objectPosition: "center",
                   borderRadius: 6,
                   boxShadow: "0 25px 50px -12px rgba(0,0,0,0.25)",
                   transform: "rotate(2deg)",
@@ -502,7 +503,7 @@ const LandingPage = () => {
                 fontWeight: 400,
               }}
             >
-              O PetControle Pro é o plano do sistema. Os pacotes de mensagens WhatsApp
+              O Data Pet Pro é o plano do sistema. Os pacotes de mensagens WhatsApp
               são opcionais e cobrados separadamente.
             </Typography>
           </Box>
@@ -566,7 +567,7 @@ const LandingPage = () => {
 
               {/* Title & Description */}
               <Typography variant="h4" sx={{ fontWeight: 900, color: "#0F172A", mb: 0.8, fontSize: { xs: "1.5rem", sm: "1.75rem" } }}>
-                PetControle Pro
+                Data Pet Pro
               </Typography>
               <Typography variant="body2" sx={{ color: "#64748B", fontSize: "0.92rem", lineHeight: 1.5, mb: 2.5 }}>
                 Tudo que você precisa para gerenciar seu petshop com eficiência.
@@ -851,7 +852,7 @@ const LandingPage = () => {
               >
                 <Info size={18} color="#16A34A" style={{ marginTop: 2, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: "0.82rem", color: "#166534", lineHeight: 1.5, fontWeight: 500 }}>
-                  Você só paga pelos pacotes que escolher. Eles são cobrados separadamente do plano PetControle Pro.
+                  Você só paga pelos pacotes que escolher. Eles são cobrados separadamente do plano Data Pet Pro.
                 </Typography>
               </Box>
             </Box>
@@ -1183,7 +1184,7 @@ const LandingPage = () => {
           <Stack direction={{ xs: "column", md: "row" }} spacing={8}>
             <Box sx={{ flex: 2 }}>
               <Box sx={{ mb: 3 }}>
-                <img src="/logo_dark.png" alt="PetControle" height={36} />
+                <img src="/logo_dark.png" alt="Data Pet" height={36} />
               </Box>
               <Typography
                 variant="body1"
@@ -1305,7 +1306,7 @@ const LandingPage = () => {
             }}
           >
             <Typography variant="body2" sx={{ opacity: 0.5 }}>
-              © {new Date().getFullYear()} PetControle Ltda. CNPJ
+              © {new Date().getFullYear()} Data Pet Ltda. CNPJ
               00.000.000/0001-00. Feito com ❤️ para pets.
             </Typography>
           </Box>

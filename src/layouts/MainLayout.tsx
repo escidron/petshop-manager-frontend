@@ -211,7 +211,7 @@ export default function MainLayout() {
             <Box
               component="img"
               src="/favicon.png"
-              alt="PetControle"
+              alt="Data Pet"
               sx={{
                 display: { xs: "block", md: "none" },
                 width: 34,
@@ -223,10 +223,12 @@ export default function MainLayout() {
             <Box
               component="img"
               src="/logo_dark.png"
-              alt="PetControle"
+              alt="Data Pet"
               sx={{
                 display: { xs: "none", md: "block" },
-                width: 145,
+                height: 38,
+                width: "auto",
+                objectFit: "contain",
               }}
             />
           </Box>
@@ -411,16 +413,34 @@ export default function MainLayout() {
             minHeight: { xs: 60, sm: 70 },
           }}
         >
-          <img
-            src="/logo.png"
-            alt="PetControle"
-            width={130}
-            style={{ cursor: "pointer" }}
+          <Box
+            sx={{
+              bgcolor: "white",
+              px: 1.5,
+              py: 0.6,
+              borderRadius: 2,
+              display: "inline-flex",
+              alignItems: "center",
+              cursor: "pointer",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+              transition: "transform 0.15s ease, box-shadow 0.15s ease",
+              "&:hover": {
+                transform: "scale(1.02)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.25)",
+              },
+            }}
             onClick={() => {
               navigate("/dashboard");
               setDrawerOpen(false);
             }}
-          />
+          >
+            <Box
+              component="img"
+              src="/logo_dark.png"
+              alt="Data Pet"
+              sx={{ height: 28, width: "auto", objectFit: "contain", display: "block" }}
+            />
+          </Box>
           <IconButton
             onClick={() => setDrawerOpen(false)}
             sx={{ color: "rgba(255, 255, 255, 0.8)", "&:hover": { color: "white" } }}

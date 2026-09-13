@@ -47,7 +47,7 @@ const OnboardingFinishBanner = ({ openFlow }: Props) => {
         color="text.primary"
         sx={{ mb: 1 }}
       >
-        Bem-vindo(a) ao PetControle!
+        Bem-vindo(a) ao Data Pet!
       </Typography>
 
       <Typography

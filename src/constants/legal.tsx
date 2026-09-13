@@ -6,27 +6,27 @@ export const LEGAL_CONTENT = {
     content: (
       <Box sx={{ "& > h2": { mt: 3, mb: 1, fontWeight: 700, fontSize: "1.2rem", color: "text.primary" }, "& > p": { mb: 2, lineHeight: 1.6, color: "text.primary", fontSize: "0.95rem" } }}>
         <Typography variant="body1" sx={{ fontStyle: "italic", mb: 3 }}>
-          Seja bem-vindo ao PetControle. Por favor, leia atentamente estes Termos de Uso antes de utilizar nossa plataforma.
+          Seja bem-vindo ao Data Pet. Por favor, leia atentamente estes Termos de Uso antes de utilizar nossa plataforma.
         </Typography>
 
         <Typography variant="h6" component="h2">1. Aceitação dos Termos</Typography>
         <Typography variant="body1">
-          Ao acessar, se cadastrar ou utilizar a plataforma PetControle (sistema de gestão para petshops), você ("Usuário") concorda em cumprir e estar legalmente vinculado a estes Termos de Uso e à nossa Política de Privacidade. Caso você não concorde com qualquer disposição aqui estabelecida, você não deverá utilizar a plataforma.
+          Ao acessar, se cadastrar ou utilizar a plataforma Data Pet (sistema de gestão para petshops), você ("Usuário") concorda em cumprir e estar legalmente vinculado a estes Termos de Uso e à nossa Política de Privacidade. Caso você não concorde com qualquer disposição aqui estabelecida, você não deverá utilizar a plataforma.
         </Typography>
 
         <Typography variant="h6" component="h2">2. Descrição dos Serviços</Typography>
         <Typography variant="body1">
-          O PetControle é um software como serviço (SaaS) hospedado em nuvem que disponibiliza ferramentas para otimização e gestão administrativa, operacional e financeira de petshops e clínicas veterinárias parceiras. As funcionalidades incluem agendamento de serviços, prontuários de pets, controle de estoque, faturamento financeiro, comissão de funcionários e ferramentas de comunicação com clientes.
+          O Data Pet é um software como serviço (SaaS) hospedado em nuvem que disponibiliza ferramentas para otimização e gestão administrativa, operacional e financeira de petshops e clínicas veterinárias parceiras. As funcionalidades incluem agendamento de serviços, prontuários de pets, controle de estoque, faturamento financeiro, comissão de funcionários e ferramentas de comunicação com clientes.
         </Typography>
 
         <Typography variant="h6" component="h2">3. Cadastro, Contas e Segurança</Typography>
         <Typography variant="body1">
-          Para utilizar os recursos da plataforma, o Usuário deve realizar um cadastro fornecendo informações exatas, atualizadas e verdadeiras. É de responsabilidade exclusiva do Usuário manter o sigilo de suas credenciais de acesso (e-mail e senha). Qualquer atividade realizada sob sua conta será de sua inteira responsabilidade. No caso de suspeita de uso não autorizado da conta, o suporte do PetControle deve ser notificado imediatamente.
+          Para utilizar os recursos da plataforma, o Usuário deve realizar um cadastro fornecendo informações exatas, atualizadas e verdadeiras. É de responsabilidade exclusiva do Usuário manter o sigilo de suas credenciais de acesso (e-mail e senha). Qualquer atividade realizada sob sua conta será de sua inteira responsabilidade. No caso de suspeita de uso não autorizado da conta, o suporte do Data Pet deve ser notificado imediatamente.
         </Typography>
 
         <Typography variant="h6" component="h2">4. Direitos e Obrigações do Usuário</Typography>
         <Typography variant="body1">
-          O Usuário compromete-se a utilizar o PetControle apenas para finalidades lícitas e de acordo com a legislação vigente, incluindo as regras de proteção aos animais e a Lei Geral de Proteção de Dados (LGPD). É proibido:
+          O Usuário compromete-se a utilizar o Data Pet apenas para finalidades lícitas e de acordo com a legislação vigente, incluindo as regras de proteção aos animais e a Lei Geral de Proteção de Dados (LGPD). É proibido:
         </Typography>
         <Typography variant="body1" sx={{ pl: 2, mb: 1 }}>• Tentar burlar ou violar mecanismos de segurança da plataforma;</Typography>
         <Typography variant="body1" sx={{ pl: 2, mb: 1 }}>• Armazenar ou distribuir conteúdos ilícitos, maliciosos ou difamatórios;</Typography>
@@ -42,12 +42,12 @@ export const LEGAL_CONTENT = {
 
         <Typography variant="h6" component="h2">6. Limitação de Responsabilidade</Typography>
         <Typography variant="body1">
-          A plataforma é fornecida "como está" e "conforme disponível". Embora envidemos nossos melhores esforços para garantir a continuidade dos serviços, o PetControle não garante que o sistema será 100% ininterrupto, livre de bugs ou imune a ataques cibernéticos de terceiros. Não somos responsáveis por perdas financeiras decorrentes de falhas de conexão à internet, negligência de funcionários do Usuário ou interrupções programadas para manutenção.
+          A plataforma é fornecida "como está" e "conforme disponível". Embora envidemos nossos melhores esforços para garantir a continuidade dos serviços, o Data Pet não garante que o sistema será 100% ininterrupto, livre de bugs ou imune a ataques cibernéticos de terceiros. Não somos responsáveis por perdas financeiras decorrentes de falhas de conexão à internet, negligência de funcionários do Usuário ou interrupções programadas para manutenção.
         </Typography>
 
         <Typography variant="h6" component="h2">7. Alterações nos Termos de Uso</Typography>
         <Typography variant="body1">
-          O PetControle reserva-se o direito de atualizar ou modificar estes Termos de Uso a qualquer momento, visando refletir mudanças legislativas ou melhorias técnicas. Quando houver alterações significativas, os usuários serão notificados por meio de avisos na plataforma ou por e-mail. A continuidade do uso do sistema após as alterações constitui aceitação tácita dos novos Termos.
+          O Data Pet reserva-se o direito de atualizar ou modificar estes Termos de Uso a qualquer momento, visando refletir mudanças legislativas ou melhorias técnicas. Quando houver alterações significativas, os usuários serão notificados por meio de avisos na plataforma ou por e-mail. A continuidade do uso do sistema após as alterações constitui aceitação tácita dos novos Termos.
         </Typography>
 
         <Typography variant="h6" component="h2">8. Lei Aplicável e Foro</Typography>
@@ -67,12 +67,12 @@ export const LEGAL_CONTENT = {
     content: (
       <Box sx={{ "& > h2": { mt: 3, mb: 1, fontWeight: 700, fontSize: "1.2rem", color: "text.primary" }, "& > p": { mb: 2, lineHeight: 1.6, color: "text.primary", fontSize: "0.95rem" } }}>
         <Typography variant="body1" sx={{ fontStyle: "italic", mb: 3 }}>
-          Esta Política de Privacidade explica como o PetControle coleta, armazena, utiliza e protege os seus dados pessoais, em estrita conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
+          Esta Política de Privacidade explica como o Data Pet coleta, armazena, utiliza e protege os seus dados pessoais, em estrita conformidade com a Lei Geral de Proteção de Dados (LGPD - Lei nº 13.709/2018).
         </Typography>
 
         <Typography variant="h6" component="h2">1. Informações que Coletamos</Typography>
         <Typography variant="body1">
-          Durante o uso da plataforma PetControle, nós coletamos os seguintes tipos de dados pessoais de forma direta ou indireta:
+          Durante o uso da plataforma Data Pet, nós coletamos os seguintes tipos de dados pessoais de forma direta ou indireta:
         </Typography>
         <Typography variant="body1" sx={{ pl: 2, mb: 1 }}>
           <strong>a) Dados do Usuário / Proprietário do Petshop:</strong> Nome completo, endereço de e-mail, telefone celular, senha criptografada, documento de identificação (CPF ou CNPJ) e endereço comercial.
@@ -109,7 +109,7 @@ export const LEGAL_CONTENT = {
 
         <Typography variant="h6" component="h2">3. Compartilhamento de Dados</Typography>
         <Typography variant="body1">
-          O PetControle preza pelo sigilo de suas informações. Não vendemos ou comercializamos quaisquer dados armazenados em nosso sistema. O compartilhamento ocorre apenas quando estritamente necessário para a prestação do serviço:
+          O Data Pet preza pelo sigilo de suas informações. Não vendemos ou comercializamos quaisquer dados armazenados em nosso sistema. O compartilhamento ocorre apenas quando estritamente necessário para a prestação do serviço:
         </Typography>
         <Typography variant="body1" sx={{ pl: 2, mb: 1 }}>• Provedores de hospedagem em nuvem (servidores seguros);</Typography>
         <Typography variant="body1" sx={{ pl: 2, mb: 1 }}>• Gateways e processadores de pagamento integrados (ex: Stripe);</Typography>

@@ -1,6 +1,6 @@
 {
-  "name": "PetControle - Gestão para Petshops",
-  "short_name": "PetControle",
+  "name": "Data Pet - Gestão para Petshops",
+  "short_name": "Data Pet",
   "description": "Sistema completo de gestão para seu petshop, estética e clínica.",
   "start_url": "/dashboard",
   "scope": "/",
@@ -23,7 +23,7 @@
     },
     {
       "src": "/favicon.png",
-      "sizes": "85x74",
+      "sizes": "256x256",
       "type": "image/png"
     }
   ],
