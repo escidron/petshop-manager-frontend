@@ -73,7 +73,7 @@ export default function PWAInstallModal({ open, onClose }: Props) {
         {isInstalled ? (
           <Box sx={{ textAlign: "center", py: 2 }}>
             <Typography variant="body1" fontWeight={700} color="success.main">
-              O PetControle já está instalado no seu dispositivo!
+              O Data Pet já está instalado no seu dispositivo!
             </Typography>
             <Typography variant="body2" sx={{ color: "#64748B", mt: 1 }}>
               Você pode acessá-lo direto pelo ícone na tela de início para ter a experiência completa em tela cheia.
@@ -156,7 +156,7 @@ export default function PWAInstallModal({ open, onClose }: Props) {
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <Typography variant="body2" sx={{ color: "#64748B" }}>
-              Instale o atalho do PetControle para abrir o sistema em tela cheia, sem as barras do navegador atrapalhando.
+              Instale o atalho do Data Pet para abrir o sistema em tela cheia, sem as barras do navegador atrapalhando.
             </Typography>
 
             {canInstallNative ? (

@@ -282,7 +282,7 @@ const CheckoutStepper = ({
           cardId
         );
         setConfirmationData({
-          plan: "Plano PetControle Pro",
+          plan: "Plano Data Pet Pro",
           value: "R$ 99,90/mês",
           nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
           method: chosenCard ? `Cartão •••• ${chosenCard.last4}` : "Cartão de Crédito",
@@ -333,7 +333,7 @@ const CheckoutStepper = ({
           startAt ?? undefined,
         );
         setConfirmationData({
-          plan: "Plano PetControle Pro",
+          plan: "Plano Data Pet Pro",
           value: "R$ 99,90/mês",
           nextRenewal: dayjs().add(30, "day").format("DD/MM/YYYY"),
           method: "Cartão de Crédito",
@@ -634,7 +634,7 @@ const CheckoutStepper = ({
                   </Box>
                   <Box>
                     <Typography variant="subtitle1" fontWeight={800} color="#0F172A" lineHeight={1.2}>
-                      Plano PetControle Pro
+                      Plano Data Pet Pro
                     </Typography>
                     <Typography variant="caption" color="#475569" fontWeight={500}>
                       Acesso completo ao sistema, clientes, pets e agendamentos

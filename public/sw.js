@@ -1,5 +1,5 @@
-// PetControle PWA Service Worker
-const CACHE_NAME = "petcontrole-cache-v1";
+// Data Pet PWA Service Worker
+const CACHE_NAME = "datapet-cache-v2";
 const STATIC_ASSETS = [
   "/",
   "/index.html",

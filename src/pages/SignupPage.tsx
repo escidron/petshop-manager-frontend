@@ -203,7 +203,19 @@ const SignupPage = () => {
         />
 
         <Box sx={{ zIndex: 1 }}>
-          <img src="/logo.png" alt="PetControle" width={150} />
+          <Box
+            sx={{
+              bgcolor: "white",
+              px: 2,
+              py: 1,
+              borderRadius: 2.5,
+              display: "inline-flex",
+              alignItems: "center",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            }}
+          >
+            <img src="/logo_dark.png" alt="Data Pet" style={{ height: 34, width: "auto", display: "block" }} />
+          </Box>
         </Box>
 
         <Box sx={{ zIndex: 1 }}>
@@ -243,7 +255,7 @@ const SignupPage = () => {
             sx={{ opacity: 0.8, mb: 5, fontSize: "1.1rem", maxWidth: 450 }}
           >
             {step === 1 &&
-              "Aproveite 6 meses grátis do PetControle Pro e adicione mensagens automáticas se desejar."}
+              "Aproveite 6 meses grátis do Data Pet Pro e adicione mensagens automáticas se desejar."}
             {step === 2 &&
               "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
             {step === 3 &&
@@ -291,7 +303,7 @@ const SignupPage = () => {
         </Box>
 
         <Typography variant="caption" sx={{ opacity: 0.5, zIndex: 1 }}>
-          © 2026 PetControle. Todos os direitos reservados.
+          © 2026 Data Pet. Todos os direitos reservados.
         </Typography>
       </Box>
 
@@ -348,7 +360,7 @@ const SignupPage = () => {
           <Box sx={{ width: "100%", maxWidth: step === 1 ? 1080 : 650 }}>
             <Box sx={{ mb: 3, textAlign: { xs: "center", md: "left" } }}>
               <Typography variant="h4" fontWeight={900} color="primary.main">
-                {step === 1 && "Seu plano PetControle"}
+                {step === 1 && "Seu plano Data Pet"}
                 {step === 2 && "Sua conta pessoal"}
                 {step === 3 && "Detalhes da empresa"}
               </Typography>
@@ -401,7 +413,7 @@ const SignupPage = () => {
                   <Box>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.8, flexWrap: "wrap" }}>
                       <Typography sx={{ fontWeight: 800, fontSize: "0.92rem", color: "#0F172A" }}>
-                        PetControle Pro
+                        Data Pet Pro
                       </Typography>
                       <Box
                         sx={{

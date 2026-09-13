@@ -1132,7 +1132,7 @@ const SettingsPage = () => {
                   <Box sx={{ flex: 1, minWidth: 280 }}>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1.2, flexWrap: "wrap" }}>
                       <Typography variant="h5" fontWeight={900} color="#0F172A">
-                        PetControle Pro
+                        Data Pet Pro
                       </Typography>
                       {isTrialActive ? (
                         <Chip
@@ -1319,7 +1319,7 @@ const SettingsPage = () => {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
                         <Calendar size={16} color="#313485" />
                         <Typography variant="caption" fontWeight={700} sx={{ color: "#475569" }} textTransform="uppercase">
-                          Sistema PetControle
+                          Sistema Data Pet
                         </Typography>
                       </Box>
                       <Typography variant="h6" fontWeight={900} color="#0F172A">
@@ -1659,7 +1659,7 @@ const SettingsPage = () => {
               </Box>
             )}
 
-            {/* ---- 3. Card de Recursos Inclusos no PetControle Pro ---- */}
+            {/* ---- 3. Card de Recursos Inclusos no Data Pet Pro ---- */}
             {!activePendingPixCharge && !awaitingConfirmation && (
               <Box
                 sx={{
@@ -1673,7 +1673,7 @@ const SettingsPage = () => {
                 <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2.5, flexWrap: "wrap", gap: 1 }}>
                   <Box>
                     <Typography variant="h6" fontWeight={800} color="#0F172A">
-                      Recursos Inclusos no PetControle Pro
+                      Recursos Inclusos no Data Pet Pro
                     </Typography>
                     <Typography variant="body2" sx={{ fontSize: "0.88rem", color: "#475569" }}>
                       Tudo liberado para seu petshop operar com total controle e produtividade.
@@ -1932,7 +1932,7 @@ const SettingsPage = () => {
                     Usuários do Sistema
                   </Typography>
                   <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.8rem", sm: "0.875rem" } }}>
-                    Gerencie quem tem acesso ao PetControle.
+                    Gerencie quem tem acesso ao Data Pet.
                   </Typography>
                 </Box>
                 <Button

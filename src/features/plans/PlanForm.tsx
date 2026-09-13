@@ -134,7 +134,7 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
           </Box>
 
           <Typography variant="h5" sx={{ fontWeight: 900, color: "#0F172A", mb: 0.8, fontSize: { xs: "1.45rem", sm: "1.65rem" } }}>
-            PetControle Pro
+            Data Pet Pro
           </Typography>
           <Typography variant="body2" sx={{ color: "#64748B", fontSize: "0.95rem", lineHeight: 1.5, mb: 2.5 }}>
             Tudo que você precisa para gerenciar seu petshop com eficiência.
@@ -426,8 +426,8 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
         <Box>
           <Typography sx={{ fontWeight: 800, color: "#0F172A", fontSize: "1.05rem" }}>
             {selectedPkgData
-              ? `Plano PetControle Pro (Grátis) + ${selectedPkgData.count} msgs WhatsApp`
-              : "Plano PetControle Pro (Sem pacote WhatsApp adicional)"}
+              ? `Plano Data Pet Pro (Grátis) + ${selectedPkgData.count} msgs WhatsApp`
+              : "Plano Data Pet Pro (Sem pacote WhatsApp adicional)"}
           </Typography>
           <Typography sx={{ fontSize: "0.88rem", color: "#64748B", mt: 0.4 }}>
             1º ao 6º mês:{" "}

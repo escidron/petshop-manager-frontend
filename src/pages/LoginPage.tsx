@@ -144,7 +144,19 @@ const LoginPage = () => {
         />
 
         <Box sx={{ zIndex: 1 }}>
-          <img src="/logo.png" alt="PetControle" width={150} />
+          <Box
+            sx={{
+              bgcolor: "white",
+              px: 2,
+              py: 1,
+              borderRadius: 2.5,
+              display: "inline-flex",
+              alignItems: "center",
+              boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+            }}
+          >
+            <img src="/logo_dark.png" alt="Data Pet" style={{ height: 34, width: "auto", display: "block" }} />
+          </Box>
         </Box>
 
         <Box sx={{ zIndex: 1 }}>
@@ -214,7 +226,7 @@ const LoginPage = () => {
         </Box>
 
         <Typography variant="caption" sx={{ opacity: 0.5, zIndex: 1 }}>
-          © 2026 PetControle. Todos os direitos reservados.
+          © 2026 Data Pet. Todos os direitos reservados.
         </Typography>
       </Box>
 
@@ -241,7 +253,7 @@ const LoginPage = () => {
         >
           {/* Logo no mobile para identificação imediata */}
           <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}>
-            <img src="/logo_dark.png" alt="PetControle" style={{ height: 24, objectFit: "contain" }} />
+            <img src="/logo_dark.png" alt="Data Pet" style={{ height: 28, width: "auto", objectFit: "contain" }} />
           </Box>
           <Box sx={{ ml: "auto", display: "flex", alignItems: "center", gap: 0.5 }}>
             <Typography
