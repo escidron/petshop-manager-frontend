@@ -1116,8 +1116,8 @@ export default function OperationalResultPage() {
                 <Chip
                   label={
                     effectiveSelectedChart1.length === allServiceNames.length
-                      ? `${summary?.total_services || 0} serviços`
-                      : `${totalFilteredChart1} de ${summary?.total_services || 0} serviços`
+                      ? `${summary?.total_services || 0} serviços realizados`
+                      : `${totalFilteredChart1} de ${summary?.total_services || 0} serviços realizados`
                   }
                   size="small"
                   sx={{
@@ -1150,7 +1150,7 @@ export default function OperationalResultPage() {
                   display: "flex",
                   flexDirection: "row",
                   flexWrap: "nowrap",
-                  alignItems: "flex-end",
+                  alignItems: "flex-start",
                   gap: 3,
                   minHeight: 260,
                   width: "100%",
@@ -1183,8 +1183,6 @@ export default function OperationalResultPage() {
                         width: 100,
                         minWidth: 100,
                         maxWidth: 120,
-                        height: "100%",
-                        justifyContent: "flex-end",
                       }}
                     >
                       {/* Área da Barra com baseline fixa */}
@@ -1222,7 +1220,7 @@ export default function OperationalResultPage() {
                         </Tooltip>
                       </Box>
 
-                      {/* Rótulo completo do serviço sem reticências */}
+                      {/* Rótulo completo do serviço sem reticências crescendo para baixo */}
                       <Box
                         sx={{
                           width: "100%",
@@ -1230,6 +1228,7 @@ export default function OperationalResultPage() {
                           display: "flex",
                           justifyContent: "center",
                           textAlign: "center",
+                          minHeight: 44,
                         }}
                       >
                         <Typography
@@ -1251,6 +1250,7 @@ export default function OperationalResultPage() {
                 })}
               </Box>
             )}
+
           </Paper>
 
           {/* Gráfico 2: Volume Serviços / Dia */}
