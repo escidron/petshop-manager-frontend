@@ -1,9 +1,10 @@
 import { Box, Typography } from "@mui/material";
 import type { TimelineBlock } from "./types";
+import type { Dayjs } from "dayjs";
 
 type Props = {
     block: TimelineBlock;
-    openFlow: () => void
+    openFlow: (initialDate?: Dayjs) => void
 }
 const AppointmentFreeTimeCard = ({ block, openFlow }: Props) => {
   return (
@@ -20,7 +21,7 @@ const AppointmentFreeTimeCard = ({ block, openFlow }: Props) => {
         cursor: "pointer",
         width: "100%",
       }}
-      onClick={() => openFlow()}
+      onClick={() => openFlow(block.start)}
     >
       <Typography variant="body2" fontWeight={600}>
         {block.start.format("HH:mm")} - {block.end.format("HH:mm")}

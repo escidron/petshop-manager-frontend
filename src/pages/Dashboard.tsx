@@ -10,7 +10,7 @@ import OpenInvoices from "../features/dashboard/OpenInvoices";
 import WaitingListCard from "../features/dashboard/WaitingListCard";
 import type { WaitingListEntry } from "../features/appointments/waiting-list/types";
 import { useWaitingListMutations } from "../hooks/useWaitingList";
-import dayjs from "dayjs";
+import dayjs, { type Dayjs } from "dayjs";
 import type {
   Appointment,
   AppointmentFlowState,
@@ -137,12 +137,12 @@ const Dashboard = () => {
                       appointment,
                     })
                   }
-                  openFlow={() =>
+                  openFlow={(time?: Dayjs) =>
                     setFlow({
                       open: true,
                       step: "appointment",
                       mode: "create",
-                      initialDate: date.toISOString(),
+                      initialDate: (time ?? date).toISOString(),
                     })
                   }
                 />

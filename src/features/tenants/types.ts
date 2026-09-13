@@ -32,6 +32,16 @@ export type DaySchedule = {
 
 export type WorkingHours = Record<string, DaySchedule>; // "0"=Dom … "6"=Sáb (dayjs convention)
 
+export const DEFAULT_WORKING_HOURS: WorkingHours = {
+  "0": { is_open: false, open: "08:00", close: "12:00" }, // Dom
+  "1": { is_open: true,  open: "08:00", close: "18:00" }, // Seg
+  "2": { is_open: true,  open: "08:00", close: "18:00" }, // Ter
+  "3": { is_open: true,  open: "08:00", close: "18:00" }, // Qua
+  "4": { is_open: true,  open: "08:00", close: "18:00" }, // Qui
+  "5": { is_open: true,  open: "08:00", close: "18:00" }, // Sex
+  "6": { is_open: true,  open: "08:00", close: "18:00" }, // Sáb
+};
+
 export type Tenant = {
   id: number;
   name: string;

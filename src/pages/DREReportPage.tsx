@@ -51,14 +51,26 @@ const MONTH_HEADERS = [
   "Jul", "Ago", "Set", "Out", "Nov", "Dez"
 ];
 
-const fmtBRL = (val: number) => {
+const COL_ACCOUNT_WIDTH = 400;
+const COL_TOTAL_WIDTH = 130;
+
+const isExpenseGroup = (groupType?: string | null) => {
+  if (!groupType) return false;
+  return ["cmv", "fixed_expense", "variable_expense", "financial_expense"].includes(groupType);
+};
+
+const fmtBRL = (val: number, zeroAsDash = true, isExpense = false) => {
   if (!val && val !== 0) return "-";
-  if (val === 0) return "R$ 0,00";
-  return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  if (val === 0) return zeroAsDash ? "-" : "R$ 0,00";
+  const absFormatted = Math.abs(val).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  if (isExpense && val > 0) return `- ${absFormatted}`;
+  if (val < 0) return `- ${absFormatted}`;
+  return absFormatted;
 };
 
 const fmtPct = (val: number) => {
   if (!val && val !== 0) return "-";
+  if (val === 0) return "-";
   return `${val.toFixed(2).replace(".", ",")}%`;
 };
 
@@ -203,8 +215,16 @@ export default function DREReportPage() {
       sx={{
         width: "100%",
         maxWidth: "100%",
+        height: "100%",
+        maxHeight: "100%",
+        flex: 1,
+        minHeight: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
         p: { xs: 1.5, sm: 2, md: 2.5 },
-        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 4 },
+        pb: { xs: "calc(16px + env(safe-area-inset-bottom, 0px))", md: 2 },
+        boxSizing: "border-box",
       }}
     >
       {/* ── CABEÇALHO & AÇÕES ─────────────────────────────────────────────── */}
@@ -214,8 +234,9 @@ export default function DREReportPage() {
           flexDirection: { xs: "column", md: "row" },
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", md: "center" },
-          gap: 2,
-          mb: 3,
+          gap: 1.5,
+          mb: 1.5,
+          flexShrink: 0,
         }}
       >
         <Box>
@@ -268,7 +289,7 @@ export default function DREReportPage() {
             onClick={() => setIsQuickExpenseOpen(true)}
             sx={{ textTransform: "none", borderRadius: 2, fontWeight: 700 }}
           >
-            Lançar Despesas
+            Lançar Receitas / Despesas
           </Button>
 
           <Button
@@ -313,7 +334,8 @@ export default function DREReportPage() {
             display: "grid",
             gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(4, 1fr)" },
             gap: 1.5,
-            mb: 2,
+            mb: 1.5,
+            flexShrink: 0,
             "@media print": { display: "grid", gridTemplateColumns: "repeat(4, 1fr)" },
           }}
         >
@@ -337,7 +359,7 @@ export default function DREReportPage() {
             </Box>
             <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1 }}>
               <Typography variant="h6" fontWeight={800} color="text.primary" sx={{ fontSize: "1.15rem", lineHeight: 1.2 }}>
-                {fmtBRL(summary.gross_revenue_total)}
+                {fmtBRL(summary.gross_revenue_total, false)}
               </Typography>
               <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", whiteSpace: "nowrap" }}>
                 Vendas + Serviços
@@ -365,7 +387,7 @@ export default function DREReportPage() {
             </Box>
             <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1 }}>
               <Typography variant="h6" fontWeight={800} color="text.primary" sx={{ fontSize: "1.15rem", lineHeight: 1.2 }}>
-                {fmtBRL(summary.gross_margin_total)}
+                {fmtBRL(summary.gross_margin_total, false)}
               </Typography>
               <Typography variant="caption" fontWeight={700} color="info.main" sx={{ fontSize: "0.7rem", whiteSpace: "nowrap" }}>
                 {fmtPct(summary.gross_margin_pct)} margem
@@ -393,7 +415,7 @@ export default function DREReportPage() {
             </Box>
             <Box sx={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: 1 }}>
               <Typography variant="h6" fontWeight={800} color="text.primary" sx={{ fontSize: "1.15rem", lineHeight: 1.2 }}>
-                {fmtBRL(summary.ebitda_total)}
+                {fmtBRL(summary.ebitda_total, false)}
               </Typography>
               <Typography variant="caption" fontWeight={700} color="warning.main" sx={{ fontSize: "0.7rem", whiteSpace: "nowrap" }}>
                 {fmtPct(summary.ebitda_pct)} operacional
@@ -431,7 +453,7 @@ export default function DREReportPage() {
                 color={isNetProfitPositive ? "success.main" : "error.main"}
                 sx={{ fontSize: "1.15rem", lineHeight: 1.2 }}
               >
-                {fmtBRL(summary.net_profit_total)}
+                {fmtBRL(summary.net_profit_total, false)}
               </Typography>
               <Typography
                 variant="caption"
@@ -448,7 +470,7 @@ export default function DREReportPage() {
 
       {/* ── TABELA DINÂMICA DO DRE ─────────────────────────────────────── */}
       {isLoading ? (
-        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", py: 12 }}>
+        <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", flex: 1, minHeight: 200 }}>
           <CircularProgress size={40} />
         </Box>
       ) : (
@@ -457,20 +479,23 @@ export default function DREReportPage() {
           elevation={0}
           sx={{
             width: "100%",
+            flex: 1,
+            minHeight: 0,
             border: "1px solid",
             borderColor: "divider",
             borderRadius: 3,
-            overflowX: "auto",
+            overflow: "auto",
             position: "relative",
-            "&::-webkit-scrollbar": { height: 7 },
+            "&::-webkit-scrollbar": { width: 8, height: 8 },
             "&::-webkit-scrollbar-thumb": {
-              background: "rgba(0,0,0,0.15)",
+              background: "rgba(0,0,0,0.2)",
               borderRadius: 4,
             },
           }}
         >
           <Table
             size="small"
+            stickyHeader
             sx={{
               width: "100%",
               minWidth: 1570,
@@ -489,13 +514,15 @@ export default function DREReportPage() {
                     fontSize: "0.85rem",
                     bgcolor: "primary.main",
                     color: "white",
-                    width: 300,
-                    minWidth: 300,
-                    maxWidth: 300,
+                    width: COL_ACCOUNT_WIDTH,
+                    minWidth: COL_ACCOUNT_WIDTH,
+                    maxWidth: COL_ACCOUNT_WIDTH,
                     position: "sticky",
+                    top: 0,
                     left: 0,
-                    zIndex: 12,
+                    zIndex: 20,
                     borderRight: "1px solid rgba(255,255,255,0.2)",
+                    borderBottom: "2px solid rgba(0,0,0,0.15)",
                   }}
                 >
                   CONTA / CATEGORIA DRE
@@ -509,14 +536,16 @@ export default function DREReportPage() {
                     fontSize: "0.85rem",
                     bgcolor: "primary.main",
                     color: "white",
-                    width: 130,
-                    minWidth: 130,
-                    maxWidth: 130,
+                    width: COL_TOTAL_WIDTH,
+                    minWidth: COL_TOTAL_WIDTH,
+                    maxWidth: COL_TOTAL_WIDTH,
                     position: "sticky",
-                    left: 300,
-                    zIndex: 12,
+                    top: 0,
+                    left: COL_ACCOUNT_WIDTH,
+                    zIndex: 20,
                     borderRight: "2px solid rgba(255,255,255,0.35)",
                     boxShadow: "3px 0 5px -2px rgba(0,0,0,0.25)",
+                    borderBottom: "2px solid rgba(0,0,0,0.15)",
                   }}
                 >
                   TOTAL {selectedYear}
@@ -534,7 +563,11 @@ export default function DREReportPage() {
                       color: "white",
                       width: 95,
                       minWidth: 95,
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 15,
                       borderLeft: idx > 0 ? "1px solid rgba(255,255,255,0.12)" : undefined,
+                      borderBottom: "2px solid rgba(0,0,0,0.15)",
                     }}
                   >
                     {m}/{String(selectedYear).slice(2)}
@@ -553,12 +586,11 @@ export default function DREReportPage() {
                     {/* Linha Cabeçalho do Grupo (com botão expand/collapse) */}
                     <TableRow
                       sx={{
-                        bgcolor: "#F1F5F9",
-                        borderTop: "1px solid #E2E8F0",
-                        borderBottom: "1px solid #E2E8F0",
+                        bgcolor: "#A7F3D0",
+                        borderTop: "1.5px solid #6EE7B7",
+                        borderBottom: "1.5px solid #6EE7B7",
                         cursor: "pointer",
-                        "& td": { bgcolor: "#F1F5F9" },
-                        "&:hover, &:hover td": { bgcolor: "#E2E8F0 !important" },
+                        "& td": { bgcolor: "#A7F3D0" },
                       }}
                       onClick={() => toggleGroup(group.group_type)}
                     >
@@ -566,25 +598,34 @@ export default function DREReportPage() {
                         sx={{
                           fontWeight: 800,
                           fontSize: "0.85rem",
-                          color: "#1E293B",
+                          color: "#000000",
                           position: "sticky",
                           left: 0,
                           zIndex: 8,
-                          bgcolor: "#F1F5F9",
+                          bgcolor: "#A7F3D0",
                           py: 1,
-                          width: 300,
-                          minWidth: 300,
-                          maxWidth: 300,
-                          borderRight: "1px solid #E2E8F0",
+                          width: COL_ACCOUNT_WIDTH,
+                          minWidth: COL_ACCOUNT_WIDTH,
+                          maxWidth: COL_ACCOUNT_WIDTH,
+                          borderRight: "1px solid #6EE7B7",
                         }}
                       >
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
-                          {isCollapsed ? <ChevronRight size={18} color="#64748B" /> : <ChevronDown size={18} color="#64748B" />}
-                          <span style={{ letterSpacing: "0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{group.title}</span>
-                          <Typography variant="caption" sx={{ color: "text.secondary", ml: 0.5, fontWeight: 500, flexShrink: 0 }}>
-                            ({group.rows.length} {group.rows.length === 1 ? "conta" : "contas"})
-                          </Typography>
-                        </Box>
+                        <Tooltip
+                          title={`Clique para ${isCollapsed ? "expandir" : "recolher"}: ${group.title}`}
+                          arrow
+                          placement="top-start"
+                          enterDelay={200}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, overflow: "hidden" }}>
+                            {isCollapsed ? <ChevronRight size={18} color="#000000" /> : <ChevronDown size={18} color="#000000" />}
+                            <span style={{ letterSpacing: "0.2px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", color: "#000000", fontWeight: 800 }}>
+                              {group.title}
+                            </span>
+                            <Typography variant="caption" sx={{ color: "#000000", opacity: 0.85, ml: 0.5, fontWeight: 600, flexShrink: 0 }}>
+                              ({group.rows.length} {group.rows.length === 1 ? "conta" : "contas"})
+                            </Typography>
+                          </Box>
+                        </Tooltip>
                       </TableCell>
 
                       {/* Total do Grupo (Coluna Fixa 2) */}
@@ -592,21 +633,21 @@ export default function DREReportPage() {
                         align="right"
                         sx={{
                           fontWeight: 800,
-                          color: "#1E293B",
+                          color: "#000000",
                           fontSize: "0.85rem",
                           py: 1,
                           position: "sticky",
-                          left: 300,
+                          left: COL_ACCOUNT_WIDTH,
                           zIndex: 8,
-                          bgcolor: "#F1F5F9",
-                          width: 130,
-                          minWidth: 130,
-                          maxWidth: 130,
-                          borderRight: "2px solid #CBD5E1",
-                          boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
+                          bgcolor: "#A7F3D0",
+                          width: COL_TOTAL_WIDTH,
+                          minWidth: COL_TOTAL_WIDTH,
+                          maxWidth: COL_TOTAL_WIDTH,
+                          borderRight: "2px solid #34D399",
+                          boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
                         }}
                       >
-                        {fmtBRL(sub.total_amount)}
+                        {fmtBRL(sub.total_amount, true, isExpenseGroup(group.group_type))}
                       </TableCell>
 
                       {/* Meses do Grupo */}
@@ -618,12 +659,12 @@ export default function DREReportPage() {
                             align="right"
                             sx={{
                               fontWeight: 700,
-                              color: "#1E293B",
+                              color: "#000000",
                               fontSize: "0.825rem",
                               py: 1,
                             }}
                           >
-                            {fmtBRL(val)}
+                            {fmtBRL(val, true, isExpenseGroup(group.group_type))}
                           </TableCell>
                         );
                       })}
@@ -631,16 +672,13 @@ export default function DREReportPage() {
 
                     {/* Linhas das Contas do Grupo (se não estiver recolhido) */}
                     {!isCollapsed &&
-                      group.rows.map((row, rowIdx) => {
-                        const isEven = rowIdx % 2 === 1;
-                        const rowBg = isEven ? "#F8FAFC" : "#FFFFFF";
+                      group.rows.map((row) => {
                         return (
                           <TableRow
                             key={row.id}
-                            hover
                             sx={{
-                              bgcolor: rowBg,
-                              "&:hover td": { bgcolor: "#F1F5F9 !important" },
+                              bgcolor: "#FFFFFF",
+                              "& td": { bgcolor: "#FFFFFF" },
                             }}
                           >
                             {/* Coluna Fixa 1: Nome da Conta */}
@@ -651,31 +689,49 @@ export default function DREReportPage() {
                                 position: "sticky",
                                 left: 0,
                                 zIndex: 6,
-                                width: 300,
-                                minWidth: 300,
-                                maxWidth: 300,
-                                bgcolor: rowBg,
+                                width: COL_ACCOUNT_WIDTH,
+                                minWidth: COL_ACCOUNT_WIDTH,
+                                maxWidth: COL_ACCOUNT_WIDTH,
+                                bgcolor: "#FFFFFF",
                                 borderRight: "1px solid #E2E8F0",
                               }}
                             >
                               <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1, overflow: "hidden" }}>
-                                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0, overflow: "hidden" }}>
-                                  {row.code && (
-                                    <Typography variant="caption" color="text.secondary" sx={{ flexShrink: 0, fontWeight: 600 }}>
-                                      [{row.code}]
+                                <Tooltip
+                                  title={
+                                    <Box sx={{ p: 0.5, maxWidth: 360 }}>
+                                      <Typography variant="subtitle2" fontWeight={800} sx={{ color: "#FFFFFF", fontSize: "0.825rem" }}>
+                                        {row.code ? `[${row.code}] ` : ""}{row.name}
+                                      </Typography>
+                                      <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.85)", display: "block", mt: 0.25 }}>
+                                        {row.is_system
+                                          ? "Integração automática com vendas e custos operacionais"
+                                          : row.system_source?.startsWith("payroll_")
+                                          ? "Integração automática com a Folha de Pagamento"
+                                          : "Lançamento manual (clique na célula do mês para lançar valor)"}
+                                      </Typography>
+                                    </Box>
+                                  }
+                                  arrow
+                                  placement="top-start"
+                                  enterDelay={150}
+                                >
+                                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, minWidth: 0, overflow: "hidden", cursor: "help" }}>
+                                    {row.code && (
+                                      <Typography variant="caption" sx={{ flexShrink: 0, fontWeight: 700, color: "#000000" }}>
+                                        [{row.code}]
+                                      </Typography>
+                                    )}
+                                    <Typography
+                                      variant="body2"
+                                      fontWeight={600}
+                                      noWrap
+                                      sx={{ textOverflow: "ellipsis", overflow: "hidden", color: "#000000" }}
+                                    >
+                                      {row.name}
                                     </Typography>
-                                  )}
-                                  <Typography
-                                    variant="body2"
-                                    fontWeight={500}
-                                    color="text.primary"
-                                    noWrap
-                                    title={row.name}
-                                    sx={{ textOverflow: "ellipsis", overflow: "hidden" }}
-                                  >
-                                    {row.name}
-                                  </Typography>
-                                </Box>
+                                  </Box>
+                                </Tooltip>
                                 {row.is_system ? (
                                   <Tooltip title="Alimentado automaticamente pelas operações do sistema">
                                     <Chip label="Auto" size="small" variant="outlined" sx={{ height: 18, fontSize: "0.65rem", borderColor: "divider", flexShrink: 0 }} />
@@ -716,18 +772,18 @@ export default function DREReportPage() {
                                 fontWeight: 700,
                                 fontSize: "0.825rem",
                                 position: "sticky",
-                                left: 300,
+                                left: COL_ACCOUNT_WIDTH,
                                 zIndex: 6,
-                                width: 130,
-                                minWidth: 130,
-                                maxWidth: 130,
-                                bgcolor: rowBg,
+                                width: COL_TOTAL_WIDTH,
+                                minWidth: COL_TOTAL_WIDTH,
+                                maxWidth: COL_TOTAL_WIDTH,
+                                bgcolor: "#FFFFFF",
                                 borderRight: "2px solid #CBD5E1",
-                                color: "text.primary",
+                                color: "#000000",
                                 boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
                               }}
                             >
-                              {fmtBRL(row.total_amount)}
+                              {fmtBRL(row.total_amount, true, isExpenseGroup(row.group_type))}
                             </TableCell>
 
                             {/* Meses da Linha (Dinâmicos: Edição Inline na própria célula!) */}
@@ -816,6 +872,7 @@ export default function DREReportPage() {
                                   }}
                                   sx={{
                                     fontSize: "0.825rem",
+                                    color: "#000000",
                                     cursor: isEditable || isPayroll ? "pointer" : "default",
                                     position: "relative",
                                     transition: "background-color 0.15s",
@@ -831,7 +888,7 @@ export default function DREReportPage() {
                                       : undefined,
                                   }}
                                 >
-                                  {fmtBRL(val)}
+                                  {fmtBRL(val, true, isExpenseGroup(row.group_type))}
                                 </TableCell>
                               );
                             })}
@@ -843,50 +900,55 @@ export default function DREReportPage() {
                     {group.group_type === "cmv" && (
                       <TableRow
                         sx={{
-                          bgcolor: "#ECEEF8",
-                          borderTop: "2px solid #D5D8ED",
-                          borderBottom: "1.5px solid #D5D8ED",
+                          bgcolor: "#FDBA74",
+                          borderTop: "2px solid #FB923C",
+                          borderBottom: "1.5px solid #FB923C",
                           "& td": {
-                            bgcolor: "#ECEEF8",
-                          },
-                          "&:hover td": {
-                            bgcolor: "#E3E6F4 !important",
+                            bgcolor: "#FDBA74",
                           },
                         }}
                       >
                         <TableCell
                           sx={{
                             fontWeight: 800,
-                            color: "primary.main",
+                            color: "#000000",
                             fontSize: "0.85rem",
                             position: "sticky",
                             left: 0,
                             zIndex: 8,
-                            bgcolor: "#ECEEF8",
+                            bgcolor: "#FDBA74",
                             py: 1.25,
-                            width: 300,
-                            minWidth: 300,
-                            maxWidth: 300,
-                            borderRight: "1px solid #D5D8ED",
+                            width: COL_ACCOUNT_WIDTH,
+                            minWidth: COL_ACCOUNT_WIDTH,
+                            maxWidth: COL_ACCOUNT_WIDTH,
+                            borderRight: "1px solid #FB923C",
                           }}
                         >
-                          (=) RECEITA LÍQUIDA / MARGEM BRUTA
+                          <Tooltip
+                            title="Margem Bruta = Receita Bruta de Vendas (-) CMV / Custos Diretos"
+                            arrow
+                            placement="top-start"
+                          >
+                            <span style={{ cursor: "help" }}>
+                              (=) RECEITA LÍQUIDA / MARGEM BRUTA
+                            </span>
+                          </Tooltip>
                         </TableCell>
                         <TableCell
                           align="right"
                           sx={{
                             fontWeight: 800,
-                            color: "primary.main",
+                            color: "#000000",
                             fontSize: "0.875rem",
                             position: "sticky",
-                            left: 300,
+                            left: COL_ACCOUNT_WIDTH,
                             zIndex: 8,
-                            bgcolor: "#ECEEF8",
-                            width: 130,
-                            minWidth: 130,
-                            maxWidth: 130,
-                            borderRight: "2px solid #CBD5E1",
-                            boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
+                            bgcolor: "#FDBA74",
+                            width: COL_TOTAL_WIDTH,
+                            minWidth: COL_TOTAL_WIDTH,
+                            maxWidth: COL_TOTAL_WIDTH,
+                            borderRight: "2px solid #EA580C",
+                            boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
                           }}
                         >
                           {fmtBRL(summary?.gross_margin_total ?? 0)}
@@ -896,7 +958,7 @@ export default function DREReportPage() {
                           const cmv = dreData?.groups.find((g) => g.group_type === "cmv")?.subtotal_row.monthly_amounts[m] || 0;
                           const marg = rev - cmv;
                           return (
-                            <TableCell key={m} align="right" sx={{ fontWeight: 800, color: "primary.main", fontSize: "0.825rem" }}>
+                            <TableCell key={m} align="right" sx={{ fontWeight: 800, color: "#000000", fontSize: "0.825rem" }}>
                               {fmtBRL(marg)}
                             </TableCell>
                           );
@@ -908,50 +970,55 @@ export default function DREReportPage() {
                     {group.group_type === "variable_expense" && (
                       <TableRow
                         sx={{
-                          bgcolor: "#ECEEF8",
-                          borderTop: "2px solid #D5D8ED",
-                          borderBottom: "1.5px solid #D5D8ED",
+                          bgcolor: "#FDBA74",
+                          borderTop: "2px solid #FB923C",
+                          borderBottom: "1.5px solid #FB923C",
                           "& td": {
-                            bgcolor: "#ECEEF8",
-                          },
-                          "&:hover td": {
-                            bgcolor: "#E3E6F4 !important",
+                            bgcolor: "#FDBA74",
                           },
                         }}
                       >
                         <TableCell
                           sx={{
                             fontWeight: 800,
-                            color: "primary.main",
+                            color: "#000000",
                             fontSize: "0.85rem",
                             position: "sticky",
                             left: 0,
                             zIndex: 8,
-                            bgcolor: "#ECEEF8",
+                            bgcolor: "#FDBA74",
                             py: 1.25,
-                            width: 300,
-                            minWidth: 300,
-                            maxWidth: 300,
-                            borderRight: "1px solid #D5D8ED",
+                            width: COL_ACCOUNT_WIDTH,
+                            minWidth: COL_ACCOUNT_WIDTH,
+                            maxWidth: COL_ACCOUNT_WIDTH,
+                            borderRight: "1px solid #FB923C",
                           }}
                         >
-                          (=) RESULTADO OPERACIONAL (EBITDA)
+                          <Tooltip
+                            title="EBITDA = Margem Bruta (-) Despesas Fixas (-) Despesas Variáveis (Resultado da Operação)"
+                            arrow
+                            placement="top-start"
+                          >
+                            <span style={{ cursor: "help" }}>
+                              (=) RESULTADO OPERACIONAL (EBITDA)
+                            </span>
+                          </Tooltip>
                         </TableCell>
                         <TableCell
                           align="right"
                           sx={{
                             fontWeight: 800,
-                            color: "primary.main",
+                            color: "#000000",
                             fontSize: "0.875rem",
                             position: "sticky",
-                            left: 300,
+                            left: COL_ACCOUNT_WIDTH,
                             zIndex: 8,
-                            bgcolor: "#ECEEF8",
-                            width: 130,
-                            minWidth: 130,
-                            maxWidth: 130,
-                            borderRight: "2px solid #CBD5E1",
-                            boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
+                            bgcolor: "#FDBA74",
+                            width: COL_TOTAL_WIDTH,
+                            minWidth: COL_TOTAL_WIDTH,
+                            maxWidth: COL_TOTAL_WIDTH,
+                            borderRight: "2px solid #EA580C",
+                            boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
                           }}
                         >
                           {fmtBRL(summary?.ebitda_total ?? 0)}
@@ -963,7 +1030,7 @@ export default function DREReportPage() {
                           const varExp = dreData?.groups.find((g) => g.group_type === "variable_expense")?.subtotal_row.monthly_amounts[m] || 0;
                           const ebit = rev - cmv - fix - varExp;
                           return (
-                            <TableCell key={m} align="right" sx={{ fontWeight: 800, color: "primary.main", fontSize: "0.825rem" }}>
+                            <TableCell key={m} align="right" sx={{ fontWeight: 800, color: "#000000", fontSize: "0.825rem" }}>
                               {fmtBRL(ebit)}
                             </TableCell>
                           );
@@ -979,54 +1046,55 @@ export default function DREReportPage() {
                 <>
                   <TableRow
                     sx={{
-                      bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
-                      borderTop: "3px solid",
-                      borderTopColor: isNetProfitPositive ? "#10B981" : "#F43F5E",
-                      borderBottom: "1.5px solid",
-                      borderBottomColor: isNetProfitPositive ? "#A7F3D0" : "#FECDD3",
+                      bgcolor: "#FDBA74",
+                      borderTop: "2px solid #FB923C",
+                      borderBottom: "1.5px solid #FB923C",
                       "& td": {
-                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
-                      },
-                      "&:hover td": {
-                        bgcolor: isNetProfitPositive ? "#D1FAE5 !important" : "#FEE2E2 !important",
+                        bgcolor: "#FDBA74",
                       },
                     }}
                   >
                     <TableCell
                       sx={{
-                        fontWeight: 900,
-                        fontSize: "0.95rem",
-                        color: isNetProfitPositive ? "#065F46" : "#991B1B",
+                        fontWeight: 800,
+                        fontSize: "0.85rem",
+                        color: "#000000",
                         position: "sticky",
                         left: 0,
                         zIndex: 8,
-                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
+                        bgcolor: "#FDBA74",
                         py: 1.25,
-                        width: 300,
-                        minWidth: 300,
-                        maxWidth: 300,
-                        borderRight: "1px solid",
-                        borderRightColor: isNetProfitPositive ? "#A7F3D0" : "#FECDD3",
+                        width: COL_ACCOUNT_WIDTH,
+                        minWidth: COL_ACCOUNT_WIDTH,
+                        maxWidth: COL_ACCOUNT_WIDTH,
+                        borderRight: "1px solid #FB923C",
                       }}
                     >
-                      (=) RESULTADO LÍQUIDO DO EXERCÍCIO
+                      <Tooltip
+                        title="Resultado Líquido = EBITDA (+) Receitas Não Operacionais (-) Despesas Não Operacionais"
+                        arrow
+                        placement="top-start"
+                      >
+                        <span style={{ cursor: "help" }}>
+                          (=) RESULTADO LÍQUIDO DO EXERCÍCIO
+                        </span>
+                      </Tooltip>
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{
-                        fontWeight: 900,
-                        fontSize: "0.95rem",
-                        color: isNetProfitPositive ? "#065F46" : "#991B1B",
+                        fontWeight: 800,
+                        fontSize: "0.875rem",
+                        color: "#000000",
                         position: "sticky",
-                        left: 300,
+                        left: COL_ACCOUNT_WIDTH,
                         zIndex: 8,
-                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
-                        width: 130,
-                        minWidth: 130,
-                        maxWidth: 130,
-                        borderRight: "2px solid",
-                        borderRightColor: isNetProfitPositive ? "#6EE7B7" : "#FDA4AF",
-                        boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
+                        bgcolor: "#FDBA74",
+                        width: COL_TOTAL_WIDTH,
+                        minWidth: COL_TOTAL_WIDTH,
+                        maxWidth: COL_TOTAL_WIDTH,
+                        borderRight: "2px solid #EA580C",
+                        boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
                       }}
                     >
                       {fmtBRL(summary.net_profit_total)}
@@ -1034,15 +1102,14 @@ export default function DREReportPage() {
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                       const netRow = dreData?.all_rows.find((r) => r.id === "result-net-profit");
                       const val = netRow?.monthly_amounts[m] || 0;
-                      const isPositive = val >= 0;
                       return (
                         <TableCell
                           key={m}
                           align="right"
                           sx={{
-                            fontWeight: 900,
-                            fontSize: "0.85rem",
-                            color: isPositive ? "#065F46" : "#991B1B",
+                            fontWeight: 800,
+                            fontSize: "0.825rem",
+                            color: "#000000",
                           }}
                         >
                           {fmtBRL(val)}
@@ -1054,69 +1121,114 @@ export default function DREReportPage() {
                   {/* Linha de Margem Líquida Percentual */}
                   <TableRow
                     sx={{
-                      bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
+                      bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
+                      borderBottom: "3px solid",
+                      borderBottomColor: isNetProfitPositive ? "#10B981" : "#EF4444",
                       "& td": {
-                        bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
-                      },
-                      "&:hover td": {
-                        bgcolor: isNetProfitPositive ? "#DCFCE7 !important" : "#FFE4E6 !important",
+                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
                       },
                     }}
                   >
                     <TableCell
                       sx={{
-                        fontWeight: 700,
+                        fontWeight: 800,
                         fontSize: "0.825rem",
-                        color: isNetProfitPositive ? "#047857" : "#B91C1C",
+                        color: "#000000",
                         position: "sticky",
                         left: 0,
                         zIndex: 8,
-                        bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
+                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
                         py: 0.85,
-                        width: 300,
-                        minWidth: 300,
-                        maxWidth: 300,
+                        width: COL_ACCOUNT_WIDTH,
+                        minWidth: COL_ACCOUNT_WIDTH,
+                        maxWidth: COL_ACCOUNT_WIDTH,
                         borderRight: "1px solid",
-                        borderRightColor: isNetProfitPositive ? "#BBF7D0" : "#FECDD3",
+                        borderRightColor: isNetProfitPositive ? "#A7F3D0" : "#FECDD3",
                       }}
                     >
-                      RESULTADO EM % (MARGEM LÍQUIDA)
+                      <Tooltip
+                        title="Margem Líquida % = (Resultado Líquido / Receita Bruta) * 100"
+                        arrow
+                        placement="top-start"
+                      >
+                        <span style={{ cursor: "help" }}>
+                          RESULTADO EM % (MARGEM LÍQUIDA)
+                        </span>
+                      </Tooltip>
                     </TableCell>
                     <TableCell
                       align="right"
                       sx={{
-                        fontWeight: 800,
-                        fontSize: "0.85rem",
-                        color: isNetProfitPositive ? "#047857" : "#B91C1C",
                         position: "sticky",
-                        left: 300,
+                        left: COL_ACCOUNT_WIDTH,
                         zIndex: 8,
-                        bgcolor: isNetProfitPositive ? "#F0FDF4" : "#FFF1F2",
-                        width: 130,
-                        minWidth: 130,
-                        maxWidth: 130,
+                        bgcolor: isNetProfitPositive ? "#ECFDF5" : "#FEF2F2",
+                        width: COL_TOTAL_WIDTH,
+                        minWidth: COL_TOTAL_WIDTH,
+                        maxWidth: COL_TOTAL_WIDTH,
                         borderRight: "2px solid",
-                        borderRightColor: isNetProfitPositive ? "#86EFAC" : "#FCA5A5",
-                        boxShadow: "3px 0 5px -2px rgba(0,0,0,0.08)",
+                        borderRightColor: isNetProfitPositive ? "#34D399" : "#F87171",
+                        boxShadow: "3px 0 5px -2px rgba(0,0,0,0.06)",
+                        py: 0.85,
                       }}
                     >
-                      {fmtPct(summary.net_margin_pct)}
+                      {summary.net_margin_pct === 0 ? (
+                        <span style={{ color: "#000000", fontWeight: 700, fontSize: "0.85rem" }}>-</span>
+                      ) : (
+                        <Box
+                          sx={{
+                            display: "inline-flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            px: 1.25,
+                            py: 0.35,
+                            borderRadius: "12px",
+                            bgcolor: summary.net_margin_pct >= 0 ? "#16A34A" : "#DC2626",
+                            color: "#FFFFFF",
+                            fontWeight: 800,
+                            fontSize: "0.85rem",
+                            letterSpacing: "0.2px",
+                          }}
+                        >
+                          {fmtPct(summary.net_margin_pct)}
+                        </Box>
+                      )}
                     </TableCell>
                     {Array.from({ length: 12 }, (_, i) => i + 1).map((m) => {
                       const netRow = dreData?.all_rows.find((r) => r.id === "result-net-profit");
                       const pct = netRow?.monthly_percentages[m] || 0;
                       const isPositive = pct >= 0;
+
                       return (
                         <TableCell
                           key={m}
                           align="right"
                           sx={{
-                            fontWeight: 800,
-                            fontSize: "0.825rem",
-                            color: isPositive ? "#047857" : "#B91C1C",
+                            py: 0.85,
+                            px: 0.75,
                           }}
                         >
-                          {fmtPct(pct)}
+                          {pct === 0 ? (
+                            <span style={{ color: "#000000", fontWeight: 700, fontSize: "0.825rem" }}>-</span>
+                          ) : (
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                px: 1,
+                                py: 0.3,
+                                borderRadius: "10px",
+                                bgcolor: isPositive ? "#16A34A" : "#DC2626",
+                                color: "#FFFFFF",
+                                fontWeight: 800,
+                                fontSize: "0.78rem",
+                                minWidth: 54,
+                              }}
+                            >
+                              {fmtPct(pct)}
+                            </Box>
+                          )}
                         </TableCell>
                       );
                     })}

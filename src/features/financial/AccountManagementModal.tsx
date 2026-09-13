@@ -44,6 +44,8 @@ const GROUP_LABELS: Record<DREGroupType, string> = {
   cmv: "CMV / Custos Diretos",
   fixed_expense: "Despesas Fixas",
   variable_expense: "Despesas Variáveis",
+  financial_revenue: "Receitas Financeiras / Não Operacionais",
+  financial_expense: "Despesas Financeiras / Não Operacionais",
   financial_result: "Resultado Financeiro",
   result: "Resultado",
 };
@@ -148,7 +150,8 @@ export default function AccountManagementModal({ open, onClose, year }: Props) {
           <Tab value="variable_expense" label="Despesas Variáveis" />
           <Tab value="gross_revenue" label="Receitas" />
           <Tab value="cmv" label="Custos Diretos (CMV)" />
-          <Tab value="financial_result" label="Resultado Financeiro" />
+          <Tab value="financial_revenue" label="Receitas Financeiras" />
+          <Tab value="financial_expense" label="Despesas Financeiras" />
         </Tabs>
 
         {/* Botão para abrir formulário de criação */}

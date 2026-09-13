@@ -22,6 +22,10 @@ import {
   Tab,
   useTheme,
   alpha,
+  Autocomplete,
+  TextField,
+  Checkbox,
+  ListItemText,
 } from "@mui/material";
 import {
   Download,
@@ -41,6 +45,7 @@ import {
   getOperationalResult,
   exportOperationalResultExcel,
   type OperationalResultResponse,
+  type OperationalStratifiedItem,
 } from "../api/services/operationalResult";
 import { toast } from "react-toastify";
 
@@ -48,6 +53,193 @@ const MONTH_NAMES = [
   "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
 ];
+
+interface ServiceAutocompleteFilterProps {
+  allServices: string[];
+  selectedServices: string[];
+  onChange: (selected: string[]) => void;
+  label?: string;
+}
+
+function ServiceAutocompleteFilter({
+  allServices,
+  selectedServices,
+  onChange,
+  label = "Filtrar serviços",
+}: ServiceAutocompleteFilterProps) {
+  return (
+    <Autocomplete
+      multiple
+      disableCloseOnSelect
+      size="small"
+      options={allServices}
+      value={selectedServices}
+      isOptionEqualToValue={(option, val) => option === val}
+      onChange={(_, newValue) => {
+        const uniqueValues = Array.from(new Set(newValue));
+        onChange(uniqueValues);
+      }}
+      noOptionsText="Nenhum serviço encontrado"
+      PaperComponent={({ children, ...paperProps }) => (
+        <Paper {...paperProps} elevation={6} sx={{ borderRadius: 2, mt: 0.5, minWidth: 280 }}>
+          <Box
+            onMouseDown={(e) => {
+              // Previne que o input perca o foco e feche o dropdown antes do click
+              e.preventDefault();
+            }}
+            sx={{
+              p: 1,
+              px: 1.5,
+              borderBottom: "1px solid",
+              borderColor: "divider",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              bgcolor: "action.hover",
+            }}
+          >
+            <Typography variant="caption" fontWeight={700} color="text.secondary">
+              {selectedServices.length} de {allServices.length} selecionados
+            </Typography>
+            <Box sx={{ display: "flex", gap: 0.75 }}>
+              <Button
+                size="small"
+                variant="outlined"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange([...allServices]);
+                }}
+                sx={{
+                  fontSize: "0.72rem",
+                  py: 0.2,
+                  px: 0.85,
+                  minWidth: 0,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Todos
+              </Button>
+              <Button
+                size="small"
+                variant="outlined"
+                color="error"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onChange([]);
+                }}
+                sx={{
+                  fontSize: "0.72rem",
+                  py: 0.2,
+                  px: 0.85,
+                  minWidth: 0,
+                  textTransform: "none",
+                  fontWeight: 700,
+                  cursor: "pointer",
+                }}
+              >
+                Nenhum
+              </Button>
+            </Box>
+          </Box>
+          {children}
+        </Paper>
+      )}
+      renderOption={(props, option, { selected }) => (
+        <li {...props} key={option}>
+          <Checkbox
+            size="small"
+            checked={selected}
+            sx={{ mr: 1, p: 0.25 }}
+          />
+          <ListItemText
+            primary={option}
+            primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 600 }}
+          />
+        </li>
+      )}
+      renderTags={(value) => {
+        if (value.length === allServices.length) {
+          return (
+            <Chip
+              size="small"
+              label={`Todos (${allServices.length})`}
+              color="primary"
+              variant="outlined"
+              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
+            />
+          );
+        }
+        if (value.length === 0) {
+          return (
+            <Chip
+              size="small"
+              label="Nenhum (0)"
+              color="error"
+              variant="outlined"
+              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
+            />
+          );
+        }
+        if (value.length === 1) {
+          return (
+            <Chip
+              size="small"
+              label={value[0]}
+              color="primary"
+              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 600, maxWidth: 140 }}
+            />
+          );
+        }
+        return (
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+            <Chip
+              size="small"
+              label={value[0]}
+              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 600, maxWidth: 110 }}
+            />
+            <Chip
+              size="small"
+              label={`+${value.length - 1}`}
+              color="primary"
+              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
+            />
+          </Box>
+        );
+      }}
+      renderInput={(params) => (
+        <TextField
+          {...params}
+          placeholder={selectedServices.length === 0 ? "Buscar serviços..." : ""}
+          label={label}
+          InputLabelProps={{ shrink: true, sx: { fontSize: "0.85rem", fontWeight: 700 } }}
+          sx={{
+            "& .MuiInputBase-root": {
+              fontSize: "0.8rem",
+              py: 0.25,
+              borderRadius: 2,
+            },
+          }}
+        />
+      )}
+      sx={{
+        width: { xs: "100%", sm: 280, md: 320 },
+        minWidth: 220,
+      }}
+    />
+  );
+}
 
 export default function OperationalResultPage() {
   const theme = useTheme();
@@ -114,13 +306,151 @@ export default function OperationalResultPage() {
     );
   }, [rows]);
 
+  // Lista de todos os nomes únicos de serviços cadastrados
+  const allServiceNames = useMemo(() => {
+    const names = sortedServices.map((s) => s.name.trim()).filter(Boolean);
+    return Array.from(new Set(names));
+  }, [sortedServices]);
+
+  // Estados dos filtros de serviços por gráfico (null = todos marcados por default)
+  const [selectedServicesChart1, setSelectedServicesChart1] = useState<string[] | null>(null);
+  const [selectedServicesChart2, setSelectedServicesChart2] = useState<string[] | null>(null);
+  const [selectedServicesAnnual, setSelectedServicesAnnual] = useState<string[] | null>(null);
+
+  const effectiveSelectedChart1 = useMemo(() => {
+    if (selectedServicesChart1 === null) return allServiceNames;
+    return selectedServicesChart1;
+  }, [selectedServicesChart1, allServiceNames]);
+
+  const effectiveSelectedChart2 = useMemo(() => {
+    if (selectedServicesChart2 === null) return allServiceNames;
+    return selectedServicesChart2;
+  }, [selectedServicesChart2, allServiceNames]);
+
+  const effectiveSelectedAnnual = useMemo(() => {
+    if (selectedServicesAnnual === null) return allServiceNames;
+    return selectedServicesAnnual;
+  }, [selectedServicesAnnual, allServiceNames]);
+
+  // ── Gráfico 1: Serviços Estratificados (Agrupados por nome único) ──
+  const filteredStratified = useMemo(() => {
+    if (!opData?.stratified_services) return [];
+    const selectedSet = new Set(effectiveSelectedChart1);
+    const map = new Map<string, OperationalStratifiedItem>();
+
+    for (const item of opData.stratified_services) {
+      if (!selectedSet.has(item.name)) continue;
+      if (!map.has(item.name)) {
+        map.set(item.name, { ...item });
+      } else {
+        const existing = map.get(item.name)!;
+        existing.count += item.count;
+      }
+    }
+    return Array.from(map.values()).sort((a, b) => {
+      // Ordenação decrescente por quantidade (da maior para a menor barra)
+      if (b.count !== a.count) {
+        return b.count - a.count;
+      }
+      // Desempate alfabético
+      return a.name.localeCompare(b.name, "pt-BR", { sensitivity: "base" });
+    });
+  }, [opData?.stratified_services, effectiveSelectedChart1]);
+
+  const totalFilteredChart1 = useMemo(() => {
+    return filteredStratified.reduce((acc, item) => acc + item.count, 0);
+  }, [filteredStratified]);
+
+  // ── Gráfico 2: Volume Serviços / Dia ──
+  const filteredDailyTotals = useMemo(() => {
+    const selectedSet = new Set(effectiveSelectedChart2);
+    const totals: Record<number, number> = {};
+    daysMeta.forEach((dm) => {
+      totals[dm.day] = 0;
+    });
+    sortedServices.forEach((row) => {
+      if (selectedSet.has(row.name)) {
+        Object.entries(row.daily_counts).forEach(([dayStr, cnt]) => {
+          const d = Number(dayStr);
+          totals[d] = (totals[d] || 0) + cnt;
+        });
+      }
+    });
+    return totals;
+  }, [sortedServices, effectiveSelectedChart2, daysMeta]);
+
+  const totalFilteredChart2 = useMemo(() => {
+    return Object.values(filteredDailyTotals).reduce((a, b) => a + b, 0);
+  }, [filteredDailyTotals]);
+
+  // ── Gráfico 3: Comparativo Anual ──
+  const filteredAnnualCurrent = useMemo(() => {
+    const monthly: Record<number, number> = {};
+    for (let m = 1; m <= 12; m++) monthly[m] = 0;
+
+    if (effectiveSelectedAnnual.length === allServiceNames.length) {
+      return opData?.annual_comparison?.monthly_volume_current || monthly;
+    }
+
+    const svcData = opData?.annual_comparison?.service_monthly_current;
+    if (svcData) {
+      const selectedSet = new Set(effectiveSelectedAnnual);
+      Object.entries(svcData).forEach(([srvName, mMap]) => {
+        if (selectedSet.has(srvName)) {
+          Object.entries(mMap).forEach(([mStr, cnt]) => {
+            const m = Number(mStr);
+            monthly[m] = (monthly[m] || 0) + cnt;
+          });
+        }
+      });
+    }
+    return monthly;
+  }, [opData?.annual_comparison, effectiveSelectedAnnual, allServiceNames]);
+
+  const filteredAnnualPrevious = useMemo(() => {
+    const monthly: Record<number, number> = {};
+    for (let m = 1; m <= 12; m++) monthly[m] = 0;
+
+    if (effectiveSelectedAnnual.length === allServiceNames.length) {
+      return opData?.annual_comparison?.monthly_volume_previous || monthly;
+    }
+
+    const svcData = opData?.annual_comparison?.service_monthly_previous;
+    if (svcData) {
+      const selectedSet = new Set(effectiveSelectedAnnual);
+      Object.entries(svcData).forEach(([srvName, mMap]) => {
+        if (selectedSet.has(srvName)) {
+          Object.entries(mMap).forEach(([mStr, cnt]) => {
+            const m = Number(mStr);
+            monthly[m] = (monthly[m] || 0) + cnt;
+          });
+        }
+      });
+    }
+    return monthly;
+  }, [opData?.annual_comparison, effectiveSelectedAnnual, allServiceNames]);
+
+  const totalFilteredAnnualCurrent = useMemo(() => {
+    return Object.values(filteredAnnualCurrent).reduce((a, b) => a + b, 0);
+  }, [filteredAnnualCurrent]);
+
+  const totalFilteredAnnualPrevious = useMemo(() => {
+    return Object.values(filteredAnnualPrevious).reduce((a, b) => a + b, 0);
+  }, [filteredAnnualPrevious]);
+
   return (
     <Box
       sx={{
         width: "100%",
         maxWidth: "100%",
+        height: "100%",
+        maxHeight: "100%",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
         p: { xs: 1.5, sm: 2, md: 2.5 },
-        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 4 },
+        pb: { xs: "calc(16px + env(safe-area-inset-bottom, 0px))", md: 2 },
+        boxSizing: "border-box",
       }}
     >
       {/* ── CABEÇALHO & AÇÕES (ESTILO DRE) ─────────────────────────────────── */}
@@ -131,7 +461,8 @@ export default function OperationalResultPage() {
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", md: "center" },
           gap: 2,
-          mb: 3,
+          mb: 1.5,
+          flexShrink: 0,
         }}
       >
         <Box>
@@ -241,7 +572,8 @@ export default function OperationalResultPage() {
           display: "grid",
           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(5, 1fr)" },
           gap: 1.5,
-          mb: 2.5,
+          mb: 1.5,
+          flexShrink: 0,
           "@media print": { display: "grid", gridTemplateColumns: "repeat(5, 1fr)" },
         }}
       >
@@ -406,7 +738,7 @@ export default function OperationalResultPage() {
       </Box>
 
       {/* ── TABS DE VISUALIZAÇÃO ────────────────────────────────────────── */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2, "@media print": { display: "none" } }}>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 1.5, flexShrink: 0, "@media print": { display: "none" } }}>
         <Tabs
           value={activeTab}
           onChange={(_, newVal) => setActiveTab(newVal)}
@@ -433,12 +765,14 @@ export default function OperationalResultPage() {
           elevation={0}
           sx={{
             width: "100%",
+            flex: 1,
+            minHeight: 0,
             border: "1px solid",
             borderColor: "divider",
             borderRadius: 3,
-            overflowX: "auto",
+            overflow: "auto",
             position: "relative",
-            "&::-webkit-scrollbar": { height: 8 },
+            "&::-webkit-scrollbar": { width: 8, height: 8 },
             "&::-webkit-scrollbar-thumb": {
               background: "rgba(0,0,0,0.18)",
               borderRadius: 4,
@@ -463,6 +797,7 @@ export default function OperationalResultPage() {
                 width: "100%",
                 minWidth: 1200,
                 borderCollapse: "separate",
+                borderSpacing: 0,
                 "& td, & th": { whiteSpace: "nowrap" },
               }}
             >
@@ -471,16 +806,19 @@ export default function OperationalResultPage() {
                   {/* Nome do Serviço (Único campo inicial fixo) */}
                   <TableCell
                     sx={{
-                      width: 240,
-                      minWidth: 220,
+                      width: 250,
+                      minWidth: 250,
+                      maxWidth: 250,
                       fontWeight: 800,
                       fontSize: "0.8rem",
                       bgcolor: "primary.main",
                       color: "#FFFFFF",
                       position: "sticky",
+                      top: 0,
                       left: 0,
-                      zIndex: 10,
+                      zIndex: 30,
                       borderRight: "2px solid rgba(255,255,255,0.3)",
+                      borderBottom: "2px solid rgba(0,0,0,0.2)",
                       py: 1,
                     }}
                   >
@@ -507,8 +845,12 @@ export default function OperationalResultPage() {
                               : "primary.main",
                             color: "#FFFFFF",
                             borderRight: "1px solid rgba(255,255,255,0.1)",
+                            borderBottom: "2px solid rgba(0,0,0,0.2)",
                             lineHeight: 1.15,
                             py: 0.8,
+                            position: "sticky",
+                            top: 0,
+                            zIndex: 20,
                           }}
                         >
                           <Box sx={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", opacity: isClosed ? 0.85 : 1 }}>
@@ -533,7 +875,11 @@ export default function OperationalResultPage() {
                       fontWeight: 800,
                       fontSize: "0.8rem",
                       borderLeft: "2px solid rgba(255,255,255,0.25)",
+                      borderBottom: "2px solid rgba(0,0,0,0.2)",
                       py: 1,
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 20,
                     }}
                   >
                     TOTAL
@@ -554,73 +900,87 @@ export default function OperationalResultPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedServices.map((row) => (
-                    <TableRow
-                      key={row.code}
-                      hover
-                      sx={{
-                        "&:nth-of-type(even)": { bgcolor: "#F8FAFC" },
-                        "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04) },
-                        borderBottom: "1px solid #E2E8F0",
-                      }}
-                    >
-                      {/* Nome do Serviço (Em ordem alfabética) */}
-                      <TableCell
+                  sortedServices.map((row, rowIdx) => {
+                    const isEven = rowIdx % 2 === 1;
+                    const cellBg = isEven ? "#F8FAFC" : "#FFFFFF";
+                    return (
+                      <TableRow
+                        key={row.code}
+                        hover
                         sx={{
-                          fontWeight: 600,
-                          fontSize: "0.825rem",
-                          color: "text.primary",
-                          bgcolor: "background.paper",
-                          position: "sticky",
-                          left: 0,
-                          zIndex: 4,
-                          borderRight: "2px solid #CBD5E1",
-                          py: 0.85,
-                          pl: 2,
+                          bgcolor: cellBg,
+                          "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                          "&:hover .sticky-service-col": { bgcolor: alpha(theme.palette.primary.main, 0.06) },
+                          borderBottom: "1px solid #E2E8F0",
                         }}
                       >
-                        {row.name}
-                      </TableCell>
+                        {/* Nome do Serviço (Em ordem alfabética) */}
+                        <TableCell
+                          className="sticky-service-col"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.825rem",
+                            color: "text.primary",
+                            bgcolor: cellBg,
+                            position: "sticky",
+                            left: 0,
+                            zIndex: 10,
+                            borderRight: "2px solid #CBD5E1",
+                            py: 0.85,
+                            pl: 2,
+                            width: 250,
+                            minWidth: 250,
+                            maxWidth: 250,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          <Tooltip title={row.name} arrow placement="top-start" enterDelay={150}>
+                            <span>{row.name}</span>
+                          </Tooltip>
+                        </TableCell>
 
-                      {/* Células diárias (1..31) */}
-                      {daysMeta.map((dm) => {
-                        const count = row.daily_counts[dm.day] || 0;
-                        const isClosed = dm.is_closed ?? dm.is_weekend;
-                        return (
-                          <TableCell
-                            key={dm.day}
-                            align="center"
-                            sx={{
-                              p: 0.5,
-                              fontSize: "0.75rem",
-                              fontWeight: count > 0 ? 700 : 400,
-                              color: count > 0 ? "text.primary" : "text.disabled",
-                              bgcolor: isClosed ? "#F3F4F6" : "inherit",
-                              borderRight: "1px solid #F1F5F9",
-                              py: 0.85,
-                            }}
-                          >
-                            {count > 0 ? count : ""}
-                          </TableCell>
-                        );
-                      })}
+                        {/* Células diárias (1..31) */}
+                        {daysMeta.map((dm) => {
+                          const count = row.daily_counts[dm.day] || 0;
+                          const isClosed = dm.is_closed ?? dm.is_weekend;
+                          return (
+                            <TableCell
+                              key={dm.day}
+                              align="center"
+                              sx={{
+                                p: 0.5,
+                                fontSize: "0.75rem",
+                                fontWeight: count > 0 ? 700 : 400,
+                                color: count > 0 ? "text.primary" : "text.disabled",
+                                bgcolor: isClosed ? "#F3F4F6" : "inherit",
+                                borderRight: "1px solid #F1F5F9",
+                                py: 0.85,
+                              }}
+                            >
+                              {count > 0 ? count : ""}
+                            </TableCell>
+                          );
+                        })}
 
-                      {/* Total do Serviço no Mês */}
-                      <TableCell
-                        align="center"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: "0.825rem",
-                          color: "text.primary",
-                          bgcolor: "background.paper",
-                          borderLeft: "2px solid #CBD5E1",
-                          py: 0.85,
-                        }}
-                      >
-                        {row.total_count}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        {/* Total do Serviço no Mês */}
+                        <TableCell
+                          align="center"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.825rem",
+                            color: "text.primary",
+                            bgcolor: cellBg,
+                            borderLeft: "2px solid #CBD5E1",
+                            py: 0.85,
+                          }}
+                        >
+                          {row.total_count}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
 
                 {/* ── LINHA DE RODAPÉ (VOLUME SERVIÇOS / DIA - COR CLARA E ELEGANTE) ── */}
@@ -631,7 +991,7 @@ export default function OperationalResultPage() {
                     borderColor: "divider",
                     position: "sticky",
                     bottom: 0,
-                    zIndex: 10,
+                    zIndex: 25,
                   }}
                 >
                   <TableCell
@@ -644,12 +1004,16 @@ export default function OperationalResultPage() {
                       bgcolor: "#F8FAFC",
                       position: "sticky",
                       left: 0,
-                      zIndex: 15,
+                      bottom: 0,
+                      zIndex: 35,
                       borderRight: "2px solid #CBD5E1",
                       borderTop: "2px solid",
                       borderColor: "divider",
                       py: 1.2,
                       pl: 2,
+                      width: 250,
+                      minWidth: 250,
+                      maxWidth: 250,
                     }}
                   >
                     VOLUME SERVIÇOS / DIA
@@ -673,6 +1037,9 @@ export default function OperationalResultPage() {
                           borderTop: "2px solid",
                           borderColor: "divider",
                           py: 1.2,
+                          position: "sticky",
+                          bottom: 0,
+                          zIndex: 25,
                         }}
                       >
                         {daySum > 0 ? daySum : 0}
@@ -686,12 +1053,15 @@ export default function OperationalResultPage() {
                     sx={{
                       fontWeight: 900,
                       fontSize: "0.95rem",
-                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      bgcolor: alpha(theme.palette.primary.main, 0.12),
                       color: "primary.main",
                       borderLeft: "2px solid #CBD5E1",
                       borderTop: "2px solid",
                       borderColor: "divider",
                       py: 1.2,
+                      position: "sticky",
+                      bottom: 0,
+                      zIndex: 25,
                     }}
                   >
                     {summary?.total_services || 0}
@@ -705,10 +1075,34 @@ export default function OperationalResultPage() {
 
       {/* ── TAB 1: GRÁFICOS & ANÁLISE COMPARATIVA ────────────────────────── */}
       {activeTab === 1 && (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.5,
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            pr: 1,
+            "&::-webkit-scrollbar": { width: 8 },
+            "&::-webkit-scrollbar-thumb": {
+              background: "rgba(0,0,0,0.18)",
+              borderRadius: 4,
+            },
+          }}
+        >
           {/* Gráfico 1: Serviços Estratificados */}
           <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", sm: "center" },
+                gap: 1.5,
+                mb: 2,
+              }}
+            >
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
                   SERVIÇOS ESTRATIFICADOS
@@ -717,101 +1111,160 @@ export default function OperationalResultPage() {
                   Volume de atendimentos por serviço no mês de {MONTH_NAMES[selectedMonth - 1]}
                 </Typography>
               </Box>
-              <Chip
-                label={`${summary?.total_services || 0} serviços`}
-                size="small"
-                sx={{ fontWeight: 700, bgcolor: alpha(theme.palette.primary.main, 0.1), color: "primary.main" }}
-              />
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                <Chip
+                  label={
+                    effectiveSelectedChart1.length === allServiceNames.length
+                      ? `${summary?.total_services || 0} serviços`
+                      : `${totalFilteredChart1} de ${summary?.total_services || 0} serviços`
+                  }
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: alpha(theme.palette.primary.main, 0.1),
+                    color: "primary.main",
+                  }}
+                />
+                <ServiceAutocompleteFilter
+                  allServices={allServiceNames}
+                  selectedServices={effectiveSelectedChart1}
+                  onChange={(newVal) => setSelectedServicesChart1(newVal)}
+                  label="Filtrar serviços"
+                />
+              </Box>
             </Box>
 
-            <Box sx={{ display: "flex", alignItems: "flex-end", gap: 2, minHeight: 260, pt: 3, px: 2, pb: 1, overflowX: "auto" }}>
-              {opData?.stratified_services.map((item) => {
-                const maxCount = Math.max(...(opData?.stratified_services.map((s) => s.count) || [1]), 1);
-                const heightPct = Math.max((item.count / maxCount) * 100, 4);
-                const isTop = item.count === maxCount && item.count > 0;
+            {filteredStratified.length === 0 ? (
+              <Box sx={{ py: 6, textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                  Nenhum serviço selecionado no filtro.
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Marque pelo menos um serviço no seletor acima para visualizar a estratificação.
+                </Typography>
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "nowrap",
+                  alignItems: "flex-end",
+                  gap: 3,
+                  minHeight: 260,
+                  width: "100%",
+                  pt: 3,
+                  px: 2,
+                  pb: 1.5,
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  "&::-webkit-scrollbar": { height: 7 },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "rgba(0,0,0,0.15)",
+                    borderRadius: 4,
+                  },
+                }}
+              >
+                {filteredStratified.map((item, idx) => {
+                  const maxCount = Math.max(...filteredStratified.map((s) => s.count), 1);
+                  const heightPct = Math.max((item.count / maxCount) * 100, 4);
+                  const isTop = item.count === maxCount && item.count > 0;
+                  const pct = totalFilteredChart1 > 0 ? ((item.count / totalFilteredChart1) * 100).toFixed(1) : "0";
 
-                return (
-                  <Box
-                    key={item.name}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      minWidth: 90,
-                      maxWidth: 130,
-                      flex: 1,
-                      height: "100%",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    {/* Área da Barra com baseline fixa */}
+                  return (
                     <Box
+                      key={`${item.code || item.name}-${idx}`}
                       sx={{
-                        height: 160,
-                        width: "100%",
                         display: "flex",
                         flexDirection: "column",
-                        justifyContent: "flex-end",
                         alignItems: "center",
-                        borderBottom: "1px solid",
-                        borderColor: "divider",
+                        flex: "0 0 100px",
+                        width: 100,
+                        minWidth: 100,
+                        maxWidth: 120,
+                        height: "100%",
+                        justifyContent: "flex-end",
                       }}
                     >
-                      <Typography
-                        variant="caption"
-                        sx={{ fontWeight: 700, fontSize: "0.75rem", mb: 0.5, color: isTop ? "primary.main" : "text.secondary" }}
-                      >
-                        {item.count}
-                      </Typography>
-                      <Tooltip title={`${item.name}: ${item.count} atendimentos (${item.percentage}%)`} arrow>
-                        <Box
-                          sx={{
-                            width: "100%",
-                            maxWidth: 42,
-                            height: `${heightPct}%`,
-                            bgcolor: isTop ? "#0284C7" : item.count > 0 ? "#38BDF8" : "#E2E8F0",
-                            borderRadius: "4px 4px 0 0",
-                            transition: "all 0.3s ease",
-                            cursor: "pointer",
-                            "&:hover": { bgcolor: "#0369A1", transform: "scaleY(1.03)" },
-                          }}
-                        />
-                      </Tooltip>
-                    </Box>
-
-                    {/* Rótulo completo do serviço sem reticências */}
-                    <Box
-                      sx={{
-                        width: "100%",
-                        pt: 1,
-                        display: "flex",
-                        justifyContent: "center",
-                        textAlign: "center",
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
+                      {/* Área da Barra com baseline fixa */}
+                      <Box
                         sx={{
-                          fontWeight: 700,
-                          fontSize: "0.72rem",
-                          lineHeight: 1.25,
-                          color: "text.primary",
-                          wordBreak: "break-word",
-                          whiteSpace: "normal",
+                          height: 160,
+                          width: "100%",
+                          display: "flex",
+                          flexDirection: "column",
+                          justifyContent: "flex-end",
+                          alignItems: "center",
+                          borderBottom: "2px solid",
+                          borderColor: "divider",
                         }}
                       >
-                        {item.name}
-                      </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{ fontWeight: 700, fontSize: "0.75rem", mb: 0.5, color: isTop ? "primary.main" : "text.secondary" }}
+                        >
+                          {item.count}
+                        </Typography>
+                        <Tooltip title={`${item.name}: ${item.count} atendimentos (${pct}%)`} arrow>
+                          <Box
+                            sx={{
+                              width: "100%",
+                              maxWidth: 42,
+                              height: `${heightPct}%`,
+                              bgcolor: isTop ? "#0284C7" : item.count > 0 ? "#38BDF8" : "#E2E8F0",
+                              borderRadius: "4px 4px 0 0",
+                              transition: "all 0.3s ease",
+                              cursor: "pointer",
+                              "&:hover": { bgcolor: "#0369A1", transform: "scaleY(1.03)" },
+                            }}
+                          />
+                        </Tooltip>
+                      </Box>
+
+                      {/* Rótulo completo do serviço sem reticências */}
+                      <Box
+                        sx={{
+                          width: "100%",
+                          pt: 1,
+                          display: "flex",
+                          justifyContent: "center",
+                          textAlign: "center",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.72rem",
+                            lineHeight: 1.25,
+                            color: "text.primary",
+                            wordBreak: "break-word",
+                            whiteSpace: "normal",
+                          }}
+                        >
+                          {item.name}
+                        </Typography>
+                      </Box>
                     </Box>
-                  </Box>
-                );
-              })}
-            </Box>
+                  );
+                })}
+              </Box>
+            )}
           </Paper>
 
           {/* Gráfico 2: Volume Serviços / Dia */}
           <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", sm: "center" },
+                gap: 1.5,
+                mb: 2,
+              }}
+            >
               <Box>
                 <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
                   VOLUME SERVIÇOS / DIA
@@ -820,152 +1273,284 @@ export default function OperationalResultPage() {
                   Demanda diária e ritmo da esteira de banho e tosa ao longo do mês
                 </Typography>
               </Box>
+
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                <Chip
+                  label={
+                    effectiveSelectedChart2.length === allServiceNames.length
+                      ? `${summary?.total_services || 0} atendimentos`
+                      : `${totalFilteredChart2} de ${summary?.total_services || 0} atendimentos`
+                  }
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: alpha("#EA580C", 0.1),
+                    color: "#EA580C",
+                  }}
+                />
+                <ServiceAutocompleteFilter
+                  allServices={allServiceNames}
+                  selectedServices={effectiveSelectedChart2}
+                  onChange={(newVal) => setSelectedServicesChart2(newVal)}
+                  label="Filtrar serviços"
+                />
+              </Box>
             </Box>
 
-            <Box sx={{ display: "flex", alignItems: "flex-end", gap: 0.8, height: 200, pt: 4, px: 1, overflowX: "auto" }}>
-              {daysMeta.map((dm) => {
-                const count = dailyTotals[dm.day] || 0;
-                const maxDayCount = Math.max(...Object.values(dailyTotals), 1);
-                const heightPct = count > 0 ? Math.max((count / maxDayCount) * 100, 6) : 2;
+            {effectiveSelectedChart2.length === 0 ? (
+              <Box sx={{ py: 6, textAlign: "center" }}>
+                <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                  Nenhum serviço selecionado no filtro.
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Marque pelo menos um serviço no seletor acima para visualizar o volume diário.
+                </Typography>
+              </Box>
+            ) : (
+              <Box
+                sx={{
+                  display: "flex",
+                  flexDirection: "row",
+                  flexWrap: "nowrap",
+                  alignItems: "flex-end",
+                  gap: 0.8,
+                  height: 200,
+                  width: "100%",
+                  pt: 4,
+                  px: 1,
+                  overflowX: "auto",
+                  overflowY: "hidden",
+                  "&::-webkit-scrollbar": { height: 7 },
+                  "&::-webkit-scrollbar-thumb": {
+                    background: "rgba(0,0,0,0.15)",
+                    borderRadius: 4,
+                  },
+                }}
+              >
+                {daysMeta.map((dm) => {
+                  const count = filteredDailyTotals[dm.day] || 0;
+                  const maxDayCount = Math.max(...Object.values(filteredDailyTotals), 1);
+                  const heightPct = count > 0 ? Math.max((count / maxDayCount) * 100, 6) : 2;
 
-                return (
-                  <Box
-                    key={dm.day}
-                    sx={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      minWidth: 32,
-                      flex: 1,
-                      height: "100%",
-                      justifyContent: "flex-end",
-                    }}
-                  >
-                    {count > 0 && (
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.7rem", mb: 0.5, color: "#EA580C" }}>
-                        {count}
-                      </Typography>
-                    )}
-                    <Tooltip title={`Dia ${dm.date_str} (${dm.day_of_week}): ${count} atendimentos`} arrow>
-                      <Box
-                        sx={{
-                          width: "100%",
-                          maxWidth: 24,
-                          height: `${heightPct}%`,
-                          bgcolor: count > 0 ? "#F97316" : "#E5E7EB",
-                          borderRadius: "4px 4px 0 0",
-                          transition: "all 0.2s ease",
-                          cursor: "pointer",
-                          "&:hover": { bgcolor: "#C2410C" },
-                        }}
-                      />
-                    </Tooltip>
-                    <Typography
-                      variant="caption"
+                  return (
+                    <Box
+                      key={dm.day}
                       sx={{
-                        fontWeight: 600,
-                        fontSize: "0.6rem",
-                        mt: 1,
-                        textAlign: "center",
-                        color: (dm.is_closed ?? dm.is_weekend) ? "text.disabled" : "text.secondary",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        minWidth: 32,
+                        flex: 1,
+                        height: "100%",
+                        justifyContent: "flex-end",
                       }}
                     >
-                      {String(dm.day).padStart(2, "0")}
-                    </Typography>
-                  </Box>
-                );
-              })}
-            </Box>
+                      {count > 0 && (
+                        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.7rem", mb: 0.5, color: "#EA580C" }}>
+                          {count}
+                        </Typography>
+                      )}
+                      <Tooltip title={`Dia ${dm.date_str} (${dm.day_of_week}): ${count} atendimentos`} arrow>
+                        <Box
+                          sx={{
+                            width: "100%",
+                            maxWidth: 24,
+                            height: `${heightPct}%`,
+                            bgcolor: count > 0 ? "#F97316" : "#E5E7EB",
+                            borderRadius: "4px 4px 0 0",
+                            transition: "all 0.2s ease",
+                            cursor: "pointer",
+                            "&:hover": { bgcolor: "#C2410C" },
+                          }}
+                        />
+                      </Tooltip>
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontWeight: 600,
+                          fontSize: "0.6rem",
+                          mt: 1,
+                          textAlign: "center",
+                          color: (dm.is_closed ?? dm.is_weekend) ? "text.disabled" : "text.secondary",
+                        }}
+                      >
+                        {String(dm.day).padStart(2, "0")}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+            )}
           </Paper>
 
-          {/* Comparativo Anual */}
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
-            {/* Ano Atual */}
-            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary", mb: 0.5 }}>
-                Volume de Serviços - {opData?.annual_comparison.current_year}
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-                Evolução mensal dos atendimentos no ano corrente
-              </Typography>
-
-              <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1, height: 180, pt: 3, px: 1 }}>
-                {MONTH_NAMES.map((name, idx) => {
-                  const mNum = idx + 1;
-                  const cnt = opData?.annual_comparison.monthly_volume_current[mNum] || 0;
-                  const maxYear = Math.max(...Object.values(opData?.annual_comparison.monthly_volume_current || {}), 1);
-                  const hPct = cnt > 0 ? Math.max((cnt / maxYear) * 100, 6) : 3;
-
-                  return (
-                    <Box key={mNum} sx={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" }}>
-                      {cnt > 0 && (
-                        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mb: 0.5, color: "#EA580C" }}>
-                          {cnt}
-                        </Typography>
-                      )}
-                      <Tooltip title={`${name}/${opData?.annual_comparison.current_year}: ${cnt} serviços`} arrow>
-                        <Box
-                          sx={{
-                            width: "100%",
-                            maxWidth: 26,
-                            height: `${hPct}%`,
-                            bgcolor: cnt > 0 ? "#F97316" : "#F3F4F6",
-                            borderRadius: "4px 4px 0 0",
-                          }}
-                        />
-                      </Tooltip>
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mt: 0.75, color: "text.secondary" }}>
-                        {name.slice(0, 3).toUpperCase()}
-                      </Typography>
-                    </Box>
-                  );
-                })}
+          {/* Gráfico 3: Comparativo Anual */}
+          <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", sm: "center" },
+                gap: 1.5,
+                mb: 2.5,
+              }}
+            >
+              <Box>
+                <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary" }}>
+                  COMPARATIVO ANUAL DE SERVIÇOS
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Evolução mensal comparando {opData?.annual_comparison.current_year} com {opData?.annual_comparison.previous_year} (Ano Anterior)
+                </Typography>
               </Box>
-            </Paper>
 
-            {/* Ano Anterior */}
-            <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
-              <Typography variant="subtitle1" sx={{ fontWeight: 800, color: "text.primary", mb: 0.5 }}>
-                Volume de Serviços - {opData?.annual_comparison.previous_year} (Ano Anterior)
-              </Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
-                Comparativo histórico e análise de sazonalidade
-              </Typography>
-
-              <Box sx={{ display: "flex", alignItems: "flex-end", gap: 1, height: 180, pt: 3, px: 1 }}>
-                {MONTH_NAMES.map((name, idx) => {
-                  const mNum = idx + 1;
-                  const cnt = opData?.annual_comparison.monthly_volume_previous[mNum] || 0;
-                  const maxYear = Math.max(...Object.values(opData?.annual_comparison.monthly_volume_previous || {}), 1);
-                  const hPct = cnt > 0 ? Math.max((cnt / maxYear) * 100, 6) : 3;
-
-                  return (
-                    <Box key={mNum} sx={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" }}>
-                      {cnt > 0 && (
-                        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mb: 0.5, color: "#EA580C" }}>
-                          {cnt}
-                        </Typography>
-                      )}
-                      <Tooltip title={`${name}/${opData?.annual_comparison.previous_year}: ${cnt} serviços`} arrow>
-                        <Box
-                          sx={{
-                            width: "100%",
-                            maxWidth: 26,
-                            height: `${hPct}%`,
-                            bgcolor: cnt > 0 ? "#FB923C" : "#F3F4F6",
-                            borderRadius: "4px 4px 0 0",
-                          }}
-                        />
-                      </Tooltip>
-                      <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mt: 0.75, color: "text.secondary" }}>
-                        {name.slice(0, 3).toUpperCase()}
-                      </Typography>
-                    </Box>
-                  );
-                })}
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.5, flexWrap: "wrap" }}>
+                <Chip
+                  label={
+                    effectiveSelectedAnnual.length === allServiceNames.length
+                      ? `${totalFilteredAnnualCurrent} (${opData?.annual_comparison.current_year}) vs ${totalFilteredAnnualPrevious} (${opData?.annual_comparison.previous_year})`
+                      : `${totalFilteredAnnualCurrent} vs ${totalFilteredAnnualPrevious} selecionados`
+                  }
+                  size="small"
+                  sx={{
+                    fontWeight: 700,
+                    bgcolor: alpha("#8B5CF6", 0.1),
+                    color: "#8B5CF6",
+                  }}
+                />
+                <ServiceAutocompleteFilter
+                  allServices={allServiceNames}
+                  selectedServices={effectiveSelectedAnnual}
+                  onChange={(newVal) => setSelectedServicesAnnual(newVal)}
+                  label="Filtrar serviços"
+                />
               </Box>
-            </Paper>
-          </Box>
+            </Box>
+
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", md: "1fr 1fr" }, gap: 3 }}>
+              {/* Ano Atual */}
+              <Paper elevation={0} sx={{ p: 2, borderRadius: 2.5, bgcolor: alpha(theme.palette.primary.main, 0.02), border: "1px solid", borderColor: "divider" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", mb: 0.25 }}>
+                  Volume de Serviços - {opData?.annual_comparison.current_year}
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+                  Evolução mensal dos atendimentos no ano corrente
+                </Typography>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "nowrap",
+                    alignItems: "flex-end",
+                    gap: 1,
+                    height: 180,
+                    width: "100%",
+                    pt: 3,
+                    px: 1,
+                    overflowX: "auto",
+                    overflowY: "hidden",
+                  }}
+                >
+                  {MONTH_NAMES.map((name, idx) => {
+                    const mNum = idx + 1;
+                    const cnt = filteredAnnualCurrent[mNum] || 0;
+                    const maxYear = Math.max(
+                      ...Object.values(filteredAnnualCurrent),
+                      ...Object.values(filteredAnnualPrevious),
+                      1
+                    );
+                    const hPct = cnt > 0 ? Math.max((cnt / maxYear) * 100, 6) : 3;
+
+                    return (
+                      <Box key={mNum} sx={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" }}>
+                        {cnt > 0 && (
+                          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mb: 0.5, color: "#EA580C" }}>
+                            {cnt}
+                          </Typography>
+                        )}
+                        <Tooltip title={`${name}/${opData?.annual_comparison.current_year}: ${cnt} serviços`} arrow>
+                          <Box
+                            sx={{
+                              width: "100%",
+                              maxWidth: 26,
+                              height: `${hPct}%`,
+                              bgcolor: cnt > 0 ? "#F97316" : "#F3F4F6",
+                              borderRadius: "4px 4px 0 0",
+                            }}
+                          />
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mt: 0.75, color: "text.secondary" }}>
+                          {name.slice(0, 3).toUpperCase()}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Paper>
+
+              {/* Ano Anterior */}
+              <Paper elevation={0} sx={{ p: 2, borderRadius: 2.5, bgcolor: alpha("#FB923C", 0.04), border: "1px solid", borderColor: "divider" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", mb: 0.25 }}>
+                  Volume de Serviços - {opData?.annual_comparison.previous_year} (Ano Anterior)
+                </Typography>
+                <Typography variant="caption" color="text.secondary" sx={{ display: "block", mb: 2 }}>
+                  Comparativo histórico e análise de sazonalidade
+                </Typography>
+
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flexWrap: "nowrap",
+                    alignItems: "flex-end",
+                    gap: 1,
+                    height: 180,
+                    width: "100%",
+                    pt: 3,
+                    px: 1,
+                    overflowX: "auto",
+                    overflowY: "hidden",
+                  }}
+                >
+                  {MONTH_NAMES.map((name, idx) => {
+                    const mNum = idx + 1;
+                    const cnt = filteredAnnualPrevious[mNum] || 0;
+                    const maxYear = Math.max(
+                      ...Object.values(filteredAnnualCurrent),
+                      ...Object.values(filteredAnnualPrevious),
+                      1
+                    );
+                    const hPct = cnt > 0 ? Math.max((cnt / maxYear) * 100, 6) : 3;
+
+                    return (
+                      <Box key={mNum} sx={{ display: "flex", flexDirection: "column", alignItems: "center", flex: 1, height: "100%", justifyContent: "flex-end" }}>
+                        {cnt > 0 && (
+                          <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mb: 0.5, color: "#EA580C" }}>
+                            {cnt}
+                          </Typography>
+                        )}
+                        <Tooltip title={`${name}/${opData?.annual_comparison.previous_year}: ${cnt} serviços`} arrow>
+                          <Box
+                            sx={{
+                              width: "100%",
+                              maxWidth: 26,
+                              height: `${hPct}%`,
+                              bgcolor: cnt > 0 ? "#FB923C" : "#F3F4F6",
+                              borderRadius: "4px 4px 0 0",
+                            }}
+                          />
+                        </Tooltip>
+                        <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", mt: 0.75, color: "text.secondary" }}>
+                          {name.slice(0, 3).toUpperCase()}
+                        </Typography>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Paper>
+            </Box>
+          </Paper>
         </Box>
       )}
     </Box>
