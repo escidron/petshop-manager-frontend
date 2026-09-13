@@ -104,12 +104,13 @@ export default function DREReportPage() {
   const { data: dreData, isLoading } = useQuery({
     queryKey: ["dre-report", selectedYear],
     queryFn: () => getDREReport(selectedYear),
-    staleTime: 0,
+    staleTime: 5 * 60 * 1000,
   });
 
   const { data: accounts = [] } = useQuery({
     queryKey: ["dre-accounts"],
     queryFn: listDREAccounts,
+    staleTime: 10 * 60 * 1000,
   });
 
   // Mutação para salvar célula inline com atualização otimista instantânea
