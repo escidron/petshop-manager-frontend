@@ -32,12 +32,15 @@ export function buildDayTimeline(
         const duration = getAppointmentDuration(appt)
         const end = start.add(duration, "minute")
 
-        // gap antes do agendamento
-        if (start.diff(cursor, "minute") >= minDuration) {
+        // gap antes do agendamento (limitado ao horário de funcionamento)
+        const freeStart = cursor.isBefore(workStart) ? workStart : cursor
+        const freeEnd = start.isAfter(workEnd) ? workEnd : start
+
+        if (freeEnd.isAfter(freeStart) && freeEnd.diff(freeStart, "minute") >= minDuration) {
             blocks.push({
                 type: "free",
-                start: cursor,
-                end: start,
+                start: freeStart,
+                end: freeEnd,
             })
         }
 
@@ -48,16 +51,18 @@ export function buildDayTimeline(
             end,
         })
 
-        cursor = end
+        cursor = end.isAfter(cursor) ? end : cursor
     }
 
-    // gap final
-    if (workEnd.diff(cursor, "minute") >= minDuration) {
+    // gap final (limitado ao horário de funcionamento)
+    const finalStart = cursor.isBefore(workStart) ? workStart : cursor
+    if (workEnd.isAfter(finalStart) && workEnd.diff(finalStart, "minute") >= minDuration) {
         blocks.push({
             type: "free",
-            start: cursor,
+            start: finalStart,
             end: workEnd,
         })
     }
     return blocks
 }
+

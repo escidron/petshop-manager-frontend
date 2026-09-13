@@ -26,10 +26,22 @@ import DashboardCalendar from "../dashboard/DashboardCalendar";
 
 import { useQueryClient } from "@tanstack/react-query";
 import NoAppointmentsBanner from "./NoAppointmentsBanner";
+import { useAuth } from "../../hooks/useAuth";
+import { DEFAULT_WORKING_HOURS } from "../tenants/types";
+
+const DAY_NAMES = [
+  "Domingo",
+  "Segunda-feira",
+  "Terça-feira",
+  "Quarta-feira",
+  "Quinta-feira",
+  "Sexta-feira",
+  "Sábado",
+];
 
 type Props = {
   onEdit: (appointment: Appointment) => void;
-  openFlow: () => void;
+  openFlow: (initialDate?: Dayjs) => void;
   date: Dayjs;
   onDateChange?: (newDate: Dayjs) => void;
   onMonthChange?: (newMonth: Dayjs) => void;
@@ -60,10 +72,30 @@ const AppointmentsDailyList = ({
   const [filtersOpen, setFiltersOpen] = useState(false);
   const hasActiveFilters = showFreeSlots || showCanceled;
   const [loadingAction, setLoadingAction] = useState<AppointmentAction | null>(null);
+  const { tenant } = useAuth();
   const queryClient = useQueryClient();
 
-  const workStart = date.hour(8).minute(0).second(0);
-  const workEnd = date.hour(18).minute(0).second(0);
+  const dayOfWeek = String(date.day());
+  const daySchedule =
+    tenant?.working_hours?.[dayOfWeek] ?? DEFAULT_WORKING_HOURS[dayOfWeek];
+  const isOpen = daySchedule ? Boolean(daySchedule.is_open) : date.day() !== 0;
+
+  const [startHour, startMinute] = (daySchedule?.open || "08:00")
+    .split(":")
+    .map((v) => parseInt(v, 10));
+  const [closeHour, closeMinute] = (daySchedule?.close || "18:00")
+    .split(":")
+    .map((v) => parseInt(v, 10));
+
+  const workStart = date
+    .hour(!isNaN(startHour) ? startHour : 8)
+    .minute(!isNaN(startMinute) ? startMinute : 0)
+    .second(0);
+
+  const workEnd = date
+    .hour(!isNaN(closeHour) ? closeHour : 18)
+    .minute(!isNaN(closeMinute) ? closeMinute : 0)
+    .second(0);
 
   const filteredAppointments = appointments.filter((a) => {
     if (!showCanceled && a.status === "canceled") return false;
@@ -76,12 +108,14 @@ const AppointmentsDailyList = ({
     return matchesClient || matchesPet;
   });
 
-  const timeline = buildDayTimeline(
-    filteredAppointments,
-    workStart,
-    workEnd,
-    30,
-  );
+  const timeline = isOpen
+    ? buildDayTimeline(filteredAppointments, workStart, workEnd, 30)
+    : filteredAppointments.map((a) => ({
+        type: "appointment" as const,
+        data: a,
+        start: dayjs(a.scheduled_at),
+        end: dayjs(a.scheduled_at).add(30, "minute"),
+      }));
 
   const selectedAppointment = appointments.find(
     (a) => a.id === detailsModal.appointmentId,
@@ -220,7 +254,7 @@ const AppointmentsDailyList = ({
             </Box>
 
             {/* Checkboxes de filtro no Desktop (alinhados à direita embaixo da busca/filtro) */}
-            {(filtersOpen || hasActiveFilters) && appointments.length > 0 && (
+            {(filtersOpen || hasActiveFilters) && (
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                 <Box
                   onClick={() => setShowFreeSlots(!showFreeSlots)}
@@ -282,7 +316,7 @@ const AppointmentsDailyList = ({
                   <Typography
                     sx={{
                       fontSize: "0.8rem",
-                      fontWeight: showFreeSlots ? 700 : 500,
+                      fontWeight: showCanceled ? 700 : 500,
                       color: showCanceled ? "error.main" : "text.primary",
                     }}
                   >
@@ -435,7 +469,7 @@ const AppointmentsDailyList = ({
         </Box>
 
         {/* Linha 3 Mobile: Checkboxes de filtro no Mobile (visíveis ao clicar no filtro) */}
-        {(filtersOpen || hasActiveFilters) && appointments.length > 0 && (
+        {(filtersOpen || hasActiveFilters) && (
           <Box
             sx={{
               display: { xs: "flex", md: "none" },
@@ -504,7 +538,7 @@ const AppointmentsDailyList = ({
               <Typography
                 sx={{
                   fontSize: "0.75rem",
-                  fontWeight: showFreeSlots ? 700 : 500,
+                  fontWeight: showCanceled ? 700 : 500,
                   color: showCanceled ? "error.main" : "text.primary",
                 }}
               >
@@ -526,12 +560,67 @@ const AppointmentsDailyList = ({
               sx={{ borderRadius: 2, bgcolor: "grey.200" }}
             />
           ))
-        ) : appointments.length === 0 ? (
-          <Box sx={{ py: 4 }}>
+        ) : appointments.length === 0 && (!showFreeSlots || !isOpen) ? (
+          <Box sx={{ py: 4, display: "flex", flexDirection: "column", alignItems: "center", gap: 2 }}>
+            {showFreeSlots && !isOpen && (
+              <Box
+                sx={{
+                  px: 2.5,
+                  py: 1.5,
+                  borderRadius: 2,
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(255,167,38,0.15)"
+                      : "#fff8e1",
+                  border: "1px solid",
+                  borderColor: "warning.main",
+                  maxWidth: 420,
+                  textAlign: "center",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  fontWeight={600}
+                  color="warning.dark"
+                >
+                  Petshop Fechado
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Não há horários livres disponíveis pois o estabelecimento está
+                  configurado como fechado aos {DAY_NAMES[date.day()]}.
+                </Typography>
+              </Box>
+            )}
             <NoAppointmentsBanner />
           </Box>
         ) : (
           <>
+            {showFreeSlots && !isOpen && appointments.length > 0 && (
+              <Box
+                sx={{
+                  p: 1.5,
+                  borderRadius: 2,
+                  bgcolor: (t) =>
+                    t.palette.mode === "dark"
+                      ? "rgba(255,167,38,0.15)"
+                      : "#fff8e1",
+                  border: "1px solid",
+                  borderColor: "warning.main",
+                  mb: 1,
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <Typography
+                  variant="body2"
+                  color="warning.dark"
+                  fontWeight={500}
+                >
+                  Petshop fechado aos {DAY_NAMES[date.day()]}. Não há horários livres adicionais.
+                </Typography>
+              </Box>
+            )}
             {timeline.map((block, index) => {
               if (block.type === "appointment") {
                 return (

@@ -137,12 +137,12 @@ const Dashboard = () => {
                       appointment,
                     })
                   }
-                  openFlow={() =>
+                  openFlow={(time?: Dayjs) =>
                     setFlow({
                       open: true,
                       step: "appointment",
                       mode: "create",
-                      initialDate: date.toISOString(),
+                      initialDate: (time ?? date).toISOString(),
                     })
                   }
                 />
