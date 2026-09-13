@@ -246,7 +246,7 @@ const AppointmentsDailyList = ({
                   backgroundColor: "primary.main",
                   color: "white",
                 }}
-                onClick={openFlow}
+                onClick={() => openFlow()}
                 title="Novo Agendamento"
               >
                 <Plus size={20} />

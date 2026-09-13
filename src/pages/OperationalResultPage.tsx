@@ -67,9 +67,6 @@ function ServiceAutocompleteFilter({
   onChange,
   label = "Filtrar serviços",
 }: ServiceAutocompleteFilterProps) {
-  const isAllSelected = allServices.length > 0 && selectedServices.length === allServices.length;
-  const isNoneSelected = selectedServices.length === 0;
-
   return (
     <Autocomplete
       multiple
