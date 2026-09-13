@@ -204,7 +204,8 @@ export default function OpenInvoicesModal({ open, onClose }: Props) {
             });
             clientName = cmd.client?.name || "Cliente";
             if (cmd.client?.pets && cmd.client.pets.length > 0) {
-              petsText = cmd.client.pets.map((p) => p.name).join(", ");
+              const alivePets = cmd.client.pets.filter((p) => !p.is_deceased);
+              petsText = alivePets.map((p) => p.name).join(", ");
             }
           } else {
             const pkg = data as ClientPackage;
@@ -216,7 +217,8 @@ export default function OpenInvoicesModal({ open, onClose }: Props) {
             });
             clientName = pkg.package_name;
             if (pkg.pets && pkg.pets.length > 0) {
-              petsText = pkg.pets.map((p) => p.name).join(", ");
+              const alivePets = pkg.pets.filter((p: any) => !p.is_deceased);
+              petsText = alivePets.map((p) => p.name).join(", ");
             }
           }
 

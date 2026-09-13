@@ -12,6 +12,8 @@ import {
   TextField,
   alpha,
   useMediaQuery,
+  IconButton,
+  Tooltip,
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -23,7 +25,11 @@ import {
   useQueries,
 } from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
-import { assignAppointmentEmployees } from "../../api/services/appointments";
+import {
+  assignAppointmentEmployees,
+  listAppointmentsByClient,
+  removeUnpaidAppointmentService,
+} from "../../api/services/appointments";
 import { getCommissionRules } from "../../api/services/commissions";
 import {
   listClientPackagesByPet,
@@ -46,9 +52,12 @@ import {
   AlertTriangle,
   AlertCircle,
   ExternalLink,
+  Repeat,
+  Trash2,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
+import ManageRecurrenceModal from "./ManageRecurrenceModal";
 import CustomCard from "../../components/Card/CustomCard";
 import theme from "../../theme";
 import { Button } from "../../components/Button/Button";
@@ -81,6 +90,42 @@ const AppointmentDetailsModal = ({
   const toast = useToast();
   const queryClient = useQueryClient();
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
+  const [serviceToRemove, setServiceToRemove] = useState<{
+    id: number;
+    name: string;
+    petId?: number;
+  } | null>(null);
+
+  const removeServiceMutation = useMutation({
+    mutationFn: async ({
+      serviceId,
+      petId,
+    }: {
+      serviceId: number;
+      petId?: number;
+    }) => {
+      if (!appointment) return;
+      return await removeUnpaidAppointmentService(
+        appointment.id,
+        serviceId,
+        petId,
+      );
+    },
+    onSuccess: () => {
+      toast.success("Serviço removido com sucesso!");
+      setServiceToRemove(null);
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || "Erro ao remover serviço.";
+      toast.error(msg);
+    },
+  });
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
 
   // Fetch employees
@@ -130,6 +175,42 @@ const AppointmentDetailsModal = ({
   });
 
   const client = fullClient || appointment.client;
+
+  const { data: clientAppointments = [] } = useQuery<Appointment[]>({
+    queryKey: ["appointments", "client", appointment?.client?.id],
+    queryFn: () => listAppointmentsByClient(appointment.client.id),
+    enabled: open && !!appointment?.client?.id,
+  });
+
+  const upcomingRecurringAppt = useMemo(() => {
+    const now = new Date();
+    const fromList = clientAppointments
+      .filter(
+        (a) =>
+          a.recurrence_id &&
+          new Date(a.scheduled_at) >= now &&
+          a.status !== "canceled"
+      )
+      .sort(
+        (a, b) =>
+          new Date(a.scheduled_at).getTime() -
+          new Date(b.scheduled_at).getTime()
+      )[0];
+
+    if (fromList) return fromList;
+    if (appointment?.recurrence_id && appointment.status !== "canceled") {
+      return appointment;
+    }
+    return null;
+  }, [clientAppointments, appointment]);
+
+  const [manageRecurrenceOpen, setManageRecurrenceOpen] = useState(false);
+  const [selectedRecurrenceAppt, setSelectedRecurrenceAppt] = useState<Appointment | null>(null);
+
+  const handleOpenManageRecurrence = (appt: Appointment) => {
+    setSelectedRecurrenceAppt(appt);
+    setManageRecurrenceOpen(true);
+  };
 
   const handleClientClick = () => {
     if (client?.id) {
@@ -240,7 +321,9 @@ const AppointmentDetailsModal = ({
     }, 0);
   }, [appointment, coveredServiceKeys]);
 
-  const allServices = appointment.items.flatMap((i) => i.services);
+  const allServices = appointment.items.flatMap((i) =>
+    i.services.map((s) => ({ ...s, petId: i.pet.id, petName: i.pet.name }))
+  );
   const coveredServices = allServices.filter((s) => s.is_package_covered);
   const billableServices = allServices.filter((s) => !s.is_package_covered);
   const billableCount = billableServices.length;
@@ -425,10 +508,30 @@ const AppointmentDetailsModal = ({
               Agendamento
             </Typography>
             <CustomCard sx={{ mt: 1, px: { xs: 1.5, sm: 2 }, py: 1, width: "100%", minWidth: 0 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-                <Typography variant="h6" fontWeight={500}>
-                  {formatAppointmentDate(appointment.scheduled_at)}
-                </Typography>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  <Typography variant="h6" fontWeight={500}>
+                    {formatAppointmentDate(appointment.scheduled_at)}
+                  </Typography>
+                  {appointment.recurrence_id && (
+                    <Chip
+                      icon={<Repeat size={13} />}
+                      label={
+                        appointment.recurrence_frequency === "weekly"
+                          ? "Semanal"
+                          : appointment.recurrence_frequency === "biweekly"
+                          ? "Quinzenal"
+                          : appointment.recurrence_frequency === "monthly"
+                          ? "Mensal"
+                          : "Recorrente"
+                      }
+                      size="small"
+                      color="primary"
+                      variant="outlined"
+                      sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, "& .MuiChip-label": { px: 0.8 }, "& .MuiChip-icon": { ml: 0.5, mr: -0.2 } }}
+                    />
+                  )}
+                </Box>
                 <AppointmentStatusChip status={appointment.status} />
               </Box>
               {appointment.notes && (
@@ -714,24 +817,58 @@ const AppointmentDetailsModal = ({
                           sx={{
                             display: "flex",
                             alignItems: "center",
+                            justifyContent: "space-between",
                             gap: 1,
                             mb: 0.5,
+                            p: 0.5,
+                            borderRadius: 1,
+                            bgcolor: appointment.is_paid
+                              ? "transparent"
+                              : "action.hover",
                             color: appointment.is_paid
                               ? "success.main"
                               : "warning.main",
                           }}
                         >
-                          {appointment.is_paid ? (
-                            <Check size={18} strokeWidth={3} />
-                          ) : (
-                            <AlertCircle size={18} />
-                          )}
-                          <Typography variant="body2">
-                            <strong>{s.name}</strong>{" "}
-                            {appointment.is_paid
-                              ? "pago no caixa."
-                              : "pendente de pagamento no caixa."}
-                          </Typography>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {appointment.is_paid ? (
+                              <Check size={18} strokeWidth={3} />
+                            ) : (
+                              <AlertCircle size={18} />
+                            )}
+                            <Typography variant="body2">
+                              <strong>{s.name}</strong>{" "}
+                              {appointment.is_paid
+                                ? "pago no caixa."
+                                : "pendente de pagamento no caixa."}
+                            </Typography>
+                          </Box>
+
+                          {!appointment.is_paid &&
+                            appointment.status === "completed" && (
+                              <Tooltip title="Remover serviço lançado por engano">
+                                <IconButton
+                                  size="small"
+                                  color="error"
+                                  onClick={() =>
+                                    setServiceToRemove({
+                                      id: s.id,
+                                      name: s.name,
+                                      petId: s.petId,
+                                    })
+                                  }
+                                  sx={{ p: 0.5 }}
+                                >
+                                  <Trash2 size={16} />
+                                </IconButton>
+                              </Tooltip>
+                            )}
                         </Box>
                       ))}
                     </Box>
@@ -823,6 +960,8 @@ const AppointmentDetailsModal = ({
                 client={client}
                 variant="appointment"
                 onClientClick={handleClientClick}
+                upcomingRecurringAppt={upcomingRecurringAppt}
+                onManageRecurrence={handleOpenManageRecurrence}
               />
             </Box>
           </Box>
@@ -1509,6 +1648,66 @@ const AppointmentDetailsModal = ({
           )}
         </DialogActions>
       </Dialog>
+
+      {serviceToRemove && (
+        <Dialog
+          open={Boolean(serviceToRemove)}
+          onClose={() =>
+            !removeServiceMutation.isPending && setServiceToRemove(null)
+          }
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 700 }}>
+            Remover Serviço Lançado por Engano?
+          </DialogTitle>
+          <DialogContent>
+            <Typography variant="body2" color="text.secondary">
+              Tem certeza de que deseja remover{" "}
+              <strong>{serviceToRemove.name}</strong> deste agendamento e da
+              comanda em aberto no caixa?
+            </Typography>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setServiceToRemove(null)}
+              disabled={removeServiceMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() =>
+                removeServiceMutation.mutate({
+                  serviceId: serviceToRemove.id,
+                  petId: serviceToRemove.petId,
+                })
+              }
+              loading={removeServiceMutation.isPending}
+              disabled={removeServiceMutation.isPending}
+            >
+              Remover Serviço
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {manageRecurrenceOpen && selectedRecurrenceAppt && (
+        <ManageRecurrenceModal
+          open={manageRecurrenceOpen}
+          appointment={selectedRecurrenceAppt}
+          onClose={() => {
+            setManageRecurrenceOpen(false);
+            setSelectedRecurrenceAppt(null);
+          }}
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+          }}
+        />
+      )}
     </Dialog>
   );
 };

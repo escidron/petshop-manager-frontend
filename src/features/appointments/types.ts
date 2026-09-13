@@ -91,6 +91,11 @@ export type Appointment = {
   is_fully_package_covered: boolean;
   warnings?: string[];
   recurrence_id?: string | null;
+  recurrence_frequency?: string | null;
+  recurrence?: {
+    frequency: "weekly" | "biweekly" | "monthly";
+    occurrences: number;
+  } | null;
 
   created_at: string;
 };

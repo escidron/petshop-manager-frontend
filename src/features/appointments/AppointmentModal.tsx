@@ -112,9 +112,11 @@ export default function AppointmentModal({
       if (mode === "create") {
         await createAppointment(data);
       } else {
+        const removeRecurrence = Boolean(appointment?.recurrence_id && !data.recurrence);
         await updateAppointment(appointment!.id, {
           ...data,
           update_all_future: updateAllFuture,
+          remove_recurrence: removeRecurrence,
         });
       }
 
@@ -137,7 +139,7 @@ export default function AppointmentModal({
   };
 
   const handleSubmit = (data: AppointmentFormData) => {
-    if (mode === "edit" && appointment?.recurrence_id) {
+    if (mode === "edit" && (appointment?.recurrence_id || data.recurrence)) {
       setPendingFormData(data);
       setEditRecurrenceConfirmOpen(true);
       return;
@@ -320,50 +322,51 @@ export default function AppointmentModal({
       <Dialog
         open={editRecurrenceConfirmOpen}
         onClose={() => !isSubmitting && setEditRecurrenceConfirmOpen(false)}
+        maxWidth="xs"
+        fullWidth
       >
-        <DialogTitle>Alterar Agendamento Recorrente</DialogTitle>
+        <DialogTitle sx={{ fontWeight: 700 }}>Alterar Agendamento Recorrente</DialogTitle>
         <DialogContent>
-          <Typography>
-            Este agendamento faz parte de uma recorrência. Como deseja aplicar as alterações?
+          <Typography variant="body2" color="text.secondary">
+            Como deseja aplicar as alterações deste agendamento?
           </Typography>
           <Alert severity="info" sx={{ mt: 2, fontSize: "0.85rem" }}>
-            Você pode alterar apenas este agendamento ou aplicar as novas informações (horário, serviços, observações) para este e todos os agendamentos futuros da série.
+            Ao escolher <b>Alterar este e TODOS os futuros</b>, as configurações de recorrência, data/horário, itens e observações serão aplicadas para este e os próximos agendamentos não finalizados da série.
           </Alert>
         </DialogContent>
         <DialogActions
           sx={{
             flexDirection: "column",
             alignItems: "stretch",
-            p: 2,
-            gap: 1,
+            p: 2.5,
+            gap: 1.5,
           }}
         >
           <Button
             variant="contained"
-            color="primary"
-            onClick={() => pendingFormData && executeSubmit(pendingFormData, false)}
-            loading={isSubmitting}
-            disabled={isSubmitting}
-          >
-            Alterar apenas este
-          </Button>
-
-          <Button
-            variant="outlined"
-            onClick={() => setEditRecurrenceConfirmOpen(false)}
-            disabled={isSubmitting}
-          >
-            Voltar
-          </Button>
-
-          <Button
-            variant="outlined"
             color="primary"
             onClick={() => pendingFormData && executeSubmit(pendingFormData, true)}
             loading={isSubmitting}
             disabled={isSubmitting}
           >
             Alterar este e TODOS os futuros
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => pendingFormData && executeSubmit(pendingFormData, false)}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
+            Alterar apenas este agendamento
+          </Button>
+
+          <Button
+            variant="text"
+            onClick={() => setEditRecurrenceConfirmOpen(false)}
+            disabled={isSubmitting}
+          >
+            Voltar para edição
           </Button>
         </DialogActions>
       </Dialog>

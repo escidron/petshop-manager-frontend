@@ -11,6 +11,7 @@ import {
   Typography,
   Radio,
   RadioGroup,
+  Chip,
 } from "@mui/material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { DesktopTimePicker } from "@mui/x-date-pickers/DesktopTimePicker";
@@ -134,7 +135,7 @@ export default function AppointmentForm({
     }
   }, [mode, selectedClient, loadedClientId, autoSelectClientId, isMobile]);
 
-  const [isRecurrent, setIsRecurrent] = useState(false);
+  const [isRecurrent, setIsRecurrent] = useState(Boolean(defaultValues?.recurrence));
   const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "date" | "never">("occurrences");
   const form = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema) as any,
@@ -282,7 +283,7 @@ export default function AppointmentForm({
     for (let i = 0; i < computeCount; i++) {
       if (recurrenceFrequency === "weekly") dates.push(start.add(i, "week"));
       else if (recurrenceFrequency === "biweekly") dates.push(start.add(i * 2, "week"));
-      else if (recurrenceFrequency === "monthly") dates.push(start.add(i, "month"));
+      else if (recurrenceFrequency === "monthly") dates.push(start.add(i * 4, "week"));
     }
     return {
       dates: dates.map(d => ({
@@ -751,144 +752,163 @@ export default function AppointmentForm({
         />
       </FormControl>
 
-      {/* RECORRÊNCIA (APENAS NA CRIAÇÃO) */}
-      {mode === "create" && (
-        <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 3, mt: 2, bgcolor: "white" }}>
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
-            <Switch 
-              checked={isRecurrent} 
-              onChange={(e) => setIsRecurrent(e.target.checked)} 
-              color="primary"
-            />
-            <Box>
+      {/* RECORRÊNCIA */}
+      <Box sx={{ border: `1px solid ${theme.palette.divider}`, borderRadius: 2, p: 3, display: "flex", flexDirection: "column", gap: 3, mt: 2, bgcolor: "white" }}>
+        <Box sx={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+          <Switch 
+            checked={isRecurrent} 
+            onChange={(e) => {
+              const checked = e.target.checked;
+              setIsRecurrent(checked);
+              if (!checked) {
+                setValue("recurrence", undefined);
+              } else {
+                setValue("recurrence", defaultValues?.recurrence || { frequency: "weekly", occurrences: 4 });
+              }
+            }} 
+            color="primary"
+          />
+          <Box>
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
               <Typography variant="body1" fontWeight="600" color="text.primary">
                 Repetir agendamento
               </Typography>
-              <Typography variant="body2" color="text.primary">
-                Crie uma série de agendamentos automaticamente.
-              </Typography>
-            </Box>
-          </Box>
-
-          {isRecurrent && (
-            <Box sx={{ display: "flex", flexDirection: "column" }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between" , flexWrap: "wrap", ml: 1 }}>
-                <FormControl sx={{ minWidth: "240px" }}>
-                  <FormLabel sx={{ color: "text.primary", mb: 1.5, fontSize: "0.9rem", fontWeight: 600 }}>Repete</FormLabel>
-                  <Controller
-                    name="recurrence.frequency"
-                    control={control}
-                    render={({ field }) => (
-                      <Select 
-                        {...field} 
-                        size="small" 
-                        sx={{ bgcolor: "white", ".MuiSelect-select": { display: "flex", alignItems: "center", gap: 1.5 } }}
-                      >
-                        <MenuItem value="weekly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> Toda semana</Box></MenuItem>
-                        <MenuItem value="biweekly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> A cada 15 dias</Box></MenuItem>
-                        <MenuItem value="monthly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> Todo mês</Box></MenuItem>
-                      </Select>
-                    )}
-                  />
-                </FormControl>
-                
-                <FormControl>
-                  <FormLabel sx={{ color: "text.primary", mb: 1.5, fontSize: "0.9rem", fontWeight: 600 }}>Termina</FormLabel>
-                  <RadioGroup
-                    value={recurrenceEndType}
-                    onChange={(e) => setRecurrenceEndType(e.target.value as any)}
-                  >
-                    <Box sx={{ display: "flex", flexDirection: "column" }}>
-                      <Controller
-                        name="recurrence.occurrences"
-                        control={control}
-                        render={({ field, fieldState }) => (
-                          <Box sx={{ display: "flex", flexDirection: "column" }}>
-                            <Box sx={{ display: "flex", alignItems: "center" }}>
-                              <FormControlLabel value="occurrences" control={<Radio size="small" disableRipple sx={{ color: theme.palette.primary.main }} />} label={<Typography variant="body2">Após</Typography>} sx={{ mr: 1 }} />
-                              <TextField 
-                                {...field} 
-                                type="number"
-                                size="small"
-                                sx={{ bgcolor: "white", width: "80px", mr: 2 }}
-                                inputProps={{ min: 2, max: maxOccurrences, maxLength: 3 }}
-                                disabled={recurrenceEndType !== "occurrences"}
-                                onChange={(e) => {
-                                  let val = e.target.value;
-                                  if (val.length > 3) val = val.slice(0, 3);
-                                  field.onChange(val);
-                                  trigger("recurrence.occurrences");
-                                }}
-                                error={!!fieldState.error}
-                              />
-                              <Typography variant="body2" color="text.primary">agendamentos</Typography>
-                            </Box>
-                            {fieldState.error && (
-                              <Typography color="error" variant="caption" sx={{ ml: 4, mt: 0.5 }}>
-                                {fieldState.error.message}
-                              </Typography>
-                            )}
-                          </Box>
-                        )}
-                      />
-
-                      <FormControlLabel value="never" control={<Radio size="small" disableRipple sx={{ color: theme.palette.primary.main }} />} label={<Typography variant="body2">Nunca</Typography>} />
-                    </Box>
-                  </RadioGroup>
-                </FormControl>
-              </Box>
-
-              {summaryDates && summaryDates.dates.length > 0 && (
-                <Box sx={{ 
-                  borderRadius: 3, 
-                  p: 1, 
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: 2
-                }}>
-                  <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.5, width: "100%" }}>
-                    Serão criados <b>{summaryDates.total}</b> agendamentos, um por {recurrenceFrequency === "weekly" ? "semana" : recurrenceFrequency === "biweekly" ? "quinzena" : "mês"}.
-                  </Typography>
-                  
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    {summaryDates.dates.map((d, i) => (
-                      <Box key={i} sx={{ 
-                        bgcolor: "white", 
-                        border: "1px solid",
-                        borderColor: theme.palette.divider,
-                        color: theme.palette.text.primary, 
-                        px: 1.5, 
-                        py: 0.5, 
-                        borderRadius: 2, 
-                        fontSize: "0.85rem", 
-                        fontWeight: 600,
-                        textTransform: "capitalize"
-                      }}>
-                        {d.day} {d.month}
-                      </Box>
-                    ))}
-                    {summaryDates.remaining > 0 && (
-                      <Box sx={{ 
-                        bgcolor: theme.palette.action.disabledBackground, 
-                        border: "1px solid",
-                        borderColor: "transparent",
-                        color: theme.palette.text.primary, 
-                        px: 1.5, 
-                        py: 0.5, 
-                        borderRadius: 2, 
-                        fontSize: "0.85rem", 
-                        fontWeight: 600
-                      }}>
-                        +{summaryDates.remaining} datas
-                      </Box>
-                    )}
-                  </Box>
-                </Box>
+              {mode === "edit" && defaultValues?.recurrence && (
+                <Chip
+                  size="small"
+                  label="Recorrência ativa"
+                  color="primary"
+                  variant="outlined"
+                  sx={{ fontSize: "0.75rem", height: 22 }}
+                />
               )}
             </Box>
-          )}
+            <Typography variant="body2" color="text.secondary">
+              {mode === "create"
+                ? "Crie uma série de agendamentos automaticamente."
+                : "Altere a frequência ou quantidade de repetições futuras."}
+            </Typography>
+          </Box>
         </Box>
-      )}
+
+        {isRecurrent && (
+          <Box sx={{ display: "flex", flexDirection: "column" }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between" , flexWrap: "wrap", ml: 1 }}>
+              <FormControl sx={{ minWidth: "240px" }}>
+                <FormLabel sx={{ color: "text.primary", mb: 1.5, fontSize: "0.9rem", fontWeight: 600 }}>Repete</FormLabel>
+                <Controller
+                  name="recurrence.frequency"
+                  control={control}
+                  render={({ field }) => (
+                    <Select 
+                      {...field} 
+                      size="small" 
+                      sx={{ bgcolor: "white", ".MuiSelect-select": { display: "flex", alignItems: "center", gap: 1.5 } }}
+                    >
+                      <MenuItem value="weekly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> Toda semana</Box></MenuItem>
+                      <MenuItem value="biweekly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> A cada 15 dias</Box></MenuItem>
+                      <MenuItem value="monthly"><Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}><CalendarCheck size={18} color={theme.palette.primary.main} /> Todo mês</Box></MenuItem>
+                    </Select>
+                  )}
+                />
+              </FormControl>
+              
+              <FormControl>
+                <FormLabel sx={{ color: "text.primary", mb: 1.5, fontSize: "0.9rem", fontWeight: 600 }}>Termina</FormLabel>
+                <RadioGroup
+                  value={recurrenceEndType}
+                  onChange={(e) => setRecurrenceEndType(e.target.value as any)}
+                >
+                  <Box sx={{ display: "flex", flexDirection: "column" }}>
+                    <Controller
+                      name="recurrence.occurrences"
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <Box sx={{ display: "flex", flexDirection: "column" }}>
+                          <Box sx={{ display: "flex", alignItems: "center" }}>
+                            <FormControlLabel value="occurrences" control={<Radio size="small" disableRipple sx={{ color: theme.palette.primary.main }} />} label={<Typography variant="body2">Após</Typography>} sx={{ mr: 1 }} />
+                            <TextField 
+                              {...field} 
+                              type="number"
+                              size="small"
+                              sx={{ bgcolor: "white", width: "80px", mr: 2 }}
+                              inputProps={{ min: 2, max: maxOccurrences, maxLength: 3 }}
+                              disabled={recurrenceEndType !== "occurrences"}
+                              onChange={(e) => {
+                                let val = e.target.value;
+                                if (val.length > 3) val = val.slice(0, 3);
+                                field.onChange(val);
+                                trigger("recurrence.occurrences");
+                              }}
+                              error={!!fieldState.error}
+                            />
+                            <Typography variant="body2" color="text.primary">agendamentos</Typography>
+                          </Box>
+                          {fieldState.error && (
+                            <Typography color="error" variant="caption" sx={{ ml: 4, mt: 0.5 }}>
+                              {fieldState.error.message}
+                            </Typography>
+                          )}
+                        </Box>
+                      )}
+                    />
+
+                    <FormControlLabel value="never" control={<Radio size="small" disableRipple sx={{ color: theme.palette.primary.main }} />} label={<Typography variant="body2">Nunca</Typography>} />
+                  </Box>
+                </RadioGroup>
+              </FormControl>
+            </Box>
+
+            {summaryDates && summaryDates.dates.length > 0 && (
+              <Box sx={{ 
+                borderRadius: 3, 
+                p: 1, 
+                display: "flex",
+                flexDirection: "column",
+                gap: 2
+              }}>
+                <Typography variant="body2" color="text.primary" sx={{ lineHeight: 1.5, width: "100%" }}>
+                  {mode === "create" ? "Serão criados" : "Serão agendados/mantidos"} <b>{summaryDates.total}</b> agendamentos, um por {recurrenceFrequency === "weekly" ? "semana" : recurrenceFrequency === "biweekly" ? "quinzena" : "mês"}.
+                </Typography>
+                
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {summaryDates.dates.map((d, i) => (
+                    <Box key={i} sx={{ 
+                      bgcolor: "white", 
+                      border: "1px solid",
+                      borderColor: theme.palette.divider,
+                      color: theme.palette.text.primary, 
+                      px: 1.5, 
+                      py: 0.5, 
+                      borderRadius: 2, 
+                      fontSize: "0.85rem", 
+                      fontWeight: 600,
+                      textTransform: "capitalize"
+                    }}>
+                      {d.day} {d.month}
+                    </Box>
+                  ))}
+                  {summaryDates.remaining > 0 && (
+                    <Box sx={{ 
+                      bgcolor: theme.palette.action.disabledBackground, 
+                      border: "1px solid",
+                      borderColor: "transparent",
+                      color: theme.palette.text.primary, 
+                      px: 1.5, 
+                      py: 0.5, 
+                      borderRadius: 2, 
+                      fontSize: "0.85rem", 
+                      fontWeight: 600
+                    }}>
+                      +{summaryDates.remaining} datas
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+            )}
+          </Box>
+        )}
+      </Box>
 
       </Box>
 

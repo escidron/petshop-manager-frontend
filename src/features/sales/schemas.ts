@@ -108,7 +108,7 @@ export interface Comanda {
   created_at: string;
   updated_at: string;
   items: ComandaItem[];
-  client?: { id: number; name: string; pets?: Array<{ id: number; name: string }> };
+  client?: { id: number; name: string; pets?: Array<{ id: number; name: string; is_deceased?: boolean }> };
 }
 
 export interface ComandaSavePayload {

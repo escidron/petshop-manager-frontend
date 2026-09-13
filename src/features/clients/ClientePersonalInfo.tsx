@@ -9,9 +9,11 @@ import {
   User,
   Pencil,
   ExternalLink,
+  Repeat,
 } from "lucide-react";
 import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip, alpha } from "@mui/material";
 import type { Client } from "./types";
+import type { Appointment } from "../appointments/types";
 import { maskPhone, maskCpf, maskCnpj, maskCep } from "../../utils/masks";
 import { isoToBrDate } from "../../utils/formatDates";
 
@@ -20,6 +22,8 @@ type Props = {
   onEdit?: () => void;
   onClientClick?: () => void;
   variant?: "full" | "appointment";
+  upcomingRecurringAppt?: Appointment | null;
+  onManageRecurrence?: (appointment: Appointment) => void;
 };
 
 const InfoItem = ({
@@ -69,6 +73,8 @@ const ClientePersonalInfo = ({
   onEdit,
   onClientClick,
   variant = "full",
+  upcomingRecurringAppt,
+  onManageRecurrence,
 }: Props) => {
   const formatDocument = (doc?: string | null, type?: string | null) => {
     if (!doc) return null;
@@ -194,6 +200,96 @@ const ClientePersonalInfo = ({
             </IconButton>
           </Tooltip>
         )}
+      </Box>
+    );
+  };
+
+  // Card de Recorrência Ativa compartilhado entre os modos
+  const renderActiveRecurrenceCard = () => {
+    if (!upcomingRecurringAppt) return null;
+    return (
+      <Box
+        sx={{
+          mt: 1.75,
+          pt: 1.5,
+          borderTop: "1px dashed",
+          borderColor: "divider",
+        }}
+      >
+        <Box
+          sx={{
+            p: { xs: 1.5, sm: 2 },
+            borderRadius: 2.5,
+            border: "1px solid",
+            borderColor: (theme) => alpha(theme.palette.primary.main, 0.25),
+            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+            display: "flex",
+            flexDirection: { xs: "column", sm: "row" },
+            justifyContent: "space-between",
+            alignItems: { xs: "flex-start", sm: "center" },
+            gap: 1.5,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+            <Box
+              sx={{
+                p: 1,
+                borderRadius: 2,
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                color: "primary.main",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                mt: 0.25,
+              }}
+            >
+              <Repeat size={20} />
+            </Box>
+            <Box>
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                  Recorrência Ativa
+                </Typography>
+                <Chip
+                  size="small"
+                  label={
+                    upcomingRecurringAppt.recurrence_frequency === "monthly"
+                      ? "Mensal"
+                      : upcomingRecurringAppt.recurrence_frequency === "biweekly"
+                      ? "Quinzenal"
+                      : "Semanal"
+                  }
+                  color="primary"
+                  sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }}
+                />
+              </Box>
+              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+                Próximo: <b>{new Date(upcomingRecurringAppt.scheduled_at).toLocaleDateString("pt-BR")} às {new Date(upcomingRecurringAppt.scheduled_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</b>
+                {upcomingRecurringAppt.items?.[0]?.pet?.name ? ` • Pet: ${upcomingRecurringAppt.items[0].pet.name}` : ""}
+              </Typography>
+            </Box>
+          </Box>
+
+          {onManageRecurrence && (
+            <Button
+              size="small"
+              variant="contained"
+              color="primary"
+              startIcon={<Pencil size={14} />}
+              onClick={() => onManageRecurrence(upcomingRecurringAppt)}
+              sx={{
+                alignSelf: { xs: "stretch", sm: "auto" },
+                borderRadius: 2,
+                textTransform: "none",
+                fontWeight: 600,
+                fontSize: "0.8rem",
+                px: 2,
+              }}
+            >
+              Gerenciar Recorrência
+            </Button>
+          )}
+        </Box>
       </Box>
     );
   };
@@ -383,6 +479,9 @@ const ClientePersonalInfo = ({
 
         {/* Linha única de endereço no final */}
         {renderSingleLineAddressRow(hasContact ? "dashed" : "solid")}
+
+        {/* Recorrência Ativa do Cliente */}
+        {renderActiveRecurrenceCard()}
       </Paper>
     );
   }
@@ -618,6 +717,9 @@ const ClientePersonalInfo = ({
 
       {/* Endereço em uma linha única no final também na tela de detalhes do cliente */}
       {renderSingleLineAddressRow(hasGridSections ? "dashed" : "solid")}
+
+      {/* Recorrência Ativa do Cliente */}
+      {renderActiveRecurrenceCard()}
     </Paper>
   );
 };

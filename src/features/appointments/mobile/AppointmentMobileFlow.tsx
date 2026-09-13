@@ -156,7 +156,7 @@ export default function AppointmentMobileFlow({
 
   const highlightedDays = useMemo(() => new Set<string>(highlightedData), [highlightedData]);
 
-  const [isRecurrent, setIsRecurrent] = useState(false);
+  const [isRecurrent, setIsRecurrent] = useState(Boolean(defaultValues?.recurrence));
   const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "date" | "never">(
     "occurrences"
   );
@@ -1084,110 +1084,108 @@ export default function AppointmentMobileFlow({
             </Box>
 
             {/* Recorrência */}
-            {mode === "create" && (
-              <Box sx={{ bgcolor: "#FFFFFF", p: 2, borderRadius: 2.5, border: "1px solid #E2E8F0" }}>
-                <FormControlLabel
-                  control={
-                    <Switch
-                      checked={isRecurrent}
+            <Box sx={{ bgcolor: "#FFFFFF", p: 2, borderRadius: 2.5, border: "1px solid #E2E8F0" }}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isRecurrent}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setIsRecurrent(checked);
+                      if (!checked) {
+                        setValue("recurrence", undefined);
+                      } else {
+                        setValue("recurrence", defaultValues?.recurrence || { frequency: "weekly", occurrences: 4 });
+                      }
+                    }}
+                    color="primary"
+                  />
+                }
+                label={
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Repeat size={18} color="#313485" />
+                    <Typography variant="body2" fontWeight={700}>
+                      Repetir agendamento
+                    </Typography>
+                  </Box>
+                }
+              />
+
+              {isRecurrent && (
+                <Box sx={{ mt: 1.5, pl: 4, display: "flex", flexDirection: "column", gap: 1.5 }}>
+                  <Box>
+                    <Typography variant="caption" fontWeight={600} color="text.secondary">
+                      Frequência:
+                    </Typography>
+                    <Controller
+                      name="recurrence.frequency"
+                      control={control}
+                      render={({ field }) => (
+                        <Select {...field} size="small" fullWidth sx={{ mt: 0.5 }}>
+                          <MenuItem value="weekly">Semanal</MenuItem>
+                          <MenuItem value="biweekly">Quinzenal</MenuItem>
+                          <MenuItem value="monthly">Mensal</MenuItem>
+                        </Select>
+                      )}
+                    />
+                  </Box>
+
+                  <Box>
+                    <Typography variant="caption" fontWeight={600} color="text.secondary">
+                      Término:
+                    </Typography>
+                    <RadioGroup
+                      value={recurrenceEndType}
                       onChange={(e) => {
-                        const checked = e.target.checked;
-                        setIsRecurrent(checked);
-                        if (!checked) {
-                          setValue("recurrence", undefined);
+                        const val = e.target.value as "occurrences" | "never";
+                        setRecurrenceEndType(val);
+                        if (val === "never") {
+                          const freq = form.getValues("recurrence.frequency") || "weekly";
+                          const max = freq === "weekly" ? 52 : freq === "biweekly" ? 26 : 12;
+                          setValue("recurrence.occurrences", max);
                         } else {
-                          setValue("recurrence", { frequency: "weekly", occurrences: 4 });
+                          setValue("recurrence.occurrences", 4);
                         }
                       }}
-                      color="primary"
-                    />
-                  }
-                  label={
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <Repeat size={18} color="#313485" />
-                      <Typography variant="body2" fontWeight={700}>
-                        Repetir agendamento
-                      </Typography>
-                    </Box>
-                  }
-                />
-
-                {isRecurrent && (
-                  <Box sx={{ mt: 1.5, pl: 4, display: "flex", flexDirection: "column", gap: 1.5 }}>
-                    <Box>
-                      <Typography variant="caption" fontWeight={600} color="text.secondary">
-                        Frequência:
-                      </Typography>
-                      <Controller
-                        name="recurrence.frequency"
-                        control={control}
-                        render={({ field }) => (
-                          <Select {...field} size="small" fullWidth sx={{ mt: 0.5 }}>
-                            <MenuItem value="weekly">Semanal</MenuItem>
-                            <MenuItem value="biweekly">Quinzenal</MenuItem>
-                            <MenuItem value="monthly">Mensal</MenuItem>
-                          </Select>
-                        )}
+                    >
+                      <FormControlLabel
+                        value="occurrences"
+                        control={<Radio size="small" />}
+                        label={
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                            <Typography variant="body2">Após</Typography>
+                            <Controller
+                              name="recurrence.occurrences"
+                              control={control}
+                              render={({ field }) => (
+                                <Select
+                                  {...field}
+                                  size="small"
+                                  disabled={recurrenceEndType !== "occurrences"}
+                                  sx={{ width: 80, height: 32 }}
+                                >
+                                  {[2, 3, 4, 6, 8, 12].map((num) => (
+                                    <MenuItem key={num} value={num}>
+                                      {num}x
+                                    </MenuItem>
+                                  ))}
+                                </Select>
+                              )}
+                            />
+                            <Typography variant="body2">repetições</Typography>
+                          </Box>
+                        }
                       />
-                    </Box>
-
-                    <Box>
-                      <Typography variant="caption" fontWeight={600} color="text.secondary">
-                        Término:
-                      </Typography>
-                      <RadioGroup
-                        value={recurrenceEndType}
-                        onChange={(e) => {
-                          const val = e.target.value as "occurrences" | "never";
-                          setRecurrenceEndType(val);
-                          if (val === "never") {
-                            const freq = form.getValues("recurrence.frequency") || "weekly";
-                            const max = freq === "weekly" ? 52 : freq === "biweekly" ? 26 : 12;
-                            setValue("recurrence.occurrences", max);
-                          } else {
-                            setValue("recurrence.occurrences", 4);
-                          }
-                        }}
-                      >
-                        <FormControlLabel
-                          value="occurrences"
-                          control={<Radio size="small" />}
-                          label={
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                              <Typography variant="body2">Após</Typography>
-                              <Controller
-                                name="recurrence.occurrences"
-                                control={control}
-                                render={({ field }) => (
-                                  <Select
-                                    {...field}
-                                    size="small"
-                                    disabled={recurrenceEndType !== "occurrences"}
-                                    sx={{ width: 80, height: 32 }}
-                                  >
-                                    {[2, 3, 4, 6, 8, 12].map((num) => (
-                                      <MenuItem key={num} value={num}>
-                                        {num}x
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                )}
-                              />
-                              <Typography variant="body2">repetições</Typography>
-                            </Box>
-                          }
-                        />
-                        <FormControlLabel
-                          value="never"
-                          control={<Radio size="small" />}
-                          label={<Typography variant="body2">Nunca (contínuo)</Typography>}
-                        />
-                      </RadioGroup>
-                    </Box>
+                      <FormControlLabel
+                        value="never"
+                        control={<Radio size="small" />}
+                        label={<Typography variant="body2">Nunca (contínuo)</Typography>}
+                      />
+                    </RadioGroup>
                   </Box>
-                )}
-              </Box>
-            )}
+                </Box>
+              )}
+            </Box>
           </Box>
         )}
       </Box>

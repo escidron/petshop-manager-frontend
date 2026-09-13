@@ -1,5 +1,5 @@
 import { Box, CircularProgress, Typography } from "@mui/material";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useMemo } from "react";
 import { useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "../components/Button/Button";
@@ -16,6 +16,9 @@ import type { ClientPackage } from "../features/client_packages/types";
 import {
   listClientPackagesByClient,
 } from "../api/services/client_packages";
+import { listAppointmentsByClient } from "../api/services/appointments";
+import type { Appointment } from "../features/appointments/types";
+import ManageRecurrenceModal from "../features/appointments/ManageRecurrenceModal";
 import PetPackageCredits from "../features/client_packages/PetPackageCredits";
 import { useToast } from "../hooks/useToast";
 import axios from "axios";
@@ -47,6 +50,33 @@ export default function ClientDetailsPage() {
     queryFn: () => listClientPackagesByClient(clientId),
     enabled: !!id,
   });
+
+  const { data: appointments = [] } = useQuery<Appointment[]>({
+    queryKey: ["appointments", "client", clientId],
+    queryFn: () => listAppointmentsByClient(clientId),
+    enabled: !!id,
+  });
+
+  const upcomingRecurringAppt = useMemo(() => {
+    const now = new Date();
+    return (
+      appointments
+        .filter(
+          (a) =>
+            a.recurrence_id &&
+            new Date(a.scheduled_at) >= now &&
+            a.status !== "canceled"
+        )
+        .sort(
+          (a, b) =>
+            new Date(a.scheduled_at).getTime() -
+            new Date(b.scheduled_at).getTime()
+        )[0] || null
+    );
+  }, [appointments]);
+
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
 
   const fetchClientPackages = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
@@ -122,6 +152,11 @@ export default function ClientDetailsPage() {
           <ClientePersonalInfo 
             client={client} 
             onEdit={() => setClientModal({ open: true })}
+            upcomingRecurringAppt={upcomingRecurringAppt}
+            onManageRecurrence={(appt) => {
+              setEditingAppointment(appt);
+              setAppointmentModalOpen(true);
+            }}
           />
 
           {/* Pets */}
@@ -240,6 +275,21 @@ export default function ClientDetailsPage() {
             setSelectedPetForPhotos(null);
           }}
           onRefresh={refetchPets}
+        />
+      )}
+
+      {appointmentModalOpen && editingAppointment && (
+        <ManageRecurrenceModal
+          open={appointmentModalOpen}
+          appointment={editingAppointment}
+          onClose={() => {
+            setAppointmentModalOpen(false);
+            setEditingAppointment(null);
+          }}
+          onSuccess={async () => {
+            await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+            await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+          }}
         />
       )}
     </Box>

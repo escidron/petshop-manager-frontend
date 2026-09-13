@@ -117,6 +117,11 @@ export default function SaleReceiptModal({
       onclone: (clonedDoc) => {
         const clonedElem = clonedDoc.getElementById("sale-receipt-print-area");
         if (clonedElem) {
+          clonedElem.style.fontFamily = "'Courier New', Courier, 'Lucida Console', Monaco, monospace";
+          const allDescendants = clonedElem.querySelectorAll("*");
+          allDescendants.forEach((child) => {
+            (child as HTMLElement).style.fontFamily = "'Courier New', Courier, 'Lucida Console', Monaco, monospace";
+          });
           clonedElem.style.maxHeight = "none";
           clonedElem.style.height = "auto";
           clonedElem.style.overflow = "visible";
@@ -210,6 +215,7 @@ export default function SaleReceiptModal({
           }
           #sale-receipt-print-area, #sale-receipt-print-area * {
             visibility: visible !important;
+            font-family: 'Courier New', Courier, 'Lucida Console', Monaco, monospace !important;
           }
           #sale-receipt-print-area {
             position: fixed !important;
@@ -295,7 +301,10 @@ export default function SaleReceiptModal({
           <Box
             id="sale-receipt-print-area"
             sx={{
-              fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace",
+              fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
+              "&, & *": {
+                fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
+              },
               bgcolor: "#ffffff",
               p: { xs: 2, sm: 2.5 },
               border: "none",
@@ -325,7 +334,7 @@ export default function SaleReceiptModal({
                 justifyContent: "space-between",
                 alignItems: "center",
                 fontSize: "0.72rem",
-                fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+                fontFamily: "inherit",
                 color: "#374151",
                 mb: 2.5,
                 pb: 0.5,
@@ -339,18 +348,18 @@ export default function SaleReceiptModal({
 
           {/* Cabeçalho do Estabelecimento */}
           <Box sx={{ textAlign: "center", mb: 0.5 }}>
-            <Typography sx={{ fontWeight: 800, fontSize: "1rem", textTransform: "uppercase", lineHeight: 1.25, color: "#000000" }}>
+            <Box sx={{ fontWeight: 800, fontSize: "1rem", textTransform: "uppercase", lineHeight: 1.25, color: "#000000" }}>
               {effectiveTenantName}
-            </Typography>
+            </Box>
             {effectiveTenantDocument && (
-              <Typography sx={{ fontSize: "0.92rem", mt: 0.25, fontWeight: 600, color: "#000000" }}>
+              <Box sx={{ fontSize: "0.92rem", mt: 0.25, fontWeight: 600, color: "#000000" }}>
                 {effectiveTenantDocument}
-              </Typography>
+              </Box>
             )}
             {effectiveTenantAddress && (
-              <Typography sx={{ fontSize: "0.88rem", mt: 0.25, color: "#000000" }}>
+              <Box sx={{ fontSize: "0.88rem", mt: 0.25, color: "#000000" }}>
                 {effectiveTenantAddress}
-              </Typography>
+              </Box>
             )}
           </Box>
 
@@ -440,24 +449,24 @@ export default function SaleReceiptModal({
 
           {/* Fatura / Operador / Cliente */}
           <Box sx={{ textAlign: "center", my: 2, fontSize: "0.9rem", color: "#000000" }}>
-            <Typography sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
+            <Box sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
               Fatura #{sale.id}
-            </Typography>
-            <Typography sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
+            </Box>
+            <Box sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
               Operador Caixa: {operatorName}
-            </Typography>
-            <Typography sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
+            </Box>
+            <Box sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
               Cliente: {resolvedClientName}
-            </Typography>
+            </Box>
 
             {effectiveTenantPhone && (
-              <Typography sx={{ fontSize: "0.9rem", mt: 1.5, color: "#000000" }}>
+              <Box sx={{ fontSize: "0.9rem", mt: 1.5, color: "#000000" }}>
                 {effectiveTenantPhone}
-              </Typography>
+              </Box>
             )}
-            <Typography sx={{ fontSize: "0.9rem", fontWeight: 700, mt: 0.5, color: "#000000" }}>
+            <Box sx={{ fontSize: "0.9rem", fontWeight: 700, mt: 0.5, color: "#000000" }}>
               Obrigado e Volte Sempre!
-            </Typography>
+            </Box>
           </Box>
         </Box>
       </Box>
