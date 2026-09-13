@@ -861,7 +861,7 @@ export default function FinancialReportPage({
                   </TableCell>
                   <TableCell align="center">
                     {t.rawSale ? (
-                      <Tooltip title="Ver Comprovante / Enviar WhatsApp">
+                      <Tooltip title="Ver Comprovante">
                         <IconButton
                           size="small"
                           onClick={() => setSelectedReceiptSale(t.rawSale!)}

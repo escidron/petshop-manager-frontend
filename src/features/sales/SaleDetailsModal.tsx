@@ -233,7 +233,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
             "&:hover": { bgcolor: "#1D4ED8" },
           }}
         >
-          Comprovante / WhatsApp
+          Comprovante
         </Button>
         <Button variant="outlined" onClick={onClose}>
           Fechar
