@@ -119,8 +119,14 @@ export default function OperationalResultPage() {
       sx={{
         width: "100%",
         maxWidth: "100%",
+        height: "100%",
+        maxHeight: "100%",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
         p: { xs: 1.5, sm: 2, md: 2.5 },
-        pb: { xs: "calc(32px + env(safe-area-inset-bottom, 0px))", md: 4 },
+        pb: { xs: "calc(16px + env(safe-area-inset-bottom, 0px))", md: 2 },
+        boxSizing: "border-box",
       }}
     >
       {/* ── CABEÇALHO & AÇÕES (ESTILO DRE) ─────────────────────────────────── */}
@@ -131,7 +137,8 @@ export default function OperationalResultPage() {
           justifyContent: "space-between",
           alignItems: { xs: "flex-start", md: "center" },
           gap: 2,
-          mb: 3,
+          mb: 1.5,
+          flexShrink: 0,
         }}
       >
         <Box>
@@ -241,7 +248,8 @@ export default function OperationalResultPage() {
           display: "grid",
           gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)", md: "repeat(5, 1fr)" },
           gap: 1.5,
-          mb: 2.5,
+          mb: 1.5,
+          flexShrink: 0,
           "@media print": { display: "grid", gridTemplateColumns: "repeat(5, 1fr)" },
         }}
       >
@@ -406,7 +414,7 @@ export default function OperationalResultPage() {
       </Box>
 
       {/* ── TABS DE VISUALIZAÇÃO ────────────────────────────────────────── */}
-      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 2, "@media print": { display: "none" } }}>
+      <Box sx={{ borderBottom: 1, borderColor: "divider", mb: 1.5, flexShrink: 0, "@media print": { display: "none" } }}>
         <Tabs
           value={activeTab}
           onChange={(_, newVal) => setActiveTab(newVal)}
@@ -433,12 +441,14 @@ export default function OperationalResultPage() {
           elevation={0}
           sx={{
             width: "100%",
+            flex: 1,
+            minHeight: 0,
             border: "1px solid",
             borderColor: "divider",
             borderRadius: 3,
-            overflowX: "auto",
+            overflow: "auto",
             position: "relative",
-            "&::-webkit-scrollbar": { height: 8 },
+            "&::-webkit-scrollbar": { width: 8, height: 8 },
             "&::-webkit-scrollbar-thumb": {
               background: "rgba(0,0,0,0.18)",
               borderRadius: 4,
@@ -463,6 +473,7 @@ export default function OperationalResultPage() {
                 width: "100%",
                 minWidth: 1200,
                 borderCollapse: "separate",
+                borderSpacing: 0,
                 "& td, & th": { whiteSpace: "nowrap" },
               }}
             >
@@ -471,16 +482,19 @@ export default function OperationalResultPage() {
                   {/* Nome do Serviço (Único campo inicial fixo) */}
                   <TableCell
                     sx={{
-                      width: 240,
-                      minWidth: 220,
+                      width: 250,
+                      minWidth: 250,
+                      maxWidth: 250,
                       fontWeight: 800,
                       fontSize: "0.8rem",
                       bgcolor: "primary.main",
                       color: "#FFFFFF",
                       position: "sticky",
+                      top: 0,
                       left: 0,
-                      zIndex: 10,
+                      zIndex: 30,
                       borderRight: "2px solid rgba(255,255,255,0.3)",
+                      borderBottom: "2px solid rgba(0,0,0,0.2)",
                       py: 1,
                     }}
                   >
@@ -507,8 +521,12 @@ export default function OperationalResultPage() {
                               : "primary.main",
                             color: "#FFFFFF",
                             borderRight: "1px solid rgba(255,255,255,0.1)",
+                            borderBottom: "2px solid rgba(0,0,0,0.2)",
                             lineHeight: 1.15,
                             py: 0.8,
+                            position: "sticky",
+                            top: 0,
+                            zIndex: 20,
                           }}
                         >
                           <Box sx={{ fontSize: "0.65rem", fontWeight: 800, textTransform: "uppercase", opacity: isClosed ? 0.85 : 1 }}>
@@ -533,7 +551,11 @@ export default function OperationalResultPage() {
                       fontWeight: 800,
                       fontSize: "0.8rem",
                       borderLeft: "2px solid rgba(255,255,255,0.25)",
+                      borderBottom: "2px solid rgba(0,0,0,0.2)",
                       py: 1,
+                      position: "sticky",
+                      top: 0,
+                      zIndex: 20,
                     }}
                   >
                     TOTAL
@@ -554,73 +576,87 @@ export default function OperationalResultPage() {
                     </TableCell>
                   </TableRow>
                 ) : (
-                  sortedServices.map((row) => (
-                    <TableRow
-                      key={row.code}
-                      hover
-                      sx={{
-                        "&:nth-of-type(even)": { bgcolor: "#F8FAFC" },
-                        "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04) },
-                        borderBottom: "1px solid #E2E8F0",
-                      }}
-                    >
-                      {/* Nome do Serviço (Em ordem alfabética) */}
-                      <TableCell
+                  sortedServices.map((row, rowIdx) => {
+                    const isEven = rowIdx % 2 === 1;
+                    const cellBg = isEven ? "#F8FAFC" : "#FFFFFF";
+                    return (
+                      <TableRow
+                        key={row.code}
+                        hover
                         sx={{
-                          fontWeight: 600,
-                          fontSize: "0.825rem",
-                          color: "text.primary",
-                          bgcolor: "background.paper",
-                          position: "sticky",
-                          left: 0,
-                          zIndex: 4,
-                          borderRight: "2px solid #CBD5E1",
-                          py: 0.85,
-                          pl: 2,
+                          bgcolor: cellBg,
+                          "&:hover": { bgcolor: alpha(theme.palette.primary.main, 0.04) },
+                          "&:hover .sticky-service-col": { bgcolor: alpha(theme.palette.primary.main, 0.06) },
+                          borderBottom: "1px solid #E2E8F0",
                         }}
                       >
-                        {row.name}
-                      </TableCell>
+                        {/* Nome do Serviço (Em ordem alfabética) */}
+                        <TableCell
+                          className="sticky-service-col"
+                          sx={{
+                            fontWeight: 600,
+                            fontSize: "0.825rem",
+                            color: "text.primary",
+                            bgcolor: cellBg,
+                            position: "sticky",
+                            left: 0,
+                            zIndex: 10,
+                            borderRight: "2px solid #CBD5E1",
+                            py: 0.85,
+                            pl: 2,
+                            width: 250,
+                            minWidth: 250,
+                            maxWidth: 250,
+                            whiteSpace: "nowrap",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                          }}
+                        >
+                          <Tooltip title={row.name} arrow placement="top-start" enterDelay={150}>
+                            <span>{row.name}</span>
+                          </Tooltip>
+                        </TableCell>
 
-                      {/* Células diárias (1..31) */}
-                      {daysMeta.map((dm) => {
-                        const count = row.daily_counts[dm.day] || 0;
-                        const isClosed = dm.is_closed ?? dm.is_weekend;
-                        return (
-                          <TableCell
-                            key={dm.day}
-                            align="center"
-                            sx={{
-                              p: 0.5,
-                              fontSize: "0.75rem",
-                              fontWeight: count > 0 ? 700 : 400,
-                              color: count > 0 ? "text.primary" : "text.disabled",
-                              bgcolor: isClosed ? "#F3F4F6" : "inherit",
-                              borderRight: "1px solid #F1F5F9",
-                              py: 0.85,
-                            }}
-                          >
-                            {count > 0 ? count : ""}
-                          </TableCell>
-                        );
-                      })}
+                        {/* Células diárias (1..31) */}
+                        {daysMeta.map((dm) => {
+                          const count = row.daily_counts[dm.day] || 0;
+                          const isClosed = dm.is_closed ?? dm.is_weekend;
+                          return (
+                            <TableCell
+                              key={dm.day}
+                              align="center"
+                              sx={{
+                                p: 0.5,
+                                fontSize: "0.75rem",
+                                fontWeight: count > 0 ? 700 : 400,
+                                color: count > 0 ? "text.primary" : "text.disabled",
+                                bgcolor: isClosed ? "#F3F4F6" : "inherit",
+                                borderRight: "1px solid #F1F5F9",
+                                py: 0.85,
+                              }}
+                            >
+                              {count > 0 ? count : ""}
+                            </TableCell>
+                          );
+                        })}
 
-                      {/* Total do Serviço no Mês */}
-                      <TableCell
-                        align="center"
-                        sx={{
-                          fontWeight: 700,
-                          fontSize: "0.825rem",
-                          color: "text.primary",
-                          bgcolor: "background.paper",
-                          borderLeft: "2px solid #CBD5E1",
-                          py: 0.85,
-                        }}
-                      >
-                        {row.total_count}
-                      </TableCell>
-                    </TableRow>
-                  ))
+                        {/* Total do Serviço no Mês */}
+                        <TableCell
+                          align="center"
+                          sx={{
+                            fontWeight: 700,
+                            fontSize: "0.825rem",
+                            color: "text.primary",
+                            bgcolor: cellBg,
+                            borderLeft: "2px solid #CBD5E1",
+                            py: 0.85,
+                          }}
+                        >
+                          {row.total_count}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
                 )}
 
                 {/* ── LINHA DE RODAPÉ (VOLUME SERVIÇOS / DIA - COR CLARA E ELEGANTE) ── */}
@@ -631,7 +667,7 @@ export default function OperationalResultPage() {
                     borderColor: "divider",
                     position: "sticky",
                     bottom: 0,
-                    zIndex: 10,
+                    zIndex: 25,
                   }}
                 >
                   <TableCell
@@ -644,12 +680,16 @@ export default function OperationalResultPage() {
                       bgcolor: "#F8FAFC",
                       position: "sticky",
                       left: 0,
-                      zIndex: 15,
+                      bottom: 0,
+                      zIndex: 35,
                       borderRight: "2px solid #CBD5E1",
                       borderTop: "2px solid",
                       borderColor: "divider",
                       py: 1.2,
                       pl: 2,
+                      width: 250,
+                      minWidth: 250,
+                      maxWidth: 250,
                     }}
                   >
                     VOLUME SERVIÇOS / DIA
@@ -673,6 +713,9 @@ export default function OperationalResultPage() {
                           borderTop: "2px solid",
                           borderColor: "divider",
                           py: 1.2,
+                          position: "sticky",
+                          bottom: 0,
+                          zIndex: 25,
                         }}
                       >
                         {daySum > 0 ? daySum : 0}
@@ -686,12 +729,15 @@ export default function OperationalResultPage() {
                     sx={{
                       fontWeight: 900,
                       fontSize: "0.95rem",
-                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      bgcolor: alpha(theme.palette.primary.main, 0.12),
                       color: "primary.main",
                       borderLeft: "2px solid #CBD5E1",
                       borderTop: "2px solid",
                       borderColor: "divider",
                       py: 1.2,
+                      position: "sticky",
+                      bottom: 0,
+                      zIndex: 25,
                     }}
                   >
                     {summary?.total_services || 0}
@@ -705,7 +751,22 @@ export default function OperationalResultPage() {
 
       {/* ── TAB 1: GRÁFICOS & ANÁLISE COMPARATIVA ────────────────────────── */}
       {activeTab === 1 && (
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2.5,
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            pr: 1,
+            "&::-webkit-scrollbar": { width: 8 },
+            "&::-webkit-scrollbar-thumb": {
+              background: "rgba(0,0,0,0.18)",
+              borderRadius: 4,
+            },
+          }}
+        >
           {/* Gráfico 1: Serviços Estratificados */}
           <Paper elevation={0} sx={{ p: 2.5, borderRadius: 3, border: "1px solid", borderColor: "divider" }}>
             <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 2 }}>

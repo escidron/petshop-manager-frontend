@@ -5,6 +5,8 @@ export type DREGroupType =
   | "cmv"
   | "fixed_expense"
   | "variable_expense"
+  | "financial_revenue"
+  | "financial_expense"
   | "financial_result"
   | "result";
 
@@ -103,6 +105,8 @@ export interface DRESummary {
   variable_expenses_total: number;
   ebitda_total: number;
   ebitda_pct: number;
+  financial_revenue_total?: number;
+  financial_expense_total?: number;
   financial_result_total: number;
   net_profit_total: number;
   net_margin_pct: number;

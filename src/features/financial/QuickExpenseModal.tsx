@@ -45,7 +45,8 @@ const MONTH_NAMES = [
 const GROUP_TABS: { value: DREGroupType; label: string }[] = [
   { value: "fixed_expense", label: "Despesas Fixas" },
   { value: "variable_expense", label: "Despesas Variáveis" },
-  { value: "financial_result", label: "Resultado Financeiro" },
+  { value: "financial_expense", label: "Despesas Financeiras" },
+  { value: "financial_revenue", label: "Receitas Financeiras" },
   { value: "cmv", label: "Custos Diretos (CMV)" },
   { value: "gross_revenue", label: "Outras Receitas" },
 ];
@@ -338,7 +339,7 @@ export default function QuickExpenseModal({
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
         <Box>
           <Typography variant="h6" fontWeight={800}>
-            Lançar Despesas & Custos Operacionais
+            Lançar Receitas & Despesas
           </Typography>
           <Typography variant="body2" color="text.secondary">
             Preencha ou ajuste os valores do ano de {year} pelas categorias do seu plano de contas.

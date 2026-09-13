@@ -143,7 +143,7 @@ export default function CellEditModal({ target, onClose, onOpenReplicate }: Prop
             }}
             sx={{ textTransform: "none" }}
           >
-            Lançar despesas
+            Lançamento rápido anual
           </Button>
         ) : (
           <Box />
