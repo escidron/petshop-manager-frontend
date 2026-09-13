@@ -22,9 +22,18 @@ export const createAppointment = async (
   return response.data;
 };
 
+export type UpdateAppointmentPayload = Partial<AppointmentFormData> & {
+  update_all_future?: boolean;
+  remove_recurrence?: boolean;
+  recurrence?: {
+    frequency: "weekly" | "biweekly" | "monthly";
+    occurrences: number;
+  } | null;
+};
+
 export const updateAppointment = async (
   appointmentId: number,
-  payload: AppointmentFormData & { update_all_future?: boolean }
+  payload: UpdateAppointmentPayload
 ) => {
   const response = await apiClient.patch<Appointment>(
     `/api/v1/appointments/${appointmentId}`,
@@ -117,6 +126,22 @@ export const getHighlightedDays = async (
       ...(endDate && { end_date: endDate }),
     },
   });
+  return response.data;
+};
+
+export const removeUnpaidAppointmentService = async (
+  appointmentId: number,
+  serviceId: number,
+  petId?: number,
+): Promise<Appointment> => {
+  const response = await apiClient.delete<Appointment>(
+    `/api/v1/appointments/${appointmentId}/services/${serviceId}`,
+    {
+      params: {
+        ...(petId && { pet_id: petId }),
+      },
+    }
+  );
   return response.data;
 };
 

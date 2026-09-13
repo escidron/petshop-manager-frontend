@@ -175,7 +175,8 @@ export default function FinancialReportPage({
     queryKey: ["sales", startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")],
     queryFn: () =>
       listSales(startDate?.format("YYYY-MM-DD"), endDate?.format("YYYY-MM-DD")),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 10,
+    refetchOnWindowFocus: true,
   });
 
   const { data: allAppointments = [], isLoading: loadingApts } = useQuery<Appointment[]>({
@@ -189,7 +190,8 @@ export default function FinancialReportPage({
         startDate?.format("YYYY-MM-DD"),
         endDate?.format("YYYY-MM-DD"),
       ),
-    staleTime: 1000 * 60 * 2,
+    staleTime: 1000 * 10,
+    refetchOnWindowFocus: true,
   });
 
   const isLoading = loadingSales || loadingApts;
@@ -861,7 +863,7 @@ export default function FinancialReportPage({
                   </TableCell>
                   <TableCell align="center">
                     {t.rawSale ? (
-                      <Tooltip title="Ver Comprovante / Enviar WhatsApp">
+                      <Tooltip title="Ver Comprovante">
                         <IconButton
                           size="small"
                           onClick={() => setSelectedReceiptSale(t.rawSale!)}

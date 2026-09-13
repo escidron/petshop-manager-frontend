@@ -14,7 +14,7 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package, Receipt, MessageCircle } from "lucide-react";
+import { ShoppingBag, Scissors, Calendar as CalendarIcon, Package, Receipt, MessageCircle, Repeat, Pencil } from "lucide-react";
 import { listAppointmentsByClient } from "../../api/services/appointments";
 import { listSales } from "../../api/services/sales";
 import { listClientPackagesByClient } from "../../api/services/client_packages";
@@ -23,8 +23,9 @@ import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../sales/schemas";
 import type { ClientPackage } from "../client_packages/types";
 import { APPOINTMENT_STATUS_LABEL } from "../../api/services/appointments";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import SaleReceiptModal from "../sales/SaleReceiptModal";
+import AppointmentModal from "../appointments/AppointmentModal";
 import { useToast } from "../../hooks/useToast";
 import { useAuth } from "../../hooks/useAuth";
 import { sharePackageViaWhatsApp } from "../client_packages/packageWhatsAppMessage";
@@ -108,6 +109,20 @@ export default function ClientHistory({
   });
 
   const loading = loadingAppts || loadingSales || loadingPkgs;
+  const queryClient = useQueryClient();
+
+  const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
+  const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
+
+  const handleOpenEditAppointment = (appt: Appointment) => {
+    setEditingAppointment(appt);
+    setAppointmentModalOpen(true);
+  };
+
+  const handleAppointmentSuccess = async () => {
+    await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+  };
 
   const handleChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -188,23 +203,64 @@ export default function ClientHistory({
           <List disablePadding>
             {appointments.map((appt, idx) => (
               <Box key={appt.id}>
-                <ListItem alignItems="flex-start" sx={{ px: 0, py: 1.5 }}>
+                <ListItem
+                  alignItems="flex-start"
+                  sx={{
+                    px: 1.5,
+                    py: 1.25,
+                    borderRadius: 2,
+                    cursor: "pointer",
+                    transition: "background-color 0.15s ease",
+                    "&:hover": {
+                      bgcolor: "action.hover",
+                    },
+                  }}
+                  onClick={() => handleOpenEditAppointment(appt)}
+                >
                   <ListItemText
                     primary={
                       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
                           <CalendarIcon size={14} color="#666" />
                           <Typography variant="body2" fontWeight={700}>
                             {new Date(appt.scheduled_at).toLocaleDateString("pt-BR")}
                           </Typography>
+                          {appt.recurrence_id && (
+                            <Tooltip title={`Recorrência ${appt.recurrence_frequency === 'monthly' ? 'Mensal' : appt.recurrence_frequency === 'biweekly' ? 'Quinzenal' : 'Semanal'}`}>
+                              <Chip
+                                icon={<Repeat size={11} />}
+                                label={appt.recurrence_frequency === 'monthly' ? 'Mensal' : appt.recurrence_frequency === 'biweekly' ? 'Quinzenal' : 'Semanal'}
+                                size="small"
+                                color="primary"
+                                variant="outlined"
+                                sx={{ height: 18, fontSize: "0.6rem", fontWeight: 600, "& .MuiChip-label": { px: 0.6 }, "& .MuiChip-icon": { ml: 0.4, mr: -0.2 } }}
+                              />
+                            </Tooltip>
+                          )}
                         </Box>
-                        <Chip 
-                          label={APPOINTMENT_STATUS_LABEL[appt.status] || appt.status} 
-                          size="small"
-                          color={appt.status === "completed" ? "success" : "default"}
-                          variant="outlined"
-                          sx={{ height: 20, fontSize: "0.65rem" }}
-                        />
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Chip 
+                            label={APPOINTMENT_STATUS_LABEL[appt.status] || appt.status} 
+                            size="small"
+                            color={appt.status === "completed" ? "success" : "default"}
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: "0.65rem" }}
+                          />
+                          <IconButton
+                            size="small"
+                            sx={{
+                              p: 0.5,
+                              color: "text.secondary",
+                              "&:hover": { color: "primary.main" },
+                            }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleOpenEditAppointment(appt);
+                            }}
+                          >
+                            <Pencil size={13} />
+                          </IconButton>
+                        </Box>
                       </Box>
                     }
                     secondary={
@@ -394,6 +450,19 @@ export default function ClientHistory({
           sale={selectedReceiptSale}
           clientName={selectedReceiptSale.client?.name || selectedReceiptSale.appointment?.client?.name}
           clientPhone={selectedReceiptSale.client?.phone || selectedReceiptSale.appointment?.client?.phone}
+        />
+      )}
+
+      {editingAppointment && (
+        <AppointmentModal
+          open={appointmentModalOpen}
+          mode="edit"
+          appointment={editingAppointment}
+          onClose={() => {
+            setAppointmentModalOpen(false);
+            setEditingAppointment(null);
+          }}
+          onSuccess={handleAppointmentSuccess}
         />
       )}
     </Paper>

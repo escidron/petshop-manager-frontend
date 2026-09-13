@@ -8,10 +8,11 @@ import {
   ListItem,
   Divider,
 } from "@mui/material";
-import { useMemo } from "react";
+import { useState, useMemo } from "react";
 import dayjs, { type Dayjs } from "dayjs";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, Briefcase, TrendingUp } from "lucide-react";
+import { DollarSign, Briefcase, TrendingUp, ChevronRight } from "lucide-react";
+import DaySalesModal from "./DaySalesModal";
 import { listSales } from "../../api/services/sales";
 import { getAppointmentsByTenant } from "../../api/services/appointments";
 import { fetchNewClientsCount } from "../../api/services/clients";
@@ -48,6 +49,7 @@ const fmtBRL = (cents: number) =>
   (cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryReportProps) {
+  const [selectedDayDate, setSelectedDayDate] = useState<string | null>(null);
   const formattedStart = startDate?.format("YYYY-MM-DD");
   const formattedEnd = endDate?.format("YYYY-MM-DD");
 
@@ -166,17 +168,24 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
     ].sort((a, b) => b.cents - a.cents);
 
     // Breakdown 3: Vendas por Dia
-    const byDay: Record<string, number> = {};
-    revenueTxs.forEach((t) => {
-      const day = dayjs(t.date).format("YYYY-MM-DD");
-      byDay[day] = (byDay[day] ?? 0) + t.amount_cents;
+    const byDay: Record<string, { cents: number; count: number }> = {};
+    allSales.forEach((s) => {
+      const day = dayjs(s.created_at).format("YYYY-MM-DD");
+      if (!byDay[day]) {
+        byDay[day] = { cents: 0, count: 0 };
+      }
+      if (s.status === "completed") {
+        byDay[day].cents += Math.round(s.total_amount * 100);
+        byDay[day].count += 1;
+      }
     });
 
     const salesByDay = Object.entries(byDay)
-      .map(([date, cents]) => ({
+      .map(([date, data]) => ({
         date,
         formattedDate: dayjs(date).format("DD/MM/YYYY"),
-        cents,
+        cents: data.cents,
+        count: data.count,
       }))
       .sort((a, b) => b.date.localeCompare(a.date));
 
@@ -192,6 +201,13 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
       newClientsCount,
     };
   }, [transactions, allSales, allAppointments, newClientsCount]);
+
+  const selectedDaySales = useMemo(() => {
+    if (!selectedDayDate) return [];
+    return allSales.filter(
+      (s) => dayjs(s.created_at).format("YYYY-MM-DD") === selectedDayDate
+    );
+  }, [allSales, selectedDayDate]);
 
   if (isLoading) {
     return (
@@ -523,10 +539,15 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
               bgcolor: "#FFFFFF",
             }}
           >
-            <Typography variant="subtitle2" fontWeight={700} color="text.primary" mb={2} display="flex" alignItems="center" gap={1}>
-              <TrendingUp size={16} />
-              VENDAS POR DIA
-            </Typography>
+            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mb: 2 }}>
+              <Typography variant="subtitle2" fontWeight={700} color="text.primary" display="flex" alignItems="center" gap={1}>
+                <TrendingUp size={16} />
+                VENDAS POR DIA
+              </Typography>
+              <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.7rem", fontWeight: 500 }}>
+                Clique para ver detalhes
+              </Typography>
+            </Box>
             {stats.salesByDay.length === 0 ? (
               <Typography variant="body2" color="text.disabled" align="center" sx={{ py: 6 }}>
                 Nenhuma venda registrada.
@@ -536,14 +557,65 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
                 <List disablePadding>
                   {stats.salesByDay.map((item, idx) => (
                     <Box key={item.date}>
-                      {idx > 0 && <Divider sx={{ my: 0.75 }} />}
-                      <ListItem disablePadding sx={{ display: "flex", justifyContent: "space-between", py: 0.25 }}>
-                        <Typography variant="body2" color="text.primary">
-                          {item.formattedDate}
-                        </Typography>
-                        <Typography variant="body1" fontWeight={600}>
-                          {fmtBRL(item.cents)}
-                        </Typography>
+                      {idx > 0 && <Divider sx={{ my: 0.5 }} />}
+                      <ListItem
+                        disablePadding
+                        onClick={() => setSelectedDayDate(item.date)}
+                        sx={{
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          py: 0.75,
+                          px: 1,
+                          borderRadius: 1.5,
+                          cursor: "pointer",
+                          transition: "all 0.15s ease-in-out",
+                          "&:hover": {
+                            bgcolor: "rgba(49, 52, 133, 0.06)",
+                            "& .arrow-icon": {
+                              color: "#313485",
+                              transform: "translateX(2px)",
+                            },
+                          },
+                        }}
+                      >
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                          <Typography variant="body2" color="text.primary" fontWeight={600}>
+                            {item.formattedDate}
+                          </Typography>
+                          {item.count > 0 && (
+                            <Typography
+                              variant="caption"
+                              sx={{
+                                fontSize: "0.68rem",
+                                color: "text.secondary",
+                                bgcolor: "#f1f5f9",
+                                px: 0.75,
+                                py: 0.2,
+                                borderRadius: 1,
+                                fontWeight: 600,
+                              }}
+                            >
+                              {item.count} {item.count === 1 ? "venda" : "vendas"}
+                            </Typography>
+                          )}
+                        </Box>
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <Typography variant="body1" fontWeight={700} color="text.primary">
+                            {fmtBRL(item.cents)}
+                          </Typography>
+                          <Box
+                            className="arrow-icon"
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              color: "text.disabled",
+                              transition: "all 0.15s ease",
+                            }}
+                          >
+                            <ChevronRight size={16} />
+                          </Box>
+                        </Box>
                       </ListItem>
                     </Box>
                   ))}
@@ -553,6 +625,16 @@ export default function SalesSummaryReport({ startDate, endDate }: SalesSummaryR
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Relatório Suspenso de Vendas do Dia */}
+      {selectedDayDate && (
+        <DaySalesModal
+          open={Boolean(selectedDayDate)}
+          date={selectedDayDate}
+          sales={selectedDaySales}
+          onClose={() => setSelectedDayDate(null)}
+        />
+      )}
     </Box>
   );
 }

@@ -56,14 +56,27 @@ export interface SaleResponse extends SaleCreate {
   created_at: string;
   items: (SaleItem & { id: number; sale_id: number })[];
   payments?: (SalePayment & { id: number; sale_id: number })[];
-  client?: { id: number; name: string; phone?: string | null };
+  client?: {
+    id: number;
+    name: string;
+    phone?: string | null;
+    pets?: Array<{ id: number; name: string }>;
+  };
   pet?: { id: number; name: string };
   appointment_id?: number | null;
   comanda_id?: number | null;
   appointment?: {
     id: number;
-    client: { id: number; name: string; phone?: string | null };
-    items: { services: { id: number; price_cents: number }[] }[];
+    client: {
+      id: number;
+      name: string;
+      phone?: string | null;
+      pets?: Array<{ id: number; name: string }>;
+    };
+    items: {
+      services: { id: number; price_cents: number }[];
+      pet?: { id: number; name: string };
+    }[];
   } | null;
 }
 
@@ -95,7 +108,7 @@ export interface Comanda {
   created_at: string;
   updated_at: string;
   items: ComandaItem[];
-  client?: { id: number; name: string; pets?: Array<{ id: number; name: string }> };
+  client?: { id: number; name: string; pets?: Array<{ id: number; name: string; is_deceased?: boolean }> };
 }
 
 export interface ComandaSavePayload {

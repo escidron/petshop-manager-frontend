@@ -67,7 +67,10 @@ export default function CashReceiptPrintModal({
         <Box
           id="cash-receipt-print-area"
           sx={{
-            fontFamily: "monospace",
+            fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
+            "&, & *": {
+              fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
+            },
             bgcolor: "#ffffff",
             p: 2.5,
             border: "1px solid #E5E7EB",

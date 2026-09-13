@@ -253,6 +253,7 @@ export default function OperationalResultPage() {
   const { data: opData, isLoading, isError } = useQuery<OperationalResultResponse>({
     queryKey: ["operational-result", selectedYear, selectedMonth],
     queryFn: () => getOperationalResult(selectedYear, selectedMonth),
+    staleTime: 5 * 60 * 1000,
   });
 
   const handlePrevMonth = () => {

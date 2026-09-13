@@ -450,6 +450,7 @@ export default function POSInterface() {
           queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
           queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
           queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+          queryClient.invalidateQueries({ queryKey: ["appointments"] });
         })
         .catch(() => {});
     }
@@ -681,6 +682,7 @@ export default function POSInterface() {
             queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
             queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
             queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
           })
           .catch(() => {});
       } else {
@@ -711,6 +713,7 @@ export default function POSInterface() {
         queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
         queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
         queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+        queryClient.invalidateQueries({ queryKey: ["appointments"] });
       } catch (err) {
         setComandaSyncStatus("error");
       }

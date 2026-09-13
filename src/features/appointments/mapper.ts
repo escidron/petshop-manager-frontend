@@ -17,6 +17,19 @@ export function appointmentToFormData(
 ): AppointmentFormData | undefined {
   if (!appointment) return undefined;
 
+  let recurrence = undefined;
+  if (appointment.recurrence) {
+    recurrence = {
+      frequency: appointment.recurrence.frequency,
+      occurrences: appointment.recurrence.occurrences,
+    };
+  } else if (appointment.recurrence_id) {
+    recurrence = {
+      frequency: (appointment.recurrence_frequency as "weekly" | "biweekly" | "monthly") || "weekly",
+      occurrences: 4,
+    };
+  }
+
   return {
     client_id: appointment.client.id,
     scheduled_at: appointment.scheduled_at,
@@ -26,5 +39,6 @@ export function appointmentToFormData(
       pet_id: item.pet.id,
       service_ids: item.services.map((service) => service.id),
     })),
+    recurrence,
   };
 }
