@@ -46,6 +46,8 @@ export interface OperationalAnnualComparison {
   previous_year: number;
   monthly_volume_current: Record<number, number>;
   monthly_volume_previous: Record<number, number>;
+  service_monthly_current?: Record<string, Record<number, number>>;
+  service_monthly_previous?: Record<string, Record<number, number>>;
 }
 
 export interface OperationalStratifiedItem {
