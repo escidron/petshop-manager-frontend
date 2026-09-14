@@ -20,6 +20,7 @@ import { maskPhone, maskDocument } from "../../utils/masks";
 import { Button } from "../../components/Button/Button";
 import { useAuth } from "../../hooks/useAuth";
 import { useToast } from "../../hooks/useToast";
+import { printThermalReceipt } from "../../utils/printThermalReceipt";
 
 interface SaleReceiptModalProps {
   open: boolean;
@@ -188,6 +189,11 @@ export default function SaleReceiptModal({
     } finally {
       setIsGeneratingPDF(false);
     }
+  };
+
+  // ── Imprimir diretamente em impressora térmica (ou navegador) ───────
+  const handlePrint = () => {
+    printThermalReceipt("sale-receipt-print-area", `Comprovante - Venda #${sale.id}`);
   };
 
 
@@ -423,12 +429,18 @@ export default function SaleReceiptModal({
               sx={{
                 display: "flex",
                 justifyContent: "space-between",
+                alignItems: "center",
                 fontWeight: 700,
                 fontSize: "0.92rem",
+                whiteSpace: "nowrap",
               }}
             >
-              <span><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;TOTAL &nbsp;..........:</strong></span>
-              <span><strong>{total.toFixed(2).replace(".", ",")}</strong></span>
+              <span style={{ whiteSpace: "nowrap" }}>
+                <strong>TOTAL ..........:</strong>
+              </span>
+              <span style={{ whiteSpace: "nowrap" }}>
+                <strong>{total.toFixed(2).replace(".", ",")}</strong>
+              </span>
             </Box>
           </Box>
 
@@ -481,6 +493,8 @@ export default function SaleReceiptModal({
           alignItems: "center",
           px: 2.5,
           py: 1.5,
+          gap: 1.5,
+          flexWrap: "wrap",
         }}
         className="no-print"
       >
@@ -500,30 +514,51 @@ export default function SaleReceiptModal({
           Fechar
         </MuiButton>
 
-        <Button
-          variant="contained"
-          onClick={handleDownloadPDF}
-          disabled={isGeneratingPDF}
-          startIcon={
-            isGeneratingPDF ? (
-              <CircularProgress size={16} color="inherit" />
-            ) : (
-              <FileDown size={17} />
-            )
-          }
-          sx={{
-            bgcolor: "#313485",
-            color: "#ffffff",
-            fontWeight: 700,
-            fontSize: "0.85rem",
-            px: 2.5,
-            py: 0.85,
-            borderRadius: 2,
-            "&:hover": { bgcolor: "#252869" },
-          }}
-        >
-          {isGeneratingPDF ? "Gerando PDF..." : "Baixar PDF"}
-        </Button>
+        <Box sx={{ display: "flex", gap: 1.5, alignItems: "center" }}>
+          <MuiButton
+            variant="outlined"
+            onClick={handleDownloadPDF}
+            disabled={isGeneratingPDF}
+            startIcon={
+              isGeneratingPDF ? (
+                <CircularProgress size={16} color="inherit" />
+              ) : (
+                <FileDown size={17} />
+              )
+            }
+            sx={{
+              borderColor: "#D1D5DB",
+              color: "#374151",
+              textTransform: "none",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              px: 2,
+              py: 0.85,
+              borderRadius: 2,
+              "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F9FAFB" },
+            }}
+          >
+            {isGeneratingPDF ? "Gerando..." : "Baixar PDF"}
+          </MuiButton>
+
+          <Button
+            variant="contained"
+            onClick={handlePrint}
+            startIcon={<Printer size={17} />}
+            sx={{
+              bgcolor: "#313485",
+              color: "#ffffff",
+              fontWeight: 700,
+              fontSize: "0.85rem",
+              px: 2.5,
+              py: 0.85,
+              borderRadius: 2,
+              "&:hover": { bgcolor: "#252869" },
+            }}
+          >
+            Imprimir Comprovante
+          </Button>
+        </Box>
       </DialogActions>
     </Dialog>
   );
