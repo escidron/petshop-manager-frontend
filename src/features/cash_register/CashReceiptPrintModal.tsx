@@ -12,6 +12,7 @@ import { X, Printer } from "lucide-react";
 import dayjs from "dayjs";
 import type { CashSessionDetailResponse } from "./types";
 import { Button } from "../../components/Button/Button";
+import { printThermalReceipt } from "../../utils/printThermalReceipt";
 
 interface CashReceiptPrintModalProps {
   open: boolean;
@@ -29,7 +30,7 @@ export default function CashReceiptPrintModal({
   if (!sessionData) return null;
 
   const handlePrint = () => {
-    window.print();
+    printThermalReceipt("cash-receipt-print-area", `Comprovante - Fechamento Caixa #${session.id}`);
   };
 
   const { session, payment_methods, cash_register, total_sales_amount, total_supplies, total_bleeds } = sessionData;
