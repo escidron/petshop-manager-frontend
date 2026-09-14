@@ -436,9 +436,9 @@ export default function MainLayout() {
           >
             <Box
               component="img"
-              src="/logo_dark.png"
+              src="/logo.png"
               alt="Data Pet"
-              sx={{ height: 28, width: "auto", objectFit: "contain", display: "block" }}
+              sx={{ height: 38, width: "auto", objectFit: "contain", display: "block" }}
             />
           </Box>
           <IconButton
