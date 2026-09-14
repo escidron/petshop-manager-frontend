@@ -247,6 +247,21 @@ export default function AppointmentModal({
             overscrollBehavior: "contain",
           }}
         >
+          {appointment?.status === "completed" && (
+            <Alert
+              severity="warning"
+              sx={{
+                mx: { xs: 2, sm: 3 },
+                mt: 2,
+                mb: 0.5,
+                borderRadius: 2,
+                fontSize: "0.82rem",
+                "& .MuiAlert-icon": { alignItems: "center" },
+              }}
+            >
+              <strong>Atenção (Modo Proprietário):</strong> Este agendamento já foi finalizado. As alterações de serviços e profissionais atualizarão automaticamente pacotes, vendas e comissões.
+            </Alert>
+          )}
           {isMobile ? (
             <AppointmentMobileFlow
               defaultValues={defaultValues}
