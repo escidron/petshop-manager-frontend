@@ -416,7 +416,7 @@ export default function MainLayout() {
           <Box
             sx={{
               bgcolor: "white",
-              px: 1.5,
+              px: 0.75,
               py: 0.6,
               borderRadius: 2,
               display: "inline-flex",
@@ -438,7 +438,7 @@ export default function MainLayout() {
               component="img"
               src="/logo.png"
               alt="Data Pet"
-              sx={{ height: 38, width: "auto", objectFit: "contain", display: "block" }}
+              sx={{ height: 28, width: "auto", objectFit: "contain", display: "block" }}
             />
           </Box>
           <IconButton
