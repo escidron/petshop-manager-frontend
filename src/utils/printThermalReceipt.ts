@@ -4,7 +4,7 @@
  * 1. Capture exclusivamente a área do cupom (sem modais, menus, barras de rolagem ou backdrops);
  * 2. Aplique a largura exata de bobina térmica (80mm) sem cortes;
  * 3. Remova margens desnecessárias e cabeçalhos automáticos de URL do navegador;
- * 4. Preserve todas as cores, divisórias e formatações monoespaçadas.
+ * 4. Funcione de forma idêntica tanto em desenvolvimento quanto em PRODUÇÃO (capturando regras do Emotion inseridas via insertRule).
  */
 export function printThermalReceipt(elementId: string, docTitle = "Comprovante"): boolean {
   const printArea = document.getElementById(elementId);
@@ -31,9 +31,36 @@ export function printThermalReceipt(elementId: string, docTitle = "Comprovante")
     return false;
   }
 
-  // Clona todas as tags de estilo e links CSS da página principal para manter as fontes e classes MUI/Emotion
-  const styles = Array.from(document.querySelectorAll("style, link[rel='stylesheet']"))
+  // 1. Extrai regras de TODAS as folhas de estilo ativas no documento.
+  // Em produção, o Emotion (MUI) usa insertRule() direto no CSSOM ("speedy mode").
+  // Por isso, ler style.innerHTML retorna vazio em produção. A leitura de sheet.cssRules resolve isso!
+  let extractedCss = "";
+  try {
+    for (const sheet of Array.from(document.styleSheets)) {
+      try {
+        const rules = sheet.cssRules || sheet.rules;
+        if (rules) {
+          for (const rule of Array.from(rules)) {
+            extractedCss += rule.cssText + "\n";
+          }
+        }
+      } catch {
+        // Ignora folhas de outros domínios protegidas por CORS
+      }
+    }
+  } catch (err) {
+    console.warn("[printThermalReceipt] Erro ao extrair styleSheets:", err);
+  }
+
+  // 2. Coleta tags <link rel="stylesheet">
+  const linkTags = Array.from(document.querySelectorAll("link[rel='stylesheet']"))
     .map((el) => el.outerHTML)
+    .join("\n");
+
+  // 3. Coleta tags <style> normais
+  const staticStyles = Array.from(document.querySelectorAll("style"))
+    .map((el) => el.innerHTML)
+    .filter(Boolean)
     .join("\n");
 
   doc.open();
@@ -43,7 +70,11 @@ export function printThermalReceipt(elementId: string, docTitle = "Comprovante")
       <head>
         <meta charset="utf-8" />
         <title>${docTitle}</title>
-        ${styles}
+        ${linkTags}
+        <style>
+          ${staticStyles}
+          ${extractedCss}
+        </style>
         <style>
           @page {
             size: 80mm auto;
@@ -73,6 +104,22 @@ export function printThermalReceipt(elementId: string, docTitle = "Comprovante")
           #${elementId} * {
             font-family: 'Courier New', Courier, 'Lucida Console', Monaco, monospace !important;
             color: #000000 !important;
+            box-sizing: border-box !important;
+          }
+          .receipt-flex-row {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            width: 100% !important;
+          }
+          .receipt-divider-dashed {
+            border-bottom: 1px dashed #000000 !important;
+            width: 100% !important;
+            margin: 6px 0 !important;
+          }
+          .receipt-text-center {
+            text-align: center !important;
+            width: 100% !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
@@ -87,7 +134,7 @@ export function printThermalReceipt(elementId: string, docTitle = "Comprovante")
   `);
   doc.close();
 
-  // Pequeno intervalo para o navegador processar as folhas de estilo do iframe
+  // Intervalo seguro para o navegador renderizar as fontes e regras
   setTimeout(() => {
     try {
       iframe.contentWindow?.focus();
@@ -95,14 +142,13 @@ export function printThermalReceipt(elementId: string, docTitle = "Comprovante")
     } catch (err) {
       console.error("[printThermalReceipt] Falha ao acionar impressão:", err);
     } finally {
-      // Remove o iframe da memória após a impressão
       setTimeout(() => {
         if (document.body.contains(iframe)) {
           document.body.removeChild(iframe);
         }
       }, 1500);
     }
-  }, 250);
+  }, 300);
 
   return true;
 }

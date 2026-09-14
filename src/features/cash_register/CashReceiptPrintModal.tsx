@@ -100,25 +100,25 @@ export default function CashReceiptPrintModal({
             </Typography>
           </Box>
 
-          <Divider sx={{ borderStyle: "dashed", borderColor: "#9CA3AF", my: 1 }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #9CA3AF", width: "100%", margin: "8px 0" }} />
 
           {/* Times & Users */}
           <Box sx={{ fontSize: "0.75rem", mb: 1.5 }}>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
               <span>Abertura:</span>
               <span>{dayjs(session.opened_at).format("DD/MM/YYYY HH:mm")}</span>
             </Box>
-            <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
               <span>Operador Abr.:</span>
               <span>{session.opened_by_name || "-"}</span>
             </Box>
             {session.closed_at && (
               <>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                   <span>Fechamento:</span>
                   <span>{dayjs(session.closed_at).format("DD/MM/YYYY HH:mm")}</span>
                 </Box>
-                <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+                <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }}>
                   <span>Operador Fech.:</span>
                   <span>{session.closed_by_name || "-"}</span>
                 </Box>
@@ -126,34 +126,34 @@ export default function CashReceiptPrintModal({
             )}
           </Box>
 
-          <Divider sx={{ borderStyle: "dashed", borderColor: "#9CA3AF", my: 1 }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #9CA3AF", width: "100%", margin: "8px 0" }} />
 
           {/* Sales Breakdown */}
           <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, mb: 0.5, textTransform: "uppercase" }}>
             Vendas por Forma de Pagamento
           </Typography>
           {payment_methods.map((pm) => (
-            <Box key={pm.method} sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+            <Box key={pm.method} className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.75rem" }}>
               <span>{pm.label} ({pm.count}):</span>
               <span>R$ {pm.total_amount.toFixed(2)}</span>
             </Box>
           ))}
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: 800, mt: 0.5 }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.8rem", fontWeight: 800, mt: 0.5 }}>
             <span>TOTAL VENDAS:</span>
             <span>R$ {total_sales_amount.toFixed(2)}</span>
           </Box>
 
-          <Divider sx={{ borderStyle: "dashed", borderColor: "#9CA3AF", my: 1 }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #9CA3AF", width: "100%", margin: "8px 0" }} />
 
           {/* Cash Drawer Flow */}
           <Typography sx={{ fontSize: "0.75rem", fontWeight: 800, mb: 0.5, textTransform: "uppercase" }}>
             Movimentação da Gaveta (Dinheiro)
           </Typography>
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.75rem" }}>
             <span>(+) Fundo Inicial:</span>
             <span>R$ {initialAmount.toFixed(2)}</span>
           </Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.75rem" }}>
             <span>(+) Vendas Dinheiro:</span>
             <span>
               R${" "}
@@ -162,29 +162,29 @@ export default function CashReceiptPrintModal({
               ).toFixed(2)}
             </span>
           </Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.75rem" }}>
             <span>(+) Suprimentos:</span>
             <span>R$ {total_supplies.toFixed(2)}</span>
           </Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.75rem" }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.75rem" }}>
             <span>(-) Sangrias:</span>
             <span>R$ {total_bleeds.toFixed(2)}</span>
           </Box>
 
-          <Divider sx={{ borderStyle: "dashed", borderColor: "#9CA3AF", my: 1 }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #9CA3AF", width: "100%", margin: "8px 0" }} />
 
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.8rem", fontWeight: 800 }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.8rem", fontWeight: 800 }}>
             <span>Saldo Esperado:</span>
             <span>R$ {expectedAmount.toFixed(2)}</span>
           </Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.85rem", fontWeight: 900 }}>
+          <Box className="receipt-flex-row" style={{ display: "flex", justifyContent: "space-between", width: "100%" }} sx={{ fontSize: "0.85rem", fontWeight: 900 }}>
             <span>Saldo Informado:</span>
             <span>R$ {actualAmount.toFixed(2)}</span>
           </Box>
           <Box
+            className="receipt-flex-row"
+            style={{ display: "flex", justifyContent: "space-between", width: "100%" }}
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
               fontSize: "0.8rem",
               fontWeight: 800,
               color: difference === 0 ? "#16A34A" : difference < 0 ? "#DC2626" : "#2563EB",
@@ -203,7 +203,7 @@ export default function CashReceiptPrintModal({
             </Box>
           )}
 
-          <Divider sx={{ borderStyle: "dashed", borderColor: "#9CA3AF", my: 2 }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #9CA3AF", width: "100%", margin: "16px 0" }} />
 
           <Box sx={{ textAlign: "center", mt: 3, pt: 2 }}>
             <Box sx={{ borderTop: "1px solid #111827", width: "80%", mx: "auto", mb: 0.5 }} />
