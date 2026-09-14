@@ -22,6 +22,7 @@ import {
   Gift,
   TrendingUp,
   ChartNoAxesCombined,
+  WalletCards,
 } from "lucide-react";
 
 const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
@@ -127,6 +128,13 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
   {
     title: "GERENCIAL",
     items: [
+      {
+        id: "financial-bills",
+        label: "Contas a Pagar e Receber",
+        icon: <WalletCards size={20} />,
+        path: "/managerial/bills",
+        ownerOnly: true,
+      },
       {
         id: "dre",
         label: "DRE",

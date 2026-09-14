@@ -31,6 +31,7 @@ import AdminDashboardPage from "./pages/AdminDashboardPage";
 import PublicBookingPage from "./pages/PublicBookingPage";
 import DREReportPage from "./pages/DREReportPage";
 import OperationalResultPage from "./pages/OperationalResultPage";
+import FinancialBillsPage from "./pages/FinancialBillsPage";
 
 import { usePermission } from "./hooks/usePermission";
 
@@ -144,6 +145,15 @@ export default function AppRoutes() {
         <Route path="/reports" element={<PermissionRoute module="reports"><ReportsPage /></PermissionRoute>} />
         <Route path="/reports/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
         <Route path="/reports/inventory" element={<Navigate to="/reports?category=estoque" replace />} />
+        <Route
+          path="/managerial/bills"
+          element={
+            <OwnerRoute>
+              <FinancialBillsPage />
+            </OwnerRoute>
+          }
+        />
+        <Route path="/financial/bills" element={<Navigate to="/managerial/bills" replace />} />
         <Route
           path="/managerial/dre"
           element={
