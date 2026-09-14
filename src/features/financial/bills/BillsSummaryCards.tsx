@@ -1,4 +1,4 @@
-import { Box, Card, Typography, alpha } from "@mui/material";
+import { Box, Card, Typography, Chip, alpha } from "@mui/material";
 import {
   ArrowUpRight,
   ArrowDownLeft,
@@ -26,8 +26,13 @@ export default function BillsSummaryCards({ summary }: Props) {
   const receivablePaid = summary?.receivable_paid ?? 0;
   const receivablePending = summary?.receivable_pending ?? 0;
 
-  const netBalanceExpected = summary?.net_balance_expected ?? 0;
-  const isNetPositive = netBalanceExpected >= 0;
+  const netBalanceProjected =
+    summary?.net_balance_projected ?? (totalReceivable - totalPayable);
+  const netBalanceRealized =
+    summary?.net_balance_realized ?? (receivablePaid - payablePaid);
+  const netBalancePending =
+    summary?.net_balance_pending ?? (receivablePending - payablePending);
+  const isNetPositive = netBalanceProjected >= 0;
 
   const totalOverdueAmount = payableOverdue + (summary?.receivable_overdue ?? 0);
 
@@ -153,7 +158,7 @@ export default function BillsSummaryCards({ summary }: Props) {
         </Box>
       </Card>
 
-      {/* Card 3: Saldo Previsto */}
+      {/* Card 3: Saldo do Período */}
       <Card
         elevation={0}
         sx={{
@@ -161,7 +166,7 @@ export default function BillsSummaryCards({ summary }: Props) {
           px: 2,
           border: "1px solid",
           borderColor: "divider",
-          borderLeft: `4px solid ${isNetPositive ? "#3B82F6" : "#F59E0B"}`,
+          borderLeft: `4px solid ${isNetPositive ? "#10B981" : "#EF4444"}`,
           borderRadius: 2.5,
           bgcolor: "background.paper",
           transition: "transform 0.15s ease, box-shadow 0.15s ease",
@@ -177,44 +182,57 @@ export default function BillsSummaryCards({ summary }: Props) {
             color="text.secondary"
             sx={{ textTransform: "uppercase", fontSize: "0.72rem", letterSpacing: "0.5px" }}
           >
-            Saldo Líquido Previsto
+            Saldo do Período
           </Typography>
-          <Box
-            sx={{
-              p: 0.6,
-              borderRadius: 1.5,
-              bgcolor: alpha(isNetPositive ? "#3B82F6" : "#F59E0B", 0.1),
-              color: isNetPositive ? "#3B82F6" : "#F59E0B",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <Scale size={16} />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            <Chip
+              label={isNetPositive ? "Superávit" : "Déficit"}
+              size="small"
+              sx={{
+                height: 18,
+                fontSize: "0.65rem",
+                fontWeight: 800,
+                bgcolor: alpha(isNetPositive ? "#10B981" : "#EF4444", 0.12),
+                color: isNetPositive ? "#059669" : "#DC2626",
+              }}
+            />
+            <Box
+              sx={{
+                p: 0.6,
+                borderRadius: 1.5,
+                bgcolor: alpha(isNetPositive ? "#10B981" : "#EF4444", 0.1),
+                color: isNetPositive ? "#10B981" : "#EF4444",
+                display: "flex",
+                alignItems: "center",
+              }}
+            >
+              <Scale size={16} />
+            </Box>
           </Box>
         </Box>
 
         <Typography
           variant="h6"
           fontWeight={800}
-          color={isNetPositive ? "primary.main" : "#D97706"}
+          color={isNetPositive ? "#059669" : "#DC2626"}
           sx={{ fontSize: "1.3rem", lineHeight: 1.2 }}
         >
-          {fmtBRL(netBalanceExpected)}
+          {fmtBRL(netBalanceProjected)}
         </Typography>
 
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", mt: 1, pt: 0.75, borderTop: "1px dashed", borderColor: "divider" }}>
           <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.72rem" }}>
-            Realizado: <strong>{fmtBRL(summary?.net_balance_realized ?? 0)}</strong>
+            Realizado: <strong>{fmtBRL(netBalanceRealized)}</strong>
           </Typography>
           <Typography
             variant="caption"
             sx={{
               fontSize: "0.72rem",
               fontWeight: 700,
-              color: isNetPositive ? "success.main" : "warning.main",
+              color: netBalancePending >= 0 ? "#059669" : "#DC2626",
             }}
           >
-            {isNetPositive ? "Superávit" : "Déficit"}
+            Pendente: {fmtBRL(netBalancePending)}
           </Typography>
         </Box>
       </Card>

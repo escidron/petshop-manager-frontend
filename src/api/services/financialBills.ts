@@ -87,8 +87,10 @@ export interface FinancialBillsSummary {
   receivable_pending: number;
   receivable_overdue: number;
   receivable_overdue_count: number;
-  net_balance_expected: number;
+  net_balance_projected?: number;
   net_balance_realized: number;
+  net_balance_pending?: number;
+  net_balance_expected: number;
 }
 
 export interface FinancialBillListResponse {
