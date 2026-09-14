@@ -335,15 +335,12 @@ export default function SaleReceiptModal({
           >
             {/* Cabeçalho superior: Data e Link do Sistema */}
             <Box
+              className="receipt-flex-row"
+              style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: "16px", paddingBottom: "4px" }}
               sx={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
                 fontSize: "0.72rem",
                 fontFamily: "inherit",
                 color: "#374151",
-                mb: 2.5,
-                pb: 0.5,
               }}
             >
               <span>{dayjs().format("DD/MM/YYYY, HH:mm")}</span>
@@ -353,7 +350,7 @@ export default function SaleReceiptModal({
             </Box>
 
           {/* Cabeçalho do Estabelecimento */}
-          <Box sx={{ textAlign: "center", mb: 0.5 }}>
+          <Box className="receipt-text-center" style={{ textAlign: "center", width: "100%", marginBottom: "6px" }}>
             <Box sx={{ fontWeight: 800, fontSize: "1rem", textTransform: "uppercase", lineHeight: 1.25, color: "#000000" }}>
               {effectiveTenantName}
             </Box>
@@ -369,10 +366,10 @@ export default function SaleReceiptModal({
             )}
           </Box>
 
-          <Box sx={{ borderBottom: "1px dashed #000000", my: 1.25, width: "100%" }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #000000", width: "100%", margin: "8px 0" }} />
 
           {/* Datas & Identificação Fiscal */}
-          <Box sx={{ textAlign: "center", my: 1, fontSize: "0.9rem", color: "#000000" }}>
+          <Box className="receipt-text-center" style={{ textAlign: "center", width: "100%", margin: "8px 0" }} sx={{ fontSize: "0.9rem", color: "#000000" }}>
             <Box>Venda realizada em {dayjs(sale.created_at).format("DD/MM/YYYY")}</Box>
             <Box sx={{ mt: 0.25 }}>Impresso em {printedAt}</Box>
 
@@ -380,15 +377,19 @@ export default function SaleReceiptModal({
             <Box sx={{ fontWeight: 700 }}>*** NAO E DOCUMENTO FISCAL ***</Box>
           </Box>
 
-          <Box sx={{ borderBottom: "1px dashed #000000", my: 1.25, width: "100%" }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #000000", width: "100%", margin: "8px 0" }} />
 
           {/* Cabeçalho da Tabela de Itens */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", fontSize: "0.9rem", fontWeight: 700, px: 0.5, color: "#000000" }}>
+          <Box
+            className="receipt-flex-row"
+            style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}
+            sx={{ fontSize: "0.9rem", fontWeight: 700, px: 0.5, color: "#000000" }}
+          >
             <span>ITEM / QTD / V.UNIT</span>
             <span>TOTAL(R$)</span>
           </Box>
 
-          <Box sx={{ borderBottom: "1px dashed #000000", my: 1.25, width: "100%" }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #000000", width: "100%", margin: "8px 0" }} />
 
           {/* Lista de Itens */}
           <Box sx={{ mb: 1 }}>
@@ -402,7 +403,10 @@ export default function SaleReceiptModal({
                   <Box sx={{ fontWeight: 600 }}>
                     {petPrefix}{item.name}
                   </Box>
-                  <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.35 }}>
+                  <Box
+                    className="receipt-flex-row"
+                    style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: "4px" }}
+                  >
                     <span>
                       {item.quantity} &nbsp;x R$ &nbsp;{itemUnitPrice.toFixed(2).replace(".", ",")}
                     </span>
@@ -415,24 +419,31 @@ export default function SaleReceiptModal({
             })}
           </Box>
 
-          <Box sx={{ borderBottom: "1px dashed #000000", my: 1.25, width: "100%" }} />
+          <Box className="receipt-divider-dashed" style={{ borderBottom: "1px dashed #000000", width: "100%", margin: "8px 0" }} />
 
           {/* Desconto (se houver) e TOTAL */}
           <Box sx={{ fontSize: "0.9rem", my: 1, px: 0.5, color: "#000000" }}>
             {discount > 0 && (
-              <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+              <Box
+                className="receipt-flex-row"
+                style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginBottom: "4px" }}
+              >
                 <span>DESCONTO:</span>
                 <span>- {discount.toFixed(2).replace(".", ",")}</span>
               </Box>
             )}
             <Box
-              sx={{
+              className="receipt-flex-row"
+              style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "center",
+                width: "100%",
+                whiteSpace: "nowrap",
+              }}
+              sx={{
                 fontWeight: 700,
                 fontSize: "0.92rem",
-                whiteSpace: "nowrap",
               }}
             >
               <span style={{ whiteSpace: "nowrap" }}>
@@ -445,7 +456,7 @@ export default function SaleReceiptModal({
           </Box>
 
           {/* Formas de Pagamento */}
-          <Box sx={{ textAlign: "center", my: 2, fontSize: "0.9rem", fontWeight: 600, color: "#000000" }}>
+          <Box className="receipt-text-center" style={{ textAlign: "center", width: "100%", margin: "16px 0" }} sx={{ fontSize: "0.9rem", fontWeight: 600, color: "#000000" }}>
             {sale.payments && sale.payments.length > 1 ? (
               sale.payments.map((p, idx) => (
                 <Box key={idx} sx={{ mb: 0.35 }}>
@@ -460,7 +471,7 @@ export default function SaleReceiptModal({
           </Box>
 
           {/* Fatura / Operador / Cliente */}
-          <Box sx={{ textAlign: "center", my: 2, fontSize: "0.9rem", color: "#000000" }}>
+          <Box className="receipt-text-center" style={{ textAlign: "center", width: "100%", margin: "16px 0" }} sx={{ fontSize: "0.9rem", color: "#000000" }}>
             <Box sx={{ fontSize: "0.9rem", mb: 1.5, color: "#000000" }}>
               Fatura #{sale.id}
             </Box>
