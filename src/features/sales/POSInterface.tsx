@@ -98,8 +98,6 @@ export default function POSInterface() {
     return saved ? parseInt(saved, 10) : null;
   });
 
-  const [hasSwitchedRegister, setHasSwitchedRegister] = useState(false);
-
   const { data: startupData, isLoading: startupLoading } = useQuery({
     queryKey: ["pos-startup"],
     queryFn: fetchPOSStartup,
@@ -122,7 +120,6 @@ export default function POSInterface() {
   const handleSelectRegister = (id: number) => {
     setSelectedRegisterId(id);
     localStorage.setItem("pos_selected_cash_register_id", String(id));
-    setHasSwitchedRegister(true);
     queryClient.invalidateQueries({ queryKey: ["cash-status"] });
   };
 
