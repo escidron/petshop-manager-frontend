@@ -528,8 +528,12 @@ export default function CashStatementView({
                     </TableRow>
                   ) : (
                     currentSessionDisplay.movements.map((mov) => {
-                      const isPositive = mov.amount > 0 || mov.type === "supply" || mov.type === "opening" || mov.type === "sale";
-                      const isNegative = mov.amount < 0 || mov.type === "bleed";
+                      const isNeutral = mov.type === "opening" || mov.type === "closing";
+                      const isNegative = !isNeutral && (mov.amount < 0 || mov.type === "bleed" || mov.type === "sale_cancel");
+                      const isPositive = !isNeutral && (mov.amount > 0 || mov.type === "supply" || mov.type === "sale");
+                      const valuePrefix = isNegative ? "- " : isPositive ? "+ " : "";
+                      const valueColor = isNegative ? "#DC2626" : isPositive ? "#16A34A" : "#111827";
+
                       return (
                         <TableRow key={mov.id} hover>
                           <TableCell sx={{ color: "#4B5563", fontWeight: 600, fontSize: "0.82rem", whiteSpace: "nowrap" }}>
@@ -584,10 +588,10 @@ export default function CashStatementView({
                               fontWeight: 800,
                               fontSize: "0.85rem",
                               whiteSpace: "nowrap",
-                              color: isNegative ? "#DC2626" : isPositive ? "#16A34A" : "#111827",
+                              color: valueColor,
                             }}
                           >
-                            {isNegative ? "- " : "+ "}R${" "}
+                            {valuePrefix}R${" "}
                             {Math.abs(mov.amount).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                           </TableCell>
                           <TableCell align="right" sx={{ fontWeight: 800, color: "#111827", fontSize: "0.85rem", whiteSpace: "nowrap" }}>

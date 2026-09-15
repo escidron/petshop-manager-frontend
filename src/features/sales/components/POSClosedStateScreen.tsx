@@ -8,7 +8,7 @@ import {
   Select,
   MenuItem,
 } from "@mui/material";
-import { Lock, CheckCircle, Receipt, Monitor } from "lucide-react";
+import { Lock, CheckCircle, Receipt, Monitor, Plus, Minus } from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { openCashSession } from "../../../api/services/cash";
 import { useToast } from "../../../hooks/useToast";
@@ -30,6 +30,8 @@ export default function POSClosedStateScreen({
   cashRegisterId,
   registers = [],
   onSelectRegister,
+  onOpenSupply,
+  onOpenBleed,
   onViewHistory,
 }: POSClosedStateScreenProps) {
   const suggestedAmount = cashStatus?.suggested_opening_amount ?? 0;
@@ -186,7 +188,7 @@ export default function POSClosedStateScreen({
             borderRadius: 3,
             p: 2.5,
             border: "1px solid #E5E7EB",
-            mb: 3,
+            mb: 2,
             display: "flex",
             flexDirection: "column",
             alignItems: "center",
@@ -200,6 +202,61 @@ export default function POSClosedStateScreen({
           <Typography variant="h4" sx={{ fontWeight: 900, color: "#111827", fontSize: { xs: "1.85rem", sm: "2.35rem" } }}>
             R$ {suggestedAmount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
           </Typography>
+        </Box>
+
+        {/* Quick adjustment buttons: Outlined with Plus/Minus icons */}
+        <Box sx={{ display: "flex", gap: 1.5, width: "100%", mb: 3 }}>
+          {onOpenSupply && (
+            <MuiButton
+              variant="outlined"
+              fullWidth
+              onClick={onOpenSupply}
+              startIcon={<Plus size={22} strokeWidth={2.5} />}
+              sx={{
+                color: "#16A34A",
+                borderColor: "#16A34A",
+                bgcolor: "#ffffff",
+                fontWeight: 800,
+                borderRadius: 2.5,
+                py: 1,
+                textTransform: "none",
+                fontSize: "0.95rem",
+                "&:hover": {
+                  bgcolor: "#F0FDF4",
+                  borderColor: "#15803D",
+                  color: "#15803D",
+                },
+              }}
+            >
+              Suprimento
+            </MuiButton>
+          )}
+
+          {onOpenBleed && (
+            <MuiButton
+              variant="outlined"
+              fullWidth
+              onClick={onOpenBleed}
+              startIcon={<Minus size={22} strokeWidth={2.5} />}
+              sx={{
+                color: "#D97706",
+                borderColor: "#D97706",
+                bgcolor: "#ffffff",
+                fontWeight: 800,
+                borderRadius: 2.5,
+                py: 1,
+                textTransform: "none",
+                fontSize: "0.95rem",
+                "&:hover": {
+                  bgcolor: "#FFFBEB",
+                  borderColor: "#B45309",
+                  color: "#B45309",
+                },
+              }}
+            >
+              Sangria
+            </MuiButton>
+          )}
         </Box>
 
         {/* Main Action Button */}

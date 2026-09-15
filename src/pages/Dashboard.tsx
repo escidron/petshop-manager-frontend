@@ -366,6 +366,18 @@ const Dashboard = () => {
             queryClient.invalidateQueries({
               queryKey: ["pos-client"],
             });
+            queryClient.invalidateQueries({
+              queryKey: ["clientPackages"],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["sales"],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["commissions"],
+            });
+            queryClient.invalidateQueries({
+              queryKey: ["open-invoices"],
+            });
             if (flow.waitingListEntryId) {
               deleteWaitingListEntry(flow.waitingListEntryId);
             }

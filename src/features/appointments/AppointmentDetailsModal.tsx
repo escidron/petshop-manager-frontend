@@ -37,6 +37,7 @@ import {
 } from "../../api/services/client_packages";
 import { fetchClientById } from "../../api/services/clients";
 import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../hooks/useAuth";
 import {
   CalendarCheck,
   Check,
@@ -88,6 +89,8 @@ const AppointmentDetailsModal = ({
 }: Props) => {
   const navigate = useNavigate();
   const toast = useToast();
+  const { user } = useAuth();
+  const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin";
   const queryClient = useQueryClient();
   const [cancelConfirmOpen, setCancelConfirmOpen] = useState(false);
   const [serviceToRemove, setServiceToRemove] = useState<{
@@ -876,43 +879,65 @@ const AppointmentDetailsModal = ({
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: "flex-end",
+                        justifyContent: isOwnerOrAdmin ? "space-between" : "flex-end",
+                        alignItems: "center",
                         gap: 1,
+                        flexWrap: "wrap",
                       }}
                     >
-                      {appointment.is_paid ? (
-                        <Chip
-                          label="PAGO"
-                          color="success"
-                          size="small"
-                          variant="filled"
-                          sx={{ fontWeight: 900, px: 1 }}
-                        />
-                      ) : appointment.is_fully_package_covered ? (
-                        <Chip
-                          label="PAGO"
-                          color="success"
-                          size="small"
-                          variant="filled"
-                          icon={<ShoppingBag size={13} />}
-                          sx={{ fontWeight: 900, px: 1 }}
-                        />
-                      ) : (
+                      {isOwnerOrAdmin && (
                         <Button
+                          variant="outlined"
                           size="small"
-                          color="primary"
-                          variant="contained"
-                          startIcon={<ShoppingCart size={16} />}
-                          onClick={() => {
-                            navigate("/pos", {
-                              state: { pullAppointment: appointment },
-                            });
+                          startIcon={<Pencil size={14} />}
+                          onClick={() => onEdit(appointment)}
+                          sx={{
+                            color: "#4B5563",
+                            borderColor: "#D1D5DB",
+                            fontWeight: 700,
+                            fontSize: "0.8rem",
+                            "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F3F4F6" },
                           }}
-                          sx={{ width: { xs: "100%", sm: "auto" } }}
                         >
-                          Cobrar no Caixa
+                          Editar Agendamento
                         </Button>
                       )}
+
+                      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                        {appointment.is_paid ? (
+                          <Chip
+                            label="PAGO"
+                            color="success"
+                            size="small"
+                            variant="filled"
+                            sx={{ fontWeight: 900, px: 1 }}
+                          />
+                        ) : appointment.is_fully_package_covered ? (
+                          <Chip
+                            label="PAGO"
+                            color="success"
+                            size="small"
+                            variant="filled"
+                            icon={<ShoppingBag size={13} />}
+                            sx={{ fontWeight: 900, px: 1 }}
+                          />
+                        ) : (
+                          <Button
+                            size="small"
+                            color="primary"
+                            variant="contained"
+                            startIcon={<ShoppingCart size={16} />}
+                            onClick={() => {
+                              navigate("/pos", {
+                                state: { pullAppointment: appointment },
+                              });
+                            }}
+                            sx={{ width: { xs: "100%", sm: "auto" } }}
+                          >
+                            Cobrar no Caixa
+                          </Button>
+                        )}
+                      </Box>
                     </Box>
                   </>
                 )}

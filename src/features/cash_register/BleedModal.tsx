@@ -63,6 +63,7 @@ export default function BleedModal({
       toast.success("Sangria de caixa realizada com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["cash-status"] });
       queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-sessions-statement"] });
       onClose();
     },
     onError: (error: any) => {
