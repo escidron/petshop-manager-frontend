@@ -221,3 +221,36 @@ export const exportFinancialBillsExcel = async (
   });
   return response.data;
 };
+
+export interface BillAlertItem {
+  id: number;
+  description: string;
+  amount: number;
+  due_date: string;
+  urgency: "today" | "tomorrow" | "overdue";
+  days_diff: number;
+  supplier_name?: string | null;
+  category_name?: string | null;
+  document_number?: string | null;
+  barcode?: string | null;
+}
+
+export interface BillAlertsResponse {
+  total_count: number;
+  today_count: number;
+  tomorrow_count: number;
+  overdue_count: number;
+  alerts: BillAlertItem[];
+}
+
+export const getBillDueAlerts = async (): Promise<BillAlertsResponse> => {
+  const response = await apiClient.get<BillAlertsResponse>("/api/v1/financial/bills/due-alerts");
+  return response.data;
+};
+
+export const getBillInstallments = async (billId: number): Promise<FinancialBill[]> => {
+  const response = await apiClient.get<FinancialBill[]>(`/api/v1/financial/bills/${billId}/installments`);
+  return response.data;
+};
+
+

@@ -27,6 +27,9 @@ import {
   Split,
 } from "lucide-react";
 import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { toast } from "react-toastify";
 import { Button } from "../../../components/Button/Button";
 import MoneyInput from "../MoneyInput";
@@ -70,14 +73,39 @@ function FieldLabel({ children, required }: { children: React.ReactNode; require
       sx={{ display: "block", mb: 0.5, fontSize: "0.78rem" }}
     >
       {children}
-      {required && (
-        <Typography component="span" color="error.main" sx={{ ml: 0.5, fontWeight: 700 }}>
-          *
-        </Typography>
-      )}
+      {required && <span style={{ color: "#EF4444", marginLeft: 2 }}>*</span>}
     </Typography>
   );
 }
+
+const dayOfWeekFormatter = (day: dayjs.Dayjs) => {
+  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+  return days[day.day()];
+};
+
+const datePickerPopperSx = {
+  "& .MuiDayCalendar-weekDayLabel": {
+    color: "#3d4048 !important",
+    fontWeight: 700,
+    fontSize: "0.75rem",
+  },
+  "& .MuiPickersDay-root": {
+    color: "#3d4048 !important",
+    "&.Mui-selected": {
+      color: "white !important",
+    },
+    "&.Mui-disabled": {
+      color: "#b8bbc2 !important",
+      opacity: 0.4,
+    },
+  },
+  "& .MuiPickersCalendarHeader-label": {
+    color: "#3d4048 !important",
+  },
+  "& .MuiPickersArrowSwitcher-button": {
+    color: "#3d4048 !important",
+  },
+};
 
 export default function BillFormModal({
   open,
@@ -403,37 +431,67 @@ export default function BillFormModal({
             </Box>
           </Box>
 
-          {/* Datas: Vencimento e Emissão */}
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            <Box>
-              <FieldLabel required>Data de Vencimento</FieldLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="date"
-                value={dueDate}
-                onChange={(e) => {
-                  setDueDate(e.target.value);
-                  if (errors.dueDate) {
-                    setErrors((prev) => ({ ...prev, dueDate: undefined }));
-                  }
-                }}
-                error={Boolean(errors.dueDate)}
-                helperText={errors.dueDate}
-              />
-            </Box>
+          {/* Datas: Vencimento e Emissão com DatePicker */}
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <Box>
+                <FieldLabel required>Data de Vencimento</FieldLabel>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={dueDate ? dayjs(dueDate) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setDueDate(newDate.format("YYYY-MM-DD"));
+                      if (errors.dueDate) {
+                        setErrors((prev) => ({ ...prev, dueDate: undefined }));
+                      }
+                    } else {
+                      setDueDate("");
+                    }
+                  }}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
+                  slotProps={{
+                    popper: {
+                      sx: datePickerPopperSx,
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                      error: Boolean(errors.dueDate),
+                      helperText: errors.dueDate,
+                    },
+                  }}
+                />
+              </Box>
 
-            <Box>
-              <FieldLabel>Data de Emissão / Competência</FieldLabel>
-              <TextField
-                size="small"
-                fullWidth
-                type="date"
-                value={issueDate}
-                onChange={(e) => setIssueDate(e.target.value)}
-              />
+              <Box>
+                <FieldLabel>Data de Emissão / Competência</FieldLabel>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={issueDate ? dayjs(issueDate) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setIssueDate(newDate.format("YYYY-MM-DD"));
+                    } else {
+                      setIssueDate("");
+                    }
+                  }}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
+                  slotProps={{
+                    popper: {
+                      sx: datePickerPopperSx,
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                    },
+                  }}
+                />
+              </Box>
             </Box>
-          </Box>
+          </LocalizationProvider>
 
           {/* Categoria DRE e Fornecedor/Cliente */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>

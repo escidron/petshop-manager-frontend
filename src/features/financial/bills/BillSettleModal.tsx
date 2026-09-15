@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, type FormEvent, type ReactNode } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -9,8 +9,6 @@ import {
   Typography,
   IconButton,
   TextField,
-  FormControl,
-  InputLabel,
   Select,
   MenuItem,
   CircularProgress,
@@ -19,6 +17,9 @@ import {
 } from "@mui/material";
 import { X, CheckCircle2 } from "lucide-react";
 import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { toast } from "react-toastify";
 import MoneyInput from "../MoneyInput";
 import type { FinancialBill, FinancialBillSettle } from "./types";
@@ -40,6 +41,49 @@ const PAYMENT_METHODS = [
   { value: "other", label: "Outro" },
 ];
 
+function FieldLabel({ children, required }: { children: ReactNode; required?: boolean }) {
+  return (
+    <Typography
+      variant="caption"
+      fontWeight={700}
+      color="text.secondary"
+      sx={{ display: "block", mb: 0.5, fontSize: "0.78rem" }}
+    >
+      {children}
+      {required && <span style={{ color: "#EF4444", marginLeft: 2 }}>*</span>}
+    </Typography>
+  );
+}
+
+const dayOfWeekFormatter = (day: dayjs.Dayjs) => {
+  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+  return days[day.day()];
+};
+
+const datePickerPopperSx = {
+  "& .MuiDayCalendar-weekDayLabel": {
+    color: "#3d4048 !important",
+    fontWeight: 700,
+    fontSize: "0.75rem",
+  },
+  "& .MuiPickersDay-root": {
+    color: "#3d4048 !important",
+    "&.Mui-selected": {
+      color: "white !important",
+    },
+    "&.Mui-disabled": {
+      color: "#b8bbc2 !important",
+      opacity: 0.4,
+    },
+  },
+  "& .MuiPickersCalendarHeader-label": {
+    color: "#3d4048 !important",
+  },
+  "& .MuiPickersArrowSwitcher-button": {
+    color: "#3d4048 !important",
+  },
+};
+
 export default function BillSettleModal({ open, onClose, bill, onSettle }: Props) {
   const [paymentDate, setPaymentDate] = useState(dayjs().format("YYYY-MM-DD"));
   const [paidAmount, setPaidAmount] = useState<number>(0);
@@ -49,6 +93,9 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [paidAmountError, setPaidAmountError] = useState<string>("");
+  const [paymentDateError, setPaymentDateError] = useState<string>("");
+
   useEffect(() => {
     if (bill) {
       setPaymentDate(dayjs().format("YYYY-MM-DD"));
@@ -57,6 +104,8 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
       setFineAmount(0);
       setPaymentMethod(bill.payment_method || "pix");
       setNotes("");
+      setPaidAmountError("");
+      setPaymentDateError("");
     }
   }, [bill, open]);
 
@@ -64,10 +113,26 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
 
   const isPayable = bill.bill_type === "payable";
 
-  const handleConfirm = async (e: React.FormEvent) => {
+  const handleConfirm = async (e: FormEvent) => {
     e.preventDefault();
-    if (!paidAmount || paidAmount < 0) {
-      toast.error("Informe um valor pago válido.");
+    let hasError = false;
+
+    if (!paymentDate) {
+      setPaymentDateError("Informe a data do pagamento.");
+      hasError = true;
+    } else {
+      setPaymentDateError("");
+    }
+
+    if (!paidAmount || paidAmount <= 0) {
+      setPaidAmountError("O valor deve ser maior que zero.");
+      hasError = true;
+    } else {
+      setPaidAmountError("");
+    }
+
+    if (hasError) {
+      toast.error("Por favor, preencha os campos obrigatórios corretamente.");
       return;
     }
 
@@ -170,34 +235,60 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
 
           {/* Dados da Liquidação */}
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
-            <TextField
-              label="Data do Pagamento *"
-              size="small"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={paymentDate}
-              onChange={(e) => setPaymentDate(e.target.value)}
-              required
-            />
+            <Box>
+              <FieldLabel required>Data do Pagamento</FieldLabel>
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={paymentDate ? dayjs(paymentDate) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setPaymentDate(newDate.format("YYYY-MM-DD"));
+                      setPaymentDateError("");
+                    } else {
+                      setPaymentDate("");
+                    }
+                  }}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
+                  slotProps={{
+                    popper: {
+                      sx: datePickerPopperSx,
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                      error: Boolean(paymentDateError),
+                      helperText: paymentDateError,
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+            </Box>
 
             <Box>
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                {isPayable ? "Valor Efetivamente Pago *" : "Valor Efetivamente Recebido *"}
-              </Typography>
+              <FieldLabel required>
+                {isPayable ? "Valor Efetivamente Pago" : "Valor Efetivamente Recebido"}
+              </FieldLabel>
               <MoneyInput
                 value={paidAmount}
-                onChange={(val) => setPaidAmount(val)}
+                onChange={(val) => {
+                  setPaidAmount(val);
+                  if (val > 0) {
+                    setPaidAmountError("");
+                  }
+                }}
                 placeholder="0,00"
                 fullWidth
+                error={Boolean(paidAmountError)}
+                helperText={paidAmountError}
               />
             </Box>
           </Box>
 
           <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
             <Box>
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                Desconto Obtido / Concedido
-              </Typography>
+              <FieldLabel>Desconto Obtido / Concedido</FieldLabel>
               <MoneyInput
                 value={discountAmount}
                 onChange={(val) => setDiscountAmount(val)}
@@ -207,9 +298,7 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
             </Box>
 
             <Box>
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                Juros / Multa
-              </Typography>
+              <FieldLabel>Juros / Multa</FieldLabel>
               <MoneyInput
                 value={fineAmount}
                 onChange={(val) => setFineAmount(val)}
@@ -219,12 +308,12 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
             </Box>
           </Box>
 
-          <FormControl size="small" fullWidth>
-            <InputLabel id="settle-payment-method-label">Forma de Pagamento Utilizada</InputLabel>
+          <Box>
+            <FieldLabel required>Forma de Pagamento Utilizada</FieldLabel>
             <Select
-              labelId="settle-payment-method-label"
+              size="small"
+              fullWidth
               value={paymentMethod}
-              label="Forma de Pagamento Utilizada"
               onChange={(e) => setPaymentMethod(e.target.value)}
             >
               {PAYMENT_METHODS.map((m) => (
@@ -233,18 +322,20 @@ export default function BillSettleModal({ open, onClose, bill, onSettle }: Props
                 </MenuItem>
               ))}
             </Select>
-          </FormControl>
+          </Box>
 
-          <TextField
-            label="Observações da Liquidação (opcional)"
-            size="small"
-            multiline
-            rows={2}
-            placeholder="Ex: Pago via app do banco, comprovante guardado..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            fullWidth
-          />
+          <Box>
+            <FieldLabel>Observações da Liquidação (opcional)</FieldLabel>
+            <TextField
+              size="small"
+              multiline
+              rows={2}
+              placeholder="Ex: Pago via app do banco, comprovante guardado..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              fullWidth
+            />
+          </Box>
         </DialogContent>
 
         <DialogActions sx={{ p: 2, borderTop: "1px solid", borderColor: "divider", gap: 1 }}>
