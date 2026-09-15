@@ -161,14 +161,15 @@ export default function POSInterface() {
   const { data: fetchedCashStatus, isLoading: isCashStatusLoading } = useQuery({
     queryKey: ["cash-status", selectedRegisterId],
     queryFn: () => getCurrentCashStatus(selectedRegisterId),
-    enabled: hasSwitchedRegister,
     placeholderData: keepPreviousData,
-    staleTime: 1000 * 30, // 30s cache
+    staleTime: 1000 * 15,
   });
 
-  const cashStatus = hasSwitchedRegister
-    ? (fetchedCashStatus ?? startupData?.cash_status)
-    : (startupData?.cash_status ?? fetchedCashStatus);
+  const cashStatus = fetchedCashStatus ?? startupData?.cash_status;
+
+  const effectiveDrawerBalance = cashStatus?.is_open
+    ? (cashStatus.current_session?.current_balance ?? 0)
+    : (cashStatus?.suggested_opening_amount ?? 0);
 
   useEffect(() => {
     if (cashStatus?.is_open && isOpenCashModalOpen) {
@@ -788,7 +789,7 @@ export default function POSInterface() {
           <SupplyModal
             open={isSupplyModalOpen}
             onClose={() => setIsSupplyModalOpen(false)}
-            currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+            currentBalance={effectiveDrawerBalance}
             cashRegisterId={selectedRegisterId}
           />
         )}
@@ -797,7 +798,7 @@ export default function POSInterface() {
           <BleedModal
             open={isBleedModalOpen}
             onClose={() => setIsBleedModalOpen(false)}
-            currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+            currentBalance={effectiveDrawerBalance}
             cashRegisterId={selectedRegisterId}
           />
         )}
@@ -1386,7 +1387,7 @@ export default function POSInterface() {
         <SupplyModal
           open={isSupplyModalOpen}
           onClose={() => setIsSupplyModalOpen(false)}
-          currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+          currentBalance={effectiveDrawerBalance}
           cashRegisterId={selectedRegisterId}
         />
       )}
@@ -1395,7 +1396,7 @@ export default function POSInterface() {
         <BleedModal
           open={isBleedModalOpen}
           onClose={() => setIsBleedModalOpen(false)}
-          currentBalance={cashStatus?.current_session?.current_balance ?? 0}
+          currentBalance={effectiveDrawerBalance}
           cashRegisterId={selectedRegisterId}
         />
       )}
