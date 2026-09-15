@@ -44,6 +44,10 @@ export interface AppointmentStatusUI {
   label: string;
   palette: StatusPalette;
   icon: LucideIcon;
+  color?: string;
+  bg?: string;
+  textColor?: string;
+  borderColor?: string;
 }
 
 export type TimelineBlock =

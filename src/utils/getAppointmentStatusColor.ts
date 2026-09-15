@@ -1,4 +1,5 @@
 import { Hourglass,CalendarCheck, Play, Ban,  X, Check      } from 'lucide-react';
+import { amber, orange } from '@mui/material/colors';
 import type { AppointmentStatus, AppointmentStatusUI } from '../features/appointments/types';
 
 export const APPOINTMENT_STATUSES = [
@@ -17,6 +18,8 @@ export const APPOINTMENT_STATUS_UI = {
     label: "Pendente",
     palette: "warning",
     icon: Hourglass,
+    color: amber[600],
+    bg: amber[300],
   },
   confirmed: {
     label: "Confirmado",
@@ -27,6 +30,8 @@ export const APPOINTMENT_STATUS_UI = {
     label: "Em andamento",
     palette: "warning",
     icon: Play,
+    color: "#ff751f",
+    bg: orange[300],
   },
   completed: {
     label: "Finalizado",

@@ -478,6 +478,9 @@ export default function FinancialBillsPage() {
               <TableCell sx={{ fontWeight: 800, fontSize: "0.78rem", py: 1.25 }}>
                 FORNECEDOR / CLIENTE
               </TableCell>
+              <TableCell sx={{ fontWeight: 800, fontSize: "0.78rem", py: 1.25, maxWidth: 180 }}>
+                OBSERVAÇÃO
+              </TableCell>
               <TableCell sx={{ fontWeight: 800, fontSize: "0.78rem", py: 1.25, width: 140 }}>
                 VENCIMENTO
               </TableCell>
@@ -499,7 +502,7 @@ export default function FinancialBillsPage() {
           <TableBody>
             {isLoadingBills ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     Carregando contas...
@@ -508,7 +511,7 @@ export default function FinancialBillsPage() {
               </TableRow>
             ) : !billsData?.items || billsData.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                   <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                     <WalletCards size={40} color="#9CA3AF" />
                     <Typography variant="subtitle1" fontWeight={700} color="text.primary">
@@ -614,6 +617,33 @@ export default function FinancialBillsPage() {
                       <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: "0.82rem" }}>
                         {isPayable ? bill.supplier_name || "-" : bill.client_name || "-"}
                       </Typography>
+                    </TableCell>
+
+                    {/* Observação */}
+                    <TableCell sx={{ maxWidth: 180 }}>
+                      {bill.notes ? (
+                        <Tooltip title={bill.notes} arrow placement="top">
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              fontSize: "0.8rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: 170,
+                              display: "block",
+                              cursor: "default",
+                            }}
+                          >
+                            {bill.notes}
+                          </Typography>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.8rem" }}>
+                          -
+                        </Typography>
+                      )}
                     </TableCell>
 
                     {/* Vencimento */}
