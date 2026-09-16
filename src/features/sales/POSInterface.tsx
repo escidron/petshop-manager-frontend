@@ -16,11 +16,12 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import { User, ShoppingCart, X, Receipt } from "lucide-react";
+import { User, ShoppingCart, X, Receipt, ShoppingBag } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda } from "../../api/services/sales";
+import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda, listSales } from "../../api/services/sales";
+import DaySalesModal from "../reports/DaySalesModal";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
 import SaleReceiptModal from "./SaleReceiptModal";
@@ -86,11 +87,25 @@ export default function POSInterface() {
   const [completedSaleForReceipt, setCompletedSaleForReceipt] = useState<SaleResponse | null>(null);
   const [lastCompletedSale, setLastCompletedSale] = useState<SaleResponse | null>(null);
   const [isSaleReceiptOpen, setIsSaleReceiptOpen] = useState(false);
+  const [isDaySalesOpen, setIsDaySalesOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientListLimit, setClientListLimit] = useState(20);
   const [pendingRemoveItemIndex, setPendingRemoveItemIndex] = useState<number | null>(null);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+
+  const todayStr = dayjs().format("YYYY-MM-DD");
+  const { data: todaySales = [], refetch: refetchDaySales, isFetching: isFetchingDaySales } = useQuery({
+    queryKey: ["day-sales", todayStr],
+    queryFn: () => listSales(todayStr, todayStr),
+    staleTime: 0,
+  });
+
+  const handleOpenDaySales = () => {
+    queryClient.invalidateQueries({ queryKey: ["day-sales"] });
+    refetchDaySales();
+    setIsDaySalesOpen(true);
+  };
 
   // Cash Register Selection (Multi-Terminal)
   const [selectedRegisterId, setSelectedRegisterId] = useState<number | null>(() => {
@@ -353,7 +368,7 @@ export default function POSInterface() {
         pet_ids: item.pet_ids || undefined,
         client_package_id_to_pay: item.client_package_id_to_pay || null,
         unit: item.unit || "UN",
-        appointment_id: item.appointment_id || comanda.appointment_id || undefined,
+        appointment_id: item.appointment_id || (item.item_type === "service" ? comanda.appointment_id || undefined : undefined),
       }))
     );
     setComandaSyncStatus("saved");
@@ -599,11 +614,71 @@ export default function POSInterface() {
     setActiveComandaId(null);
     setComandaSyncStatus("idle");
 
-    // Always fetch fresh client comanda directly from backend
+    // Always fetch fresh client comanda directly from backend and unify any open appointments
     try {
       const details = await fetchPOSClientDetails(appointment.client.id);
-      if (details.open_comandas && details.open_comandas.length > 0) {
-        handlePullComanda(details.open_comandas[0]);
+      const openComanda = details.open_comandas?.[0];
+
+      let initialCart: SaleItem[] = [];
+      if (openComanda) {
+        initialCart = (openComanda.items || []).map((item) => ({
+          item_id: item.item_id,
+          item_type: item.item_type,
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+          employee_id: item.employee_id || null,
+          pet_ids: item.pet_ids || undefined,
+          client_package_id_to_pay: item.client_package_id_to_pay || null,
+          unit: item.unit || "UN",
+          appointment_id: item.appointment_id || (item.item_type === "service" ? openComanda.appointment_id || undefined : undefined),
+        }));
+        setActiveComandaId(openComanda.id);
+        const discCents = Math.round((openComanda.discount_amount || 0) * 100);
+        setDiscountCents(discCents);
+        const itemsSubtotal = (openComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
+        if (itemsSubtotal > 0 && openComanda.discount_amount > 0) {
+          setDiscountPctInput(((openComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+        } else {
+          setDiscountPctInput("0");
+        }
+      }
+
+      // Check all unpaid completed appointments of this client (including the clicked one)
+      const allClientAppointments = [
+        appointment,
+        ...(details.client_appointments || []).filter(
+          (a) => a.status === "completed" && !a.is_paid && !a.is_fully_package_covered && a.id !== appointment.id
+        ),
+      ];
+
+      for (const apt of allClientAppointments) {
+        for (const item of apt.items) {
+          for (const s of item.services) {
+            const alreadyExists = initialCart.some(
+              (ci) => ci.appointment_id === apt.id && ci.item_id === s.id && ci.item_type === "service"
+            );
+            if (!alreadyExists) {
+              initialCart.push({
+                item_id: s.id,
+                item_type: "service",
+                name: s.is_package_covered ? `${s.name} (via pacote)` : s.name,
+                quantity: 1,
+                unit_price: s.is_package_covered ? 0 : s.price_cents / 100,
+                subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
+                employee_id: s.employee_id || null,
+                pet_ids: [item.pet.id],
+                appointment_id: apt.id,
+              });
+            }
+          }
+        }
+      }
+
+      if (initialCart.length > 0) {
+        setCart(initialCart);
+        setComandaSyncStatus(openComanda ? "saved" : "idle");
         return;
       }
     } catch {
@@ -930,6 +1005,25 @@ export default function POSInterface() {
                 </Box>
               </Box>
               <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                <Button
+                  variant="outlined"
+                  size="small"
+                  startIcon={<ShoppingBag size={15} />}
+                  onClick={handleOpenDaySales}
+                  sx={{
+                    color: "#313485",
+                    borderColor: "#C7D2FE",
+                    bgcolor: "#EEF2FF",
+                    flexShrink: 0,
+                    fontSize: { xs: "0.72rem", sm: "0.82rem" },
+                    py: { xs: 0.5, sm: 0.75 },
+                    px: { xs: 1, sm: 1.5 },
+                    whiteSpace: "nowrap",
+                    "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
+                  }}
+                >
+                  Vendas do Dia
+                </Button>
                 {lastCompletedSale && (
                   <Button
                     variant="outlined"
@@ -1043,6 +1137,7 @@ export default function POSInterface() {
                 onOpenBleedModal={() => setIsBleedModalOpen(true)}
                 onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
                 onOpenStatementModal={() => setIsStatementModalOpen(true)}
+                onOpenDaySalesModal={handleOpenDaySales}
               />
             }
             onUpdateQuantity={handleUpdateQuantity}
@@ -1205,6 +1300,7 @@ export default function POSInterface() {
                   onOpenBleedModal={() => setIsBleedModalOpen(true)}
                   onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
                   onOpenStatementModal={() => setIsStatementModalOpen(true)}
+                  onOpenDaySalesModal={handleOpenDaySales}
                 />
               }
               onUpdateQuantity={handleUpdateQuantity}
@@ -1240,6 +1336,9 @@ export default function POSInterface() {
           cashRegisterId={selectedRegisterId}
           onSuccess={(sale) => {
             endSession();
+            queryClient.invalidateQueries({ queryKey: ["day-sales"] });
+            queryClient.invalidateQueries({ queryKey: ["sales"] });
+            refetchDaySales();
             if (sale) {
               setCompletedSaleForReceipt(sale);
               setLastCompletedSale(sale);
@@ -1507,6 +1606,18 @@ export default function POSInterface() {
             </Button>
           </DialogActions>
         </Dialog>
+      )}
+
+      {/* ── Modal de Vendas do Dia / Cancelamento ── */}
+      {isDaySalesOpen && (
+        <DaySalesModal
+          open={isDaySalesOpen}
+          date={todayStr}
+          sales={todaySales}
+          onRefresh={refetchDaySales}
+          isLoading={isFetchingDaySales}
+          onClose={() => setIsDaySalesOpen(false)}
+        />
       )}
     </Box>
   );

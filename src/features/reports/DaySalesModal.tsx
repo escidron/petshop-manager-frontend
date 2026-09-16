@@ -23,6 +23,8 @@ import {
 } from "@mui/material";
 import { useState, useMemo } from "react";
 import dayjs from "dayjs";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { listSales } from "../../api/services/sales";
 import {
   X,
   Calendar,
@@ -34,6 +36,7 @@ import {
   Receipt,
   Clock,
   ArrowRight,
+  RefreshCw,
 } from "lucide-react";
 import type { SaleResponse } from "../sales/schemas";
 import SaleDetailsModal from "../sales/SaleDetailsModal";
@@ -42,7 +45,9 @@ import { formatPaymentMethod } from "../../utils/formatPaymentMethod";
 interface DaySalesModalProps {
   open: boolean;
   date: string | null;
-  sales: SaleResponse[];
+  sales?: SaleResponse[];
+  onRefresh?: () => void;
+  isLoading?: boolean;
   onClose: () => void;
 }
 
@@ -90,10 +95,25 @@ const PAYMENT_CHIP_COLORS: Record<string, { bg: string; text: string; border: st
   other: { bg: "#f1f5f9", text: "#64748b", border: "#cbd5e1" },
 };
 
-export default function DaySalesModal({ open, date, sales, onClose }: DaySalesModalProps) {
+export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoading, onClose }: DaySalesModalProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [channelFilter, setChannelFilter] = useState<"all" | "pdv" | "appointment">("all");
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+  const [isManualRefreshing, setIsManualRefreshing] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  // Auto-fetch fresh sales for the selected date on open / invalidation
+  const { data: fetchedSales, isFetching, refetch } = useQuery({
+    queryKey: ["day-sales", date],
+    queryFn: () => (date ? listSales(date, date) : Promise.resolve([])),
+    enabled: open && Boolean(date),
+    staleTime: 0,
+    initialData: sales && sales.length > 0 ? sales : undefined,
+  });
+
+  const effectiveSales = fetchedSales || sales;
+  const isSyncing = isFetching || isManualRefreshing || Boolean(isLoading);
 
   // Formatted date string (e.g. "Domingo, 06 de setembro de 2026")
   const formattedFullDate = useMemo(() => {
@@ -106,8 +126,8 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
 
   // Daily statistics
   const stats = useMemo(() => {
-    const completed = sales.filter((s) => s.status === "completed");
-    const canceled = sales.filter((s) => s.status === "canceled");
+    const completed = effectiveSales.filter((s) => s.status === "completed");
+    const canceled = effectiveSales.filter((s) => s.status === "canceled");
 
     const totalRevenueCents = Math.round(
       completed.reduce((acc, s) => acc + (s.total_amount || 0), 0) * 100
@@ -155,11 +175,11 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
       totalItemsCount,
       paymentMethods,
     };
-  }, [sales]);
+  }, [effectiveSales]);
 
   // Filtered sales based on search and channel
   const filteredSales = useMemo(() => {
-    return sales
+    return effectiveSales
       .filter((s) => {
         // Channel filter
         if (channelFilter === "pdv" && s.appointment_id) return false;
@@ -179,7 +199,7 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
         return matchId || matchClient || matchPet || matchItem;
       })
       .sort((a, b) => dayjs(b.created_at).valueOf() - dayjs(a.created_at).valueOf());
-  }, [sales, channelFilter, searchTerm]);
+  }, [effectiveSales, channelFilter, searchTerm]);
 
   return (
     <>
@@ -252,6 +272,43 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Tooltip title="Atualizar vendas do dia">
+              <span>
+                <IconButton
+                  onClick={async () => {
+                    setIsManualRefreshing(true);
+                    try {
+                      if (onRefresh) onRefresh();
+                      await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["day-sales"] }),
+                        refetch(),
+                      ]);
+                    } finally {
+                      setIsManualRefreshing(false);
+                    }
+                  }}
+                  disabled={isSyncing}
+                  size="small"
+                  sx={{
+                    color: "text.secondary",
+                    "&:hover": { bgcolor: "#e2e8f0", color: "#313485" },
+                  }}
+                >
+                  <Box
+                    component={RefreshCw}
+                    size={19}
+                    sx={{
+                      animation: isSyncing ? "spin 1s linear infinite" : "none",
+                      "@keyframes spin": {
+                        "0%": { transform: "rotate(0deg)" },
+                        "100%": { transform: "rotate(360deg)" },
+                      },
+                    }}
+                  />
+                </IconButton>
+              </span>
+            </Tooltip>
+
             <IconButton
               onClick={onClose}
               size="small"
@@ -463,7 +520,7 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
 
             <Stack direction="row" spacing={1}>
               <Chip
-                label={`Todas (${sales.length})`}
+                label={`Todas (${effectiveSales.length})`}
                 clickable
                 color={channelFilter === "all" ? "primary" : "default"}
                 variant={channelFilter === "all" ? "filled" : "outlined"}
@@ -471,7 +528,7 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
                 sx={{ fontWeight: 600, borderRadius: 2 }}
               />
               <Chip
-                label={`PDV (${sales.filter((s) => !s.appointment_id).length})`}
+                label={`PDV (${effectiveSales.filter((s) => !s.appointment_id).length})`}
                 clickable
                 color={channelFilter === "pdv" ? "primary" : "default"}
                 variant={channelFilter === "pdv" ? "filled" : "outlined"}
@@ -479,7 +536,7 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
                 sx={{ fontWeight: 600, borderRadius: 2 }}
               />
               <Chip
-                label={`Agendamento (${sales.filter((s) => Boolean(s.appointment_id)).length})`}
+                label={`Agendamento (${effectiveSales.filter((s) => Boolean(s.appointment_id)).length})`}
                 clickable
                 color={channelFilter === "appointment" ? "primary" : "default"}
                 variant={channelFilter === "appointment" ? "filled" : "outlined"}
@@ -748,7 +805,7 @@ export default function DaySalesModal({ open, date, sales, onClose }: DaySalesMo
           }}
         >
           <Typography variant="caption" color="text.secondary" fontWeight={500}>
-            Exibindo {filteredSales.length} de {sales.length} vendas registradas no dia
+            Exibindo {filteredSales.length} de {effectiveSales.length} vendas registradas no dia
           </Typography>
           <Button
             variant="contained"

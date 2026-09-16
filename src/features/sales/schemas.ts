@@ -19,6 +19,9 @@ export const SaleItemSchema = z.object({
   client_package_id_to_pay: z.number().nullable().optional(),
   unit: z.string().optional(),
   appointment_id: z.number().nullable().optional(),
+  status: z.enum(["active", "canceled"]).optional(),
+  cancel_reason: z.string().nullable().optional(),
+  canceled_at: z.string().nullable().optional(),
 });
 
 export const SalePaymentSchema = z.object({
@@ -35,6 +38,8 @@ export const SaleCreateSchema = z.object({
   discount_amount: z.number().min(0).default(0),
   payment_method: z.enum(["pix", "credit_card", "debit_card", "money", "other", "package", "multiple"]),
   status: z.enum(["completed", "canceled"]).default("completed"),
+  cancel_reason: z.string().nullable().optional(),
+  canceled_at: z.string().nullable().optional(),
   items: z.array(SaleItemSchema).min(1, "Adicione pelo menos um item"),
   payments: z.array(SalePaymentSchema).optional(),
   cash_register_id: z.number().nullable().optional(),

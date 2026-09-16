@@ -96,6 +96,9 @@ const theme = createTheme({
         loadingText: "Carregando...",
       },
       styleOverrides: {
+        paper: {
+          overflow: "hidden",
+        },
         noOptions: {
           color: "#3d4048",
         },
