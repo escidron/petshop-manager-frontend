@@ -255,7 +255,7 @@ const SignupPage = () => {
             sx={{ opacity: 0.8, mb: 5, fontSize: "1.1rem", maxWidth: 450 }}
           >
             {step === 1 &&
-              "Aproveite 6 meses grátis do Data Pet Pro e adicione mensagens automáticas se desejar."}
+              "Aproveite 1 mês grátis do Data Pet Pro e adicione mensagens automáticas se desejar."}
             {step === 2 &&
               "Junte-se a milhares de empreendedores que transformaram a gestão de seus pets."}
             {step === 3 &&
@@ -426,13 +426,13 @@ const SignupPage = () => {
                           fontWeight: 800,
                         }}
                       >
-                        🎁 6 meses grátis
+                        🎁 1º mês grátis
                       </Box>
                     </Box>
                     <Typography sx={{ fontSize: "0.78rem", color: "#64748B", mt: 0.2 }}>
                       {selectedPackage
                         ? `+ ${formatPackageCount(selectedPackage)} msgs WhatsApp (${getPackagePrice(selectedPackage)}/mês)`
-                        : "Sem pacote de mensagens (100% gratuito nos 6 primeiros meses)"}
+                        : "Sem pacote de mensagens (100% gratuito no 1º mês)"}
                     </Typography>
                   </Box>
                 </Box>
