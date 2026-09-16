@@ -16,7 +16,7 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import { User, ShoppingCart, X, Receipt, ShoppingBag } from "lucide-react";
+import { User, ShoppingCart, X, CalendarDays, Printer } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
@@ -937,98 +937,15 @@ export default function POSInterface() {
         }}
       >
         <Box sx={{ display: "flex", flexDirection: "column", height: { xs: "auto", lg: "100%" }, width: "100%" }}>
-          {selectedClient ? (
-            <Paper
-              elevation={0}
-              sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 1, width: "100%", boxSizing: "border-box" }}
-            >
-              <POSSessionHeader
-                client={selectedClient}
-                clientPets={clientPets}
-                onBack={endSession}
-              />
-              <POSClientDashboard
-                client={selectedClient}
-                clientPets={clientPets}
-                clientAppointments={clientAppointments}
-                clientActivePackages={clientActivePackages}
-                onClearClient={endSession}
-                hideHeader
-              />
-            </Paper>
-          ) : (
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 1, sm: 1.5 },
-                mb: 1,
-                borderRadius: 3,
-                border: "1px dashed",
-                borderColor: "divider",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                bgcolor: "background.paper",
-                flexShrink: 0,
-                gap: 1,
-                width: "100%",
-                boxSizing: "border-box",
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0, flex: 1 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "text.primary",
-                    flexShrink: 0,
-                  }}
-                >
-                  <User size={18} />
-                </Box>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", fontSize: { xs: "0.85rem", sm: "0.95rem" } }} noWrap>
-                    Cliente Avulso
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.primary", opacity: 0.75, display: "block", fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
-                    noWrap
-                  >
-                    Vincule um cliente para pacotes
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                <Button
-                  variant="outlined"
-                  size="small"
-                  startIcon={<ShoppingBag size={15} />}
-                  onClick={handleOpenDaySales}
-                  sx={{
-                    color: "#313485",
-                    borderColor: "#C7D2FE",
-                    bgcolor: "#EEF2FF",
-                    flexShrink: 0,
-                    fontSize: { xs: "0.72rem", sm: "0.82rem" },
-                    py: { xs: 0.5, sm: 0.75 },
-                    px: { xs: 1, sm: 1.5 },
-                    whiteSpace: "nowrap",
-                    "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
-                  }}
-                >
-                  Vendas do Dia
-                </Button>
+          {/* ── Top Bar: Client Context & Day Operations ── */}
+          {(() => {
+            const daySalesActions = (
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexShrink: 0 }}>
                 {lastCompletedSale && (
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<Receipt size={15} />}
+                    startIcon={<Printer size={15} />}
                     onClick={() => {
                       setCompletedSaleForReceipt(lastCompletedSale);
                       setIsSaleReceiptOpen(true);
@@ -1037,10 +954,12 @@ export default function POSInterface() {
                       color: "#313485",
                       borderColor: "#C7D2FE",
                       bgcolor: "#EEF2FF",
+                      fontWeight: 600,
                       flexShrink: 0,
-                      fontSize: { xs: "0.72rem", sm: "0.82rem" },
-                      py: { xs: 0.5, sm: 0.75 },
-                      px: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.72rem", sm: "0.8rem" },
+                      py: { xs: 0.5, sm: 0.65 },
+                      px: { xs: 1, sm: 1.25 },
+                      borderRadius: 2,
                       whiteSpace: "nowrap",
                       "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
                     }}
@@ -1051,22 +970,127 @@ export default function POSInterface() {
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => setIsClientModalOpen(true)}
+                  startIcon={<CalendarDays size={15} />}
+                  onClick={handleOpenDaySales}
                   sx={{
-                    color: "text.primary",
+                    color: "#313485",
+                    borderColor: "#C7D2FE",
+                    bgcolor: "#EEF2FF",
+                    fontWeight: 700,
                     flexShrink: 0,
-                    fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                    py: { xs: 0.5, sm: 0.75 },
+                    fontSize: { xs: "0.72rem", sm: "0.82rem" },
+                    py: { xs: 0.5, sm: 0.65 },
                     px: { xs: 1.25, sm: 1.5 },
+                    borderRadius: 2,
                     whiteSpace: "nowrap",
-                    "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) },
+                    "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
                   }}
                 >
-                  Vincular
+                  Vendas do Dia
                 </Button>
               </Box>
-            </Paper>
-          )}
+            );
+
+            return selectedClient ? (
+              <Paper
+                elevation={0}
+                sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 1, width: "100%", boxSizing: "border-box" }}
+              >
+                <POSSessionHeader
+                  client={selectedClient}
+                  clientPets={clientPets}
+                  onBack={endSession}
+                  rightAction={daySalesActions}
+                />
+                <POSClientDashboard
+                  client={selectedClient}
+                  clientPets={clientPets}
+                  clientAppointments={clientAppointments}
+                  clientActivePackages={clientActivePackages}
+                  onClearClient={endSession}
+                  hideHeader
+                />
+              </Paper>
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 1, sm: 1.25 },
+                  px: { xs: 1.25, sm: 2 },
+                  mb: 1,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  bgcolor: "background.paper",
+                  flexShrink: 0,
+                  gap: 1.5,
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
+                {/* Lado Esquerdo: Info do Cliente com botão Vincular grudado nele */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0, flexWrap: "wrap" }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      color: "primary.main",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <User size={18} />
+                  </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", fontSize: { xs: "0.85rem", sm: "0.95rem" }, lineHeight: 1.2 }} noWrap>
+                      Cliente Avulso
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary", display: "block", fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+                      noWrap
+                    >
+                      Vincule um cliente para pacotes
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setIsClientModalOpen(true)}
+                    sx={{
+                      color: "primary.main",
+                      borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      fontSize: { xs: "0.75rem", sm: "0.82rem" },
+                      py: 0.5,
+                      px: { xs: 1.25, sm: 1.5 },
+                      borderRadius: 2,
+                      whiteSpace: "nowrap",
+                      ml: { xs: 0, sm: 0.5 },
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      },
+                    }}
+                  >
+                    Vincular
+                  </Button>
+                </Box>
+
+                {/* Lado Direito: Ações operacionais do caixa */}
+                {daySalesActions}
+              </Paper>
+            );
+          })()}
 
           {/* Catalog to add items to the ticket */}
           <Box sx={{ flexGrow: 1, minHeight: { xs: "auto", lg: 0 }, height: { xs: "auto", lg: "100%" } }}>
