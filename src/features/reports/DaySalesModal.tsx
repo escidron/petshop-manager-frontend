@@ -20,9 +20,13 @@ import {
   Divider,
   Stack,
   Tooltip,
+  LinearProgress,
 } from "@mui/material";
-import { useState, useMemo } from "react";
-import dayjs from "dayjs";
+import { useState, useMemo, useEffect } from "react";
+import dayjs, { type Dayjs } from "dayjs";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import "dayjs/locale/pt-br";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { listSales } from "../../api/services/sales";
 import {
@@ -37,6 +41,8 @@ import {
   Clock,
   ArrowRight,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import type { SaleResponse } from "../sales/schemas";
 import SaleDetailsModal from "../sales/SaleDetailsModal";
@@ -96,33 +102,52 @@ const PAYMENT_CHIP_COLORS: Record<string, { bg: string; text: string; border: st
 };
 
 export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoading, onClose }: DaySalesModalProps) {
+  const [selectedDate, setSelectedDate] = useState<Dayjs>(() => (date ? dayjs(date) : dayjs()));
   const [searchTerm, setSearchTerm] = useState("");
   const [channelFilter, setChannelFilter] = useState<"all" | "pdv" | "appointment">("all");
   const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
   const [isManualRefreshing, setIsManualRefreshing] = useState(false);
 
+  // Sincroniza a data caso a prop date mude
+  useEffect(() => {
+    if (date) {
+      setSelectedDate(dayjs(date));
+    }
+  }, [date]);
+
+  const selectedDateStr = useMemo(() => {
+    return selectedDate.isValid() ? selectedDate.format("YYYY-MM-DD") : (date || dayjs().format("YYYY-MM-DD"));
+  }, [selectedDate, date]);
+
+  const isToday = useMemo(() => {
+    return selectedDate.isSame(dayjs(), "day");
+  }, [selectedDate]);
+
+  const isYesterday = useMemo(() => {
+    return selectedDate.isSame(dayjs().subtract(1, "day"), "day");
+  }, [selectedDate]);
+
   const queryClient = useQueryClient();
 
   // Auto-fetch fresh sales for the selected date on open / invalidation
   const { data: fetchedSales, isFetching, refetch } = useQuery({
-    queryKey: ["day-sales", date],
-    queryFn: () => (date ? listSales(date, date) : Promise.resolve([])),
-    enabled: open && Boolean(date),
+    queryKey: ["day-sales", selectedDateStr],
+    queryFn: () => (selectedDateStr ? listSales(selectedDateStr, selectedDateStr) : Promise.resolve([])),
+    enabled: open && Boolean(selectedDateStr),
     staleTime: 0,
-    initialData: sales && sales.length > 0 ? sales : undefined,
+    initialData: selectedDateStr === date && sales && sales.length > 0 ? sales : undefined,
   });
 
-  const effectiveSales = fetchedSales || sales;
+  const effectiveSales = fetchedSales || (selectedDateStr === date ? sales : []);
   const isSyncing = isFetching || isManualRefreshing || Boolean(isLoading);
 
-  // Formatted date string (e.g. "Domingo, 06 de setembro de 2026")
+  // Formatted date string (e.g. "Quarta-feira, 16/09/2026")
   const formattedFullDate = useMemo(() => {
-    if (!date) return "";
-    const parsed = dayjs(date);
-    const dayOfWeek = parsed.format("dddd");
+    if (!selectedDate || !selectedDate.isValid()) return "";
+    const dayOfWeek = selectedDate.format("dddd");
     const capitalizedDay = dayOfWeek.charAt(0).toUpperCase() + dayOfWeek.slice(1);
-    return `${capitalizedDay}, ${parsed.format("DD/MM/YYYY")}`;
-  }, [date]);
+    return `${capitalizedDay}, ${selectedDate.format("DD/MM/YYYY")}`;
+  }, [selectedDate]);
 
   // Daily statistics
   const stats = useMemo(() => {
@@ -250,8 +275,26 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
             <Box>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                 <Typography variant="h6" fontWeight={800} color="text.primary" sx={{ lineHeight: 1.2 }}>
-                  Relatório de Vendas do Dia
+                  {isToday ? "Vendas do Dia" : isYesterday ? "Vendas de Ontem" : "Vendas do Dia"}
                 </Typography>
+                {isToday && (
+                  <Chip
+                    label="Hoje"
+                    size="small"
+                    color="primary"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, height: 22, fontSize: "0.75rem", borderRadius: 1.5 }}
+                  />
+                )}
+                {isYesterday && (
+                  <Chip
+                    label="Ontem"
+                    size="small"
+                    color="warning"
+                    variant="outlined"
+                    sx={{ fontWeight: 700, height: 22, fontSize: "0.75rem", borderRadius: 1.5 }}
+                  />
+                )}
                 <Chip
                   label={fmtBRL(stats.totalRevenueCents)}
                   size="small"
@@ -271,15 +314,179 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
             </Box>
           </Box>
 
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-            <Tooltip title="Atualizar vendas do dia">
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+            {/* Seletor e Navegação de Data */}
+            <Box
+              sx={{
+                display: "flex",
+                alignItems: "center",
+                bgcolor: "#ffffff",
+                borderRadius: 2,
+                border: "1px solid",
+                borderColor: "divider",
+                px: 0.5,
+                py: 0.25,
+                boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+              }}
+            >
+              <Tooltip title="Dia anterior">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => setSelectedDate((prev) => prev.subtract(1, "day"))}
+                    disabled={isSyncing}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      color: "text.secondary",
+                      "&:hover": { bgcolor: "#f1f5f9", color: "#313485" },
+                    }}
+                  >
+                    <ChevronLeft size={18} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+
+              <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                <DatePicker
+                  value={selectedDate}
+                  onChange={(newVal) => {
+                    if (newVal && newVal.isValid()) {
+                      setSelectedDate(newVal);
+                    }
+                  }}
+                  format="DD/MM/YYYY"
+                  disabled={isSyncing}
+                  dayOfWeekFormatter={(day: Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+                    return days[day.day()];
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#374151 !important",
+                          fontWeight: 700,
+                          fontSize: "0.78rem",
+                          textTransform: "capitalize",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#1e293b !important",
+                          fontSize: "0.85rem",
+                          fontWeight: 600,
+                          "&.Mui-selected": {
+                            color: "#ffffff !important",
+                            bgcolor: "#313485 !important",
+                            fontWeight: 800,
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#111827 !important",
+                          fontWeight: 700,
+                          textTransform: "capitalize",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#475569 !important",
+                        },
+                      },
+                    },
+                    textField: {
+                      size: "small",
+                      variant: "standard",
+                      InputProps: {
+                        disableUnderline: true,
+                      },
+                      sx: {
+                        width: { xs: 125, sm: 135 },
+                        bgcolor: "transparent",
+                        "& .MuiInput-underline:before": { display: "none !important" },
+                        "& .MuiInput-underline:after": { display: "none !important" },
+                        "& .MuiOutlinedInput-notchedOutline": { display: "none !important" },
+                        "& fieldset": { display: "none !important" },
+                        "& .MuiInputBase-root": {
+                          height: 32,
+                          border: "none !important",
+                          boxShadow: "none !important",
+                          bgcolor: "transparent",
+                        },
+                        "& .MuiInputBase-input": {
+                          py: 0.25,
+                          px: 0.5,
+                          textAlign: "center",
+                          fontSize: "0.88rem",
+                          fontWeight: 700,
+                          color: "#1e293b",
+                          cursor: "pointer",
+                        },
+                        "& .MuiIconButton-root": {
+                          p: 0.5,
+                          color: "#475569",
+                          "&:hover": { color: "#313485" },
+                        },
+                      },
+                    },
+                    desktopPaper: {
+                      sx: {
+                        borderRadius: 2.5,
+                        boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                        border: "1px solid #E5E7EB",
+                      },
+                    },
+                  }}
+                />
+              </LocalizationProvider>
+
+              <Tooltip title="Próximo dia">
+                <span>
+                  <IconButton
+                    size="small"
+                    onClick={() => setSelectedDate((prev) => prev.add(1, "day"))}
+                    disabled={isSyncing}
+                    sx={{
+                      width: 28,
+                      height: 28,
+                      color: "text.secondary",
+                      "&:hover": { bgcolor: "#f1f5f9", color: "#313485" },
+                    }}
+                  >
+                    <ChevronRight size={18} />
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+
+            {!isToday && (
+              <Button
+                size="small"
+                variant="outlined"
+                onClick={() => setSelectedDate(dayjs())}
+                disabled={isSyncing}
+                sx={{
+                  height: 38,
+                  fontSize: "0.8rem",
+                  fontWeight: 700,
+                  borderRadius: 2,
+                  borderColor: "divider",
+                  color: "#313485",
+                  textTransform: "none",
+                  bgcolor: "#ffffff",
+                  px: 1.5,
+                  "&:hover": { borderColor: "#313485", bgcolor: "#f1f5f9" },
+                }}
+              >
+                Ir para Hoje
+              </Button>
+            )}
+
+            <Tooltip title="Atualizar vendas">
               <span>
                 <IconButton
                   onClick={async () => {
                     setIsManualRefreshing(true);
                     try {
-                      if (onRefresh) onRefresh();
+                      if (onRefresh && isToday) onRefresh();
                       await Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["day-sales", selectedDateStr] }),
                         queryClient.invalidateQueries({ queryKey: ["day-sales"] }),
                         refetch(),
                       ]);
@@ -321,6 +528,16 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
             </IconButton>
           </Box>
         </DialogTitle>
+
+        {isSyncing && (
+          <LinearProgress
+            sx={{
+              height: 3,
+              bgcolor: "#e2e8f0",
+              "& .MuiLinearProgress-bar": { bgcolor: "#313485" },
+            }}
+          />
+        )}
 
         {/* Content */}
         <DialogContent sx={{ p: { xs: 2, sm: 3 }, overflowY: "auto" }}>
@@ -805,7 +1022,7 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
           }}
         >
           <Typography variant="caption" color="text.secondary" fontWeight={500}>
-            Exibindo {filteredSales.length} de {effectiveSales.length} vendas registradas no dia
+            Exibindo {filteredSales.length} de {effectiveSales.length} vendas registradas {isToday ? "hoje" : `em ${selectedDate.format("DD/MM/YYYY")}`}
           </Typography>
           <Button
             variant="contained"
@@ -830,7 +1047,11 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
         <SaleDetailsModal
           open={Boolean(selectedSaleId)}
           saleId={selectedSaleId}
-          onClose={() => setSelectedSaleId(null)}
+          onClose={() => {
+            setSelectedSaleId(null);
+            refetch();
+            if (onRefresh) onRefresh();
+          }}
         />
       )}
     </>
