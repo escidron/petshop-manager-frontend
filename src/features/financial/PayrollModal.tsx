@@ -18,6 +18,7 @@ import {
   FormControlLabel,
   useTheme,
   alpha,
+  Tooltip,
 } from "@mui/material";
 import {
   X,
@@ -30,7 +31,14 @@ import {
   Coffee,
   ShoppingBag,
   Send,
+  Calendar,
+  Save,
+  Info,
 } from "lucide-react";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { type Dayjs } from "dayjs";
+import "dayjs/locale/pt-br";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   getPayrollProfiles,
@@ -110,6 +118,8 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
     other_benefits_description: string;
     custom_benefits: CustomBenefitItem[];
     notes: string;
+    admission_date: string | null;
+    resignation_date: string | null;
     is_active: boolean;
   }>({
     base_salary: 0,
@@ -125,6 +135,8 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
     other_benefits_description: "",
     custom_benefits: [],
     notes: "",
+    admission_date: null,
+    resignation_date: null,
     is_active: true,
   });
 
@@ -205,6 +217,8 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
         other_benefits_description: "",
         custom_benefits: initialCustomBenefits,
         notes: selectedProfile.notes || "",
+        admission_date: selectedProfile.admission_date || null,
+        resignation_date: selectedProfile.resignation_date || null,
         is_active: selectedProfile.is_active ?? true,
       });
     }
@@ -355,6 +369,72 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
       setIsSyncing(false);
     }
   };
+
+  const [isSavingEmployee, setIsSavingEmployee] = useState(false);
+
+  const handleExplicitSaveEmployee = async () => {
+    if (!selectedEmployeeId) return;
+    setIsSavingEmployee(true);
+    try {
+      await updatePayrollProfile(selectedEmployeeId, formState);
+      toast.success("Dados do colaborador e vigência salvos com sucesso!");
+      await queryClient.invalidateQueries({ queryKey: ["payroll-profiles"] });
+      await queryClient.invalidateQueries({ queryKey: ["payroll-summary"] });
+    } catch (e: any) {
+      toast.error(e?.response?.data?.detail || "Erro ao salvar dados do colaborador.");
+    } finally {
+      setIsSavingEmployee(false);
+    }
+  };
+
+  const vigenciaStatusChip = useMemo(() => {
+    if (!formState.admission_date) {
+      return (
+        <Chip
+          label="Vigente o ano todo"
+          size="small"
+          color="success"
+          variant="outlined"
+          sx={{ fontWeight: 700, fontSize: "0.72rem", height: 22 }}
+        />
+      );
+    }
+    const adm = dayjs(formState.admission_date);
+    const admYear = adm.year();
+    const admMonth = adm.format("MMMM");
+
+    if (admYear > selectedYear) {
+      return (
+        <Chip
+          label={`Entra apenas em ${adm.format("MM/YYYY")}`}
+          size="small"
+          color="default"
+          variant="outlined"
+          sx={{ fontWeight: 700, fontSize: "0.72rem", height: 22 }}
+        />
+      );
+    }
+    if (admYear === selectedYear) {
+      return (
+        <Chip
+          label={`Entra em ${admMonth}/${admYear} (${adm.date()}º dia - proporcional)`}
+          size="small"
+          color="warning"
+          variant="outlined"
+          sx={{ fontWeight: 700, fontSize: "0.72rem", height: 22 }}
+        />
+      );
+    }
+    return (
+      <Chip
+        label={`Admitido em ${adm.format("DD/MM/YYYY")}`}
+        size="small"
+        color="success"
+        variant="outlined"
+        sx={{ fontWeight: 700, fontSize: "0.72rem", height: 22 }}
+      />
+    );
+  }, [formState.admission_date, formState.resignation_date, selectedYear]);
 
   const handleSelectEmployee = async (newEmployeeId: number) => {
     if (newEmployeeId === selectedEmployeeId) return;
@@ -612,6 +692,16 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                       {formatRole(p.employee_role)}
                     </Typography>
 
+                    {p.admission_date && (
+                      <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ display: "block", fontSize: "0.68rem" }}
+                      >
+                        Desde {dayjs(p.admission_date).format("DD/MM/YYYY")}
+                      </Typography>
+                    )}
+
                     <Box
                       sx={{
                         display: "flex",
@@ -746,6 +836,267 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                   </Box>
                 </Box>
               </Box>
+
+              {/* ── CARD DE VIGÊNCIA NO DRE (COMPACTO & ESTRUTURADO) ──────────── */}
+              <Paper
+                elevation={0}
+                sx={{
+                  p: 1.5,
+                  px: 2,
+                  mb: 2.5,
+                  borderRadius: 2.5,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  backgroundColor: alpha(theme.palette.primary.main, 0.02),
+                }}
+              >
+                {/* Linha Superior: Título + Tooltip + Badge de Status */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    flexWrap: "wrap",
+                    gap: 1,
+                    mb: 1.25,
+                  }}
+                >
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <Box
+                      sx={{
+                        p: 0.6,
+                        borderRadius: 1.5,
+                        backgroundColor: alpha(theme.palette.primary.main, 0.1),
+                        color: "primary.main",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                      }}
+                    >
+                      <Calendar size={16} />
+                    </Box>
+                    <Typography
+                      variant="caption"
+                      fontWeight={800}
+                      color="text.primary"
+                      sx={{ textTransform: "uppercase", letterSpacing: 0.4 }}
+                    >
+                      Vigência do Colaborador no DRE
+                    </Typography>
+                    <Tooltip
+                      title="Define em quais meses o custo do colaborador é computado no DRE, com cálculo proporcional de dias no mês de entrada ou saída."
+                      arrow
+                      placement="top"
+                    >
+                      <Box sx={{ display: "flex", alignItems: "center", cursor: "help", color: "text.disabled", "&:hover": { color: "primary.main" } }}>
+                        <Info size={14} />
+                      </Box>
+                    </Tooltip>
+                  </Box>
+
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    {vigenciaStatusChip}
+                  </Box>
+                </Box>
+
+                {/* Linha dos Campos de Data: 2 Colunas Espaçosas */}
+                <Box
+                  sx={{
+                    display: "grid",
+                    gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" },
+                    gap: 1.5,
+                  }}
+                >
+                  {/* Campo Admissão */}
+                  <Box>
+                    <Typography
+                      variant="caption"
+                      fontWeight={700}
+                      color="text.secondary"
+                      sx={{ display: "block", mb: 0.5, fontSize: "0.75rem" }}
+                    >
+                      Data de Admissão:
+                    </Typography>
+                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                      <DatePicker
+                        value={formState.admission_date ? dayjs(formState.admission_date) : null}
+                        onChange={(newVal) => {
+                          setFormState((prev) => ({
+                            ...prev,
+                            admission_date: newVal && newVal.isValid() ? newVal.format("YYYY-MM-DD") : null,
+                          }));
+                        }}
+                        format="DD/MM/YYYY"
+                        dayOfWeekFormatter={(day: Dayjs) => {
+                          const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+                          return days[day.day()];
+                        }}
+                        slotProps={{
+                          popper: {
+                            sx: {
+                              "& .MuiDayCalendar-weekDayLabel": {
+                                color: "#374151 !important",
+                                fontWeight: 700,
+                                fontSize: "0.78rem",
+                                textTransform: "capitalize",
+                              },
+                              "& .MuiPickersDay-root": {
+                                color: "#1e293b !important",
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                                "&.Mui-selected": {
+                                  color: "#ffffff !important",
+                                  bgcolor: "#313485 !important",
+                                  fontWeight: 800,
+                                },
+                              },
+                              "& .MuiPickersCalendarHeader-label": {
+                                color: "#111827 !important",
+                                fontWeight: 700,
+                                textTransform: "capitalize",
+                              },
+                              "& .MuiPickersArrowSwitcher-button": {
+                                color: "#475569 !important",
+                              },
+                            },
+                          },
+                          desktopPaper: {
+                            sx: {
+                              borderRadius: 2.5,
+                              boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                              border: "1px solid #E5E7EB",
+                            },
+                          },
+                          textField: {
+                            size: "small",
+                            fullWidth: true,
+                            placeholder: "DD/MM/AAAA",
+                            sx: {
+                              bgcolor: "#ffffff",
+                              "& .MuiOutlinedInput-root": {
+                                borderRadius: 2,
+                                height: 38,
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                              },
+                              "& .MuiInputBase-input": {
+                                py: 0.75,
+                                px: 1.25,
+                                fontSize: "0.85rem",
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </LocalizationProvider>
+                  </Box>
+
+                  {/* Campo Desligamento */}
+                  <Box>
+                    <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                      <Typography
+                        variant="caption"
+                        fontWeight={700}
+                        color="text.secondary"
+                        sx={{ fontSize: "0.75rem" }}
+                      >
+                        Data de Saída (Opcional):
+                      </Typography>
+                      {formState.resignation_date && (
+                        <Button
+                          size="small"
+                          variant="text"
+                          onClick={() => setFormState((prev) => ({ ...prev, resignation_date: null }))}
+                          sx={{
+                            fontSize: "0.7rem",
+                            py: 0,
+                            px: 0.5,
+                            minWidth: 0,
+                            textTransform: "none",
+                            color: "error.main",
+                            fontWeight: 700,
+                            "&:hover": { bgcolor: "error.lighter" },
+                          }}
+                        >
+                          Limpar (Em atividade)
+                        </Button>
+                      )}
+                    </Box>
+                    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                      <DatePicker
+                        value={formState.resignation_date ? dayjs(formState.resignation_date) : null}
+                        onChange={(newVal) => {
+                          setFormState((prev) => ({
+                            ...prev,
+                            resignation_date: newVal && newVal.isValid() ? newVal.format("YYYY-MM-DD") : null,
+                          }));
+                        }}
+                        format="DD/MM/YYYY"
+                        dayOfWeekFormatter={(day: Dayjs) => {
+                          const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+                          return days[day.day()];
+                        }}
+                        slotProps={{
+                          popper: {
+                            sx: {
+                              "& .MuiDayCalendar-weekDayLabel": {
+                                color: "#374151 !important",
+                                fontWeight: 700,
+                                fontSize: "0.78rem",
+                                textTransform: "capitalize",
+                              },
+                              "& .MuiPickersDay-root": {
+                                color: "#1e293b !important",
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                                "&.Mui-selected": {
+                                  color: "#ffffff !important",
+                                  bgcolor: "#313485 !important",
+                                  fontWeight: 800,
+                                },
+                              },
+                              "& .MuiPickersCalendarHeader-label": {
+                                color: "#111827 !important",
+                                fontWeight: 700,
+                                textTransform: "capitalize",
+                              },
+                              "& .MuiPickersArrowSwitcher-button": {
+                                color: "#475569 !important",
+                              },
+                            },
+                          },
+                          desktopPaper: {
+                            sx: {
+                              borderRadius: 2.5,
+                              boxShadow: "0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)",
+                              border: "1px solid #E5E7EB",
+                            },
+                          },
+                          textField: {
+                            size: "small",
+                            fullWidth: true,
+                            placeholder: "Em atividade (colaborador ativo)",
+                            sx: {
+                              bgcolor: "#ffffff",
+                              "& .MuiOutlinedInput-root": {
+                                borderRadius: 2,
+                                height: 38,
+                                fontSize: "0.85rem",
+                                fontWeight: 600,
+                              },
+                              "& .MuiInputBase-input": {
+                                py: 0.75,
+                                px: 1.25,
+                                fontSize: "0.85rem",
+                              },
+                            },
+                          },
+                        }}
+                      />
+                    </LocalizationProvider>
+                  </Box>
+                </Box>
+              </Paper>
 
               {/* ── SEÇÃO 1: SALÁRIO BASE & PROVISÕES ───────────────────────── */}
               <Typography
@@ -1299,6 +1650,20 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                     </Typography>
                   </Box>
                 </Box>
+
+                <Box sx={{ mt: 2, pt: 1.5, borderTop: "1px dashed", borderColor: "divider", display: "flex", justifyContent: "flex-end" }}>
+                  <Button
+                    variant="contained"
+                    color="primary"
+                    size="small"
+                    startIcon={isSavingEmployee ? <CircularProgress size={14} color="inherit" /> : <Save size={14} />}
+                    disabled={isSavingEmployee}
+                    onClick={handleExplicitSaveEmployee}
+                    sx={{ textTransform: "none", fontWeight: 700, borderRadius: 2, px: 2 }}
+                  >
+                    Salvar Dados do Colaborador
+                  </Button>
+                </Box>
               </Paper>
             </Box>
           ) : (
@@ -1455,7 +1820,7 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
           }}
         >
           <Typography variant="caption" color="text.secondary">
-            * Ao lançar no DRE, as informações da folha são salvas e consolidadas automaticamente.
+            * Ao lançar no DRE, o custo de cada colaborador é distribuído mês a mês considerando sua data de admissão e desligamento com cálculo proporcional de dias.
           </Typography>
 
           <Box sx={{ display: "flex", gap: 1.5 }}>

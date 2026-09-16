@@ -8,6 +8,8 @@ export type Employee = {
   phone: string;
   email?: string | null;
   schedule_token?: string | null;
+  admission_date?: string | null;
+  resignation_date?: string | null;
   is_active: boolean;
   created_at: string;
 };
@@ -17,5 +19,7 @@ export type EmployeeFormData = {
   role: EmployeeRole;
   phone: string;
   email?: string | null;
+  admission_date?: string | null;
+  resignation_date?: string | null;
   is_active: boolean;
 };

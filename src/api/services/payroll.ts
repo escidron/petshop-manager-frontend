@@ -19,6 +19,8 @@ export interface PayrollProfileUpdate {
   other_benefits_description?: string;
   custom_benefits?: CustomBenefitItem[];
   notes?: string;
+  admission_date?: string | null;
+  resignation_date?: string | null;
   is_active?: boolean;
 }
 
@@ -41,6 +43,8 @@ export interface PayrollProfileResponse {
   other_benefits_description?: string | null;
   custom_benefits?: CustomBenefitItem[];
   notes?: string | null;
+  admission_date?: string | null;
+  resignation_date?: string | null;
   is_active: boolean;
 
   // Totais computados pelo backend
