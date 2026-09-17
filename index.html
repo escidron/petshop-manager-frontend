@@ -28,39 +28,80 @@
         background-color: #F8FAFC;
         font-family: 'Outfit', sans-serif;
       }
-      .paw-container {
+      .loader-logo-container {
         position: relative;
-        width: 80px;
-        height: 80px;
-        color: #313485;
-        margin-bottom: 24px;
-        animation: pulse 1.5s ease-in-out infinite;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 20px;
       }
-      @keyframes pulse {
-        0%, 100% { transform: scale(1); opacity: 0.8; }
-        50% { transform: scale(1.1); opacity: 1; }
+      .loader-logo {
+        width: 120px;
+        max-width: 80vw;
+        height: auto;
+        display: block;
+        object-fit: contain;
+        animation: logo-pulse 2s ease-in-out infinite;
+        filter: drop-shadow(0 6px 16px rgba(49, 52, 133, 0.12));
+      }
+      @keyframes logo-pulse {
+        0%, 100% {
+          transform: scale(1);
+          opacity: 0.95;
+          filter: drop-shadow(0 6px 16px rgba(49, 52, 133, 0.12));
+        }
+        50% {
+          transform: scale(1.06);
+          opacity: 1;
+          filter: drop-shadow(0 12px 28px rgba(49, 52, 133, 0.22));
+        }
       }
       .loader-text {
         color: #313485;
-        font-size: 1.2rem;
+        font-size: 1.15rem;
         font-weight: 700;
         letter-spacing: -0.02em;
+        text-align: center;
+      }
+      .loader-progress {
+        width: 140px;
+        height: 4px;
+        background: rgba(49, 52, 133, 0.08);
+        border-radius: 99px;
+        margin-top: 16px;
+        overflow: hidden;
+        position: relative;
+      }
+      .loader-progress-bar {
+        position: absolute;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 45%;
+        background: linear-gradient(90deg, #313485, #FF751F);
+        border-radius: 99px;
+        animation: loader-slide 1.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+      }
+      @keyframes loader-slide {
+        0% {
+          left: -45%;
+        }
+        100% {
+          left: 100%;
+        }
       }
     </style>
   </head>
   <body>
     <div id="root">
       <div id="initial-loader">
-        <div class="paw-container">
-          <svg viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
-            <circle cx="12" cy="16" r="4" />
-            <circle cx="6" cy="11" r="2.5" />
-            <circle cx="18" cy="11" r="2.5" />
-            <circle cx="9" cy="5" r="2.5" />
-            <circle cx="15" cy="5" r="2.5" />
-          </svg>
+        <div class="loader-logo-container">
+          <img src="/logo.png" alt="Data Pet" class="loader-logo" />
         </div>
         <div class="loader-text">Preparando tudo para você...</div>
+        <div class="loader-progress">
+          <div class="loader-progress-bar"></div>
+        </div>
       </div>
     </div>
     <script type="module" src="/src/main.tsx"></script>
