@@ -1,11 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
+import LoadingScreen from "../components/Loading/LoadingScreen";
 import {
   Box,
   Card,
   CardContent,
   Chip,
-  CircularProgress,
   Container,
   Divider,
   IconButton,
@@ -105,24 +105,7 @@ export default function SharedSchedulePage() {
   }, [token]);
 
   if (loading) {
-    return (
-      <Box
-        sx={{
-          minHeight: "100vh",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "center",
-          justifyContent: "center",
-          background: "linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)",
-          gap: 2,
-        }}
-      >
-        <CircularProgress size={50} thickness={4} color="primary" />
-        <Typography variant="body1" color="text.primary" fontWeight={500}>
-          Carregando sua agenda profissional...
-        </Typography>
-      </Box>
-    );
+    return <LoadingScreen message="Carregando sua agenda profissional..." />;
   }
 
   if (error) {
