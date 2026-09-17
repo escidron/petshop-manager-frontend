@@ -538,7 +538,7 @@ export default function FinancialReportPage({
             <Box
               sx={{
                 display: "grid",
-                gridTemplateColumns: { xs: "1fr 1fr", sm: "160px 180px 160px" },
+                gridTemplateColumns: { xs: "1fr 1fr", sm: "170px 180px 170px" },
                 gap: 1.25,
                 width: { xs: "100%", sm: "auto" },
                 flex: { sm: "0 0 auto" },
