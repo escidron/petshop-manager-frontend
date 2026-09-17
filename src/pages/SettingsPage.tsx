@@ -1184,11 +1184,11 @@ const SettingsPage = () => {
                     </Box>
                     <Typography variant="body2" sx={{ mt: 0.8, fontSize: "0.9rem", color: "#334155" }}>
                       {isTrialActive
-                        ? `Você está no período de gratuidade de 6 meses válido até ${dayjs(
+                        ? `Você está no período de gratuidade de 1 mês válido até ${dayjs(
                             tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end
                           ).format("DD/MM/YYYY")}. Ao término, a mensalidade será de R$ 99,90/mês.`
                         : isTrialExpired
-                        ? `Seu período de gratuidade de 6 meses expirou em ${dayjs(
+                        ? `Seu período de gratuidade de 1 mês expirou em ${dayjs(
                             tenant?.subscription?.trial_ends_at || tenant?.subscription?.current_period_end
                           ).format("DD/MM/YYYY")}. Ative sua assinatura para continuar utilizando o sistema.`
                         : isSubPastDue
@@ -1633,7 +1633,7 @@ const SettingsPage = () => {
                           Nenhuma forma de pagamento cadastrada
                         </Typography>
                         <Typography variant="body2" sx={{ color: "#475569", fontSize: "0.85rem", mt: 0.3 }}>
-                          Você está aproveitando o período de 6 meses 100% gratuito. Cadastre sua forma de pagamento para contratar pacotes de mensagens ou antecipar a renovação.
+                          Você está aproveitando o período de 1 mês 100% gratuito. Cadastre sua forma de pagamento para contratar pacotes de mensagens ou antecipar a renovação.
                         </Typography>
                       </Box>
                     </Box>
@@ -1710,14 +1710,6 @@ const SettingsPage = () => {
                 </Grid>
               </Box>
             )}
-
-            {/* ---- Security note ---- */}
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 1 }}>
-              <Lock size={14} color="#64748B" />
-              <Typography variant="caption" sx={{ color: "#64748B" }}>
-                Ambiente seguro. Seus dados estão protegidos.
-              </Typography>
-            </Box>
 
             {/* ---- Add-ons / Pacotes ---- */}
             <Box sx={{ pt: 1 }}>
