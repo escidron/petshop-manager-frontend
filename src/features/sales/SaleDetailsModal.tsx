@@ -21,6 +21,7 @@ import {
 } from "@mui/material";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
+import dayjs from "dayjs";
 import {
   X,
   Receipt,
@@ -66,8 +67,8 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
     enabled: !!saleId && open,
   });
 
-  const formattedDate = sale
-    ? new Date(sale.created_at).toLocaleString("pt-BR")
+  const formattedDate = sale?.created_at
+    ? dayjs(sale.created_at).format("DD/MM/YYYY [às] HH:mm")
     : "";
 
   // Mapa serviceId → price_cents vindo do agendamento linkado (para vendas de pacote)
@@ -198,7 +199,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                   </Typography>
                   {sale.canceled_at && (
                     <Typography variant="caption" display="block">
-                      Data do cancelamento: {new Date(sale.canceled_at).toLocaleString("pt-BR")}
+                      Data do cancelamento: {dayjs(sale.canceled_at).format("DD/MM/YYYY [às] HH:mm")}
                     </Typography>
                   )}
                   {sale.cancel_reason && (

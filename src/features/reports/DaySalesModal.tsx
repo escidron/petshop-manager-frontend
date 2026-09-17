@@ -135,10 +135,10 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
     queryFn: () => (selectedDateStr ? listSales(selectedDateStr, selectedDateStr) : Promise.resolve([])),
     enabled: open && Boolean(selectedDateStr),
     staleTime: 0,
-    initialData: selectedDateStr === date && sales && sales.length > 0 ? sales : undefined,
+    placeholderData: selectedDateStr === date && sales && sales.length > 0 ? sales : undefined,
   });
 
-  const effectiveSales = fetchedSales || (selectedDateStr === date ? sales : []);
+  const effectiveSales = fetchedSales ?? (selectedDateStr === date ? sales : []);
   const isSyncing = isFetching || isManualRefreshing || Boolean(isLoading);
 
   // Formatted date string (e.g. "Quarta-feira, 16/09/2026")
