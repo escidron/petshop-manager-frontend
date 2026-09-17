@@ -38,6 +38,7 @@ import { Button } from "../../components/Button/Button";
 import { formatPaymentMethod } from "../../utils/formatPaymentMethod";
 import SaleReceiptModal from "./SaleReceiptModal";
 import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../hooks/useAuth";
 
 type Props = {
   open: boolean;
@@ -46,6 +47,9 @@ type Props = {
 };
 
 export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
+  const { user } = useAuth();
+  const isOwnerOrAdmin = user?.role === "owner" || user?.role === "admin";
+
   const [isReceiptModalOpen, setIsReceiptModalOpen] = useState(false);
   const [isCancelSaleOpen, setIsCancelSaleOpen] = useState(false);
   const [cancelSaleReason, setCancelSaleReason] = useState("");
@@ -274,7 +278,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                       <TableCell align="right" sx={{ fontWeight: 700 }}>Preço Unit.</TableCell>
                       <TableCell align="right" sx={{ fontWeight: 700 }}>Subtotal</TableCell>
                       <TableCell align="center" sx={{ fontWeight: 700 }}>Status</TableCell>
-                      <TableCell align="center" sx={{ fontWeight: 700 }}>Ação</TableCell>
+                      {isOwnerOrAdmin && <TableCell align="center" sx={{ fontWeight: 700 }}>Ação</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -424,29 +428,31 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                               />
                             )}
                           </TableCell>
-                          <TableCell align="center">
-                            {!isCanceled && sale.status !== "canceled" ? (
-                              <Tooltip title={item.item_type === "product" ? "Devolver produto e estornar" : "Cancelar item e estornar"}>
-                                <Button
-                                  variant="outlined"
-                                  size="small"
-                                  color="error"
-                                  startIcon={<RotateCcw size={13} />}
-                                  onClick={() => setItemToCancel(item)}
-                                  sx={{
-                                    fontSize: "0.72rem",
-                                    py: 0.25,
-                                    px: 1,
-                                    whiteSpace: "nowrap",
-                                  }}
-                                >
-                                  {item.item_type === "product" ? "Devolver" : "Cancelar"}
-                                </Button>
-                              </Tooltip>
-                            ) : (
-                              <Typography variant="caption" color="text.disabled">—</Typography>
-                            )}
-                          </TableCell>
+                          {isOwnerOrAdmin && (
+                            <TableCell align="center">
+                              {!isCanceled && sale.status !== "canceled" ? (
+                                <Tooltip title={item.item_type === "product" ? "Devolver produto e estornar" : "Cancelar item e estornar"}>
+                                  <Button
+                                    variant="outlined"
+                                    size="small"
+                                    color="error"
+                                    startIcon={<RotateCcw size={13} />}
+                                    onClick={() => setItemToCancel(item)}
+                                    sx={{
+                                      fontSize: "0.72rem",
+                                      py: 0.25,
+                                      px: 1,
+                                      whiteSpace: "nowrap",
+                                    }}
+                                  >
+                                    {item.item_type === "product" ? "Devolver" : "Cancelar"}
+                                  </Button>
+                                </Tooltip>
+                              ) : (
+                                <Typography variant="caption" color="text.disabled">—</Typography>
+                              )}
+                            </TableCell>
+                          )}
                         </TableRow>
                       );
                     })}
@@ -461,7 +467,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                           )}
                         </Box>
                       </TableCell>
-                      <TableCell align="right" colSpan={3}>
+                      <TableCell align="right" colSpan={isOwnerOrAdmin ? 3 : 2}>
                         <Typography
                           variant="h5"
                           color={sale.status === "canceled" ? "text.secondary" : "primary.main"}
@@ -498,7 +504,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
               Comprovante
             </Button>
 
-            {sale && sale.status !== "canceled" && hasActiveItems && (
+            {isOwnerOrAdmin && sale && sale.status !== "canceled" && hasActiveItems && (
               <Button
                 variant="outlined"
                 color="error"

@@ -1137,7 +1137,7 @@ const SettingsPage = () => {
                       {isTrialActive ? (
                         <Chip
                           icon={<Gift size={15} color="#047857" />}
-                          label="6 Meses Grátis Ativo"
+                          label="1 Mês Grátis Ativo"
                           size="small"
                           sx={{
                             fontWeight: 800,
@@ -1684,7 +1684,7 @@ const SettingsPage = () => {
                       R$ 99,90
                     </Typography>
                     <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 600 }}>
-                      /mês (após 6 meses grátis)
+                      /mês (após 1 mês grátis)
                     </Typography>
                   </Box>
                 </Box>
