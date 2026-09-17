@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, createContext, useContext, forwardRef, useCallback, useRef } from "react";
 import {
   Box,
   Paper,
@@ -47,6 +47,8 @@ import {
   type OperationalResultResponse,
   type OperationalStratifiedItem,
 } from "../api/services/operationalResult";
+import { useAuth } from "../hooks/useAuth";
+import { updateTenantPreferences } from "../api/services/tenants";
 import { toast } from "react-toastify";
 
 const MONTH_NAMES = [
@@ -61,27 +63,21 @@ interface ServiceAutocompleteFilterProps {
   label?: string;
 }
 
-function ServiceAutocompleteFilter({
-  allServices,
-  selectedServices,
-  onChange,
-  label = "Filtrar serviços",
-}: ServiceAutocompleteFilterProps) {
-  return (
-    <Autocomplete
-      multiple
-      disableCloseOnSelect
-      size="small"
-      options={allServices}
-      value={selectedServices}
-      isOptionEqualToValue={(option, val) => option === val}
-      onChange={(_, newValue) => {
-        const uniqueValues = Array.from(new Set(newValue));
-        onChange(uniqueValues);
-      }}
-      noOptionsText="Nenhum serviço encontrado"
-      PaperComponent={({ children, ...paperProps }) => (
-        <Paper {...paperProps} elevation={6} sx={{ borderRadius: 2, mt: 0.5, minWidth: 280 }}>
+interface ServiceFilterContextType {
+  selectedCount: number;
+  totalCount: number;
+  onSelectAll: () => void;
+  onSelectNone: () => void;
+}
+
+const ServiceFilterContext = createContext<ServiceFilterContextType | null>(null);
+
+const ServiceFilterPaper = forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
+  function ServiceFilterPaper({ children, ...paperProps }, ref) {
+    const ctx = useContext(ServiceFilterContext);
+    return (
+      <Paper ref={ref} {...paperProps} elevation={6} sx={{ borderRadius: 2, mt: 0.5, minWidth: 280 }}>
+        {ctx && (
           <Box
             onMouseDown={(e) => {
               // Previne que o input perca o foco e feche o dropdown antes do click
@@ -99,7 +95,7 @@ function ServiceAutocompleteFilter({
             }}
           >
             <Typography variant="caption" fontWeight={700} color="text.secondary">
-              {selectedServices.length} de {allServices.length} selecionados
+              {ctx.selectedCount} de {ctx.totalCount} selecionados
             </Typography>
             <Box sx={{ display: "flex", gap: 0.75 }}>
               <Button
@@ -112,7 +108,7 @@ function ServiceAutocompleteFilter({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onChange([...allServices]);
+                  ctx.onSelectAll();
                 }}
                 sx={{
                   fontSize: "0.72rem",
@@ -137,7 +133,7 @@ function ServiceAutocompleteFilter({
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  onChange([]);
+                  ctx.onSelectNone();
                 }}
                 sx={{
                   fontSize: "0.72rem",
@@ -153,96 +149,137 @@ function ServiceAutocompleteFilter({
               </Button>
             </Box>
           </Box>
-          {children}
-        </Paper>
-      )}
-      renderOption={(props, option, { selected }) => (
-        <li {...props} key={option}>
-          <Checkbox
-            size="small"
-            checked={selected}
-            sx={{ mr: 1, p: 0.25 }}
+        )}
+        {children}
+      </Paper>
+    );
+  }
+);
+
+function ServiceAutocompleteFilter({
+  allServices,
+  selectedServices,
+  onChange,
+  label = "Filtrar serviços",
+}: ServiceAutocompleteFilterProps) {
+  const contextValue = useMemo<ServiceFilterContextType>(
+    () => ({
+      selectedCount: selectedServices.length,
+      totalCount: allServices.length,
+      onSelectAll: () => onChange([...allServices]),
+      onSelectNone: () => onChange([]),
+    }),
+    [selectedServices.length, allServices, onChange]
+  );
+
+  return (
+    <ServiceFilterContext.Provider value={contextValue}>
+      <Autocomplete
+        multiple
+        disableCloseOnSelect
+        size="small"
+        options={allServices}
+        value={selectedServices}
+        isOptionEqualToValue={(option, val) => option === val}
+        onChange={(_, newValue) => {
+          const uniqueValues = Array.from(new Set(newValue));
+          onChange(uniqueValues);
+        }}
+        noOptionsText="Nenhum serviço encontrado"
+        PaperComponent={ServiceFilterPaper}
+        renderOption={(props, option, { selected }) => {
+          const { key, ...otherProps } = props;
+          return (
+            <li key={key || option} {...otherProps}>
+              <Checkbox
+                size="small"
+                checked={selected}
+                tabIndex={-1}
+                sx={{ mr: 1, p: 0.25, pointerEvents: "none" }}
+              />
+              <ListItemText
+                primary={option}
+                primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 600 }}
+              />
+            </li>
+          );
+        }}
+        renderTags={(value) => {
+          if (value.length === allServices.length) {
+            return (
+              <Chip
+                size="small"
+                label={`Todos (${allServices.length})`}
+                color="primary"
+                variant="outlined"
+                sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
+              />
+            );
+          }
+          if (value.length === 0) {
+            return (
+              <Chip
+                size="small"
+                label="Nenhum (0)"
+                color="error"
+                variant="outlined"
+                sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
+              />
+            );
+          }
+          if (value.length === 1) {
+            return (
+              <Chip
+                size="small"
+                label={value[0]}
+                color="primary"
+                sx={{ height: 24, fontSize: "0.72rem", fontWeight: 600, maxWidth: 140 }}
+              />
+            );
+          }
+          return (
+            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+              <Chip
+                size="small"
+                label={value[0]}
+                sx={{ height: 24, fontSize: "0.72rem", fontWeight: 600, maxWidth: 110 }}
+              />
+              <Chip
+                size="small"
+                label={`+${value.length - 1}`}
+                color="primary"
+                sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
+              />
+            </Box>
+          );
+        }}
+        renderInput={(params) => (
+          <TextField
+            {...params}
+            placeholder={selectedServices.length === 0 ? "Buscar serviços..." : ""}
+            label={label}
+            InputLabelProps={{ shrink: true, sx: { fontSize: "0.85rem", fontWeight: 700 } }}
+            sx={{
+              "& .MuiInputBase-root": {
+                fontSize: "0.8rem",
+                py: 0.25,
+                borderRadius: 2,
+              },
+            }}
           />
-          <ListItemText
-            primary={option}
-            primaryTypographyProps={{ fontSize: "0.8rem", fontWeight: 600 }}
-          />
-        </li>
-      )}
-      renderTags={(value) => {
-        if (value.length === allServices.length) {
-          return (
-            <Chip
-              size="small"
-              label={`Todos (${allServices.length})`}
-              color="primary"
-              variant="outlined"
-              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
-            />
-          );
-        }
-        if (value.length === 0) {
-          return (
-            <Chip
-              size="small"
-              label="Nenhum (0)"
-              color="error"
-              variant="outlined"
-              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
-            />
-          );
-        }
-        if (value.length === 1) {
-          return (
-            <Chip
-              size="small"
-              label={value[0]}
-              color="primary"
-              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 600, maxWidth: 140 }}
-            />
-          );
-        }
-        return (
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-            <Chip
-              size="small"
-              label={value[0]}
-              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 600, maxWidth: 110 }}
-            />
-            <Chip
-              size="small"
-              label={`+${value.length - 1}`}
-              color="primary"
-              sx={{ height: 24, fontSize: "0.72rem", fontWeight: 700 }}
-            />
-          </Box>
-        );
-      }}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          placeholder={selectedServices.length === 0 ? "Buscar serviços..." : ""}
-          label={label}
-          InputLabelProps={{ shrink: true, sx: { fontSize: "0.85rem", fontWeight: 700 } }}
-          sx={{
-            "& .MuiInputBase-root": {
-              fontSize: "0.8rem",
-              py: 0.25,
-              borderRadius: 2,
-            },
-          }}
-        />
-      )}
-      sx={{
-        width: { xs: "100%", sm: 280, md: 320 },
-        minWidth: 220,
-      }}
-    />
+        )}
+        sx={{
+          width: { xs: "100%", sm: 280, md: 320 },
+          minWidth: 220,
+        }}
+      />
+    </ServiceFilterContext.Provider>
   );
 }
 
 export default function OperationalResultPage() {
   const theme = useTheme();
+  const { tenant, setTenant } = useAuth();
   const currentDate = new Date();
   const [selectedYear, setSelectedYear] = useState<number>(currentDate.getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number>(currentDate.getMonth() + 1);
@@ -313,25 +350,99 @@ export default function OperationalResultPage() {
     return Array.from(new Set(names));
   }, [sortedServices]);
 
-  // Estados dos filtros de serviços por gráfico (null = todos marcados por default)
+  // Preferências salvas no banco (tenants.preferences.operational_result_filters)
+  const filtersPref = tenant?.preferences?.operational_result_filters;
+
+  // Estados locais dos filtros de serviços por gráfico (null = inicializar a partir das preferências do banco)
   const [selectedServicesChart1, setSelectedServicesChart1] = useState<string[] | null>(null);
   const [selectedServicesChart2, setSelectedServicesChart2] = useState<string[] | null>(null);
   const [selectedServicesAnnual, setSelectedServicesAnnual] = useState<string[] | null>(null);
 
+  // Se houver serviços excluídos gravados, marca todos EXCETO os excluídos.
+  // Novos serviços cadastrados automaticamente nascem marcados!
   const effectiveSelectedChart1 = useMemo(() => {
-    if (selectedServicesChart1 === null) return allServiceNames;
-    return selectedServicesChart1;
-  }, [selectedServicesChart1, allServiceNames]);
+    if (selectedServicesChart1 !== null) return selectedServicesChart1;
+    if (filtersPref?.chart1_excluded && Array.isArray(filtersPref.chart1_excluded)) {
+      const excludedSet = new Set(filtersPref.chart1_excluded);
+      return allServiceNames.filter((name) => !excludedSet.has(name));
+    }
+    return allServiceNames;
+  }, [selectedServicesChart1, filtersPref?.chart1_excluded, allServiceNames]);
 
   const effectiveSelectedChart2 = useMemo(() => {
-    if (selectedServicesChart2 === null) return allServiceNames;
-    return selectedServicesChart2;
-  }, [selectedServicesChart2, allServiceNames]);
+    if (selectedServicesChart2 !== null) return selectedServicesChart2;
+    if (filtersPref?.chart2_excluded && Array.isArray(filtersPref.chart2_excluded)) {
+      const excludedSet = new Set(filtersPref.chart2_excluded);
+      return allServiceNames.filter((name) => !excludedSet.has(name));
+    }
+    return allServiceNames;
+  }, [selectedServicesChart2, filtersPref?.chart2_excluded, allServiceNames]);
 
   const effectiveSelectedAnnual = useMemo(() => {
-    if (selectedServicesAnnual === null) return allServiceNames;
-    return selectedServicesAnnual;
-  }, [selectedServicesAnnual, allServiceNames]);
+    if (selectedServicesAnnual !== null) return selectedServicesAnnual;
+    if (filtersPref?.annual_excluded && Array.isArray(filtersPref.annual_excluded)) {
+      const excludedSet = new Set(filtersPref.annual_excluded);
+      return allServiceNames.filter((name) => !excludedSet.has(name));
+    }
+    return allServiceNames;
+  }, [selectedServicesAnnual, filtersPref?.annual_excluded, allServiceNames]);
+
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const persistFilterPreference = useCallback(
+    (key: "chart1_excluded" | "chart2_excluded" | "annual_excluded", excludedList: string[]) => {
+      if (!tenant?.id) return;
+
+      const currentFilters = tenant.preferences?.operational_result_filters || {};
+      const updatedFilters = {
+        ...currentFilters,
+        [key]: excludedList,
+      };
+      const updatedPreferences = {
+        ...(tenant.preferences || {}),
+        operational_result_filters: updatedFilters,
+      };
+
+      // Atualização otimista no tenant do AuthContext
+      setTenant({
+        ...tenant,
+        preferences: updatedPreferences,
+      });
+
+      // Debounce para persistir no banco de dados sem sobrecarregar com cliques rápidos
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+      debounceTimerRef.current = setTimeout(async () => {
+        try {
+          await updateTenantPreferences(tenant.id, {
+            operational_result_filters: updatedFilters,
+          });
+        } catch (err) {
+          console.error("Erro ao salvar preferências de filtro no banco:", err);
+        }
+      }, 600);
+    },
+    [tenant, setTenant]
+  );
+
+  const handleFilterChangeChart1 = (newVal: string[]) => {
+    setSelectedServicesChart1(newVal);
+    const excluded = allServiceNames.filter((name) => !newVal.includes(name));
+    persistFilterPreference("chart1_excluded", excluded);
+  };
+
+  const handleFilterChangeChart2 = (newVal: string[]) => {
+    setSelectedServicesChart2(newVal);
+    const excluded = allServiceNames.filter((name) => !newVal.includes(name));
+    persistFilterPreference("chart2_excluded", excluded);
+  };
+
+  const handleFilterChangeAnnual = (newVal: string[]) => {
+    setSelectedServicesAnnual(newVal);
+    const excluded = allServiceNames.filter((name) => !newVal.includes(name));
+    persistFilterPreference("annual_excluded", excluded);
+  };
 
   // ── Gráfico 1: Serviços Estratificados (Agrupados por nome único) ──
   const filteredStratified = useMemo(() => {
@@ -1130,7 +1241,7 @@ export default function OperationalResultPage() {
                 <ServiceAutocompleteFilter
                   allServices={allServiceNames}
                   selectedServices={effectiveSelectedChart1}
-                  onChange={(newVal) => setSelectedServicesChart1(newVal)}
+                  onChange={handleFilterChangeChart1}
                   label="Filtrar serviços"
                 />
               </Box>
@@ -1292,7 +1403,7 @@ export default function OperationalResultPage() {
                 <ServiceAutocompleteFilter
                   allServices={allServiceNames}
                   selectedServices={effectiveSelectedChart2}
-                  onChange={(newVal) => setSelectedServicesChart2(newVal)}
+                  onChange={handleFilterChangeChart2}
                   label="Filtrar serviços"
                 />
               </Box>
@@ -1422,7 +1533,7 @@ export default function OperationalResultPage() {
                 <ServiceAutocompleteFilter
                   allServices={allServiceNames}
                   selectedServices={effectiveSelectedAnnual}
-                  onChange={(newVal) => setSelectedServicesAnnual(newVal)}
+                  onChange={handleFilterChangeAnnual}
                   label="Filtrar serviços"
                 />
               </Box>

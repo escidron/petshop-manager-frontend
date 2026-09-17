@@ -20,6 +20,10 @@ import { X } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { LocalizationProvider, DatePicker } from "@mui/x-date-pickers";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import dayjs, { type Dayjs } from "dayjs";
+import "dayjs/locale/pt-br";
 
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
@@ -43,6 +47,8 @@ const schema = z.object({
   role: z.enum(["groomer", "bather", "vet", "salesperson", "receptionist", "driver", "other"]),
   phone: z.string().min(1, "Telefone obrigatório"),
   email: z.string().email("E-mail inválido").nullable().optional().or(z.literal("")),
+  admission_date: z.string().nullable().optional(),
+  resignation_date: z.string().nullable().optional(),
   is_active: z.boolean(),
 });
 
@@ -68,6 +74,8 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
       role: "other",
       phone: "",
       email: "",
+      admission_date: null,
+      resignation_date: null,
       is_active: true,
     },
   });
@@ -79,6 +87,8 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
         role: employee?.role ?? "other",
         phone: employee?.phone ?? "",
         email: employee?.email ?? "",
+        admission_date: employee?.admission_date ?? null,
+        resignation_date: employee?.resignation_date ?? null,
         is_active: employee?.is_active ?? true,
       });
     }
@@ -88,7 +98,13 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
     if (isSubmitting) return;
     setIsSubmitting(true);
     try {
-      const payload = { ...data, email: data.email || null, phone: data.phone };
+      const payload = {
+        ...data,
+        email: data.email || null,
+        phone: data.phone,
+        admission_date: data.admission_date || null,
+        resignation_date: data.resignation_date || null,
+      };
       if (mode === "create") {
         await createEmployee(payload);
         toast.success("Funcionário cadastrado com sucesso");
@@ -217,6 +233,104 @@ export default function EmployeeFormModal({ open, mode, employee, onClose, onSuc
               )}
             />
           </FormControl>
+
+          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 1.5 }}>
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Data de Admissão</FormLabel>
+              <Controller
+                name="admission_date"
+                control={control}
+                render={({ field }) => (
+                  <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                    <DatePicker
+                      value={field.value ? dayjs(field.value) : null}
+                      onChange={(newVal) => field.onChange(newVal && newVal.isValid() ? newVal.format("YYYY-MM-DD") : null)}
+                      format="DD/MM/YYYY"
+                      dayOfWeekFormatter={(day: Dayjs) => {
+                        const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+                        return days[day.day()];
+                      }}
+                      slotProps={{
+                        popper: {
+                          sx: {
+                            "& .MuiDayCalendar-weekDayLabel": {
+                              color: "#374151 !important",
+                              fontWeight: 700,
+                              fontSize: "0.78rem",
+                              textTransform: "capitalize",
+                            },
+                            "& .MuiPickersDay-root": {
+                              color: "#1e293b !important",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              "&.Mui-selected": {
+                                color: "#ffffff !important",
+                                bgcolor: "#313485 !important",
+                                fontWeight: 800,
+                              },
+                            },
+                          },
+                        },
+                        textField: {
+                          size: "small",
+                          fullWidth: true,
+                          placeholder: "DD/MM/AAAA",
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                )}
+              />
+            </FormControl>
+
+            <FormControl fullWidth>
+              <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>Data de Saída (Opcional)</FormLabel>
+              <Controller
+                name="resignation_date"
+                control={control}
+                render={({ field }) => (
+                  <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+                    <DatePicker
+                      value={field.value ? dayjs(field.value) : null}
+                      onChange={(newVal) => field.onChange(newVal && newVal.isValid() ? newVal.format("YYYY-MM-DD") : null)}
+                      format="DD/MM/YYYY"
+                      dayOfWeekFormatter={(day: Dayjs) => {
+                        const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sáb"];
+                        return days[day.day()];
+                      }}
+                      slotProps={{
+                        popper: {
+                          sx: {
+                            "& .MuiDayCalendar-weekDayLabel": {
+                              color: "#374151 !important",
+                              fontWeight: 700,
+                              fontSize: "0.78rem",
+                              textTransform: "capitalize",
+                            },
+                            "& .MuiPickersDay-root": {
+                              color: "#1e293b !important",
+                              fontSize: "0.85rem",
+                              fontWeight: 600,
+                              "&.Mui-selected": {
+                                color: "#ffffff !important",
+                                bgcolor: "#313485 !important",
+                                fontWeight: 800,
+                              },
+                            },
+                          },
+                        },
+                        textField: {
+                          size: "small",
+                          fullWidth: true,
+                          placeholder: "Em aberto (ativo)",
+                        },
+                      }}
+                    />
+                  </LocalizationProvider>
+                )}
+              />
+            </FormControl>
+          </Box>
 
           <Controller
             name="is_active"

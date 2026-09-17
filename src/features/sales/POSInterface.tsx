@@ -16,11 +16,12 @@ import {
   IconButton,
   CircularProgress,
 } from "@mui/material";
-import { User, ShoppingCart, X, Receipt } from "lucide-react";
+import { User, ShoppingCart, X, CalendarDays, Printer } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda } from "../../api/services/sales";
+import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda, listSales } from "../../api/services/sales";
+import DaySalesModal from "../reports/DaySalesModal";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
 import SaleReceiptModal from "./SaleReceiptModal";
@@ -86,11 +87,25 @@ export default function POSInterface() {
   const [completedSaleForReceipt, setCompletedSaleForReceipt] = useState<SaleResponse | null>(null);
   const [lastCompletedSale, setLastCompletedSale] = useState<SaleResponse | null>(null);
   const [isSaleReceiptOpen, setIsSaleReceiptOpen] = useState(false);
+  const [isDaySalesOpen, setIsDaySalesOpen] = useState(false);
   const [isPullDialogOpen, setIsPullDialogOpen] = useState(false);
   const [isClientModalOpen, setIsClientModalOpen] = useState(false);
   const [clientListLimit, setClientListLimit] = useState(20);
   const [pendingRemoveItemIndex, setPendingRemoveItemIndex] = useState<number | null>(null);
   const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+
+  const todayStr = dayjs().format("YYYY-MM-DD");
+  const { data: todaySales = [], refetch: refetchDaySales, isFetching: isFetchingDaySales } = useQuery({
+    queryKey: ["day-sales", todayStr],
+    queryFn: () => listSales(todayStr, todayStr),
+    staleTime: 0,
+  });
+
+  const handleOpenDaySales = () => {
+    queryClient.invalidateQueries({ queryKey: ["day-sales"] });
+    refetchDaySales();
+    setIsDaySalesOpen(true);
+  };
 
   // Cash Register Selection (Multi-Terminal)
   const [selectedRegisterId, setSelectedRegisterId] = useState<number | null>(() => {
@@ -353,7 +368,7 @@ export default function POSInterface() {
         pet_ids: item.pet_ids || undefined,
         client_package_id_to_pay: item.client_package_id_to_pay || null,
         unit: item.unit || "UN",
-        appointment_id: item.appointment_id || comanda.appointment_id || undefined,
+        appointment_id: item.appointment_id || (item.item_type === "service" ? comanda.appointment_id || undefined : undefined),
       }))
     );
     setComandaSyncStatus("saved");
@@ -599,11 +614,71 @@ export default function POSInterface() {
     setActiveComandaId(null);
     setComandaSyncStatus("idle");
 
-    // Always fetch fresh client comanda directly from backend
+    // Always fetch fresh client comanda directly from backend and unify any open appointments
     try {
       const details = await fetchPOSClientDetails(appointment.client.id);
-      if (details.open_comandas && details.open_comandas.length > 0) {
-        handlePullComanda(details.open_comandas[0]);
+      const openComanda = details.open_comandas?.[0];
+
+      let initialCart: SaleItem[] = [];
+      if (openComanda) {
+        initialCart = (openComanda.items || []).map((item) => ({
+          item_id: item.item_id,
+          item_type: item.item_type,
+          name: item.name,
+          quantity: item.quantity,
+          unit_price: item.unit_price,
+          subtotal: item.subtotal,
+          employee_id: item.employee_id || null,
+          pet_ids: item.pet_ids || undefined,
+          client_package_id_to_pay: item.client_package_id_to_pay || null,
+          unit: item.unit || "UN",
+          appointment_id: item.appointment_id || (item.item_type === "service" ? openComanda.appointment_id || undefined : undefined),
+        }));
+        setActiveComandaId(openComanda.id);
+        const discCents = Math.round((openComanda.discount_amount || 0) * 100);
+        setDiscountCents(discCents);
+        const itemsSubtotal = (openComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
+        if (itemsSubtotal > 0 && openComanda.discount_amount > 0) {
+          setDiscountPctInput(((openComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+        } else {
+          setDiscountPctInput("0");
+        }
+      }
+
+      // Check all unpaid completed appointments of this client (including the clicked one)
+      const allClientAppointments = [
+        appointment,
+        ...(details.client_appointments || []).filter(
+          (a) => a.status === "completed" && !a.is_paid && !a.is_fully_package_covered && a.id !== appointment.id
+        ),
+      ];
+
+      for (const apt of allClientAppointments) {
+        for (const item of apt.items) {
+          for (const s of item.services) {
+            const alreadyExists = initialCart.some(
+              (ci) => ci.appointment_id === apt.id && ci.item_id === s.id && ci.item_type === "service"
+            );
+            if (!alreadyExists) {
+              initialCart.push({
+                item_id: s.id,
+                item_type: "service",
+                name: s.is_package_covered ? `${s.name} (via pacote)` : s.name,
+                quantity: 1,
+                unit_price: s.is_package_covered ? 0 : s.price_cents / 100,
+                subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
+                employee_id: s.employee_id || null,
+                pet_ids: [item.pet.id],
+                appointment_id: apt.id,
+              });
+            }
+          }
+        }
+      }
+
+      if (initialCart.length > 0) {
+        setCart(initialCart);
+        setComandaSyncStatus(openComanda ? "saved" : "idle");
         return;
       }
     } catch {
@@ -862,79 +937,15 @@ export default function POSInterface() {
         }}
       >
         <Box sx={{ display: "flex", flexDirection: "column", height: { xs: "auto", lg: "100%" }, width: "100%" }}>
-          {selectedClient ? (
-            <Paper
-              elevation={0}
-              sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 1, width: "100%", boxSizing: "border-box" }}
-            >
-              <POSSessionHeader
-                client={selectedClient}
-                clientPets={clientPets}
-                onBack={endSession}
-              />
-              <POSClientDashboard
-                client={selectedClient}
-                clientPets={clientPets}
-                clientAppointments={clientAppointments}
-                clientActivePackages={clientActivePackages}
-                onClearClient={endSession}
-                hideHeader
-              />
-            </Paper>
-          ) : (
-            <Paper
-              elevation={0}
-              sx={{
-                p: { xs: 1, sm: 1.5 },
-                mb: 1,
-                borderRadius: 3,
-                border: "1px dashed",
-                borderColor: "divider",
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                bgcolor: "background.paper",
-                flexShrink: 0,
-                gap: 1,
-                width: "100%",
-                boxSizing: "border-box",
-              }}
-            >
-              <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0, flex: 1 }}>
-                <Box
-                  sx={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: "50%",
-                    bgcolor: (theme) => alpha(theme.palette.text.primary, 0.04),
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    color: "text.primary",
-                    flexShrink: 0,
-                  }}
-                >
-                  <User size={18} />
-                </Box>
-                <Box sx={{ minWidth: 0, flex: 1 }}>
-                  <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", fontSize: { xs: "0.85rem", sm: "0.95rem" } }} noWrap>
-                    Cliente Avulso
-                  </Typography>
-                  <Typography
-                    variant="caption"
-                    sx={{ color: "text.primary", opacity: 0.75, display: "block", fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
-                    noWrap
-                  >
-                    Vincule um cliente para pacotes
-                  </Typography>
-                </Box>
-              </Box>
-              <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+          {/* ── Top Bar: Client Context & Day Operations ── */}
+          {(() => {
+            const daySalesActions = (
+              <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexShrink: 0 }}>
                 {lastCompletedSale && (
                   <Button
                     variant="outlined"
                     size="small"
-                    startIcon={<Receipt size={15} />}
+                    startIcon={<Printer size={15} />}
                     onClick={() => {
                       setCompletedSaleForReceipt(lastCompletedSale);
                       setIsSaleReceiptOpen(true);
@@ -943,10 +954,12 @@ export default function POSInterface() {
                       color: "#313485",
                       borderColor: "#C7D2FE",
                       bgcolor: "#EEF2FF",
+                      fontWeight: 600,
                       flexShrink: 0,
-                      fontSize: { xs: "0.72rem", sm: "0.82rem" },
-                      py: { xs: 0.5, sm: 0.75 },
-                      px: { xs: 1, sm: 1.5 },
+                      fontSize: { xs: "0.72rem", sm: "0.8rem" },
+                      py: { xs: 0.5, sm: 0.65 },
+                      px: { xs: 1, sm: 1.25 },
+                      borderRadius: 2,
                       whiteSpace: "nowrap",
                       "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
                     }}
@@ -957,22 +970,127 @@ export default function POSInterface() {
                 <Button
                   variant="outlined"
                   size="small"
-                  onClick={() => setIsClientModalOpen(true)}
+                  startIcon={<CalendarDays size={15} />}
+                  onClick={handleOpenDaySales}
                   sx={{
-                    color: "text.primary",
+                    color: "#313485",
+                    borderColor: "#C7D2FE",
+                    bgcolor: "#EEF2FF",
+                    fontWeight: 700,
                     flexShrink: 0,
-                    fontSize: { xs: "0.75rem", sm: "0.85rem" },
-                    py: { xs: 0.5, sm: 0.75 },
+                    fontSize: { xs: "0.72rem", sm: "0.82rem" },
+                    py: { xs: 0.5, sm: 0.65 },
                     px: { xs: 1.25, sm: 1.5 },
+                    borderRadius: 2,
                     whiteSpace: "nowrap",
-                    "&:hover": { borderColor: "primary.main", color: "primary.main", bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04) },
+                    "&:hover": { borderColor: "#313485", bgcolor: "#E0E7FF" },
                   }}
                 >
-                  Vincular
+                  Vendas do Dia
                 </Button>
               </Box>
-            </Paper>
-          )}
+            );
+
+            return selectedClient ? (
+              <Paper
+                elevation={0}
+                sx={{ borderRadius: 3, border: "1px solid", borderColor: "divider", overflow: "hidden", flexShrink: 0, mb: 1, width: "100%", boxSizing: "border-box" }}
+              >
+                <POSSessionHeader
+                  client={selectedClient}
+                  clientPets={clientPets}
+                  onBack={endSession}
+                  rightAction={daySalesActions}
+                />
+                <POSClientDashboard
+                  client={selectedClient}
+                  clientPets={clientPets}
+                  clientAppointments={clientAppointments}
+                  clientActivePackages={clientActivePackages}
+                  onClearClient={endSession}
+                  hideHeader
+                />
+              </Paper>
+            ) : (
+              <Paper
+                elevation={0}
+                sx={{
+                  p: { xs: 1, sm: 1.25 },
+                  px: { xs: 1.25, sm: 2 },
+                  mb: 1,
+                  borderRadius: 3,
+                  border: "1px solid",
+                  borderColor: "divider",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  bgcolor: "background.paper",
+                  flexShrink: 0,
+                  gap: 1.5,
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+              >
+                {/* Lado Esquerdo: Info do Cliente com botão Vincular grudado nele */}
+                <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 1, sm: 1.5 }, minWidth: 0, flexWrap: "wrap" }}>
+                  <Box
+                    sx={{
+                      width: 36,
+                      height: 36,
+                      borderRadius: "50%",
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      color: "primary.main",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <User size={18} />
+                  </Box>
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "text.primary", fontSize: { xs: "0.85rem", sm: "0.95rem" }, lineHeight: 1.2 }} noWrap>
+                      Cliente Avulso
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: "text.secondary", display: "block", fontSize: { xs: "0.68rem", sm: "0.75rem" } }}
+                      noWrap
+                    >
+                      Vincule um cliente para pacotes
+                    </Typography>
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => setIsClientModalOpen(true)}
+                    sx={{
+                      color: "primary.main",
+                      borderColor: (theme) => alpha(theme.palette.primary.main, 0.3),
+                      bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                      fontWeight: 700,
+                      flexShrink: 0,
+                      fontSize: { xs: "0.75rem", sm: "0.82rem" },
+                      py: 0.5,
+                      px: { xs: 1.25, sm: 1.5 },
+                      borderRadius: 2,
+                      whiteSpace: "nowrap",
+                      ml: { xs: 0, sm: 0.5 },
+                      "&:hover": {
+                        borderColor: "primary.main",
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+                      },
+                    }}
+                  >
+                    Vincular
+                  </Button>
+                </Box>
+
+                {/* Lado Direito: Ações operacionais do caixa */}
+                {daySalesActions}
+              </Paper>
+            );
+          })()}
 
           {/* Catalog to add items to the ticket */}
           <Box sx={{ flexGrow: 1, minHeight: { xs: "auto", lg: 0 }, height: { xs: "auto", lg: "100%" } }}>
@@ -1043,6 +1161,7 @@ export default function POSInterface() {
                 onOpenBleedModal={() => setIsBleedModalOpen(true)}
                 onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
                 onOpenStatementModal={() => setIsStatementModalOpen(true)}
+                onOpenDaySalesModal={handleOpenDaySales}
               />
             }
             onUpdateQuantity={handleUpdateQuantity}
@@ -1205,6 +1324,7 @@ export default function POSInterface() {
                   onOpenBleedModal={() => setIsBleedModalOpen(true)}
                   onOpenCloseCashModal={() => setIsCloseCashModalOpen(true)}
                   onOpenStatementModal={() => setIsStatementModalOpen(true)}
+                  onOpenDaySalesModal={handleOpenDaySales}
                 />
               }
               onUpdateQuantity={handleUpdateQuantity}
@@ -1240,6 +1360,9 @@ export default function POSInterface() {
           cashRegisterId={selectedRegisterId}
           onSuccess={(sale) => {
             endSession();
+            queryClient.invalidateQueries({ queryKey: ["day-sales"] });
+            queryClient.invalidateQueries({ queryKey: ["sales"] });
+            refetchDaySales();
             if (sale) {
               setCompletedSaleForReceipt(sale);
               setLastCompletedSale(sale);
@@ -1507,6 +1630,18 @@ export default function POSInterface() {
             </Button>
           </DialogActions>
         </Dialog>
+      )}
+
+      {/* ── Modal de Vendas do Dia / Cancelamento ── */}
+      {isDaySalesOpen && (
+        <DaySalesModal
+          open={isDaySalesOpen}
+          date={todayStr}
+          sales={todaySales}
+          onRefresh={refetchDaySales}
+          isLoading={isFetchingDaySales}
+          onClose={() => setIsDaySalesOpen(false)}
+        />
       )}
     </Box>
   );

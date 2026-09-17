@@ -34,6 +34,7 @@ import Sidebar from "./Sidebar";
 import { useAuth } from "../hooks/useAuth";
 import { usePermission } from "../hooks/usePermission";
 import UserMenu from "../features/users/UserMenu";
+import BillNotificationBell from "../features/financial/bills/BillNotificationBell";
 import { Button } from "../components/Button/Button";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import PendingWhatsAppBanner from "../features/billing/PendingWhatsAppBanner";
@@ -125,7 +126,7 @@ export default function MainLayout() {
     isSubscriptionInGracePeriod,
     gracePeriodDaysLeft,
   } = useAuth();
-  const { hasPermission } = usePermission();
+  const { hasPermission, isOwner } = usePermission();
   const location = useLocation();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<null | HTMLElement>(null);
@@ -321,6 +322,8 @@ export default function MainLayout() {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 }, flexShrink: 0 }}>
+            {isOwner && <BillNotificationBell />}
+
             <Box
               component="button"
               onClick={handleClick}

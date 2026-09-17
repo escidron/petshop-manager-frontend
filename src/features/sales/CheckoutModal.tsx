@@ -237,6 +237,7 @@ export default function CheckoutModal({
       }
       queryClient.invalidateQueries({ queryKey: ["products"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["day-sales"] });
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
       queryClient.invalidateQueries({ queryKey: ["client-packages"] });

@@ -20,6 +20,7 @@ type Props = {
 const AppointmentListItem = ({ appointment, openDetails }: Props) => {
   const statusUI = getAppointmentStatusUI(appointment.status);
   const p = theme.palette[statusUI.palette];
+  const cardBorderColor = statusUI.color || p.main;
   const allServiceNames = appointment.items.flatMap((item) =>
     item.services.map((service) => service.name),
   );
@@ -73,14 +74,14 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
         border: "1px solid",
         borderColor: "divider",
         borderLeft: "5px solid",
-        borderLeftColor: p.main,
+        borderLeftColor: cardBorderColor,
         width: "100%",
         opacity: appointment.status == "canceled" ? 0.5 : 1,
         cursor: "pointer",
         transition: "border-color 0.15s ease",
         "&:hover": {
-          borderColor: p.main,
-          borderLeftColor: p.main,
+          borderColor: cardBorderColor,
+          borderLeftColor: cardBorderColor,
         },
       }}
       onClick={() => {

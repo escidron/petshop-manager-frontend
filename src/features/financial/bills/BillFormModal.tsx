@@ -1,16 +1,14 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
-  Button,
   Box,
   Typography,
   IconButton,
   TextField,
   FormControl,
-  InputLabel,
   Select,
   MenuItem,
   FormControlLabel,
@@ -18,7 +16,6 @@ import {
   Autocomplete,
   Chip,
   Paper,
-  CircularProgress,
   alpha,
   useTheme,
 } from "@mui/material";
@@ -30,7 +27,11 @@ import {
   Split,
 } from "lucide-react";
 import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import { toast } from "react-toastify";
+import { Button } from "../../../components/Button/Button";
 import MoneyInput from "../MoneyInput";
 import type {
   FinancialBill,
@@ -63,6 +64,49 @@ const PAYMENT_METHODS = [
   { value: "other", label: "Outro" },
 ];
 
+function FieldLabel({ children, required }: { children: React.ReactNode; required?: boolean }) {
+  return (
+    <Typography
+      variant="caption"
+      fontWeight={700}
+      color="text.secondary"
+      sx={{ display: "block", mb: 0.5, fontSize: "0.78rem" }}
+    >
+      {children}
+      {required && <span style={{ color: "#EF4444", marginLeft: 2 }}>*</span>}
+    </Typography>
+  );
+}
+
+const dayOfWeekFormatter = (day: dayjs.Dayjs) => {
+  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+  return days[day.day()];
+};
+
+const datePickerPopperSx = {
+  "& .MuiDayCalendar-weekDayLabel": {
+    color: "#3d4048 !important",
+    fontWeight: 700,
+    fontSize: "0.75rem",
+  },
+  "& .MuiPickersDay-root": {
+    color: "#3d4048 !important",
+    "&.Mui-selected": {
+      color: "white !important",
+    },
+    "&.Mui-disabled": {
+      color: "#b8bbc2 !important",
+      opacity: 0.4,
+    },
+  },
+  "& .MuiPickersCalendarHeader-label": {
+    color: "#3d4048 !important",
+  },
+  "& .MuiPickersArrowSwitcher-button": {
+    color: "#3d4048 !important",
+  },
+};
+
 export default function BillFormModal({
   open,
   onClose,
@@ -75,6 +119,7 @@ export default function BillFormModal({
 }: Props) {
   const theme = useTheme();
   const isEdit = Boolean(editingBill);
+  const descriptionInputRef = useRef<HTMLInputElement>(null);
 
   const [billType, setBillType] = useState<BillType>(defaultType);
   const [description, setDescription] = useState("");
@@ -89,12 +134,19 @@ export default function BillFormModal({
   const [barcode, setBarcode] = useState("");
   const [notes, setNotes] = useState("");
 
+  // Validação com mensagens inline
+  const [errors, setErrors] = useState<{
+    description?: string;
+    amount?: string;
+    dueDate?: string;
+  }>({});
+
   // Parcelamento
   const [isInstallment, setIsInstallment] = useState(false);
   const [totalInstallments, setTotalInstallments] = useState(2);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Inicializa formulário
+  // Inicializa formulário e foca no input de descrição ao abrir
   useEffect(() => {
     if (editingBill) {
       setBillType(editingBill.bill_type);
@@ -126,7 +178,18 @@ export default function BillFormModal({
       setIsInstallment(false);
       setTotalInstallments(2);
     }
+    setErrors({});
   }, [editingBill, defaultType, open]);
+
+  // Foca imediatamente no campo de descrição assim que o modal se abre
+  useEffect(() => {
+    if (open) {
+      const timer = setTimeout(() => {
+        descriptionInputRef.current?.focus();
+      }, 100);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
 
   // Filtra categorias apropriadas para despesa ou receita
   const filteredCategories = useMemo(() => {
@@ -160,18 +223,31 @@ export default function BillFormModal({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    const newErrors: {
+      description?: string;
+      amount?: string;
+      dueDate?: string;
+    } = {};
+
     if (!description.trim()) {
-      toast.error("Informe a descrição da conta.");
-      return;
+      newErrors.description = "A descrição da conta é obrigatória.";
     }
     if (!amount || amount <= 0) {
-      toast.error("Informe um valor válido maior que zero.");
-      return;
+      newErrors.amount = "Informe um valor válido maior que zero.";
     }
     if (!dueDate) {
-      toast.error("Informe a data de vencimento.");
+      newErrors.dueDate = "A data de vencimento é obrigatória.";
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      if (newErrors.description) {
+        descriptionInputRef.current?.focus();
+      }
       return;
     }
+
+    setErrors({});
 
     try {
       setIsSubmitting(true);
@@ -220,8 +296,16 @@ export default function BillFormModal({
   const isPayable = billType === "payable";
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
-      <form onSubmit={handleSubmit}>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      TransitionProps={{
+        onEntered: () => descriptionInputRef.current?.focus(),
+      }}
+    >
+      <form onSubmit={handleSubmit} noValidate>
         <DialogTitle
           sx={{
             display: "flex",
@@ -259,10 +343,10 @@ export default function BillFormModal({
           </IconButton>
         </DialogTitle>
 
-        <DialogContent sx={{ pt: 2.5, display: "flex", flexDirection: "column", gap: 2.5 }}>
-          {/* Seletor de Tipo (A Pagar vs A Receber) caso não seja edição */}
+        <DialogContent sx={{ pt: 2.5, pb: 3, display: "flex", flexDirection: "column", gap: 2.5 }}>
+          {/* Seletor de Tipo (A Pagar vs A Receber) caso não seja edição com margem visual no topo */}
           {!isEdit && (
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: "flex", gap: 1.5, mt: 1, mb: 0.5 }}>
               <Button
                 type="button"
                 variant={billType === "payable" ? "contained" : "outlined"}
@@ -270,10 +354,9 @@ export default function BillFormModal({
                 startIcon={<ArrowUpRight size={18} />}
                 fullWidth
                 sx={{
-                  py: 1,
+                  py: 1.1,
                   fontWeight: 700,
                   borderRadius: 2,
-                  textTransform: "none",
                   bgcolor: billType === "payable" ? "#DC2626" : "transparent",
                   borderColor: "#DC2626",
                   color: billType === "payable" ? "white" : "#DC2626",
@@ -292,10 +375,9 @@ export default function BillFormModal({
                 startIcon={<ArrowDownLeft size={18} />}
                 fullWidth
                 sx={{
-                  py: 1,
+                  py: 1.1,
                   fontWeight: 700,
                   borderRadius: 2,
-                  textTransform: "none",
                   bgcolor: billType === "receivable" ? "#059669" : "transparent",
                   borderColor: "#059669",
                   color: billType === "receivable" ? "white" : "#059669",
@@ -311,147 +393,219 @@ export default function BillFormModal({
 
           {/* Dados Principais: Descrição e Valor */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "2fr 1fr" }, gap: 2 }}>
-            <TextField
-              label="Descrição do Título / Conta *"
-              size="small"
-              fullWidth
-              placeholder={isPayable ? "Ex: Aluguel do imóvel, Ração Golden 15kg" : "Ex: Venda de pacotes, Contrato mensal"}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              required
-            />
+            <Box>
+              <FieldLabel required>Descrição do Título / Conta</FieldLabel>
+              <TextField
+                inputRef={descriptionInputRef}
+                autoFocus
+                size="small"
+                fullWidth
+                placeholder={isPayable ? "Ex: Aluguel do imóvel, Ração Golden 15kg" : "Ex: Venda de pacotes, Contrato mensal"}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  if (errors.description) {
+                    setErrors((prev) => ({ ...prev, description: undefined }));
+                  }
+                }}
+                error={Boolean(errors.description)}
+                helperText={errors.description}
+              />
+            </Box>
 
             <Box>
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                Valor Nominal *
-              </Typography>
+              <FieldLabel required>Valor Nominal</FieldLabel>
               <MoneyInput
                 value={amount}
-                onChange={(val) => setAmount(val)}
+                onChange={(val) => {
+                  setAmount(val);
+                  if (errors.amount) {
+                    setErrors((prev) => ({ ...prev, amount: undefined }));
+                  }
+                }}
                 placeholder="0,00"
                 fullWidth
+                error={Boolean(errors.amount)}
+                helperText={errors.amount}
               />
             </Box>
           </Box>
 
-          {/* Datas: Vencimento e Emissão */}
-          <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            <TextField
-              label="Data de Vencimento *"
-              size="small"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              required
-            />
+          {/* Datas: Vencimento e Emissão com DatePicker */}
+          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+            <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
+              <Box>
+                <FieldLabel required>Data de Vencimento</FieldLabel>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={dueDate ? dayjs(dueDate) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setDueDate(newDate.format("YYYY-MM-DD"));
+                      if (errors.dueDate) {
+                        setErrors((prev) => ({ ...prev, dueDate: undefined }));
+                      }
+                    } else {
+                      setDueDate("");
+                    }
+                  }}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
+                  slotProps={{
+                    popper: {
+                      sx: datePickerPopperSx,
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                      error: Boolean(errors.dueDate),
+                      helperText: errors.dueDate,
+                    },
+                  }}
+                />
+              </Box>
 
-            <TextField
-              label="Data de Emissão / Competência"
-              size="small"
-              type="date"
-              InputLabelProps={{ shrink: true }}
-              value={issueDate}
-              onChange={(e) => setIssueDate(e.target.value)}
-            />
-          </Box>
+              <Box>
+                <FieldLabel>Data de Emissão / Competência</FieldLabel>
+                <DatePicker
+                  format="DD/MM/YYYY"
+                  value={issueDate ? dayjs(issueDate) : null}
+                  onChange={(newDate) => {
+                    if (newDate && newDate.isValid()) {
+                      setIssueDate(newDate.format("YYYY-MM-DD"));
+                    } else {
+                      setIssueDate("");
+                    }
+                  }}
+                  dayOfWeekFormatter={dayOfWeekFormatter}
+                  slotProps={{
+                    popper: {
+                      sx: datePickerPopperSx,
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                    },
+                  }}
+                />
+              </Box>
+            </Box>
+          </LocalizationProvider>
 
           {/* Categoria DRE e Fornecedor/Cliente */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            {/* Categoria DRE */}
-            <FormControl size="small" fullWidth>
-              <InputLabel id="bill-category-label">Categoria (Plano de Contas DRE)</InputLabel>
-              <Select
-                labelId="bill-category-label"
-                value={categoryId}
-                label="Categoria (Plano de Contas DRE)"
-                onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : "")}
-              >
-                <MenuItem value="">-- Nenhuma Categoria --</MenuItem>
-                {filteredCategories.map((c) => (
-                  <MenuItem key={c.id} value={c.id}>
-                    {c.code ? `[${c.code}] ` : ""}{c.name}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            {/* Categoria DRE com Autocomplete e limite de altura da lista */}
+            <Box>
+              <FieldLabel>Categoria (Plano de Contas DRE)</FieldLabel>
+              <Autocomplete
+                size="small"
+                options={filteredCategories}
+                getOptionLabel={(opt) => (opt.code ? `[${opt.code}] ${opt.name}` : opt.name || "")}
+                value={filteredCategories.find((c) => c.id === categoryId) || null}
+                onChange={(_, val) => setCategoryId(val ? val.id : "")}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Selecione ou busque uma categoria..." />
+                )}
+                noOptionsText="Nenhuma categoria encontrada"
+                ListboxProps={{
+                  sx: { maxHeight: 240 },
+                }}
+              />
+            </Box>
 
             {/* Contato: Fornecedor (se Pagar) ou Cliente (se Receber) */}
-            {isPayable ? (
-              <Autocomplete
-                size="small"
-                options={suppliers}
-                getOptionLabel={(opt) => opt.name || ""}
-                value={suppliers.find((s) => s.id === supplierId) || null}
-                onChange={(_, val) => setSupplierId(val ? val.id : "")}
-                renderInput={(params) => (
-                  <TextField {...params} label="Fornecedor (Favorecido)" placeholder="Selecione um fornecedor..." />
-                )}
-                noOptionsText="Nenhum fornecedor cadastrado"
-              />
-            ) : (
-              <Autocomplete
-                size="small"
-                options={clients}
-                getOptionLabel={(opt) => opt.name || ""}
-                value={clients.find((c) => c.id === clientId) || null}
-                onChange={(_, val) => setClientId(val ? val.id : "")}
-                renderInput={(params) => (
-                  <TextField {...params} label="Cliente (Pagador)" placeholder="Selecione um cliente..." />
-                )}
-                noOptionsText="Nenhum cliente cadastrado"
-              />
-            )}
+            <Box>
+              <FieldLabel>{isPayable ? "Fornecedor (Favorecido)" : "Cliente (Pagador)"}</FieldLabel>
+              {isPayable ? (
+                <Autocomplete
+                  size="small"
+                  options={suppliers}
+                  getOptionLabel={(opt) => opt.name || ""}
+                  value={suppliers.find((s) => s.id === supplierId) || null}
+                  onChange={(_, val) => setSupplierId(val ? val.id : "")}
+                  renderInput={(params) => (
+                    <TextField {...params} placeholder="Selecione um fornecedor..." />
+                  )}
+                  noOptionsText="Nenhum fornecedor cadastrado"
+                  ListboxProps={{
+                    sx: { maxHeight: 240 },
+                  }}
+                />
+              ) : (
+                <Autocomplete
+                  size="small"
+                  options={clients}
+                  getOptionLabel={(opt) => opt.name || ""}
+                  value={clients.find((c) => c.id === clientId) || null}
+                  onChange={(_, val) => setClientId(val ? val.id : "")}
+                  renderInput={(params) => (
+                    <TextField {...params} placeholder="Selecione um cliente..." />
+                  )}
+                  noOptionsText="Nenhum cliente cadastrado"
+                  ListboxProps={{
+                    sx: { maxHeight: 240 },
+                  }}
+                />
+              )}
+            </Box>
           </Box>
 
           {/* Forma de Pagamento e Nº do Documento */}
           <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr", sm: "1fr 1fr" }, gap: 2 }}>
-            <FormControl size="small" fullWidth>
-              <InputLabel id="bill-payment-method-label">Forma de Pagamento Prevista</InputLabel>
-              <Select
-                labelId="bill-payment-method-label"
-                value={paymentMethod}
-                label="Forma de Pagamento Prevista"
-                onChange={(e) => setPaymentMethod(e.target.value)}
-              >
-                {PAYMENT_METHODS.map((m) => (
-                  <MenuItem key={m.value} value={m.value}>
-                    {m.label}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
+            <Box>
+              <FieldLabel>Forma de Pagamento Prevista</FieldLabel>
+              <FormControl size="small" fullWidth>
+                <Select
+                  value={paymentMethod}
+                  onChange={(e) => setPaymentMethod(e.target.value)}
+                >
+                  {PAYMENT_METHODS.map((m) => (
+                    <MenuItem key={m.value} value={m.value}>
+                      {m.label}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
 
-            <TextField
-              label="Nº do Documento / Nota Fiscal / Boleto"
-              size="small"
-              placeholder="Ex: NF-e 4529"
-              value={documentNumber}
-              onChange={(e) => setDocumentNumber(e.target.value)}
-            />
+            <Box>
+              <FieldLabel>Nº do Documento / Nota Fiscal / Boleto</FieldLabel>
+              <TextField
+                size="small"
+                fullWidth
+                placeholder="Ex: NF-e 4529"
+                value={documentNumber}
+                onChange={(e) => setDocumentNumber(e.target.value)}
+              />
+            </Box>
           </Box>
 
           {/* Código de Barras / Linha Digitável */}
-          <TextField
-            label="Código de Barras / Linha Digitável do Boleto"
-            size="small"
-            placeholder="Copie ou digite os números do boleto..."
-            value={barcode}
-            onChange={(e) => setBarcode(e.target.value)}
-            fullWidth
-          />
+          <Box>
+            <FieldLabel>Código de Barras / Linha Digitável do Boleto</FieldLabel>
+            <TextField
+              size="small"
+              placeholder="Copie ou digite os números do boleto..."
+              value={barcode}
+              onChange={(e) => setBarcode(e.target.value)}
+              fullWidth
+            />
+          </Box>
 
           {/* Observações */}
-          <TextField
-            label="Observações Internas"
-            size="small"
-            multiline
-            rows={2}
-            placeholder="Informações adicionais sobre esta despesa ou receita..."
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            fullWidth
-          />
+          <Box>
+            <FieldLabel>Observações Internas</FieldLabel>
+            <TextField
+              size="small"
+              multiline
+              rows={2}
+              placeholder="Informações adicionais sobre esta despesa ou receita..."
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              fullWidth
+            />
+          </Box>
 
           {/* Assistente de Parcelamento (Apenas na criação) */}
           {!isEdit && (
@@ -485,21 +639,21 @@ export default function BillFormModal({
                 />
 
                 {isInstallment && (
-                  <FormControl size="small" sx={{ width: 140 }}>
-                    <InputLabel id="installments-count-label">Parcelas</InputLabel>
-                    <Select
-                      labelId="installments-count-label"
-                      value={totalInstallments}
-                      label="Parcelas"
-                      onChange={(e) => setTotalInstallments(Number(e.target.value))}
-                    >
-                      {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24].map((n) => (
-                        <MenuItem key={n} value={n}>
-                          {n} vezes ({n}x)
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
+                  <Box sx={{ width: 140 }}>
+                    <FieldLabel>Parcelas</FieldLabel>
+                    <FormControl size="small" fullWidth>
+                      <Select
+                        value={totalInstallments}
+                        onChange={(e) => setTotalInstallments(Number(e.target.value))}
+                      >
+                        {[2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 18, 24].map((n) => (
+                          <MenuItem key={n} value={n}>
+                            {n} vezes ({n}x)
+                          </MenuItem>
+                        ))}
+                      </Select>
+                    </FormControl>
+                  </Box>
                 )}
               </Box>
 
@@ -533,19 +687,24 @@ export default function BillFormModal({
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 2, borderTop: "1px solid", borderColor: "divider", gap: 1 }}>
-          <Button variant="outlined" color="inherit" onClick={onClose} disabled={isSubmitting} sx={{ borderRadius: 2 }}>
+        <DialogActions sx={{ p: 2, px: 3, borderTop: "1px solid", borderColor: "divider", gap: 1.5 }}>
+          <Button
+            variant="outlined"
+            onClick={onClose}
+            disabled={isSubmitting}
+            sx={{ borderRadius: 2, color: "text.secondary", borderColor: "divider" }}
+          >
             Cancelar
           </Button>
           <Button
             type="submit"
             variant="contained"
             color="primary"
-            disabled={isSubmitting}
-            startIcon={isSubmitting ? <CircularProgress size={16} color="inherit" /> : <Save size={16} />}
-            sx={{ fontWeight: 700, borderRadius: 2 }}
+            loading={isSubmitting}
+            startIcon={!isSubmitting ? <Save size={16} /> : undefined}
+            sx={{ fontWeight: 700, borderRadius: 2, px: 2.5 }}
           >
-            {isSubmitting ? "Salvando..." : isEdit ? "Salvar Alterações" : isInstallment ? `Gerar ${totalInstallments} Parcelas` : "Cadastrar Conta"}
+            {isEdit ? "Salvar Alterações" : isInstallment ? `Gerar ${totalInstallments} Parcelas` : "Cadastrar Conta"}
           </Button>
         </DialogActions>
       </form>

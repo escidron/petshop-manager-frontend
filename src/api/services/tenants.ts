@@ -68,6 +68,13 @@ export const updateWorkingHours = async (tenantId: number, workingHours: Working
     return response.data;
 };
 
+export const updateTenantPreferences = async (tenantId: number, preferences: Record<string, any>): Promise<Tenant> => {
+    const response = await apiClient.patch<Tenant>(`/api/v1/tenants/${tenantId}`, {
+        preferences,
+    });
+    return response.data;
+};
+
 export const updateSubscription = async (tenantId: number, paymentMethod: "card" | "pix") => {
     const response = await apiClient.patch(
         `/api/v1/tenants/${tenantId}/subscription`,

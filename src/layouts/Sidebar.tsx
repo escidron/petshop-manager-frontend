@@ -379,7 +379,7 @@ const Sidebar = ({
                     display: "block",
                   }}
                 >
-                  6 meses grátis
+                  1 mês grátis
                 </Typography>
               </Box>
             </Box>

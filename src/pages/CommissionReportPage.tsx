@@ -304,7 +304,7 @@ export default function CommissionReportPage({
         >
           <Autocomplete
             size="small"
-            sx={{ width: { xs: "100%", sm: 220 } }}
+            sx={{ width: { xs: "100%", sm: 240 } }}
             options={employees}
             filterOptions={(options, state) => {
               const input = state.inputValue.toLowerCase();
@@ -347,7 +347,7 @@ export default function CommissionReportPage({
             displayEmpty
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            sx={{ width: { xs: "100%", sm: 140 } }}
+            sx={{ width: { xs: "100%", sm: 180 } }}
           >
             <MenuItem value="">
               <em>Status (Todos)</em>

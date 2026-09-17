@@ -37,7 +37,6 @@ interface POSTicketProps {
   onCheckout: () => void;
 }
 
-// ── Editable row (operator view) ──────────────────────────────────────────────
 function CartItemRow({
   item,
   index,
@@ -53,6 +52,10 @@ function CartItemRow({
   onSetQuantity: (i: number, v: number) => void;
   onRemoveItem: (i: number) => void;
 }) {
+  const isPackageCovered =
+    item.subtotal === 0 &&
+    (item.item_type === "service" || item.name.toLowerCase().includes("pacote"));
+
   return (
     <Box>
       <ListItem sx={{ flexDirection: "column", alignItems: "stretch", py: 1.25, px: 0 }}>
@@ -65,32 +68,66 @@ function CartItemRow({
             )}
             {item.name}
           </Typography>
-          <Typography variant="body2" sx={{ fontWeight: 800, color: "text.primary", whiteSpace: "nowrap" }}>
-            R$ {item.subtotal.toFixed(2).replace(".", ",")}
-          </Typography>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+            {isPackageCovered && (
+              <Chip
+                label="Pacote"
+                size="small"
+                color="info"
+                variant="outlined"
+                sx={{ height: 18, fontSize: "0.65rem", fontWeight: 700 }}
+              />
+            )}
+            <Typography
+              variant="body2"
+              sx={{
+                fontWeight: 800,
+                color: isPackageCovered ? "success.main" : "text.primary",
+                whiteSpace: "nowrap",
+              }}
+            >
+              R$ {item.subtotal.toFixed(2).replace(".", ",")}
+            </Typography>
+          </Box>
         </Box>
         <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-          <Box sx={{ display: "flex", alignItems: "center", bgcolor: "action.hover", borderRadius: 1.5, px: 0.5 }}>
-            <IconButton size="small" onClick={() => onUpdateQuantity(index, -1)}>
-              <Minus size={14} />
-            </IconButton>
-            <input
-              type="number"
-              value={item.quantity}
-              onChange={(e) => {
-                const val = parseInt(e.target.value);
-                if (!isNaN(val)) onSetQuantity(index, val);
+          {isPackageCovered ? (
+            <Typography
+              variant="caption"
+              sx={{
+                fontWeight: 700,
+                color: "text.secondary",
+                bgcolor: "action.hover",
+                px: 1,
+                py: 0.5,
+                borderRadius: 1,
               }}
-              min={1}
-              style={{ width: "32px", textAlign: "center", border: "none", background: "transparent", fontWeight: 700, outline: "none", fontSize: "0.78rem" }}
-            />
-            <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", opacity: 0.6, mr: 0.25 }}>
-              {item.unit || "UN"}
+            >
+              {item.quantity} {item.unit || "UN"}
             </Typography>
-            <IconButton size="small" onClick={() => onUpdateQuantity(index, 1)}>
-              <Plus size={14} />
-            </IconButton>
-          </Box>
+          ) : (
+            <Box sx={{ display: "flex", alignItems: "center", bgcolor: "action.hover", borderRadius: 1.5, px: 0.5 }}>
+              <IconButton size="small" onClick={() => onUpdateQuantity(index, -1)}>
+                <Minus size={14} />
+              </IconButton>
+              <input
+                type="number"
+                value={item.quantity}
+                onChange={(e) => {
+                  const val = parseInt(e.target.value);
+                  if (!isNaN(val)) onSetQuantity(index, val);
+                }}
+                min={1}
+                style={{ width: "32px", textAlign: "center", border: "none", background: "transparent", fontWeight: 700, outline: "none", fontSize: "0.78rem" }}
+              />
+              <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", opacity: 0.6, mr: 0.25 }}>
+                {item.unit || "UN"}
+              </Typography>
+              <IconButton size="small" onClick={() => onUpdateQuantity(index, 1)}>
+                <Plus size={14} />
+              </IconButton>
+            </Box>
+          )}
           <Tooltip title="Remover item">
             <IconButton size="small" color="error" onClick={() => onRemoveItem(index)}>
               <Trash2 size={14} />

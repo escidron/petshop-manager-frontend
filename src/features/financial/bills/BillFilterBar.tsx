@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   Box,
   Paper,
@@ -12,6 +12,7 @@ import {
   InputLabel,
   IconButton,
   Chip,
+  Autocomplete,
 } from "@mui/material";
 import {
   Search,
@@ -21,9 +22,42 @@ import {
   ListFilter,
 } from "lucide-react";
 import dayjs from "dayjs";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
+import "dayjs/locale/pt-br";
 import type { BillStatus, BillFilters } from "./types";
 import type { DREAccount } from "../../../api/services/financial";
 import type { Supplier } from "../../suppliers/types";
+
+const dayOfWeekFormatter = (day: dayjs.Dayjs) => {
+  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+  return days[day.day()];
+};
+
+const datePickerPopperSx = {
+  "& .MuiDayCalendar-weekDayLabel": {
+    color: "#3d4048 !important",
+    fontWeight: 700,
+    fontSize: "0.75rem",
+  },
+  "& .MuiPickersDay-root": {
+    color: "#3d4048 !important",
+    "&.Mui-selected": {
+      color: "white !important",
+    },
+    "&.Mui-disabled": {
+      color: "#b8bbc2 !important",
+      opacity: 0.4,
+    },
+  },
+  "& .MuiPickersCalendarHeader-label": {
+    color: "#3d4048 !important",
+  },
+  "& .MuiPickersArrowSwitcher-button": {
+    color: "#3d4048 !important",
+  },
+};
 
 interface Props {
   filters: BillFilters;
@@ -42,6 +76,26 @@ export default function BillFilterBar({
 }: Props) {
   const [activePeriod, setActivePeriod] = useState<PeriodPreset>("this_month");
   const [searchInput, setSearchInput] = useState(filters.search || "");
+
+  const filteredCategories = useMemo(() => {
+    let list = categories;
+    if (filters.bill_type === "payable") {
+      list = categories.filter((c) =>
+        ["fixed_expense", "variable_expense", "cmv", "financial_expense"].includes(
+          c.group_type
+        )
+      );
+    } else if (filters.bill_type === "receivable") {
+      list = categories.filter((c) =>
+        ["gross_revenue", "financial_revenue"].includes(c.group_type)
+      );
+    }
+    if (filters.category_id && !list.some((c) => c.id === filters.category_id)) {
+      const selected = categories.find((c) => c.id === filters.category_id);
+      if (selected) list = [selected, ...list];
+    }
+    return list;
+  }, [categories, filters.bill_type, filters.category_id]);
 
   // Atualiza datas com base no preset
   const handlePeriodChange = (preset: PeriodPreset) => {
@@ -97,7 +151,8 @@ export default function BillFilterBar({
   }, [searchInput]);
 
   return (
-    <Paper
+    <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+      <Paper
       elevation={0}
       sx={{
         p: 2,
@@ -281,53 +336,78 @@ export default function BillFilterBar({
         </FormControl>
 
         {/* Data Início */}
-        <TextField
-          size="small"
-          type="date"
-          label="Data Vencimento (De)"
-          InputLabelProps={{ shrink: true }}
-          value={filters.start_date || ""}
-          onChange={(e) => {
+        <DatePicker
+          label="Vencimento (De)"
+          format="DD/MM/YYYY"
+          value={filters.start_date ? dayjs(filters.start_date) : null}
+          onChange={(newDate) => {
             setActivePeriod("custom");
-            onFilterChange({ start_date: e.target.value || undefined, page: 1 });
+            onFilterChange({
+              start_date: newDate && newDate.isValid() ? newDate.format("YYYY-MM-DD") : undefined,
+              page: 1,
+            });
+          }}
+          dayOfWeekFormatter={dayOfWeekFormatter}
+          slotProps={{
+            popper: {
+              sx: datePickerPopperSx,
+            },
+            textField: {
+              size: "small",
+              fullWidth: true,
+            },
           }}
         />
 
         {/* Data Fim */}
-        <TextField
-          size="small"
-          type="date"
-          label="Data Vencimento (Até)"
-          InputLabelProps={{ shrink: true }}
-          value={filters.end_date || ""}
-          onChange={(e) => {
+        <DatePicker
+          label="Vencimento (Até)"
+          format="DD/MM/YYYY"
+          value={filters.end_date ? dayjs(filters.end_date) : null}
+          onChange={(newDate) => {
             setActivePeriod("custom");
-            onFilterChange({ end_date: e.target.value || undefined, page: 1 });
+            onFilterChange({
+              end_date: newDate && newDate.isValid() ? newDate.format("YYYY-MM-DD") : undefined,
+              page: 1,
+            });
+          }}
+          dayOfWeekFormatter={dayOfWeekFormatter}
+          slotProps={{
+            popper: {
+              sx: datePickerPopperSx,
+            },
+            textField: {
+              size: "small",
+              fullWidth: true,
+            },
           }}
         />
 
-        {/* Categoria DRE */}
-        <FormControl size="small">
-          <InputLabel id="category-filter-label">Categoria DRE</InputLabel>
-          <Select
-            labelId="category-filter-label"
-            value={filters.category_id || ""}
-            label="Categoria DRE"
-            onChange={(e) =>
-              onFilterChange({
-                category_id: e.target.value ? Number(e.target.value) : undefined,
-                page: 1,
-              })
-            }
-          >
-            <MenuItem value="">Todas as Categorias</MenuItem>
-            {categories.map((c) => (
-              <MenuItem key={c.id} value={c.id}>
-                {c.code ? `[${c.code}] ` : ""}{c.name}
-              </MenuItem>
-            ))}
-          </Select>
-        </FormControl>
+        {/* Categoria DRE com Autocomplete e limite de altura */}
+        <Autocomplete
+          size="small"
+          options={filteredCategories}
+          getOptionLabel={(opt) => (opt.code ? `[${opt.code}] ${opt.name}` : opt.name || "")}
+          value={categories.find((c) => c.id === filters.category_id) || null}
+          onChange={(_, val) =>
+            onFilterChange({
+              category_id: val ? val.id : undefined,
+              page: 1,
+            })
+          }
+          isOptionEqualToValue={(option, value) => option.id === value.id}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Categoria DRE"
+              placeholder="Todas as Categorias"
+            />
+          )}
+          noOptionsText="Nenhuma categoria encontrada"
+          ListboxProps={{
+            sx: { maxHeight: 240 },
+          }}
+        />
 
         {/* Fornecedor (quando filtrando a pagar) */}
         {filters.bill_type === "payable" && (
@@ -354,6 +434,7 @@ export default function BillFilterBar({
           </FormControl>
         )}
       </Box>
-    </Paper>
+      </Paper>
+    </LocalizationProvider>
   );
 }

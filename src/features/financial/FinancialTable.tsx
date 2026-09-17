@@ -1,3 +1,4 @@
+import { useState } from "react";
 import {
   Table,
   TableBody,
@@ -9,12 +10,16 @@ import {
   Box,
   Chip,
   Skeleton,
+  Tooltip,
 } from "@mui/material";
 import CustomCard from "../../components/Card/CustomCard";
 import dayjs from "dayjs";
 import type { Appointment } from "../appointments/types";
 import type { SaleResponse } from "../../features/sales/schemas";
 import { formatPaymentMethod } from "../../utils/formatPaymentMethod";
+import SaleDetailsModal from "../sales/SaleDetailsModal";
+import { Eye } from "lucide-react";
+import { Button } from "../../components/Button/Button";
 
 type Transaction = {
   id: string;
@@ -32,6 +37,8 @@ type Props = {
 };
 
 export default function FinancialTable({ transactions, isLoading = false }: Props) {
+  const [selectedSaleId, setSelectedSaleId] = useState<number | null>(null);
+
   return (
     <CustomCard sx={{ p: 0, overflow: "hidden" }}>
       <Box sx={{ p: 2, borderBottom: "1px solid", borderColor: "divider" }}>
@@ -49,13 +56,16 @@ export default function FinancialTable({ transactions, isLoading = false }: Prop
               <TableCell sx={{ fontWeight: 600 }} align="right">
                 Valor
               </TableCell>
+              <TableCell sx={{ fontWeight: 600 }} align="center">
+                Ação
+              </TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  {Array.from({ length: 6 }).map((_, j) => (
+                  {Array.from({ length: 7 }).map((_, j) => (
                     <TableCell key={j}>
                       <Skeleton variant="text" width={j === 5 ? 60 : "80%"} />
                     </TableCell>
@@ -64,7 +74,7 @@ export default function FinancialTable({ transactions, isLoading = false }: Prop
               ))
             ) : transactions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                   <Typography color="text.disabled">
                     Nenhum registro encontrado para o período.
                   </Typography>
@@ -184,6 +194,28 @@ export default function FinancialTable({ transactions, isLoading = false }: Prop
                         currency: "BRL",
                       })}
                     </TableCell>
+                    <TableCell align="center">
+                      {!isPackage && !("scheduled_at" in t.original) ? (
+                        <Tooltip title="Ver detalhes e ações da venda">
+                          <Button
+                            size="small"
+                            variant="outlined"
+                            startIcon={<Eye size={13} />}
+                            onClick={() => setSelectedSaleId((t.original as SaleResponse).id)}
+                            sx={{
+                              fontSize: "0.72rem",
+                              py: 0.25,
+                              px: 1,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Detalhes
+                          </Button>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="caption" color="text.disabled">—</Typography>
+                      )}
+                    </TableCell>
                   </TableRow>
                 );
               })
@@ -191,6 +223,14 @@ export default function FinancialTable({ transactions, isLoading = false }: Prop
           </TableBody>
         </Table>
       </TableContainer>
+
+      {selectedSaleId && (
+        <SaleDetailsModal
+          open={Boolean(selectedSaleId)}
+          saleId={selectedSaleId}
+          onClose={() => setSelectedSaleId(null)}
+        />
+      )}
     </CustomCard>
   );
 }

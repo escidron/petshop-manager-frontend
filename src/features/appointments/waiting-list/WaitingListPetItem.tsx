@@ -157,6 +157,9 @@ export default function WaitingListPetItem({
                 if (reason === "input") setServiceLimit(20);
               }}
               ListboxProps={{
+                sx: {
+                  maxHeight: "280px",
+                },
                 onScroll: (event: React.SyntheticEvent) => {
                   const listboxNode = event.currentTarget;
                   if (
@@ -165,14 +168,14 @@ export default function WaitingListPetItem({
                   ) {
                     setServiceLimit((prev) => prev + 20);
                   }
-                }
+                },
               }}
               slotProps={{
                 paper: {
                   sx: {
-                    maxHeight: "280px",
                     borderRadius: 2,
                     boxShadow: "0 6px 24px rgba(0,0,0,0.12)",
+                    overflow: "hidden",
                   },
                 },
               }}

@@ -144,4 +144,15 @@ export const removeUnpaidAppointmentService = async (
   );
   return response.data;
 };
+
+export const cancelCompletedAppointment = async (
+  appointmentId: number,
+  reason?: string,
+): Promise<Appointment> => {
+  const response = await apiClient.post<Appointment>(
+    `/api/v1/appointments/${appointmentId}/cancel-completed`,
+    { reason }
+  );
+  return response.data;
+};
 

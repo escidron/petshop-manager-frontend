@@ -29,6 +29,7 @@ import {
   assignAppointmentEmployees,
   listAppointmentsByClient,
   removeUnpaidAppointmentService,
+  cancelCompletedAppointment,
 } from "../../api/services/appointments";
 import { getCommissionRules } from "../../api/services/commissions";
 import {
@@ -55,6 +56,7 @@ import {
   ExternalLink,
   Repeat,
   Trash2,
+  XCircle,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -412,6 +414,38 @@ const AppointmentDetailsModal = ({
     },
     onError: () => {
       toast.error("Erro ao salvar profissional");
+    },
+  });
+
+  const [cancelCompletedOpen, setCancelCompletedOpen] = useState(false);
+  const [cancelCompletedReason, setCancelCompletedReason] = useState("");
+
+  const cancelCompletedMutation = useMutation({
+    mutationFn: (reason?: string) =>
+      cancelCompletedAppointment(appointment.id, reason),
+    onSuccess: () => {
+      toast.success("Agendamento finalizado cancelado e estornos realizados com sucesso!");
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+      queryClient.invalidateQueries({ queryKey: ["financial-bills"] });
+      queryClient.invalidateQueries({ queryKey: ["dre-report"] });
+      queryClient.invalidateQueries({ queryKey: ["cash-register"] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      queryClient.invalidateQueries({ queryKey: ["comandas"] });
+      setCancelCompletedOpen(false);
+      setCancelCompletedReason("");
+      onClose();
+    },
+    onError: (err: any) => {
+      toast.error(
+        err?.response?.data?.detail || "Erro ao cancelar agendamento finalizado."
+      );
     },
   });
 
@@ -886,21 +920,38 @@ const AppointmentDetailsModal = ({
                       }}
                     >
                       {isOwnerOrAdmin && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<Pencil size={14} />}
-                          onClick={() => onEdit(appointment)}
-                          sx={{
-                            color: "#4B5563",
-                            borderColor: "#D1D5DB",
-                            fontWeight: 700,
-                            fontSize: "0.8rem",
-                            "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F3F4F6" },
-                          }}
-                        >
-                          Editar Agendamento
-                        </Button>
+                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            startIcon={<Pencil size={14} />}
+                            onClick={() => onEdit(appointment)}
+                            sx={{
+                              color: "#4B5563",
+                              borderColor: "#D1D5DB",
+                              fontWeight: 700,
+                              fontSize: "0.8rem",
+                              whiteSpace: "nowrap",
+                              "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F3F4F6" },
+                            }}
+                          >
+                            Editar
+                          </Button>
+                          <Button
+                            variant="outlined"
+                            size="small"
+                            color="error"
+                            startIcon={<XCircle size={14} />}
+                            onClick={() => setCancelCompletedOpen(true)}
+                            sx={{
+                              fontWeight: 700,
+                              fontSize: "0.8rem",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            Cancelar
+                          </Button>
+                        </Box>
                       )}
 
                       <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
@@ -1714,6 +1765,68 @@ const AppointmentDetailsModal = ({
               disabled={removeServiceMutation.isPending}
             >
               Remover Serviço
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
+      {cancelCompletedOpen && (
+        <Dialog
+          open={cancelCompletedOpen}
+          onClose={() => !cancelCompletedMutation.isPending && setCancelCompletedOpen(false)}
+          maxWidth="sm"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1, color: "error.main" }}>
+            <AlertTriangle size={22} color="#DC2626" />
+            Cancelar Agendamento Finalizado?
+          </DialogTitle>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              <strong>Atenção:</strong> Este agendamento já foi finalizado
+              {appointment.is_paid ? " e pago no caixa" : ""}. Ao cancelar:
+              <ul style={{ margin: "6px 0 0 18px", padding: 0, fontSize: "0.82rem" }}>
+                {appointment.is_paid && (
+                  <li>A venda no caixa será cancelada e o valor estornado (para dinheiro, saída no caixa).</li>
+                )}
+                <li>Créditos de pacotes utilizados serão devolvidos ao cliente.</li>
+                <li>Comissões dos profissionais serão canceladas para não poluir relatórios e o DRE.</li>
+                <li>O agendamento passará para o status <strong>Cancelado</strong>.</li>
+              </ul>
+            </Alert>
+
+            <Box>
+              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Motivo do cancelamento (opcional)
+              </Typography>
+              <TextField
+                fullWidth
+                size="small"
+                multiline
+                rows={2}
+                placeholder="Ex: Cliente desistiu após o serviço, cobrança incorreta estornada..."
+                value={cancelCompletedReason}
+                onChange={(e) => setCancelCompletedReason(e.target.value)}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 1, gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setCancelCompletedOpen(false)}
+              disabled={cancelCompletedMutation.isPending}
+            >
+              Voltar
+            </Button>
+            <Button
+              variant="contained"
+              color="error"
+              loading={cancelCompletedMutation.isPending}
+              disabled={cancelCompletedMutation.isPending}
+              onClick={() => cancelCompletedMutation.mutate(cancelCompletedReason.trim() || undefined)}
+              sx={{ fontWeight: 700 }}
+            >
+              Sim, Cancelar e Estornar
             </Button>
           </DialogActions>
         </Dialog>

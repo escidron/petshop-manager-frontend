@@ -14,6 +14,7 @@ import {
   Receipt,
   Lock,
   ChevronDown,
+  ShoppingBag,
 } from "lucide-react";
 import { useState } from "react";
 import type { CashSessionDetailResponse, CashRegisterResponse } from "../../cash_register/types";
@@ -27,6 +28,7 @@ interface POSCashControlPillProps {
   onOpenBleedModal: () => void;
   onOpenCloseCashModal: () => void;
   onOpenStatementModal: () => void;
+  onOpenDaySalesModal?: () => void;
 }
 
 export default function POSCashControlPill({
@@ -38,6 +40,7 @@ export default function POSCashControlPill({
   onOpenBleedModal,
   onOpenCloseCashModal,
   onOpenStatementModal,
+  onOpenDaySalesModal,
 }: POSCashControlPillProps) {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const isMenuOpen = Boolean(anchorEl);
@@ -185,6 +188,18 @@ export default function POSCashControlPill({
           <ListItemIcon><Receipt size={16} color="#2563EB" /></ListItemIcon>
           <ListItemText primary="Extrato do Caixa" primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }} />
         </MenuItem>
+
+        {onOpenDaySalesModal && (
+          <MenuItem
+            onClick={() => {
+              handleMenuClose();
+              onOpenDaySalesModal();
+            }}
+          >
+            <ListItemIcon><ShoppingBag size={16} color="#4F46E5" /></ListItemIcon>
+            <ListItemText primary="Vendas do Dia / Cancelar" primaryTypographyProps={{ fontSize: "0.85rem", fontWeight: 600, color: "#111827" }} />
+          </MenuItem>
+        )}
 
         <MenuItem
           onClick={() => {

@@ -29,9 +29,18 @@ export const getSale = async (saleId: number): Promise<SaleResponse> => {
   return response.data;
 };
 
-export const cancelSale = async (saleId: number): Promise<SaleResponse> => {
+export const cancelSale = async (saleId: number, reason?: string): Promise<SaleResponse> => {
   const response = await apiClient.post<SaleResponse>(
     `/api/v1/sales/${saleId}/cancel`,
+    { reason }
+  );
+  return response.data;
+};
+
+export const cancelSaleItem = async (saleId: number, itemId: number, reason?: string): Promise<SaleResponse> => {
+  const response = await apiClient.post<SaleResponse>(
+    `/api/v1/sales/${saleId}/items/${itemId}/cancel`,
+    { reason }
   );
   return response.data;
 };

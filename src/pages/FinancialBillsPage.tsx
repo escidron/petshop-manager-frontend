@@ -34,6 +34,7 @@ import {
   Barcode,
   WalletCards,
   FileSpreadsheet,
+  Split,
 } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
@@ -64,6 +65,7 @@ import BillFilterBar from "../features/financial/bills/BillFilterBar";
 import BillFormModal from "../features/financial/bills/BillFormModal";
 import BillSettleModal from "../features/financial/bills/BillSettleModal";
 import BillDeleteModal from "../features/financial/bills/BillDeleteModal";
+import BillInstallmentsModal from "../features/financial/bills/BillInstallmentsModal";
 
 const fmtBRL = (val: number = 0) =>
   val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -91,6 +93,7 @@ export default function FinancialBillsPage() {
 
   const [settleBillTarget, setSettleBillTarget] = useState<FinancialBill | null>(null);
   const [deleteBillTarget, setDeleteBillTarget] = useState<FinancialBill | null>(null);
+  const [installmentsTarget, setInstallmentsTarget] = useState<FinancialBill | null>(null);
 
   // Menu de Ações por Linha
   const [actionAnchor, setActionAnchor] = useState<null | HTMLElement>(null);
@@ -146,6 +149,8 @@ export default function FinancialBillsPage() {
   const invalidateQueries = () => {
     queryClient.invalidateQueries({ queryKey: ["financial-bills"] });
     queryClient.invalidateQueries({ queryKey: ["financial-bills-summary"] });
+    queryClient.invalidateQueries({ queryKey: ["bills-due-alerts"] });
+    queryClient.invalidateQueries({ queryKey: ["dre-report"] });
   };
 
   const createMutation = useMutation({
@@ -478,6 +483,9 @@ export default function FinancialBillsPage() {
               <TableCell sx={{ fontWeight: 800, fontSize: "0.78rem", py: 1.25 }}>
                 FORNECEDOR / CLIENTE
               </TableCell>
+              <TableCell sx={{ fontWeight: 800, fontSize: "0.78rem", py: 1.25, maxWidth: 180 }}>
+                OBSERVAÇÃO
+              </TableCell>
               <TableCell sx={{ fontWeight: 800, fontSize: "0.78rem", py: 1.25, width: 140 }}>
                 VENCIMENTO
               </TableCell>
@@ -499,7 +507,7 @@ export default function FinancialBillsPage() {
           <TableBody>
             {isLoadingBills ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 6 }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 6 }}>
                   <CircularProgress size={32} />
                   <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                     Carregando contas...
@@ -508,7 +516,7 @@ export default function FinancialBillsPage() {
               </TableRow>
             ) : !billsData?.items || billsData.items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} align="center" sx={{ py: 8 }}>
+                <TableCell colSpan={10} align="center" sx={{ py: 8 }}>
                   <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1 }}>
                     <WalletCards size={40} color="#9CA3AF" />
                     <Typography variant="subtitle1" fontWeight={700} color="text.primary">
@@ -565,11 +573,27 @@ export default function FinancialBillsPage() {
                             {bill.description}
                           </Typography>
                           {bill.total_installments > 1 && (
-                            <Chip
-                              label={`${bill.installment_number}/${bill.total_installments}`}
-                              size="small"
-                              sx={{ height: 18, fontSize: "0.65rem", fontWeight: 700 }}
-                            />
+                            <Tooltip title="Ver todas as parcelas desta compra" arrow placement="top">
+                              <Chip
+                                label={`${bill.installment_number}/${bill.total_installments}`}
+                                size="small"
+                                clickable
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setInstallmentsTarget(bill);
+                                }}
+                                icon={<Split size={11} />}
+                                sx={{
+                                  height: 20,
+                                  fontSize: "0.68rem",
+                                  fontWeight: 700,
+                                  cursor: "pointer",
+                                  bgcolor: "rgba(49, 52, 133, 0.08)",
+                                  color: "primary.main",
+                                  "&:hover": { bgcolor: "primary.main", color: "#FFFFFF" },
+                                }}
+                              />
+                            </Tooltip>
                           )}
                         </Box>
                         <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 0.25 }}>
@@ -614,6 +638,33 @@ export default function FinancialBillsPage() {
                       <Typography variant="body2" fontWeight={600} color="text.primary" sx={{ fontSize: "0.82rem" }}>
                         {isPayable ? bill.supplier_name || "-" : bill.client_name || "-"}
                       </Typography>
+                    </TableCell>
+
+                    {/* Observação */}
+                    <TableCell sx={{ maxWidth: 180 }}>
+                      {bill.notes ? (
+                        <Tooltip title={bill.notes} arrow placement="top">
+                          <Typography
+                            variant="body2"
+                            color="text.secondary"
+                            sx={{
+                              fontSize: "0.8rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                              maxWidth: 170,
+                              display: "block",
+                              cursor: "default",
+                            }}
+                          >
+                            {bill.notes}
+                          </Typography>
+                        </Tooltip>
+                      ) : (
+                        <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.8rem" }}>
+                          -
+                        </Typography>
+                      )}
                     </TableCell>
 
                     {/* Vencimento */}
@@ -679,14 +730,25 @@ export default function FinancialBillsPage() {
                     </TableCell>
 
                     {/* Ações */}
-                    <TableCell align="center">
-                      <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", gap: 0.5 }}>
-                        {!isPaid && bill.status !== "canceled" && (
+                    <TableCell align="center" sx={{ width: 110 }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          justifyContent: "flex-end",
+                          alignItems: "center",
+                          gap: 0.75,
+                          width: 72,
+                          mx: "auto",
+                        }}
+                      >
+                        {!isPaid && bill.status !== "canceled" ? (
                           <Tooltip title={isPayable ? "Dar baixa (pagar)" : "Confirmar recebimento"}>
                             <IconButton
                               size="small"
                               onClick={() => handleOpenSettle(bill)}
                               sx={{
+                                width: 32,
+                                height: 32,
                                 color: isPayable ? "#10B981" : "#3B82F6",
                                 bgcolor: alpha(isPayable ? "#10B981" : "#3B82F6", 0.08),
                                 "&:hover": {
@@ -697,12 +759,14 @@ export default function FinancialBillsPage() {
                               <CheckCircle2 size={16} />
                             </IconButton>
                           </Tooltip>
+                        ) : (
+                          <Box sx={{ width: 32, height: 32 }} />
                         )}
 
                         <IconButton
                           size="small"
                           onClick={(e) => handleOpenMenu(e, bill)}
-                          sx={{ color: "text.secondary" }}
+                          sx={{ width: 32, height: 32, color: "text.secondary" }}
                         >
                           <MoreVertical size={16} />
                         </IconButton>
@@ -766,6 +830,21 @@ export default function FinancialBillsPage() {
           </MenuItem>
         )}
 
+        {actionBill && actionBill.total_installments > 1 && (
+          <MenuItem
+            onClick={() => {
+              const target = actionBill;
+              handleCloseMenu();
+              setInstallmentsTarget(target);
+            }}
+          >
+            <ListItemIcon>
+              <Split size={16} color="#313485" />
+            </ListItemIcon>
+            <ListItemText primary={`Ver parcelas (${actionBill.total_installments}x)`} />
+          </MenuItem>
+        )}
+
         {actionBill?.barcode && (
           <MenuItem
             onClick={() => {
@@ -823,6 +902,14 @@ export default function FinancialBillsPage() {
         onCancelBill={async (id) => {
           await cancelMutation.mutateAsync(id);
         }}
+      />
+
+      {/* Modal de Parcelamento Completo */}
+      <BillInstallmentsModal
+        open={Boolean(installmentsTarget)}
+        onClose={() => setInstallmentsTarget(null)}
+        bill={installmentsTarget}
+        onSettleBill={(b) => setSettleBillTarget(b)}
       />
     </Box>
   );
