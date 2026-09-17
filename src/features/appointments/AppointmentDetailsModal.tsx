@@ -30,7 +30,11 @@ import {
   listAppointmentsByClient,
   removeUnpaidAppointmentService,
   cancelCompletedAppointment,
+  addAppointmentService,
 } from "../../api/services/appointments";
+import { useServices } from "../../hooks/useServices";
+import { formatServiceLabel } from "../../utils/formatServiceLabel";
+import { getServicesForPet } from "../../utils/serviceMatcher";
 import { getCommissionRules } from "../../api/services/commissions";
 import {
   listClientPackagesByPet,
@@ -57,6 +61,7 @@ import {
   Repeat,
   Trash2,
   XCircle,
+  Plus,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -125,9 +130,57 @@ const AppointmentDetailsModal = ({
       queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       queryClient.invalidateQueries({ queryKey: ["pos-client"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.detail || "Erro ao remover serviço.";
+      toast.error(msg);
+    },
+  });
+
+  const { services: tenantServices = [] } = useServices();
+  const [addServicePet, setAddServicePet] = useState<{
+    petId: number;
+    petName: string;
+  } | null>(null);
+  const [selectedNewServiceId, setSelectedNewServiceId] = useState<number | null>(null);
+  const [selectedNewEmployeeId, setSelectedNewEmployeeId] = useState<number | null>(null);
+
+  const addServiceMutation = useMutation({
+    mutationFn: async ({
+      petId,
+      serviceId,
+      employeeId,
+    }: {
+      petId: number;
+      serviceId: number;
+      employeeId?: number;
+    }) => {
+      if (!appointment) return;
+      return await addAppointmentService(appointment.id, {
+        pet_id: petId,
+        service_id: serviceId,
+        employee_id: employeeId,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Serviço adicionado com sucesso!");
+      setAddServicePet(null);
+      setSelectedNewServiceId(null);
+      setSelectedNewEmployeeId(null);
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || "Erro ao adicionar serviço.";
       toast.error(msg);
     },
   });
@@ -664,7 +717,10 @@ const AppointmentDetailsModal = ({
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Button
                           variant="outlined"
-                          onClick={() => onEdit(appointment)}
+                          onClick={() => {
+                            onClose();
+                            onEdit(appointment);
+                          }}
                           startIcon={<Pencil size={15} />}
                           disabled={!!loadingAction}
                           size="small"
@@ -720,7 +776,10 @@ const AppointmentDetailsModal = ({
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Button
                           variant="outlined"
-                          onClick={() => onEdit(appointment)}
+                          onClick={() => {
+                            onClose();
+                            onEdit(appointment);
+                          }}
                           startIcon={<Pencil size={15} />}
                           disabled={!!loadingAction}
                           size="small"
@@ -750,20 +809,55 @@ const AppointmentDetailsModal = ({
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 1,
+                        flexDirection: { xs: "column-reverse", sm: "row" },
+                        justifyContent: "space-between",
+                        alignItems: { xs: "stretch", sm: "center" },
+                        gap: 1.25,
                       }}
                     >
                       <Button
+                        variant="outlined"
+                        color="error"
                         size="small"
-                        startIcon={<Check size={16} />}
-                        loading={loadingAction === "complete"}
+                        startIcon={<X size={15} />}
                         disabled={!!loadingAction}
-                        onClick={() => handleAction(appointment, "complete")}
-                        sx={{ width: { xs: "100%", sm: "auto" } }}
+                        onClick={() => setCancelConfirmOpen(true)}
+                        sx={{
+                          fontSize: "0.78rem",
+                          borderColor: "error.light",
+                          opacity: 0.85,
+                          "&:hover": { opacity: 1, borderColor: "error.main" },
+                        }}
                       >
-                        Finalizar
+                        Cancelar Agendamento
                       </Button>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => {
+                            onClose();
+                            onEdit(appointment);
+                          }}
+                          startIcon={<Pencil size={15} />}
+                          disabled={!!loadingAction}
+                          size="small"
+                          sx={{ flex: { xs: 1, sm: "initial" } }}
+                        >
+                          Alterar
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          startIcon={<Check size={16} />}
+                          loading={loadingAction === "complete"}
+                          disabled={!!loadingAction}
+                          onClick={() => handleAction(appointment, "complete")}
+                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
+                        >
+                          Finalizar
+                        </Button>
+                      </Box>
                     </Box>
                   </>
                 )}
@@ -1285,9 +1379,26 @@ const AppointmentDetailsModal = ({
                 )}
 
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="h6" fontWeight={500}>
-                  Serviços do pet
-                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                  <Typography variant="h6" fontWeight={500}>
+                    Serviços do pet
+                  </Typography>
+                  {!appointment.is_paid && appointment.status !== "canceled" && appointment.status !== "no_show" && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Plus size={14} />}
+                      onClick={() => {
+                        setSelectedNewServiceId(null);
+                        setSelectedNewEmployeeId(null);
+                        setAddServicePet({ petId: item.pet.id, petName: item.pet.name });
+                      }}
+                      sx={{ fontSize: "0.75rem", py: 0.25, px: 1, height: 26, borderRadius: 1.5, fontWeight: 600 }}
+                    >
+                      Adicionar serviço
+                    </Button>
+                  )}
+                </Box>
                 <Box>
                   {item.services.map((s) => {
                     const key = `${item.id}-${s.id}`;
@@ -1338,35 +1449,59 @@ const AppointmentDetailsModal = ({
                               />
                             )}
                           </Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              textDecoration: coveredServiceKeys.has(key)
-                                ? "line-through"
-                                : "none",
-                              color: coveredServiceKeys.has(key)
-                                ? "text.disabled"
-                                : "text.primary",
-                            }}
-                          >
-                            {coveredServiceKeys.has(key) &&
-                            !s.is_package_covered ? (
-                              <span
-                                style={{
-                                  fontSize: "0.75rem",
-                                  marginRight: 8,
-                                  fontStyle: "italic",
-                                  textDecoration: "none",
-                                }}
-                              >
-                                disponível
-                              </span>
-                            ) : null}
-                            {(s.price_cents / 100).toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
-                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                textDecoration: coveredServiceKeys.has(key)
+                                  ? "line-through"
+                                  : "none",
+                                color: coveredServiceKeys.has(key)
+                                  ? "text.disabled"
+                                  : "text.primary",
+                              }}
+                            >
+                              {coveredServiceKeys.has(key) &&
+                              !s.is_package_covered ? (
+                                <span
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    marginRight: 8,
+                                    fontStyle: "italic",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  disponível
+                                </span>
+                              ) : null}
+                              {(s.price_cents / 100).toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              })}
+                            </Typography>
+                            {!appointment.is_paid &&
+                              appointment.status !== "canceled" &&
+                              appointment.status !== "no_show" &&
+                              !s.is_package_covered &&
+                              (item.services.length > 1 || appointment.items.length > 1) && (
+                                <Tooltip title="Remover este serviço">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() =>
+                                      setServiceToRemove({
+                                        id: s.id,
+                                        name: s.name,
+                                        petId: item.pet.id,
+                                      })
+                                    }
+                                    sx={{ p: 0.25 }}
+                                  >
+                                    <Trash2 size={15} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                          </Box>
                         </Box>
 
                         {/* Employee Select */}
@@ -1725,6 +1860,114 @@ const AppointmentDetailsModal = ({
         </DialogActions>
       </Dialog>
 
+      {addServicePet && (
+        <Dialog
+          open={Boolean(addServicePet)}
+          onClose={() => !addServiceMutation.isPending && setAddServicePet(null)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+            Adicionar Serviço para {addServicePet.petName}
+          </DialogTitle>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Selecione o Serviço *
+              </Typography>
+              <Autocomplete
+                size="small"
+                options={(() => {
+                  const petObj = appointment.items.find((it) => it.pet.id === addServicePet.petId)?.pet;
+                  const active = tenantServices.filter((s) => s.is_active);
+                  return petObj ? getServicesForPet(active, petObj as any) : active;
+                })()}
+                getOptionLabel={(option) => formatServiceLabel(option)}
+                isOptionEqualToValue={(option, val) => option.id === val.id}
+                onChange={(_, val) => setSelectedNewServiceId(val?.id || null)}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Pesquisar serviço..." autoFocus />
+                )}
+                renderOption={(props, option) => {
+                  const { ...rest } = props;
+                  const hasCredit = clientPackages.some(
+                    (pkg) =>
+                      pkg.is_active &&
+                      (!pkg.pets || pkg.pets.length === 0 || pkg.pets.some((p) => p.id === addServicePet.petId)) &&
+                      pkg.credits?.some((c) => c.service_id === option.id && c.remaining_qty > 0)
+                  );
+                  return (
+                    <li {...rest} key={option.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>
+                          {formatServiceLabel(option)}
+                        </Typography>
+                        {hasCredit && (
+                          <Chip
+                            label="pacote"
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                            icon={<ShoppingBag size={10} />}
+                            sx={{ height: 18, fontSize: 10, px: 0.5 }}
+                          />
+                        )}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                        {(option.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </Typography>
+                    </li>
+                  );
+                }}
+              />
+            </Box>
+
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Profissional (opcional)
+              </Typography>
+              <Autocomplete
+                size="small"
+                options={activeEmployees}
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, val) => option.id === val.id}
+                onChange={(_, val) => setSelectedNewEmployeeId(val?.id || null)}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Selecione o profissional..." />
+                )}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 1, gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setAddServicePet(null)}
+              disabled={addServiceMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={!selectedNewServiceId || addServiceMutation.isPending}
+              loading={addServiceMutation.isPending}
+              onClick={() => {
+                if (selectedNewServiceId) {
+                  addServiceMutation.mutate({
+                    petId: addServicePet.petId,
+                    serviceId: selectedNewServiceId,
+                    employeeId: selectedNewEmployeeId || undefined,
+                  });
+                }
+              }}
+              sx={{ fontWeight: 700 }}
+            >
+              Adicionar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
       {serviceToRemove && (
         <Dialog
           open={Boolean(serviceToRemove)}
@@ -1735,13 +1978,13 @@ const AppointmentDetailsModal = ({
           fullWidth
         >
           <DialogTitle sx={{ fontWeight: 700 }}>
-            Remover Serviço Lançado por Engano?
+            Remover Serviço do Agendamento?
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary">
               Tem certeza de que deseja remover{" "}
-              <strong>{serviceToRemove.name}</strong> deste agendamento e da
-              comanda em aberto no caixa?
+              <strong>{serviceToRemove.name}</strong> deste agendamento
+              {appointment.status === "completed" ? " e da comanda em aberto no caixa" : ""}?
             </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 2, pt: 1 }}>

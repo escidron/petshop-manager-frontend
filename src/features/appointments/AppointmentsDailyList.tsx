@@ -668,7 +668,10 @@ const AppointmentsDailyList = ({
           appointment={selectedAppointment}
           handleAction={handleAction}
           loadingAction={loadingAction}
-          onEdit={onEdit}
+          onEdit={(appt) => {
+            setDetailsModal({ open: false });
+            onEdit(appt);
+          }}
         />
       )}
 
