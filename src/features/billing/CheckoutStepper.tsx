@@ -12,22 +12,23 @@ import {
   TextField,
   Chip,
 } from "@mui/material";
-import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
+import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft, Zap, MessageCircle } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
 import { QRCodeSVG } from "qrcode.react";
+import { toast } from "react-toastify";
 import {
   createCheckout,
   cancelCharge,
   previewPackageProration,
   checkoutPackage,
+  simulatePixPayment,
 } from "../../api/services/subscriptions";
 import type {
   CheckoutPixResponse,
   PaymentMethod,
   ProrationPreviewResponse,
 } from "./types";
-import { MessageCircle } from "lucide-react";
 import { maskDocument } from "../../utils/masks";
 import dayjs from "dayjs";
 
@@ -48,6 +49,7 @@ interface Props {
   startAt?: string | null;
   title?: string;
   savedCards?: PaymentMethod[];
+  defaultPaymentMethod?: "card" | "pix" | null;
 }
 
 type PayMethod = "card" | "pix";
@@ -116,6 +118,7 @@ const CheckoutStepper = ({
   startAt,
   title,
   savedCards,
+  defaultPaymentMethod,
 }: Props) => {
   const isPackage = !!packageCode;
   const modalTitle = title || (isPackage ? "Ativação do Pacote WhatsApp" : "Pagamento & Assinatura");
@@ -124,6 +127,7 @@ const CheckoutStepper = ({
   const [payMethod, setPayMethod] = useState<PayMethod | null>(existingPixData ? "pix" : null);
   const [loading, setLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
+  const [loadingSimulate, setLoadingSimulate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prorationData, setProrationData] = useState<ProrationPreviewResponse | null>(null);
   const [pixData, setPixData] = useState<CheckoutPixResponse | null>(
@@ -166,6 +170,11 @@ const CheckoutStepper = ({
           pix_qr_code_url: existingPixData.pix_qr_code_url ?? "",
           expires_at: existingPixData.expires_at ?? "",
         } as CheckoutPixResponse);
+      } else if (defaultPaymentMethod) {
+        setStep(2);
+        setPayMethod(defaultPaymentMethod);
+        setPixData(null);
+        setError(null);
       } else {
         setStep(1);
         setPayMethod(null);
@@ -189,7 +198,20 @@ const CheckoutStepper = ({
         setProrationData(null);
       }
     }
-  }, [open, existingPixData, tenantDocument, savedCards, packageCode]);
+  }, [open, existingPixData, tenantDocument, savedCards, packageCode, defaultPaymentMethod]);
+
+  const handleSimulatePixPaid = async () => {
+    setLoadingSimulate(true);
+    try {
+      await simulatePixPayment();
+      toast.success("Pagamento Pix confirmado!");
+      onSuccess();
+    } catch (err: any) {
+      toast.error(err.response?.data?.detail || "Erro ao simular pagamento Pix.");
+    } finally {
+      setLoadingSimulate(false);
+    }
+  };
 
   const handleSelectPix = () => {
     setPayMethod("pix");
@@ -1028,8 +1050,31 @@ const CheckoutStepper = ({
                 )}
 
                 <Typography variant="caption" color="text.primary" align="center" display="block" sx={{ mb: 2.5 }}>
-                  Assim que o pagamento for confirmado, sua assinatura será ativada automaticamente.
+                  Assim que o pagamento for confirmado, seu pacote ou assinatura será ativado automaticamente.
                 </Typography>
+
+                {/* Botão de teste para simular pagamento imediato em sandbox */}
+                <Button
+                  fullWidth
+                  variant="outlined"
+                  onClick={handleSimulatePixPaid}
+                  disabled={loadingSimulate}
+                  startIcon={loadingSimulate ? <CircularProgress size={16} /> : <Zap size={16} color="#D97706" />}
+                  sx={{
+                    color: "#92400E",
+                    bgcolor: "#FFFBEB",
+                    borderColor: "#FDE68A",
+                    fontWeight: 700,
+                    textTransform: "none",
+                    borderRadius: "10px",
+                    py: 1.1,
+                    mb: 1.5,
+                    fontSize: "0.85rem",
+                    "&:hover": { bgcolor: "#FEF3C7", borderColor: "#FCD34D" },
+                  }}
+                >
+                  {loadingSimulate ? "Simulando confirmação..." : "⚡ Simular pagamento Pix (Ambiente de Teste)"}
+                </Button>
 
                 <Button
                   variant="text"

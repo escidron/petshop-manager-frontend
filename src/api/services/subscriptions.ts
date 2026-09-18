@@ -156,4 +156,11 @@ export const cancelPackage = async () => {
   return response.data;
 };
 
+export const simulatePixPayment = async () => {
+  const response = await apiClient.post<{ success: boolean; message: string; current_period_end?: string }>(
+    `/api/v1/subscriptions/simulate-pix-paid`
+  );
+  return response.data;
+};
+
 

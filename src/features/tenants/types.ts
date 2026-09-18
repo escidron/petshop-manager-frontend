@@ -7,7 +7,9 @@ export type Subscription = {
   status: string;
   trial_ends_at: string | null;
   current_period_end: string;
+  canceled_at?: string | null;
   payment_method?: string | null;
+  pagarme_subscription_id?: string | null;
   eligible_for_refund?: boolean;
   whatsapp_package_id?: string | null;
   whatsapp_package_status?: "inactive" | "pending_payment" | "active" | "canceled";

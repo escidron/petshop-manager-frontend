@@ -88,11 +88,13 @@ export interface CheckoutCardResponse {
 
 /** Returned by POST /checkout for paid plans — pix */
 export interface CheckoutPixResponse {
-  pagarme_subscription_id: string;
+  pagarme_subscription_id?: string;
   status: string;
   pix_qr_code: string;
-  pix_qr_code_url: string;
-  expires_at: string;
+  pix_qr_code_url?: string | null;
+  expires_at?: string | null;
+  amount?: number;
+  charge_id?: string;
 }
 
 /** Returned by POST /checkout for FREE_TRIAL */
