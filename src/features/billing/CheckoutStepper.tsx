@@ -12,7 +12,7 @@ import {
   TextField,
   Chip,
 } from "@mui/material";
-import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft, Zap, MessageCircle } from "lucide-react";
+import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
 import { QRCodeSVG } from "qrcode.react";
@@ -136,7 +136,6 @@ const CheckoutStepper = ({
   const [payMethod, setPayMethod] = useState<PayMethod | null>(existingPixData ? "pix" : null);
   const [loading, setLoading] = useState(false);
   const [cancelLoading, setCancelLoading] = useState(false);
-  const [loadingSimulate, setLoadingSimulate] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [prorationData, setProrationData] = useState<ProrationPreviewResponse | null>(null);
   const [pixData, setPixData] = useState<CheckoutPixResponse | null>(
@@ -251,7 +250,7 @@ const CheckoutStepper = ({
     try {
       const doc = pixDocument.replace(/\D/g, "");
       if (packageCode) {
-        const data = await checkoutPackage({
+        const data: any = await checkoutPackage({
           package_code: packageCode,
           payment_method: "pix",
           document: doc,
@@ -259,21 +258,21 @@ const CheckoutStepper = ({
         const pixPayload = {
           pagarme_subscription_id: "",
           status: "pending",
-          pix_qr_code: data.pix_qr_code || "",
-          pix_qr_code_url: data.pix_qr_code_url ?? "",
-          expires_at: data.expires_at ?? "",
+          pix_qr_code: String(data.pix_qr_code || ""),
+          pix_qr_code_url: data.pix_qr_code_url ? String(data.pix_qr_code_url) : "",
+          expires_at: data.expires_at ? String(data.expires_at) : "",
           charge_id: data.charge_id,
-          amount: data.amount,
+          amount: typeof data.amount === "number" ? data.amount : Number(data.amount) || 0,
         };
         setPixData(pixPayload as any);
         if (data.charge_id) setPixChargeId(String(data.charge_id));
 
         if (onPixGenerated) {
           onPixGenerated({
-            qrCode: data.pix_qr_code || "",
-            qrCodeUrl: data.pix_qr_code_url ?? null,
-            expiresAt: data.expires_at ?? null,
-            amount: data.amount,
+            qrCode: String(data.pix_qr_code || ""),
+            qrCodeUrl: data.pix_qr_code_url ? String(data.pix_qr_code_url) : null,
+            expiresAt: data.expires_at ? String(data.expires_at) : null,
+            amount: typeof data.amount === "number" ? data.amount : Number(data.amount) || 0,
             chargeId: data.charge_id ? String(data.charge_id) : undefined,
             title: prorationData?.package_name ? `Ativação do ${prorationData.package_name}` : "Ativação do Pacote WhatsApp",
           });

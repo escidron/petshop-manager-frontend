@@ -31,7 +31,6 @@ import {
   Check,
   HelpCircle,
   Plus,
-  Zap,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import dayjs from "dayjs";
@@ -45,7 +44,6 @@ import {
   createCheckout,
   getChargeStatus,
 } from "../../api/services/subscriptions";
-import { updateSubscription } from "../../api/services/tenants";
 import type { PaymentMethod, SubscriptionCharge } from "./types";
 
 dayjs.locale("pt-br");
@@ -58,8 +56,9 @@ interface SubscriptionManagementProps {
     qrCode: string;
     qrCodeUrl?: string | null;
     expiresAt?: string | null;
-    amount: number;
-    chargeId?: string;
+    amount?: number | null;
+    chargeId?: string | null;
+    title?: string;
   } | null;
   onOpenCancelModal: () => void;
   onRefreshData: () => Promise<void>;
@@ -602,22 +601,6 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       toast.error(msg);
     } finally {
       setLoadingGeneratePix(false);
-    }
-  };
-
-  const [loadingSimulatePix, setLoadingSimulatePix] = useState(false);
-  const handleSimulatePixPaid = async () => {
-    setLoadingSimulatePix(true);
-    try {
-      const resp = await simulatePixPayment();
-      toast.success(resp.message || "Pagamento Pix simulado com sucesso!");
-      await onRefreshData();
-      handleCloseModal();
-    } catch (e: any) {
-      console.error(e);
-      toast.error(e?.response?.data?.detail || "Erro ao simular pagamento Pix.");
-    } finally {
-      setLoadingSimulatePix(false);
     }
   };
 

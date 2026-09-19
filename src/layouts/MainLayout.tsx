@@ -24,8 +24,6 @@ import {
   Barcode,
   ShoppingBag,
   Package,
-  AlertTriangle,
-  Zap,
   MessageCircle,
   Smartphone,
 } from "lucide-react";
@@ -120,14 +118,7 @@ export default function MainLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const {
-    user,
-    tenant,
-    subscriptionStatus,
-    isSubscriptionActive,
-    isSubscriptionInGracePeriod,
-    gracePeriodDaysLeft,
-  } = useAuth();
+  const { user } = useAuth();
   const { hasPermission, isOwner } = usePermission();
   const location = useLocation();
   const navigate = useNavigate();

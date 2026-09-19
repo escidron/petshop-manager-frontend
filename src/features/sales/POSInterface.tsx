@@ -619,21 +619,50 @@ export default function POSInterface() {
       const details = await fetchPOSClientDetails(appointment.client.id);
       const openComanda = details.open_comandas?.[0];
 
+      // Check all unpaid completed appointments of this client (including the clicked one)
+      const allClientAppointments = [
+        appointment,
+        ...(details.client_appointments || []).filter(
+          (a) => a.status === "completed" && !a.is_paid && !a.is_fully_package_covered && a.id !== appointment.id
+        ),
+      ];
+
+      const removedServiceKeys = new Set<string>();
+      for (const apt of allClientAppointments) {
+        for (const item of apt.items) {
+          for (const s of item.services) {
+            if (s.is_removed) {
+              removedServiceKeys.add(`${apt.id}-${s.id}`);
+            }
+          }
+        }
+      }
+
       let initialCart: SaleItem[] = [];
       if (openComanda) {
-        initialCart = (openComanda.items || []).map((item) => ({
-          item_id: item.item_id,
-          item_type: item.item_type,
-          name: item.name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          subtotal: item.subtotal,
-          employee_id: item.employee_id || null,
-          pet_ids: item.pet_ids || undefined,
-          client_package_id_to_pay: item.client_package_id_to_pay || null,
-          unit: item.unit || "UN",
-          appointment_id: item.appointment_id || (item.item_type === "service" ? openComanda.appointment_id || undefined : undefined),
-        }));
+        initialCart = (openComanda.items || [])
+          .filter((item) => {
+            if (item.item_type === "service") {
+              const aptId = item.appointment_id || openComanda.appointment_id;
+              if (aptId && removedServiceKeys.has(`${aptId}-${item.item_id}`)) {
+                return false;
+              }
+            }
+            return true;
+          })
+          .map((item) => ({
+            item_id: item.item_id,
+            item_type: item.item_type,
+            name: item.name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            subtotal: item.subtotal,
+            employee_id: item.employee_id || null,
+            pet_ids: item.pet_ids || undefined,
+            client_package_id_to_pay: item.client_package_id_to_pay || null,
+            unit: item.unit || "UN",
+            appointment_id: item.appointment_id || (item.item_type === "service" ? openComanda.appointment_id || undefined : undefined),
+          }));
         setActiveComandaId(openComanda.id);
         const discCents = Math.round((openComanda.discount_amount || 0) * 100);
         setDiscountCents(discCents);
@@ -645,17 +674,10 @@ export default function POSInterface() {
         }
       }
 
-      // Check all unpaid completed appointments of this client (including the clicked one)
-      const allClientAppointments = [
-        appointment,
-        ...(details.client_appointments || []).filter(
-          (a) => a.status === "completed" && !a.is_paid && !a.is_fully_package_covered && a.id !== appointment.id
-        ),
-      ];
-
       for (const apt of allClientAppointments) {
         for (const item of apt.items) {
           for (const s of item.services) {
+            if (s.is_removed) continue;
             const alreadyExists = initialCart.some(
               (ci) => ci.appointment_id === apt.id && ci.item_id === s.id && ci.item_type === "service"
             );
@@ -687,17 +709,19 @@ export default function POSInterface() {
 
     // Fallback: if no open comanda on backend, pull appointment items
     const pulledItems: SaleItem[] = appointment.items.flatMap((item) =>
-      item.services.map((s) => ({
-        item_id: s.id,
-        item_type: "service" as const,
-        name: s.is_package_covered ? `${s.name} (via pacote)` : s.name,
-        quantity: 1,
-        unit_price: s.is_package_covered ? 0 : s.price_cents / 100,
-        subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
-        employee_id: s.employee_id || null,
-        pet_ids: [item.pet.id],
-        appointment_id: appointment.id,
-      }))
+      item.services
+        .filter((s) => !s.is_removed)
+        .map((s) => ({
+          item_id: s.id,
+          item_type: "service" as const,
+          name: s.is_package_covered ? `${s.name} (via pacote)` : s.name,
+          quantity: 1,
+          unit_price: s.is_package_covered ? 0 : s.price_cents / 100,
+          subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
+          employee_id: s.employee_id || null,
+          pet_ids: [item.pet.id],
+          appointment_id: appointment.id,
+        }))
     );
 
     if (pulledItems.length === 0) {
@@ -1574,7 +1598,10 @@ export default function POSInterface() {
           <DialogTitle sx={{ fontWeight: 800 }}>Remover serviço do agendamento?</DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.primary">
-              O serviço <strong>{cart[pendingRemoveItemIndex]?.name}</strong> pertence a um agendamento finalizado. Tem certeza de que deseja removê-lo da cobrança?
+              O serviço <strong>{cart[pendingRemoveItemIndex]?.name}</strong> pertence a um agendamento finalizado.
+            </Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+              Ao remover da comanda, ele será dispensado da cobrança e registrado como <strong>Não Cobrado</strong> no agendamento, preservando todo o histórico e prontuário do pet.
             </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 2, pt: 1 }}>
@@ -1604,6 +1631,9 @@ export default function POSInterface() {
           <DialogContent>
             <Typography variant="body2" color="text.primary">
               Este ticket contém serviços de um agendamento finalizado. O que você deseja fazer?
+            </Typography>
+            <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 1 }}>
+              * Se escolher "Limpar tudo", os serviços do agendamento serão dispensados da cobrança (marcados como Não Cobrados), preservando o histórico do pet.
             </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 2, pt: 1, flexDirection: "column", gap: 1, alignItems: "stretch" }}>
