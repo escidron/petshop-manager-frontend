@@ -262,6 +262,21 @@ export default function AppointmentModal({
               <strong>Atenção (Modo Proprietário):</strong> Este agendamento já foi finalizado. As alterações de serviços e profissionais atualizarão automaticamente pacotes, vendas e comissões.
             </Alert>
           )}
+          {appointment?.status === "in_progress" && (
+            <Alert
+              severity="info"
+              sx={{
+                mx: { xs: 2, sm: 3 },
+                mt: 2,
+                mb: 0.5,
+                borderRadius: 2,
+                fontSize: "0.82rem",
+                "& .MuiAlert-icon": { alignItems: "center" },
+              }}
+            >
+              <strong>Atendimento em andamento:</strong> Você pode adicionar novos serviços, ajustar horários, profissionais ou observações a qualquer momento.
+            </Alert>
+          )}
           {isMobile ? (
             <AppointmentMobileFlow
               defaultValues={defaultValues}

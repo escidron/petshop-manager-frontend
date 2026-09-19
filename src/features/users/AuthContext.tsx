@@ -78,8 +78,31 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const periodEnd = sub.current_period_end ? new Date(sub.current_period_end) : null;
     const trialEnd = sub.trial_ends_at ? new Date(sub.trial_ends_at) : null;
     
-    // Check if the plan is FREE_TRIAL (both code === 'FREE_TRIAL' or status === 'trialing')
-    const isTrial = sub.plan?.code === "FREE_TRIAL" || sub.status === "trialing";
+    // Playbook §9: Se o período contratado vai além do trial e ainda está no futuro (ex: PIX pago antecipado),
+    // o usuário já pagou o ciclo seguinte! A assinatura deve ser considerada ATIVA, nunca bloqueada.
+    const hasPrepaidPeriodInFuture = Boolean(
+      periodEnd &&
+      trialEnd &&
+      periodEnd.getTime() > trialEnd.getTime() &&
+      periodEnd.getTime() > now.getTime()
+    );
+
+    if (hasPrepaidPeriodInFuture) {
+      return {
+        isActive: true,
+        inGracePeriod: false,
+        gracePeriodDaysLeft: 0,
+        isTrial: false,
+        trialDaysLeft: null,
+      };
+    }
+
+    // Check if the plan is in trial: code === 'FREE_TRIAL', status === 'trialing', or active trial date in future
+    const isTrial = sub.status !== "canceled" && (
+      sub.plan?.code === "FREE_TRIAL" || 
+      sub.status === "trialing" || 
+      (trialEnd !== null && trialEnd.getTime() > now.getTime())
+    );
     
     if (isTrial) {
       if (!trialEnd) {

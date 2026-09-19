@@ -317,10 +317,11 @@ export const LEGAL_CONTENT = {
           5.2. <strong>Compartilhamento Estritamente Operacional:</strong> Os dados podem ser compartilhados unicamente com parceiros de infraestrutura indispensáveis para a operação do sistema:
         </Typography>
         <Box component="ul">
-          <li>Provedores de Nuvem e Servidores Seguros (infraestrutura de cloud hosting com certificações ISO 27001 e SOC 2);</li>
-          <li>Gateways de Pagamento e Adquirentes (Pagar.me / StoneCo) para processamento financeiro seguro das assinaturas e pacotes;</li>
-          <li>Provedores e APIs de Telecomunicação/Mensageria (Meta / WhatsApp Cloud API) para entrega dos disparos transacionais aos tutores;</li>
-          <li>Órgãos Governamentais e Autoridades Judiciais, exclusivamente mediante ordem judicial fundamentada ou exigência legal expressa.</li>
+          <li><strong>Hospedagem em Nuvem e Armazenamento:</strong> Google Cloud Platform (GCP - Cloud Run e Google Cloud Storage para armazenamento seguro de arquivos e imagens) e Vercel (hospedagem e distribuição de alta performance da interface web);</li>
+          <li><strong>Processamento Financeiro e Meios de Pagamento:</strong> Pagar.me (StoneCo), responsável pela tokenização compatível com PCI-DSS e liquidação de pagamentos via Cartão e PIX;</li>
+          <li><strong>Mensageria e Telecomunicações:</strong> Meta Plataformas (WhatsApp Cloud API) para o envio de lembretes e notificações transacionais aos tutores, e Resend para o disparo de e-mails transacionais (boas-vindas, segurança e redefinição de senhas);</li>
+          <li><strong>Monitoramento de Estabilidade e Desempenho:</strong> Sentry, para captura de logs técnicos e diagnóstico de falhas operacionais do sistema em caráter anônimo;</li>
+          <li><strong>Autoridades Públicas:</strong> Órgãos governamentais e autoridades judiciais, exclusivamente mediante ordem judicial fundamentada ou exigência legal expressa.</li>
         </Box>
 
         <Typography variant="h6" component="h2">6. Segurança da Informação e Criptografia</Typography>

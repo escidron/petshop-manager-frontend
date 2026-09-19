@@ -30,7 +30,11 @@ import {
   listAppointmentsByClient,
   removeUnpaidAppointmentService,
   cancelCompletedAppointment,
+  addAppointmentService,
 } from "../../api/services/appointments";
+import { useServices } from "../../hooks/useServices";
+import { formatServiceLabel } from "../../utils/formatServiceLabel";
+import { getServicesForPet } from "../../utils/serviceMatcher";
 import { getCommissionRules } from "../../api/services/commissions";
 import {
   listClientPackagesByPet,
@@ -57,6 +61,8 @@ import {
   Repeat,
   Trash2,
   XCircle,
+  Plus,
+  CheckCircle2,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -125,9 +131,57 @@ const AppointmentDetailsModal = ({
       queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       queryClient.invalidateQueries({ queryKey: ["pos-client"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
     },
     onError: (err: any) => {
       const msg = err?.response?.data?.detail || "Erro ao remover serviço.";
+      toast.error(msg);
+    },
+  });
+
+  const { services: tenantServices = [] } = useServices();
+  const [addServicePet, setAddServicePet] = useState<{
+    petId: number;
+    petName: string;
+  } | null>(null);
+  const [selectedNewServiceId, setSelectedNewServiceId] = useState<number | null>(null);
+  const [selectedNewEmployeeId, setSelectedNewEmployeeId] = useState<number | null>(null);
+
+  const addServiceMutation = useMutation({
+    mutationFn: async ({
+      petId,
+      serviceId,
+      employeeId,
+    }: {
+      petId: number;
+      serviceId: number;
+      employeeId?: number;
+    }) => {
+      if (!appointment) return;
+      return await addAppointmentService(appointment.id, {
+        pet_id: petId,
+        service_id: serviceId,
+        employee_id: employeeId,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Serviço adicionado com sucesso!");
+      setAddServicePet(null);
+      setSelectedNewServiceId(null);
+      setSelectedNewEmployeeId(null);
+      queryClient.invalidateQueries({ queryKey: ["appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
+      queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
+    },
+    onError: (err: any) => {
+      const msg = err?.response?.data?.detail || "Erro ao adicionar serviço.";
       toast.error(msg);
     },
   });
@@ -313,10 +367,11 @@ const AppointmentDetailsModal = ({
     return coveredIds;
   }, [appointment, packageQueries]);
 
-  // Compute precise appointment total excluding currently-covered or future-covered
+  // Compute precise appointment total excluding currently-covered, future-covered or removed
   const totalCents = useMemo(() => {
     return appointment.items.reduce((itemsAcc, item) => {
       const itemTotal = item.services.reduce((servicesAcc, s) => {
+        if (s.is_removed) return servicesAcc;
         const key = `${item.id}-${s.id}`;
         return coveredServiceKeys.has(key)
           ? servicesAcc
@@ -329,8 +384,10 @@ const AppointmentDetailsModal = ({
   const allServices = appointment.items.flatMap((i) =>
     i.services.map((s) => ({ ...s, petId: i.pet.id, petName: i.pet.name }))
   );
-  const coveredServices = allServices.filter((s) => s.is_package_covered);
-  const billableServices = allServices.filter((s) => !s.is_package_covered);
+  const coveredServices = allServices.filter((s) => s.is_package_covered && !s.is_removed);
+  const billableServices = allServices.filter((s) => !s.is_package_covered && !s.is_removed);
+  const removedServices = allServices.filter((s) => s.is_removed);
+  const isAllRemoved = allServices.length > 0 && removedServices.length === allServices.length;
   const billableCount = billableServices.length;
 
   const remainingBalances = useMemo(() => {
@@ -664,7 +721,10 @@ const AppointmentDetailsModal = ({
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Button
                           variant="outlined"
-                          onClick={() => onEdit(appointment)}
+                          onClick={() => {
+                            onClose();
+                            onEdit(appointment);
+                          }}
                           startIcon={<Pencil size={15} />}
                           disabled={!!loadingAction}
                           size="small"
@@ -720,7 +780,10 @@ const AppointmentDetailsModal = ({
                       <Box sx={{ display: "flex", gap: 1 }}>
                         <Button
                           variant="outlined"
-                          onClick={() => onEdit(appointment)}
+                          onClick={() => {
+                            onClose();
+                            onEdit(appointment);
+                          }}
                           startIcon={<Pencil size={15} />}
                           disabled={!!loadingAction}
                           size="small"
@@ -750,20 +813,55 @@ const AppointmentDetailsModal = ({
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: "flex-end",
-                        gap: 1,
+                        flexDirection: { xs: "column-reverse", sm: "row" },
+                        justifyContent: "space-between",
+                        alignItems: { xs: "stretch", sm: "center" },
+                        gap: 1.25,
                       }}
                     >
                       <Button
+                        variant="outlined"
+                        color="error"
                         size="small"
-                        startIcon={<Check size={16} />}
-                        loading={loadingAction === "complete"}
+                        startIcon={<X size={15} />}
                         disabled={!!loadingAction}
-                        onClick={() => handleAction(appointment, "complete")}
-                        sx={{ width: { xs: "100%", sm: "auto" } }}
+                        onClick={() => setCancelConfirmOpen(true)}
+                        sx={{
+                          fontSize: "0.78rem",
+                          borderColor: "error.light",
+                          opacity: 0.85,
+                          "&:hover": { opacity: 1, borderColor: "error.main" },
+                        }}
                       >
-                        Finalizar
+                        Cancelar Agendamento
                       </Button>
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        <Button
+                          variant="outlined"
+                          onClick={() => {
+                            onClose();
+                            onEdit(appointment);
+                          }}
+                          startIcon={<Pencil size={15} />}
+                          disabled={!!loadingAction}
+                          size="small"
+                          sx={{ flex: { xs: 1, sm: "initial" } }}
+                        >
+                          Alterar
+                        </Button>
+                        <Button
+                          variant="contained"
+                          color="primary"
+                          size="small"
+                          startIcon={<Check size={16} />}
+                          loading={loadingAction === "complete"}
+                          disabled={!!loadingAction}
+                          onClick={() => handleAction(appointment, "complete")}
+                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
+                        >
+                          Finalizar
+                        </Button>
+                      </Box>
                     </Box>
                   </>
                 )}
@@ -787,127 +885,182 @@ const AppointmentDetailsModal = ({
                         Resumo da Finalização
                       </Typography>
 
-                      {coveredServices.map((s, idx) => (
-                        <Box
-                          key={`cov-${idx}`}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            gap: 1,
-                            mb: 0.5,
-                            color: "success.main",
-                          }}
-                        >
-                          <Check size={18} strokeWidth={3} />
-                          <Typography variant="body2">
-                            <strong>{s.name}</strong> debitado do pacote.
-                          </Typography>
-                        </Box>
-                      ))}
-
-                      {remainingBalances.length > 0 && (
-                        <Box sx={{ mb: billableCount > 0 ? 1.5 : 0, pl: 3.5 }}>
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                              mb: 0.5,
-                            }}
-                          >
-                            <ShoppingBag
-                              size={14}
-                              color={theme.palette.text.secondary}
-                            />
-                            <Typography
-                              variant="caption"
-                              color="text.primary"
-                              fontWeight={600}
-                            >
-                              Saldo de pacotes atualizado:
+                      {isAllRemoved ? (
+                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
+                            <CheckCircle2 size={18} color={theme.palette.text.secondary} />
+                            <Typography variant="body2" fontWeight={600} color="text.secondary">
+                              Atendimento concluído sem cobrança pendente.
                             </Typography>
                           </Box>
-                          <Box
-                            sx={{
-                              pl: 3,
-                              display: "flex",
-                              flexDirection: "column",
-                              gap: 0.5,
-                            }}
-                          >
-                            {remainingBalances.map((balance, idx) => (
-                              <Typography
-                                key={`bal-${idx}`}
-                                variant="caption"
-                                color="text.primary"
-                              >
-                                • {balance}
+                          <Box sx={{ pl: 3.2, display: "flex", flexDirection: "column", gap: 0.5 }}>
+                            <Typography variant="caption" color="text.secondary">
+                              Todos os serviços foram dispensados da cobrança:
+                            </Typography>
+                            {removedServices.map((s, idx) => (
+                              <Typography key={`rem-all-${idx}`} variant="caption" color="text.secondary">
+                                • <strong>{s.name}</strong> {s.removal_reason ? `(${s.removal_reason})` : "dispensado no caixa"}
                               </Typography>
                             ))}
                           </Box>
                         </Box>
-                      )}
-
-                      {billableServices.map((s, idx) => (
-                        <Box
-                          key={`bil-${idx}`}
-                          sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            gap: 1,
-                            mb: 0.5,
-                            p: 0.5,
-                            borderRadius: 1,
-                            bgcolor: appointment.is_paid
-                              ? "transparent"
-                              : "action.hover",
-                            color: appointment.is_paid
-                              ? "success.main"
-                              : "warning.main",
-                          }}
-                        >
-                          <Box
-                            sx={{
-                              display: "flex",
-                              alignItems: "center",
-                              gap: 1,
-                            }}
-                          >
-                            {appointment.is_paid ? (
+                      ) : (
+                        <>
+                          {coveredServices.map((s, idx) => (
+                            <Box
+                              key={`cov-${idx}`}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                mb: 0.5,
+                                color: "success.main",
+                              }}
+                            >
                               <Check size={18} strokeWidth={3} />
-                            ) : (
-                              <AlertCircle size={18} />
-                            )}
-                            <Typography variant="body2">
-                              <strong>{s.name}</strong>{" "}
-                              {appointment.is_paid
-                                ? "pago no caixa."
-                                : "pendente de pagamento no caixa."}
-                            </Typography>
-                          </Box>
+                              <Typography variant="body2">
+                                <strong>{s.name}</strong> debitado do pacote.
+                              </Typography>
+                            </Box>
+                          ))}
 
-                          {!appointment.is_paid &&
-                            appointment.status === "completed" && (
-                              <Tooltip title="Remover serviço lançado por engano">
-                                <IconButton
-                                  size="small"
-                                  color="error"
-                                  onClick={() =>
-                                    setServiceToRemove({
-                                      id: s.id,
-                                      name: s.name,
-                                      petId: s.petId,
-                                    })
-                                  }
-                                  sx={{ p: 0.5 }}
+                          {remainingBalances.length > 0 && (
+                            <Box sx={{ mb: billableCount > 0 ? 1.5 : 0, pl: 3.5 }}>
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                  mb: 0.5,
+                                }}
+                              >
+                                <ShoppingBag
+                                  size={14}
+                                  color={theme.palette.text.secondary}
+                                />
+                                <Typography
+                                  variant="caption"
+                                  color="text.primary"
+                                  fontWeight={600}
                                 >
-                                  <Trash2 size={16} />
-                                </IconButton>
-                              </Tooltip>
-                            )}
-                        </Box>
-                      ))}
+                                  Saldo de pacotes atualizado:
+                                </Typography>
+                              </Box>
+                              <Box
+                                sx={{
+                                  pl: 3,
+                                  display: "flex",
+                                  flexDirection: "column",
+                                  gap: 0.5,
+                                }}
+                              >
+                                {remainingBalances.map((balance, idx) => (
+                                  <Typography
+                                    key={`bal-${idx}`}
+                                    variant="caption"
+                                    color="text.primary"
+                                  >
+                                    • {balance}
+                                  </Typography>
+                                ))}
+                              </Box>
+                            </Box>
+                          )}
+
+                          {billableServices.map((s, idx) => (
+                            <Box
+                              key={`bil-${idx}`}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                                gap: 1,
+                                mb: 0.5,
+                                p: 0.5,
+                                borderRadius: 1,
+                                bgcolor: appointment.is_paid
+                                  ? "transparent"
+                                  : "action.hover",
+                                color: appointment.is_paid
+                                  ? "success.main"
+                                  : "warning.main",
+                              }}
+                            >
+                              <Box
+                                sx={{
+                                  display: "flex",
+                                  alignItems: "center",
+                                  gap: 1,
+                                }}
+                              >
+                                {appointment.is_paid ? (
+                                  <Check size={18} strokeWidth={3} />
+                                ) : (
+                                  <AlertCircle size={18} />
+                                )}
+                                <Typography variant="body2">
+                                  <strong>{s.name}</strong>{" "}
+                                  {appointment.is_paid
+                                    ? "pago no caixa."
+                                    : "pendente de pagamento no caixa."}
+                                </Typography>
+                              </Box>
+
+                              {!appointment.is_paid &&
+                                appointment.status === "completed" && (
+                                  <Tooltip title="Remover serviço lançado por engano">
+                                    <IconButton
+                                      size="small"
+                                      color="error"
+                                      onClick={() =>
+                                        setServiceToRemove({
+                                          id: s.id,
+                                          name: s.name,
+                                          petId: s.petId,
+                                        })
+                                      }
+                                      sx={{ p: 0.5 }}
+                                    >
+                                      <Trash2 size={16} />
+                                    </IconButton>
+                                  </Tooltip>
+                                )}
+                            </Box>
+                          ))}
+
+                          {removedServices.map((s, idx) => (
+                            <Box
+                              key={`rem-partial-${idx}`}
+                              sx={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: 1,
+                                mb: 0.5,
+                                color: "text.disabled",
+                              }}
+                            >
+                              <Dot color={theme.palette.text.disabled} size={16} />
+                              <Typography variant="body2" sx={{ color: "text.disabled", textDecoration: "line-through" }}>
+                                {s.name}
+                              </Typography>
+                              <Chip
+                                label="Não Cobrado"
+                                size="small"
+                                variant="outlined"
+                                sx={{
+                                  height: 18,
+                                  fontSize: 10,
+                                  px: 0.5,
+                                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                  borderColor: "warning.light",
+                                  color: "warning.dark",
+                                  fontWeight: 700,
+                                }}
+                              />
+                            </Box>
+                          ))}
+                        </>
+                      )}
                     </Box>
 
                     <Box
@@ -921,22 +1074,24 @@ const AppointmentDetailsModal = ({
                     >
                       {isOwnerOrAdmin && (
                         <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                          <Button
-                            variant="outlined"
-                            size="small"
-                            startIcon={<Pencil size={14} />}
-                            onClick={() => onEdit(appointment)}
-                            sx={{
-                              color: "#4B5563",
-                              borderColor: "#D1D5DB",
-                              fontWeight: 700,
-                              fontSize: "0.8rem",
-                              whiteSpace: "nowrap",
-                              "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F3F4F6" },
-                            }}
-                          >
-                            Editar
-                          </Button>
+                          {appointment.status !== "completed" && (
+                            <Button
+                              variant="outlined"
+                              size="small"
+                              startIcon={<Pencil size={14} />}
+                              onClick={() => onEdit(appointment)}
+                              sx={{
+                                color: "#4B5563",
+                                borderColor: "#D1D5DB",
+                                fontWeight: 700,
+                                fontSize: "0.8rem",
+                                whiteSpace: "nowrap",
+                                "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F3F4F6" },
+                              }}
+                            >
+                              Editar
+                            </Button>
+                          )}
                           <Button
                             variant="outlined"
                             size="small"
@@ -962,6 +1117,19 @@ const AppointmentDetailsModal = ({
                             size="small"
                             variant="filled"
                             sx={{ fontWeight: 900, px: 1 }}
+                          />
+                        ) : isAllRemoved ? (
+                          <Chip
+                            label="NÃO COBRADO"
+                            size="small"
+                            variant="outlined"
+                            sx={{
+                              fontWeight: 800,
+                              px: 1,
+                              bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                              borderColor: "warning.light",
+                              color: "warning.dark",
+                            }}
                           />
                         ) : appointment.is_fully_package_covered ? (
                           <Chip
@@ -1285,9 +1453,26 @@ const AppointmentDetailsModal = ({
                 )}
 
                 <Divider sx={{ my: 1 }} />
-                <Typography variant="h6" fontWeight={500}>
-                  Serviços do pet
-                </Typography>
+                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                  <Typography variant="h6" fontWeight={500}>
+                    Serviços do pet
+                  </Typography>
+                  {!appointment.is_paid && appointment.status !== "canceled" && appointment.status !== "no_show" && (
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      startIcon={<Plus size={14} />}
+                      onClick={() => {
+                        setSelectedNewServiceId(null);
+                        setSelectedNewEmployeeId(null);
+                        setAddServicePet({ petId: item.pet.id, petName: item.pet.name });
+                      }}
+                      sx={{ fontSize: "0.75rem", py: 0.25, px: 1, height: 26, borderRadius: 1.5, fontWeight: 600 }}
+                    >
+                      Adicionar serviço
+                    </Button>
+                  )}
+                </Box>
                 <Box>
                   {item.services.map((s) => {
                     const key = `${item.id}-${s.id}`;
@@ -1337,36 +1522,80 @@ const AppointmentDetailsModal = ({
                                 sx={{ height: 18, fontSize: 10, px: 0.5 }}
                               />
                             )}
+                            {s.is_removed && (
+                              <Tooltip title={s.removal_reason ? `${s.removal_reason}${s.removed_at ? ` em ${dayjs(s.removed_at).format("DD/MM/YYYY HH:mm")}` : ""}` : "Dispensado da cobrança no caixa"}>
+                                <Chip
+                                  label={s.billing_status === "canceled" ? "Cancelado" : "Não Cobrado"}
+                                  size="small"
+                                  color="default"
+                                  variant="outlined"
+                                  sx={{
+                                    height: 18,
+                                    fontSize: 10,
+                                    px: 0.5,
+                                    bgcolor: (theme) => alpha(s.billing_status === "canceled" ? theme.palette.error.main : theme.palette.warning.main, 0.08),
+                                    borderColor: s.billing_status === "canceled" ? "error.light" : "warning.light",
+                                    color: s.billing_status === "canceled" ? "error.dark" : "warning.dark",
+                                    fontWeight: 700,
+                                  }}
+                                />
+                              </Tooltip>
+                            )}
                           </Box>
-                          <Typography
-                            variant="body2"
-                            sx={{
-                              textDecoration: coveredServiceKeys.has(key)
-                                ? "line-through"
-                                : "none",
-                              color: coveredServiceKeys.has(key)
-                                ? "text.disabled"
-                                : "text.primary",
-                            }}
-                          >
-                            {coveredServiceKeys.has(key) &&
-                            !s.is_package_covered ? (
-                              <span
-                                style={{
-                                  fontSize: "0.75rem",
-                                  marginRight: 8,
-                                  fontStyle: "italic",
-                                  textDecoration: "none",
-                                }}
-                              >
-                                disponível
-                              </span>
-                            ) : null}
-                            {(s.price_cents / 100).toLocaleString("pt-BR", {
-                              style: "currency",
-                              currency: "BRL",
-                            })}
-                          </Typography>
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                            <Typography
+                              variant="body2"
+                              sx={{
+                                textDecoration: (coveredServiceKeys.has(key) || s.is_removed)
+                                  ? "line-through"
+                                  : "none",
+                                color: (coveredServiceKeys.has(key) || s.is_removed)
+                                  ? "text.disabled"
+                                  : "text.primary",
+                              }}
+                            >
+                              {coveredServiceKeys.has(key) &&
+                              !s.is_package_covered ? (
+                                <span
+                                  style={{
+                                    fontSize: "0.75rem",
+                                    marginRight: 8,
+                                    fontStyle: "italic",
+                                    textDecoration: "none",
+                                  }}
+                                >
+                                  disponível
+                                </span>
+                              ) : null}
+                              {(s.price_cents / 100).toLocaleString("pt-BR", {
+                                style: "currency",
+                                currency: "BRL",
+                              })}
+                            </Typography>
+                            {!s.is_removed &&
+                              !appointment.is_paid &&
+                              appointment.status !== "canceled" &&
+                              appointment.status !== "no_show" &&
+                              !s.is_package_covered &&
+                              (item.services.length > 1 || appointment.items.length > 1) && (
+                                <Tooltip title="Remover este serviço">
+                                  <IconButton
+                                    size="small"
+                                    color="error"
+                                    onClick={() =>
+                                      setServiceToRemove({
+                                        id: s.id,
+                                        name: s.name,
+                                        petId: item.pet.id,
+                                      })
+                                    }
+                                    sx={{ p: 0.25 }}
+                                  >
+                                    <Trash2 size={15} />
+                                  </IconButton>
+                                </Tooltip>
+                              )}
+                          </Box>
                         </Box>
 
                         {/* Employee Select */}
@@ -1597,7 +1826,7 @@ const AppointmentDetailsModal = ({
                       {item.services
                         .reduce((acc, s) => {
                           const key = `${item.id}-${s.id}`;
-                          return coveredServiceKeys.has(key)
+                          return (coveredServiceKeys.has(key) || s.is_removed)
                             ? acc
                             : acc + s.price_cents / 100;
                         }, 0)
@@ -1725,6 +1954,114 @@ const AppointmentDetailsModal = ({
         </DialogActions>
       </Dialog>
 
+      {addServicePet && (
+        <Dialog
+          open={Boolean(addServicePet)}
+          onClose={() => !addServiceMutation.isPending && setAddServicePet(null)}
+          maxWidth="xs"
+          fullWidth
+        >
+          <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
+            Adicionar Serviço para {addServicePet.petName}
+          </DialogTitle>
+          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Selecione o Serviço *
+              </Typography>
+              <Autocomplete
+                size="small"
+                options={(() => {
+                  const petObj = appointment.items.find((it) => it.pet.id === addServicePet.petId)?.pet;
+                  const active = tenantServices.filter((s) => s.is_active);
+                  return petObj ? getServicesForPet(active, petObj as any) : active;
+                })()}
+                getOptionLabel={(option) => formatServiceLabel(option)}
+                isOptionEqualToValue={(option, val) => option.id === val.id}
+                onChange={(_, val) => setSelectedNewServiceId(val?.id || null)}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Pesquisar serviço..." autoFocus />
+                )}
+                renderOption={(props, option) => {
+                  const { ...rest } = props;
+                  const hasCredit = clientPackages.some(
+                    (pkg) =>
+                      pkg.is_active &&
+                      (!pkg.pets || pkg.pets.length === 0 || pkg.pets.some((p) => p.id === addServicePet.petId)) &&
+                      pkg.credits?.some((c) => c.service_id === option.id && c.remaining_qty > 0)
+                  );
+                  return (
+                    <li {...rest} key={option.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px" }}>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <Typography variant="body2" fontWeight={500}>
+                          {formatServiceLabel(option)}
+                        </Typography>
+                        {hasCredit && (
+                          <Chip
+                            label="pacote"
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                            icon={<ShoppingBag size={10} />}
+                            sx={{ height: 18, fontSize: 10, px: 0.5 }}
+                          />
+                        )}
+                      </Box>
+                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
+                        {(option.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      </Typography>
+                    </li>
+                  );
+                }}
+              />
+            </Box>
+
+            <Box>
+              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+                Profissional (opcional)
+              </Typography>
+              <Autocomplete
+                size="small"
+                options={activeEmployees}
+                getOptionLabel={(option) => option.name}
+                isOptionEqualToValue={(option, val) => option.id === val.id}
+                onChange={(_, val) => setSelectedNewEmployeeId(val?.id || null)}
+                renderInput={(params) => (
+                  <TextField {...params} placeholder="Selecione o profissional..." />
+                )}
+              />
+            </Box>
+          </DialogContent>
+          <DialogActions sx={{ p: 2, pt: 1, gap: 1 }}>
+            <Button
+              variant="outlined"
+              onClick={() => setAddServicePet(null)}
+              disabled={addServiceMutation.isPending}
+            >
+              Cancelar
+            </Button>
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={!selectedNewServiceId || addServiceMutation.isPending}
+              loading={addServiceMutation.isPending}
+              onClick={() => {
+                if (selectedNewServiceId) {
+                  addServiceMutation.mutate({
+                    petId: addServicePet.petId,
+                    serviceId: selectedNewServiceId,
+                    employeeId: selectedNewEmployeeId || undefined,
+                  });
+                }
+              }}
+              sx={{ fontWeight: 700 }}
+            >
+              Adicionar
+            </Button>
+          </DialogActions>
+        </Dialog>
+      )}
+
       {serviceToRemove && (
         <Dialog
           open={Boolean(serviceToRemove)}
@@ -1735,13 +2072,13 @@ const AppointmentDetailsModal = ({
           fullWidth
         >
           <DialogTitle sx={{ fontWeight: 700 }}>
-            Remover Serviço Lançado por Engano?
+            Remover Serviço do Agendamento?
           </DialogTitle>
           <DialogContent>
             <Typography variant="body2" color="text.secondary">
               Tem certeza de que deseja remover{" "}
-              <strong>{serviceToRemove.name}</strong> deste agendamento e da
-              comanda em aberto no caixa?
+              <strong>{serviceToRemove.name}</strong> deste agendamento
+              {appointment.status === "completed" ? " e da comanda em aberto no caixa" : ""}?
             </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 2, pt: 1 }}>

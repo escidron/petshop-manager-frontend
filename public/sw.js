@@ -1,8 +1,10 @@
 // Data Pet PWA Service Worker
-const CACHE_NAME = "datapet-cache-v2";
+const CACHE_NAME = "datapet-cache-v3";
 const STATIC_ASSETS = [
   "/",
   "/index.html",
+  "/logo.png",
+  "/logo_dark.png",
   "/favicon.png",
   "/pwa-192x192.png",
   "/pwa-512x512.png",

@@ -32,6 +32,10 @@ export type ServiceBase = {
   price_cents: number;
   duration_minutes?: number;
   is_package_covered?: boolean;
+  billing_status?: string;
+  is_removed?: boolean;
+  removed_at?: string | null;
+  removal_reason?: string | null;
   employee_id?: number | null;
   species?: string | null;
   size?: string | null;

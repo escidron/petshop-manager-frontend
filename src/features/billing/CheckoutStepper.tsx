@@ -12,22 +12,23 @@ import {
   TextField,
   Chip,
 } from "@mui/material";
-import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft } from "lucide-react";
+import { X, CreditCard, QrCode, Lock, CheckCircle2, ArrowLeft, MessageCircle } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 import CheckoutForm from "./CheckoutForm";
 import { QRCodeSVG } from "qrcode.react";
+import { toast } from "react-toastify";
 import {
   createCheckout,
   cancelCharge,
   previewPackageProration,
   checkoutPackage,
+  getChargeStatus,
 } from "../../api/services/subscriptions";
 import type {
   CheckoutPixResponse,
   PaymentMethod,
   ProrationPreviewResponse,
 } from "./types";
-import { MessageCircle } from "lucide-react";
 import { maskDocument } from "../../utils/masks";
 import dayjs from "dayjs";
 
@@ -48,6 +49,15 @@ interface Props {
   startAt?: string | null;
   title?: string;
   savedCards?: PaymentMethod[];
+  defaultPaymentMethod?: "card" | "pix" | null;
+  onPixGenerated?: (pixData: {
+    qrCode: string;
+    qrCodeUrl?: string | null;
+    expiresAt?: string | null;
+    amount?: number | null;
+    chargeId?: string | null;
+    title?: string;
+  }) => void;
 }
 
 type PayMethod = "card" | "pix";
@@ -116,6 +126,8 @@ const CheckoutStepper = ({
   startAt,
   title,
   savedCards,
+  defaultPaymentMethod,
+  onPixGenerated,
 }: Props) => {
   const isPackage = !!packageCode;
   const modalTitle = title || (isPackage ? "Ativação do Pacote WhatsApp" : "Pagamento & Assinatura");
@@ -166,6 +178,11 @@ const CheckoutStepper = ({
           pix_qr_code_url: existingPixData.pix_qr_code_url ?? "",
           expires_at: existingPixData.expires_at ?? "",
         } as CheckoutPixResponse);
+      } else if (defaultPaymentMethod) {
+        setStep(2);
+        setPayMethod(defaultPaymentMethod);
+        setPixData(null);
+        setError(null);
       } else {
         setStep(1);
         setPayMethod(null);
@@ -189,7 +206,31 @@ const CheckoutStepper = ({
         setProrationData(null);
       }
     }
-  }, [open, existingPixData, tenantDocument, savedCards, packageCode]);
+  }, [open, existingPixData, tenantDocument, savedCards, packageCode, defaultPaymentMethod]);
+
+  // Auto-polling para detecção automática de Pix pago sem refresh manual
+  useEffect(() => {
+    if (!open || step !== 2 || payMethod !== "pix" || !pixData) return;
+
+    const chargeId = pixChargeId || (pixData as any).charge_id || (pixData as any).id || (pixData as any).pagarme_charge_id;
+    if (!chargeId) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await getChargeStatus(chargeId);
+        if (res.paid) {
+          clearInterval(intervalId);
+          toast.success("Pagamento Pix confirmado!");
+          setStep(3);
+          onSuccess();
+        }
+      } catch {
+        // Silently ignore polling network errors
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [open, step, payMethod, pixData, pixChargeId, onSuccess, toast]);
 
   const handleSelectPix = () => {
     setPayMethod("pix");
@@ -209,25 +250,58 @@ const CheckoutStepper = ({
     try {
       const doc = pixDocument.replace(/\D/g, "");
       if (packageCode) {
-        const data = await checkoutPackage({
+        const data: any = await checkoutPackage({
           package_code: packageCode,
           payment_method: "pix",
           document: doc,
         });
-        setPixData({
+        const pixPayload = {
           pagarme_subscription_id: "",
           status: "pending",
-          pix_qr_code: data.pix_qr_code || "",
-          pix_qr_code_url: data.pix_qr_code_url ?? "",
-          expires_at: data.expires_at ?? "",
-        } as CheckoutPixResponse);
+          pix_qr_code: String(data.pix_qr_code || ""),
+          pix_qr_code_url: data.pix_qr_code_url ? String(data.pix_qr_code_url) : "",
+          expires_at: data.expires_at ? String(data.expires_at) : "",
+          charge_id: data.charge_id,
+          amount: typeof data.amount === "number" ? data.amount : Number(data.amount) || 0,
+        };
+        setPixData(pixPayload as any);
         if (data.charge_id) setPixChargeId(String(data.charge_id));
+
+        if (onPixGenerated) {
+          onPixGenerated({
+            qrCode: String(data.pix_qr_code || ""),
+            qrCodeUrl: data.pix_qr_code_url ? String(data.pix_qr_code_url) : null,
+            expiresAt: data.expires_at ? String(data.expires_at) : null,
+            amount: typeof data.amount === "number" ? data.amount : Number(data.amount) || 0,
+            chargeId: data.charge_id ? String(data.charge_id) : undefined,
+            title: prorationData?.package_name ? `Ativação do ${prorationData.package_name}` : "Ativação do Pacote WhatsApp",
+          });
+          onClose();
+          return;
+        }
       } else {
         const data = await createCheckout(effectivePlanCode, "pix", undefined, doc);
         if ("pix_qr_code" in data && "status" in data) {
           const pixResp = data as any;
-          setPixData(data as CheckoutPixResponse);
+          const pixPayload = {
+            ...data,
+            charge_id: pixResp.charge_id || pixResp.id,
+          };
+          setPixData(pixPayload as any);
           if (pixResp.charge_id) setPixChargeId(String(pixResp.charge_id));
+
+          if (onPixGenerated) {
+            onPixGenerated({
+              qrCode: data.pix_qr_code || "",
+              qrCodeUrl: data.pix_qr_code_url ?? null,
+              expiresAt: data.expires_at ?? null,
+              amount: (data as any).amount || 9990,
+              chargeId: pixResp.charge_id ? String(pixResp.charge_id) : undefined,
+              title: "Pagamento da assinatura do sistema Data Pet",
+            });
+            onClose();
+            return;
+          }
         }
       }
       setConfirmationData(null);
@@ -237,7 +311,7 @@ const CheckoutStepper = ({
     } finally {
       setLoading(false);
     }
-  }, [effectivePlanCode, packageCode, pixDocument]);
+  }, [effectivePlanCode, packageCode, pixDocument, onPixGenerated, prorationData, onClose]);
 
   const handleCancelPix = async () => {
     if (!pixChargeId) { onClose(); return; }
@@ -1027,9 +1101,45 @@ const CheckoutStepper = ({
                   </Box>
                 )}
 
-                <Typography variant="caption" color="text.primary" align="center" display="block" sx={{ mb: 2.5 }}>
-                  Assim que o pagamento for confirmado, sua assinatura será ativada automaticamente.
+                {/* Status de Polling Ativo */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 1.2,
+                    mb: 2,
+                    p: 1.2,
+                    bgcolor: "rgba(245, 158, 11, 0.08)",
+                    border: "1px solid rgba(245, 158, 11, 0.25)",
+                    borderRadius: 2,
+                  }}
+                >
+                  <Box
+                    sx={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      bgcolor: "#D97706",
+                      boxShadow: "0 0 0 3px rgba(217, 119, 6, 0.2)",
+                      animation: "pulseDot 1.6s infinite ease-in-out",
+                      "@keyframes pulseDot": {
+                        "0%": { transform: "scale(0.9)", opacity: 0.7 },
+                        "50%": { transform: "scale(1.2)", opacity: 1 },
+                        "100%": { transform: "scale(0.9)", opacity: 0.7 },
+                      },
+                    }}
+                  />
+                  <Typography variant="caption" fontWeight={700} color="#92400E">
+                    Aguardando pagamento... (verificando automaticamente a cada 3s)
+                  </Typography>
+                </Box>
+
+                <Typography variant="caption" color="text.secondary" align="center" display="block" sx={{ mb: 2.5 }}>
+                  Assim que o pagamento for confirmado, seu pacote ou assinatura será ativado automaticamente.
                 </Typography>
+
+
 
                 <Button
                   variant="text"

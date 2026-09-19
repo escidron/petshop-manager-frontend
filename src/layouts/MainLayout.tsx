@@ -24,8 +24,6 @@ import {
   Barcode,
   ShoppingBag,
   Package,
-  AlertTriangle,
-  Zap,
   MessageCircle,
   Smartphone,
 } from "lucide-react";
@@ -38,6 +36,7 @@ import BillNotificationBell from "../features/financial/bills/BillNotificationBe
 import { Button } from "../components/Button/Button";
 import EmailVerificationBanner from "../components/EmailVerificationBanner";
 import PendingWhatsAppBanner from "../features/billing/PendingWhatsAppBanner";
+import TrialNotificationBanner from "../features/billing/TrialNotificationBanner";
 import WhatsappSimulator from "../features/whatsapp-simulator/WhatsappSimulator";
 import { ErrorBoundary } from "../components/ErrorBoundary/ErrorBoundary";
 import PWAInstallModal from "../components/PWAInstallModal";
@@ -119,13 +118,7 @@ export default function MainLayout() {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [drawerOpen, setDrawerOpen] = React.useState(false);
-  const {
-    user,
-    subscriptionStatus,
-    isSubscriptionActive,
-    isSubscriptionInGracePeriod,
-    gracePeriodDaysLeft,
-  } = useAuth();
+  const { user } = useAuth();
   const { hasPermission, isOwner } = usePermission();
   const location = useLocation();
   const navigate = useNavigate();
@@ -141,37 +134,6 @@ export default function MainLayout() {
     setAnchorEl(null);
   };
 
-  const getSubscriptionAlert = (): { severity: "warning" | "error"; message: string; actionLabel?: string } | null => {
-    if (isSubscriptionInGracePeriod) {
-      return {
-        severity: "warning",
-        message: `Atenção: Houve um problema com o pagamento da sua mensalidade. Restam ${gracePeriodDaysLeft} dia(s) para regularizar antes do bloqueio do sistema.`,
-        actionLabel: "Regularizar Agora",
-      };
-    }
-
-    if (isSubscriptionActive) return null;
-    if (!subscriptionStatus) return null;
-
-    if (subscriptionStatus === "active") {
-      return { severity: "error", message: "Seu período de assinatura expirou. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Renovar assinatura" };
-    }
-    if (subscriptionStatus === "incomplete" || subscriptionStatus === "pending") {
-      return { severity: "warning", message: "Sua assinatura está pendente de pagamento. Adicione um método de pagamento para ativar sua conta e criar agendamentos.", actionLabel: "Adicionar método de pagamento" };
-    }
-    if (subscriptionStatus === "trialing") {
-      return { severity: "error", message: "Seu período de teste expirou. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Assinar agora" };
-    }
-    if (subscriptionStatus === "past_due") {
-      return { severity: "error", message: "Pagamento em atraso. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Atualizar pagamento" };
-    }
-    if (subscriptionStatus === "canceled") {
-      return { severity: "error", message: "Assinatura cancelada. Você está em modo leitura, novos agendamentos estão bloqueados.", actionLabel: "Reativar assinatura" };
-    }
-    return null;
-  };
-
-  const subscriptionAlert = getSubscriptionAlert();
   const isPOS = location.pathname === "/pos";
 
   return (
@@ -507,65 +469,7 @@ export default function MainLayout() {
         <Toolbar sx={{ minHeight: { xs: 60, sm: 70 }, height: { xs: 60, sm: 70 }, flexShrink: 0, mb: { xs: 0.5, sm: 1 } }} />
         <EmailVerificationBanner />
         <PendingWhatsAppBanner />
-
-        {subscriptionAlert && (
-          <Box
-            sx={{
-              margin: "0 auto",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              gap: 1,
-              px: 3,
-              py: 2,
-              mb: 3,
-              borderRadius: 3,
-              maxWidth: 1400,
-              width: "100%",
-              bgcolor: "white",
-              border: `1px solid ${subscriptionAlert.severity === "error" ? "#FECACA" : "#FDE68A"}`,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-              {subscriptionAlert.severity === "error" ? (
-                <AlertTriangle size={16} color="#DC2626" />
-              ) : (
-                <AlertTriangle size={16} color="#D97706" />
-              )}
-              <Typography
-                variant="body2"
-                sx={{
-                  color: subscriptionAlert.severity === "error" ? "#991B1B" : "#92400E",
-                  fontWeight: 600,
-                }}
-              >
-                {subscriptionAlert.message}
-              </Typography>
-            </Box>
-            {subscriptionAlert.actionLabel && (
-              <Button
-                size="small"
-                variant="contained"
-                onClick={() => navigate("/settings?tab=billing")}
-                startIcon={<Zap size={13} />}
-                sx={{
-                  py: 0.4,
-                  px: 1.5,
-                  fontSize: "0.75rem",
-                  fontWeight: 700,
-                  whiteSpace: "nowrap",
-                  flexShrink: 0,
-                  bgcolor: subscriptionAlert.severity === "error" ? "#DC2626" : "#D97706",
-                  "&:hover": {
-                    bgcolor: subscriptionAlert.severity === "error" ? "#B91C1C" : "#B45309",
-                  },
-                }}
-              >
-                {subscriptionAlert.actionLabel}
-              </Button>
-            )}
-          </Box>
-        )}
+        <TrialNotificationBanner />
 
         <Box
           sx={{

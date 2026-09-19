@@ -129,13 +129,6 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
     title: "GERENCIAL",
     items: [
       {
-        id: "financial-bills",
-        label: "Contas a Pagar e Receber",
-        icon: <WalletCards size={20} />,
-        path: "/managerial/bills",
-        ownerOnly: true,
-      },
-      {
         id: "dre",
         label: "DRE",
         icon: <TrendingUp size={20} />,
@@ -149,6 +142,13 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
         path: "/managerial/operational-result",
         ownerOnly: true,
       },
+      {
+        id: "financial-bills",
+        label: "Contas a Pagar e Receber",
+        icon: <WalletCards size={20} />,
+        path: "/managerial/bills",
+        ownerOnly: true,
+      }
     ],
   },
   {
@@ -184,12 +184,14 @@ const Sidebar = ({
 
   const getTrialInfo = () => {
     if (tenant?.feature_flags?.free_access) return null;
-    
+
     const subscription = tenant?.subscription;
     if (!subscription) {
       return null;
     }
-    const isTrial = subscription.plan?.code === "FREE_TRIAL" || subscription.status === "trialing";
+    const isTrial =
+      subscription.plan?.code === "FREE_TRIAL" ||
+      subscription.status === "trialing";
     if (!isTrial || !subscription.trial_ends_at) {
       return null;
     }
@@ -327,8 +329,17 @@ const Sidebar = ({
           }}
         >
           {trialInfo.daysLeft === 0 ? (
-            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <Typography variant="caption" sx={{ color: "#FCA5A5", fontWeight: 700 }}>
+            <Box
+              sx={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <Typography
+                variant="caption"
+                sx={{ color: "#FCA5A5", fontWeight: 700 }}
+              >
                 Período gratuito expirado
               </Typography>
               <Typography

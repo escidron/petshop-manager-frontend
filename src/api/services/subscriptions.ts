@@ -95,6 +95,16 @@ export const listCharges = async () => {
   return response.data;
 };
 
+export const getChargeStatus = async (chargeId: string) => {
+  const response = await apiClient.get<{
+    charge_id: string;
+    status: string;
+    paid: boolean;
+    payment_method: string;
+  }>(`/api/v1/subscriptions/charges/${chargeId}/status`);
+  return response.data;
+};
+
 export const updateChargeCard = async (
   chargeId: string,
   cardToken: string,
@@ -152,6 +162,13 @@ export const checkoutPackage = async (payload: import("../../features/billing/ty
 export const cancelPackage = async () => {
   const response = await apiClient.post<{ status: string; message: string }>(
     `/api/v1/subscriptions/package/cancel`
+  );
+  return response.data;
+};
+
+export const simulatePixPayment = async () => {
+  const response = await apiClient.post<{ success: boolean; message: string; current_period_end?: string }>(
+    `/api/v1/subscriptions/simulate-pix-paid`
   );
   return response.data;
 };

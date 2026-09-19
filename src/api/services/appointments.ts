@@ -129,6 +129,21 @@ export const getHighlightedDays = async (
   return response.data;
 };
 
+export const addAppointmentService = async (
+  appointmentId: number,
+  data: {
+    pet_id: number;
+    service_id: number;
+    employee_id?: number;
+  },
+): Promise<Appointment> => {
+  const response = await apiClient.post<Appointment>(
+    `/api/v1/appointments/${appointmentId}/services`,
+    data,
+  );
+  return response.data;
+};
+
 export const removeUnpaidAppointmentService = async (
   appointmentId: number,
   serviceId: number,
