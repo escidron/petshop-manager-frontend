@@ -342,6 +342,14 @@ const SettingsPage = () => {
   const getTabIndex = useCallback((id: string) => tabConfig.findIndex((t) => t.id === id), [tabConfig]);
 
   const [openPixModal, setOpenPixModal] = useState(false);
+  const [pixModalData, setPixModalData] = useState<{
+    qrCode: string;
+    qrCodeUrl?: string | null;
+    expiresAt?: string | null;
+    amount?: number | null;
+    chargeId?: string | null;
+    title?: string;
+  } | null>(null);
 
   useEffect(() => {
     if (tenant?.document && !pixDocument) {
@@ -590,6 +598,9 @@ const SettingsPage = () => {
   }, [charges]);
 
   const activePendingPix = useMemo(() => {
+    if (pixModalData?.qrCode) {
+      return pixModalData;
+    }
     if (pixData && pixData.pix_qr_code) {
       return {
         qrCode: pixData.pix_qr_code,
@@ -597,6 +608,7 @@ const SettingsPage = () => {
         expiresAt: pixData.expires_at,
         amount: 9990,
         chargeId: (pixData as any).charge_id || (pixData as any).pagarme_subscription_id,
+        title: "Pagamento da assinatura do sistema Data Pet",
       };
     }
     if (activePendingPixCharge && activePendingPixCharge.pix_qr_code) {
@@ -606,13 +618,15 @@ const SettingsPage = () => {
         expiresAt: activePendingPixCharge.expires_at,
         amount: activePendingPixCharge.amount || 9990,
         chargeId: activePendingPixCharge.id,
+        title: activePendingPixCharge.amount && activePendingPixCharge.amount !== 9990 ? "Pagamento do Pacote WhatsApp" : "Pagamento da assinatura do sistema Data Pet",
       };
     }
     return null;
-  }, [pixData, activePendingPixCharge]);
+  }, [pixModalData, pixData, activePendingPixCharge]);
 
   const handleClosePixModal = () => {
     setOpenPixModal(false);
+    setPixModalData(null);
     fetchCharges();
     checkAuth();
   };
@@ -621,6 +635,7 @@ const SettingsPage = () => {
     const chargeId = activePendingPix?.chargeId;
     if (!chargeId) {
       setPixData(null);
+      setPixModalData(null);
       setOpenPixModal(false);
       return;
     }
@@ -628,6 +643,7 @@ const SettingsPage = () => {
       await cancelCharge(chargeId);
       toast.success("Cobrança PIX cancelada com sucesso.");
       setPixData(null);
+      setPixModalData(null);
       setOpenPixModal(false);
       await fetchCharges();
       await checkAuth();
@@ -636,30 +652,41 @@ const SettingsPage = () => {
     }
   };
 
-
-
-  // Polling automático enquanto o modal PIX está aberto ou há cobrança pendente
+  // Polling automático enquanto o modal PIX está aberto ou há cobrança pendente na aba de billing
   useEffect(() => {
-    if (!openPixModal && !activePendingPixCharge) return;
+    const billingIdx = tabConfig.findIndex((t) => t.id === "billing");
+    if (value !== billingIdx) return;
+
+    const hasPending = Boolean(
+      openPixModal ||
+      activePendingPixCharge ||
+      tenant?.subscription?.whatsapp_package_status === "pending_payment" ||
+      charges.some((c) => c.payment_method === "pix" && c.status === "pending")
+    );
+    if (!hasPending) return;
 
     const interval = setInterval(async () => {
       try {
         const history = await listCharges();
         setCharges(history);
-        const hasPaidCharge = history.some(c => c.payment_method === "pix" && (c.status === "paid" || c.status === "captured"));
-        if (hasPaidCharge) {
+        const hasPaidCharge = history.some((c) => c.payment_method === "pix" && (c.status === "paid" || c.status === "captured"));
+        const packageActivated = tenant?.subscription?.whatsapp_package_status === "active";
+        if (hasPaidCharge || packageActivated) {
           await checkAuth();
-          setOpenPixModal(false);
-          setPixData(null);
-          toast.success("Pagamento PIX confirmado! Assinatura ativada.");
+          if (openPixModal) {
+            setOpenPixModal(false);
+            setPixModalData(null);
+            setPixData(null);
+            toast.success("Pagamento PIX confirmado!");
+          }
         }
       } catch {
         // Silencioso
       }
-    }, 5000);
+    }, 4000);
 
     return () => clearInterval(interval);
-  }, [openPixModal, activePendingPixCharge, checkAuth, toast]);
+  }, [openPixModal, activePendingPixCharge, value, tabConfig, tenant?.subscription?.whatsapp_package_status, checkAuth, toast, charges]);
 
   const getChargeStatusChip = (status: string) => {
     const mapping: Record<string, { label: string; color: "success" | "warning" | "error" | "default" | "info" }> = {
@@ -1086,6 +1113,10 @@ const SettingsPage = () => {
                 if (elem) {
                   elem.scrollIntoView({ behavior: "smooth" });
                 }
+              }}
+              onOpenPixModal={(data) => {
+                if (data) setPixModalData(data);
+                setOpenPixModal(true);
               }}
             />
 
@@ -2857,6 +2888,12 @@ const SettingsPage = () => {
           setOpenCheckout(false);
           setSelectedAddonPkg(null);
         }}
+        onPixGenerated={(pix) => {
+          setPixModalData(pix);
+          setOpenPixModal(true);
+          setOpenCheckout(false);
+          fetchCharges();
+        }}
         onSuccess={async () => {
           await checkAuth();
           await fetchCards();
@@ -2891,6 +2928,12 @@ const SettingsPage = () => {
         savedCards={savedCards}
         defaultPaymentMethod={tenant?.subscription?.payment_method as any}
         tenantDocument={tenant?.document}
+        onPixGenerated={(pix) => {
+          setPixModalData(pix);
+          setOpenPixModal(true);
+          setOpenPackageCheckout(false);
+          fetchCharges();
+        }}
         onSuccess={async () => {
           await checkAuth();
           await fetchCards();
@@ -2910,8 +2953,16 @@ const SettingsPage = () => {
           expiresAt={activePendingPix.expiresAt}
           amount={activePendingPix.amount}
           chargeId={activePendingPix.chargeId}
+          title={activePendingPix.title || "Pagamento via PIX"}
           payerName={tenant?.name}
           payerDocument={tenant?.document}
+          onPaymentConfirmed={async () => {
+            await checkAuth();
+            await fetchCards();
+            await fetchCharges();
+            setOpenPixModal(false);
+            setPixModalData(null);
+          }}
           onCancelCharge={handleCancelPendingPix}
         />
       )}

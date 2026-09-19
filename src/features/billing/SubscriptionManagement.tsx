@@ -43,7 +43,7 @@ import {
   changeSubscriptionToPix,
   setDefaultPaymentMethod,
   createCheckout,
-  simulatePixPayment,
+  getChargeStatus,
 } from "../../api/services/subscriptions";
 import { updateSubscription } from "../../api/services/tenants";
 import type { PaymentMethod, SubscriptionCharge } from "./types";
@@ -66,6 +66,7 @@ interface SubscriptionManagementProps {
   onToggleInvoices?: () => void;
   showInvoices?: boolean;
   autoOpenPix?: boolean;
+  onOpenPixModal?: (pixData?: any) => void;
 }
 
 type ModalStep =
@@ -83,6 +84,9 @@ const PAGARME_ERROR_MAP: Record<string, string> = {
   "card.cvv": "Código de segurança (CVV) inválido.",
   "card expired": "Cartão expirado.",
   "invalid card": "Dados do cartão inválidos. Verifique e tente novamente.",
+  "insufficient funds": "Saldo ou limite insuficiente no cartão.",
+  "card not supported": "Bandeira de cartão não suportada.",
+  "acquirer error": "Transação não autorizada pela operadora do cartão.",
 };
 
 function translatePagarmeError(err: any): string {
@@ -126,11 +130,13 @@ function formatCpf(value: string) {
 export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   tenant,
   savedCards,
+  charges = [],
   activePendingPix,
   onOpenCancelModal,
   onRefreshData,
   onToggleInvoices,
   autoOpenPix,
+  onOpenPixModal,
 }) => {
   const sub = tenant?.subscription;
   const isPixMethod = sub?.payment_method === "pix";
@@ -363,8 +369,16 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     // Se está em teste grátis e já antecipou além do trial:
     if (hasPaidInAdvance) return true;
 
-    // Se estiver em trial normal sem antecipação: não está pago ainda, pode antecipar
-    if (isTrialActive) return false;
+    // Se estiver em trial normal: o período está coberto pelo trial se faltam mais de 5 dias
+    if (isTrialActive && sub.trial_ends_at) {
+      const dTrial = parseDateSafe(sub.trial_ends_at);
+      if (dTrial) {
+        const daysUntilTrialEnd = dTrial.diff(dayjs(), "day", true);
+        if (daysUntilTrialEnd > 5) {
+          return true;
+        }
+      }
+    }
 
     // Se a assinatura for ativa (ou tiver current_period_end no futuro):
     if (sub.current_period_end) {
@@ -443,6 +457,27 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     return dayjs().add(1, "month").locale("pt-br").format("D [de] MMMM [de] YYYY");
   }, [sub?.current_period_end, sub?.trial_ends_at, sub?.status, isTrialActive, hasPaidInAdvance]);
 
+  // Detalhes do pacote de WhatsApp ativo para discriminação no próximo pagamento
+  const whatsappPackageDetails = useMemo(() => {
+    if (!sub?.whatsapp_package_id || sub.whatsapp_package_status !== "active") {
+      return null;
+    }
+    const map: Record<string, { name: string; priceCents: number; priceFormatted: string }> = {
+      pkg_200: { name: "WhatsApp 200 mensagens", priceCents: 3790, priceFormatted: "R$ 37,90" },
+      pkg_500: { name: "WhatsApp 500 mensagens", priceCents: 6990, priceFormatted: "R$ 69,90" },
+      pkg_1000: { name: "WhatsApp 1.000 mensagens", priceCents: 11990, priceFormatted: "R$ 119,90" },
+      pkg_2000: { name: "WhatsApp 2.000 mensagens", priceCents: 19990, priceFormatted: "R$ 199,90" },
+    };
+    return map[sub.whatsapp_package_id] || { name: `WhatsApp (${sub.whatsapp_package_id})`, priceCents: 0, priceFormatted: "" };
+  }, [sub?.whatsapp_package_id, sub?.whatsapp_package_status]);
+
+  const totalNextPaymentFormatted = useMemo(() => {
+    const baseCents = 9990;
+    const addonCents = whatsappPackageDetails ? whatsappPackageDetails.priceCents : 0;
+    const total = (baseCents + addonCents) / 100;
+    return total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }, [whatsappPackageDetails]);
+
   const billingDay = useMemo(() => {
     if (sub?.billing_day && sub.billing_day >= 1 && sub.billing_day <= 31) {
       return String(sub.billing_day).padStart(2, "0");
@@ -514,6 +549,17 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
   const handleGenerateOrShowPix = async () => {
     if (effectivePixData?.qrCode) {
+      if (onOpenPixModal) {
+        onOpenPixModal({
+          qrCode: effectivePixData.qrCode,
+          qrCodeUrl: effectivePixData.qrCodeUrl,
+          expiresAt: effectivePixData.expiresAt,
+          amount: effectivePixData.amount || 9990,
+          chargeId: (effectivePixData as any).chargeId || (effectivePixData as any).charge_id,
+          title: "Pagamento da assinatura do sistema Data Pet",
+        });
+        return;
+      }
       setModalStep("pix_payment");
       setIsModalOpen(true);
       return;
@@ -538,6 +584,13 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
         };
         setLocalPixData(pixPayload);
         await onRefreshData();
+        if (onOpenPixModal) {
+          onOpenPixModal({
+            ...pixPayload,
+            title: "Pagamento da assinatura do sistema Data Pet",
+          });
+          return;
+        }
         setModalStep("pix_payment");
         setIsModalOpen(true);
       } else {
@@ -575,11 +628,80 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       autoOpenPixTriggered.current = true;
       // Se já existir uma cobrança Pix pendente, abre o modal direto para exibição
       if (effectivePixData?.qrCode) {
+        if (onOpenPixModal) {
+          onOpenPixModal({
+            qrCode: effectivePixData.qrCode,
+            qrCodeUrl: effectivePixData.qrCodeUrl,
+            expiresAt: effectivePixData.expiresAt,
+            amount: effectivePixData.amount || 9990,
+            chargeId: (effectivePixData as any).chargeId || (effectivePixData as any).charge_id,
+            title: "Pagamento da assinatura do sistema Data Pet",
+          });
+          return;
+        }
         setModalStep("pix_payment");
         setIsModalOpen(true);
       }
     }
-  }, [autoOpenPix, effectivePixData]);
+  }, [autoOpenPix, effectivePixData, onOpenPixModal]);
+
+  // Auto-polling para confirmação automática de Pix no modal aberto
+  React.useEffect(() => {
+    if (!isModalOpen || modalStep !== "pix_payment" || !effectivePixData) return;
+
+    const chargeId = (effectivePixData as any)?.charge_id || (effectivePixData as any)?.id || (effectivePixData as any)?.pagarme_charge_id || (effectivePixData as any)?.chargeId;
+    if (!chargeId) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        const res = await getChargeStatus(chargeId);
+        if (res.paid) {
+          clearInterval(intervalId);
+          toast.success("Pagamento Pix confirmado!");
+          await onRefreshData();
+          setSuccessMethod("PIX");
+          setModalStep("success");
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [isModalOpen, modalStep, effectivePixData, onRefreshData]);
+
+  // Polling em segundo plano na tela de pagamentos para atualizar assim que qualquer Pix pendente for pago
+  React.useEffect(() => {
+    const pendingCharge = charges?.find((c) => c.status === "pending" && c.payment_method === "pix");
+    const pendingChargeId =
+      (effectivePixData as any)?.chargeId ||
+      (effectivePixData as any)?.charge_id ||
+      pendingCharge?.id;
+    const hasPending = Boolean(
+      pendingChargeId ||
+      sub?.whatsapp_package_status === "pending_payment"
+    );
+
+    if (!hasPending) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        if (pendingChargeId) {
+          const res = await getChargeStatus(pendingChargeId);
+          if (res.paid) {
+            toast.success("Pagamento PIX confirmado com sucesso!");
+            await onRefreshData();
+            return;
+          }
+        }
+        await onRefreshData();
+      } catch {
+        // Silently ignore background polling errors
+      }
+    }, 4000);
+
+    return () => clearInterval(intervalId);
+  }, [effectivePixData, charges, sub?.whatsapp_package_status, onRefreshData]);
 
   const handleConfirmPixChange = async () => {
     setLoadingPixChange(true);
@@ -768,6 +890,70 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
           Gerencie seu plano, forma de pagamento e veja as próximas cobranças.
         </Typography>
       </Box>
+
+      {/* ALERTA DE COBRANÇA PIX PENDENTE COM POLLING ATIVO */}
+      {(effectivePixData?.qrCode || sub?.whatsapp_package_status === "pending_payment" || charges?.some((c) => c.status === "pending" && c.payment_method === "pix")) && (
+        <Box
+          sx={{
+            p: { xs: 2, sm: 2.5 },
+            mb: 3,
+            borderRadius: "16px",
+            bgcolor: "rgba(245, 158, 11, 0.08)",
+            border: "1.5px solid rgba(245, 158, 11, 0.3)",
+            display: "flex",
+            alignItems: { xs: "flex-start", sm: "center" },
+            justifyContent: "space-between",
+            flexDirection: { xs: "column", sm: "row" },
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
+            <Box
+              sx={{
+                width: 10,
+                height: 10,
+                borderRadius: "50%",
+                bgcolor: "#D97706",
+                boxShadow: "0 0 0 3px rgba(217, 119, 6, 0.2)",
+                animation: "pulseDot 1.6s infinite ease-in-out",
+                flexShrink: 0,
+              }}
+            />
+            <Box>
+              <Typography variant="subtitle2" fontWeight={800} color="#92400E">
+                {sub?.whatsapp_package_status === "pending_payment"
+                  ? "Pagamento PIX do Pacote WhatsApp pendente"
+                  : "Cobrança PIX pendente de confirmação"}
+              </Typography>
+              <Typography variant="caption" color="#B45309" sx={{ display: "block", mt: 0.2 }}>
+                Aguardando confirmação bancária • Verificando automaticamente a cada 4s
+              </Typography>
+            </Box>
+          </Box>
+
+          <Button
+            variant="contained"
+            size="small"
+            onClick={handleGenerateOrShowPix}
+            startIcon={<PixIcon size={16} color="#FFFFFF" />}
+            sx={{
+              bgcolor: "#00B49D",
+              color: "#FFFFFF",
+              fontWeight: 700,
+              textTransform: "none",
+              borderRadius: "10px",
+              px: 2.5,
+              py: 0.9,
+              fontSize: "0.85rem",
+              whiteSpace: "nowrap",
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#009682" },
+            }}
+          >
+            Ver QR Code PIX
+          </Button>
+        </Box>
+      )}
 
       {/* 3 CARDS HORIZONTAIS DA PÁGINA PRINCIPAL (Imagem 2) */}
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2.5 }}>
@@ -1255,12 +1441,29 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
               >
                 {nextPaymentLongDate}
               </Typography>
-              <Typography
-                variant="body2"
-                sx={{ color: "#64748B", fontSize: "0.85rem", mt: 0.4 }}
-              >
-                Valor mensal do plano: R$ 99,90
-              </Typography>
+              {whatsappPackageDetails ? (
+                <Box sx={{ mt: 0.8 }}>
+                  <Box sx={{ display: "flex", gap: 0.8, alignItems: "center", flexWrap: "wrap", mb: 0.4 }}>
+                    <Box sx={{ bgcolor: "#F1F5F9", px: 1, py: 0.3, borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, color: "#334155" }}>
+                      Plano Base: R$ 99,90
+                    </Box>
+                    <Typography variant="caption" sx={{ color: "#94A3B8", fontWeight: 700 }}>+</Typography>
+                    <Box sx={{ bgcolor: "#EFF6FF", px: 1, py: 0.3, borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, color: "#1D4ED8" }}>
+                      {whatsappPackageDetails.name}: {whatsappPackageDetails.priceFormatted}
+                    </Box>
+                  </Box>
+                  <Typography variant="body2" sx={{ color: "#0F172A", fontWeight: 800, fontSize: "0.92rem" }}>
+                    Total previsto: {totalNextPaymentFormatted} / mês
+                  </Typography>
+                </Box>
+              ) : (
+                <Typography
+                  variant="body2"
+                  sx={{ color: "#64748B", fontSize: "0.85rem", mt: 0.4 }}
+                >
+                  Valor mensal do plano: R$ 99,90
+                </Typography>
+              )}
             </Box>
           </Box>
 
@@ -2465,27 +2668,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     {copiedPix ? "Código PIX copiado!" : "Copiar código PIX"}
                   </Button>
 
-                  {/* Botão de teste para simular pagamento imediato em sandbox */}
-                  <Button
-                    fullWidth
-                    variant="outlined"
-                    onClick={handleSimulatePixPaid}
-                    disabled={loadingSimulatePix}
-                    startIcon={loadingSimulatePix ? <CircularProgress size={16} /> : <Zap size={16} color="#D97706" />}
-                    sx={{
-                      color: "#92400E",
-                      bgcolor: "#FFFBEB",
-                      borderColor: "#FDE68A",
-                      fontWeight: 700,
-                      textTransform: "none",
-                      borderRadius: "10px",
-                      py: 1.1,
-                      fontSize: "0.85rem",
-                      "&:hover": { bgcolor: "#FEF3C7", borderColor: "#FCD34D" },
-                    }}
-                  >
-                    {loadingSimulatePix ? "Simulando confirmação..." : "⚡ Simular pagamento Pix (Ambiente de Teste)"}
-                  </Button>
+
                   <Button
                     fullWidth
                     variant="text"

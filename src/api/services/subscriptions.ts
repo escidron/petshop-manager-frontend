@@ -95,6 +95,16 @@ export const listCharges = async () => {
   return response.data;
 };
 
+export const getChargeStatus = async (chargeId: string) => {
+  const response = await apiClient.get<{
+    charge_id: string;
+    status: string;
+    paid: boolean;
+    payment_method: string;
+  }>(`/api/v1/subscriptions/charges/${chargeId}/status`);
+  return response.data;
+};
+
 export const updateChargeCard = async (
   chargeId: string,
   cardToken: string,

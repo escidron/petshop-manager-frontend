@@ -6,10 +6,12 @@ import {
   Button,
   CircularProgress,
 } from "@mui/material";
-import { X, Copy, Check, Clock, HelpCircle, ShieldCheck } from "lucide-react";
+import { X, Copy, Check, Clock, HelpCircle, ShieldCheck, RefreshCw } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import dayjs from "dayjs";
 import { maskDocument } from "../../utils/masks";
+import { useToast } from "../../hooks/useToast";
+import { getChargeStatus } from "../../api/services/subscriptions";
 
 interface PixPaymentModalProps {
   open: boolean;
@@ -34,16 +36,46 @@ export default function PixPaymentModal({
   qrCode,
   expiresAt,
   amount = 9990,
+  chargeId,
   payerName = "Seu Estabelecimento",
   payerDocument,
   title = "Pagamento da assinatura do sistema Data Pet",
   providerName = "Data Pet Tecnologia LTDA",
   providerCnpj = "54.123.456/0001-89",
   onCancelCharge,
+  onPaymentConfirmed,
 }: PixPaymentModalProps) {
+  const toast = useToast();
   const [copied, setCopied] = useState(false);
   const [canceling, setCanceling] = useState(false);
   const [timeLeft, setTimeLeft] = useState<string>("");
+  const [checkingPayment, setCheckingPayment] = useState(false);
+
+  // Auto-polling para detecção automática de Pix pago sem necessidade de refresh
+  useEffect(() => {
+    if (!open || !chargeId) return;
+
+    const intervalId = setInterval(async () => {
+      try {
+        setCheckingPayment(true);
+        const res = await getChargeStatus(chargeId);
+        if (res.paid) {
+          clearInterval(intervalId);
+          toast.success("Pagamento PIX confirmado com sucesso!");
+          if (onPaymentConfirmed) {
+            onPaymentConfirmed();
+          }
+          onClose();
+        }
+      } catch {
+        // Ignora erros de rede durante o polling
+      } finally {
+        setTimeout(() => setCheckingPayment(false), 800);
+      }
+    }, 3000);
+
+    return () => clearInterval(intervalId);
+  }, [open, chargeId, onPaymentConfirmed, onClose, toast]);
 
   // Formata o valor para BRL
   const formattedAmount = (() => {
@@ -454,9 +486,15 @@ export default function PixPaymentModal({
                   },
                 }}
               />
-              <Typography variant="body2" fontWeight={800} color="#92400E" sx={{ fontSize: "0.85rem" }}>
-                Aguardando pagamento...
-              </Typography>
+              <Box>
+                <Typography variant="body2" fontWeight={800} color="#92400E" sx={{ fontSize: "0.85rem" }}>
+                  Aguardando pagamento...
+                </Typography>
+                <Typography variant="caption" color="#B45309" sx={{ fontSize: "0.72rem", display: "flex", alignItems: "center", gap: 0.5, mt: 0.2 }}>
+                  <RefreshCw size={11} style={{ animation: checkingPayment ? "spin 1s linear infinite" : "none" }} />
+                  Verificando automaticamente a cada 3s
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
