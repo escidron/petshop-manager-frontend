@@ -193,7 +193,7 @@ export default function POSInterface() {
     queryKey: ["pos-client", selectedClientId],
     queryFn: () => fetchPOSClientDetails(selectedClientId!),
     enabled: !!selectedClientId,
-    staleTime: 0,
+    staleTime: 1000 * 30, // 30 segundos de cache para evitar múltiplas chamadas simultâneas
   });
 
   // Global Data
@@ -413,10 +413,15 @@ export default function POSInterface() {
     setSearchTerm("");
 
     try {
-      const details = await fetchPOSClientDetails(comanda.client_id);
+      const details = await queryClient.fetchQuery({
+        queryKey: ["pos-client", comanda.client_id],
+        queryFn: () => fetchPOSClientDetails(comanda.client_id),
+        staleTime: 1000 * 30,
+      });
       const freshComanda = details.open_comandas?.[0] || comanda;
       const appts = details.client_appointments || [];
       const updatedCart = resolveComandaItems(freshComanda.items || comanda.items || [], appts);
+      isInitialLoadRef.current = true;
       setCart(updatedCart);
     } catch {
       // ignore
@@ -450,7 +455,11 @@ export default function POSInterface() {
     setComandaSyncStatus("idle");
 
     try {
-      const details = await fetchPOSClientDetails(clientId);
+      const details = await queryClient.fetchQuery({
+        queryKey: ["pos-client", clientId],
+        queryFn: () => fetchPOSClientDetails(clientId),
+        staleTime: 1000 * 30,
+      });
       if (details.open_comandas && details.open_comandas.length > 0) {
         handlePullComanda(details.open_comandas[0]);
       }
@@ -529,8 +538,6 @@ export default function POSInterface() {
           queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
           queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
           queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
-          queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
-          queryClient.invalidateQueries({ queryKey: ["pos-client"] });
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
         })
         .catch(() => {});
@@ -684,7 +691,11 @@ export default function POSInterface() {
 
     // Always fetch fresh client comanda directly from backend and unify any open appointments
     try {
-      const details = await fetchPOSClientDetails(appointment.client.id);
+      const details = await queryClient.fetchQuery({
+        queryKey: ["pos-client", appointment.client.id],
+        queryFn: () => fetchPOSClientDetails(appointment.client.id),
+        staleTime: 1000 * 30,
+      });
       const openComanda = details.open_comandas?.[0];
 
       // Check all unpaid completed appointments of this client (including the clicked one)
@@ -785,6 +796,7 @@ export default function POSInterface() {
       }
 
       if (initialCart.length > 0) {
+        isInitialLoadRef.current = true;
         setCart(initialCart);
         setComandaSyncStatus(openComanda ? "saved" : "idle");
         return;
@@ -816,6 +828,7 @@ export default function POSInterface() {
       return;
     }
 
+    isInitialLoadRef.current = true;
     setCart(pulledItems);
   };
 
@@ -864,8 +877,6 @@ export default function POSInterface() {
             queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
             queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
             queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
-            queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
-            queryClient.invalidateQueries({ queryKey: ["pos-client"] });
             queryClient.invalidateQueries({ queryKey: ["appointments"] });
           })
           .catch(() => {});
@@ -895,8 +906,6 @@ export default function POSInterface() {
         queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
         queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
         queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
-        queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
-        queryClient.invalidateQueries({ queryKey: ["pos-client"] });
         queryClient.invalidateQueries({ queryKey: ["appointments"] });
       } catch (err) {
         setComandaSyncStatus("error");
