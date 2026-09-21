@@ -683,13 +683,32 @@ export default function POSInterface() {
     setIsPullDialogOpen(false);
     setSelectedClientId(appointment.client.id);
     setSelectedAppointmentId(appointment.id);
-    setCart([]);
     setDiscountCents(0);
     setDiscountPctInput("0");
     setActiveComandaId(null);
     setComandaSyncStatus("idle");
 
-    // Always fetch fresh client comanda directly from backend and unify any open appointments
+    // Preenche o carrinho imediatamente com os itens do agendamento clicado (resposta instantânea em 0ms)
+    const immediateCart: SaleItem[] = (appointment.items || []).flatMap((item) =>
+      (item.services || [])
+        .filter((s) => !s.is_removed && !s.is_package_covered)
+        .map((s) => ({
+          item_id: s.id,
+          item_type: "service" as const,
+          name: s.name,
+          quantity: 1,
+          unit_price: s.price_cents / 100,
+          subtotal: s.price_cents / 100,
+          employee_id: s.employee_id || null,
+          pet_ids: item.pet?.id ? [item.pet.id] : undefined,
+          appointment_id: appointment.id,
+          appointment_date: appointment.scheduled_at,
+          unit: "UN",
+        }))
+    );
+    setCart(immediateCart);
+
+    // Fetch fresh client comanda directly from backend and unify any open appointments
     try {
       const details = await queryClient.fetchQuery({
         queryKey: ["pos-client", appointment.client.id],
