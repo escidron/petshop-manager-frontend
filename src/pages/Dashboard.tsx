@@ -16,7 +16,7 @@ import type {
   AppointmentFlowState,
 } from "../features/appointments/types";
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { getDashboardStartup } from "../api/services/dashboard";
+import { getDashboardStartup, getDashboardDay } from "../api/services/dashboard";
 import NoAppointmentsBanner from "../features/appointments/NoAppointmentsBanner";
 import OnboardingFinishBanner from "../features/onboarding/OnboardingFinishBanner";
 import { useAuth } from "../hooks/useAuth";
@@ -37,15 +37,19 @@ const Dashboard = () => {
   const startDate = calendarMonth.subtract(1, "month").startOf("month").format("YYYY-MM-DD");
   const endDate = calendarMonth.add(1, "month").endOf("month").format("YYYY-MM-DD");
 
-  const { data: startupData, isFetching } = useQuery({
-    queryKey: ["dashboard-startup", formattedDate, calendarMonth.format("YYYY-MM")],
+  // 1. Startup consolidado (mês corrente: destaques, pacotes, fila de espera, comandas)
+  const { data: startupData, isFetching: isFetchingStartup } = useQuery({
+    queryKey: ["dashboard-startup", calendarMonth.format("YYYY-MM")],
     queryFn: async () => {
       const data = await getDashboardStartup(formattedDate, startDate, endDate);
       
-      // Seed React Query cache with the startup data so individual components don't fetch again
+      // Seed React Query cache com os agendamentos do dia inicial
+      queryClient.setQueryData(["appointments", "day", formattedDate], {
+        appointments: data.appointments_today,
+        daily_revenue_cents: data.daily_revenue_cents ?? 0,
+      });
       queryClient.setQueryData(["appointments", formattedDate], data.appointments_today);
       queryClient.setQueryData(["appointments", "highlights", calendarMonth.format("YYYY-MM")], data.highlighted_days);
-      queryClient.setQueryData(["open-invoices", { limit: 15, search: "" }], data.open_invoices);
       queryClient.setQueryData(["unpaid-packages", { limit: 15, search: "" }], data.unpaid_packages);
       queryClient.setQueryData(["packages"], data.packages_catalog);
       queryClient.setQueryData(["waiting-list", "pending"], data.waiting_list_pending);
@@ -57,7 +61,20 @@ const Dashboard = () => {
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
 
-  const dailyAppointments = startupData?.appointments_today || [];
+  // 2. Consulta rápida dos agendamentos do dia (micro-fetch de ~30ms para troca de dias)
+  const { data: dayData, isFetching: isFetchingDay } = useQuery({
+    queryKey: ["appointments", "day", formattedDate],
+    queryFn: async () => {
+      const res = await getDashboardDay(formattedDate);
+      queryClient.setQueryData(["appointments", formattedDate], res.appointments);
+      return res;
+    },
+    placeholderData: keepPreviousData,
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  const dailyAppointments = dayData?.appointments ?? startupData?.appointments_today ?? [];
+  const dailyRevenueCents = dayData?.daily_revenue_cents ?? startupData?.daily_revenue_cents ?? 0;
   const monthlyHighlights = startupData?.highlighted_days || [];
 
   const highlightedDays = useMemo(() => {
@@ -101,8 +118,8 @@ const Dashboard = () => {
           <>
             <DashboardSummaryCards
               appointments={dailyAppointments}
-              revenueCents={startupData?.daily_revenue_cents ?? 0}
-              isFetching={isFetching}
+              revenueCents={dailyRevenueCents}
+              isFetching={isFetchingDay}
             />
             <Box
               sx={{
@@ -128,7 +145,7 @@ const Dashboard = () => {
                   onMonthChange={(newMonth) => setCalendarMonth(newMonth.startOf("month"))}
                   highlightedDays={highlightedDays}
                   appointments={dailyAppointments}
-                  isFetching={isFetching}
+                  isFetching={isFetchingDay}
                   onEdit={(appointment: Appointment) =>
                     setFlow({
                       open: true,
@@ -258,7 +275,7 @@ const Dashboard = () => {
                       />
                     )}
                   </Box>
-                  <GroomingQueue appointments={dailyAppointments} isFetching={isFetching} />
+                  <GroomingQueue appointments={dailyAppointments} isFetching={isFetchingDay} />
                 </Box>
 
                 {/* Coluna B: Comandas e Lista de Espera */}
@@ -275,11 +292,11 @@ const Dashboard = () => {
                     initialOpenComandas={startupData?.open_comandas}
                     initialUnpaidPackages={startupData?.unpaid_packages}
                     packagesCatalog={startupData?.packages_catalog}
-                    isFetching={isFetching}
+                    isFetching={isFetchingStartup}
                   />
                   <WaitingListCard
                     entries={startupData?.waiting_list_pending}
-                    isFetching={isFetching}
+                    isFetching={isFetchingStartup}
                     onScheduleEntry={(entry: WaitingListEntry) => {
                       setFlow({
                         open: true,

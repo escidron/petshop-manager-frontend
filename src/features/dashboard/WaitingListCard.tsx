@@ -2,7 +2,7 @@ import { Box, Typography, Chip, Tooltip, IconButton, CircularProgress, Dialog, D
 import { Clock, Plus, Trash2, CalendarCheck, Dog } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import { useWaitingListMutations } from "../../hooks/useWaitingList";
-import { useState } from "react";
+import { useState, memo } from "react";
 import WaitingListModal from "../appointments/waiting-list/WaitingListModal";
 import type { WaitingListEntry } from "../appointments/waiting-list/types";
 import { Button } from "../../components/Button/Button";
@@ -13,7 +13,7 @@ type Props = {
   isFetching?: boolean;
 };
 
-export default function WaitingListCard({ onScheduleEntry, entries = [], isFetching = false }: Props) {
+function WaitingListCard({ onScheduleEntry, entries = [], isFetching = false }: Props) {
   const { deleteEntry } = useWaitingListMutations();
   const isLoading = isFetching && entries.length === 0;
   const [modalOpen, setModalOpen] = useState(false);
@@ -198,3 +198,5 @@ export default function WaitingListCard({ onScheduleEntry, entries = [], isFetch
     </Box>
   );
 }
+
+export default memo(WaitingListCard);

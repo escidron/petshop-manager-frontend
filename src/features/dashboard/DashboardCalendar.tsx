@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Badge } from "@mui/material";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
@@ -44,7 +45,7 @@ type Props = {
   highlightedDays?: Set<string>;
 };
 
-export default function DashboardCalendar({
+function DashboardCalendar({
   value,
   onChange,
   onMonthChange,
@@ -68,50 +69,48 @@ export default function DashboardCalendar({
         slotProps={{
           day: {
             highlightedDays,
-          } as PickersDayProps & { highlightedDays: Set<string> },
+          } as any,
         }}
         sx={{
           width: "100%",
-          height: "320px",
-          margin: 0,
-          backgroundColor: "#ffffff",
-          "& *": {
-            color: "#3d4048 !important",
-          },
           "& .MuiPickersCalendarHeader-root": {
-            mt: 1,
-            mb: 0,
-            px: 2,
-            minHeight: "40px",
-          },
-          "& .MuiPickersCalendarHeader-labelContainer": {
-            color: "#3d4048 !important",
+            pl: 2,
+            pr: 1,
+            mb: 0.5,
           },
           "& .MuiPickersCalendarHeader-label": {
-            color: "#3d4048 !important",
-            fontWeight: 600,
             fontSize: "0.9rem",
-          },
-          "& .MuiPickersArrowSwitcher-button": {
-            color: "#3d4048 !important",
+            fontWeight: 600,
+            textTransform: "capitalize",
           },
           "& .MuiDayCalendar-weekDayLabel": {
-            color: "#3d4048 !important",
-            fontWeight: 700,
+            width: 36,
+            height: 36,
             fontSize: "0.75rem",
+            fontWeight: 600,
+            color: "text.secondary",
+            textTransform: "capitalize",
           },
           "& .MuiPickersDay-root": {
-            width: "36px",
-            height: "36px",
-            color: "#3d4048 !important",
-            fontSize: "0.85rem",
-            "&.MuiPickersDay-today:not(.Mui-selected)": {
-              border: "none !important",
-              backgroundColor: "#e0e0e0 !important",
-            },
+            width: 36,
+            height: 36,
+            fontSize: "0.8rem",
+            fontWeight: 500,
+            borderRadius: 2,
             "&.Mui-selected": {
-              color: "white !important",
-              backgroundColor: "primary.main !important",
+              backgroundColor: "primary.main",
+              color: "white",
+              fontWeight: 700,
+              "&:hover": {
+                backgroundColor: "primary.dark",
+              },
+            },
+            "&:hover": {
+              backgroundColor: "grey.100",
+            },
+            "&.MuiPickersDay-today": {
+              border: "1px solid",
+              borderColor: "primary.main",
             },
             "&.Mui-disabled": {
               color: "#b8bbc2 !important",
@@ -123,3 +122,5 @@ export default function DashboardCalendar({
     </LocalizationProvider>
   );
 }
+
+export default memo(DashboardCalendar);
