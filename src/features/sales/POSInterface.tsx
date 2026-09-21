@@ -376,17 +376,15 @@ export default function POSInterface() {
         })
         .map((item) => {
           const isService = item.item_type === "service";
-          const aptId = isService ? (item.appointment_id || (comanda.appointment_id ?? undefined)) : undefined;
+          const aptId = isService ? (item.appointment_id ?? undefined) : undefined;
           let aptDate: string | undefined = undefined;
-          if (isService) {
+          if (isService && aptId) {
             if (item.appointment_date) {
               aptDate = item.appointment_date;
-            } else if (aptId) {
+            } else {
               const matched = allAppts.find((a) => a.id === aptId);
               if (matched?.scheduled_at) {
                 aptDate = matched.scheduled_at;
-              } else if (aptId === comanda.appointment_id && (comanda as any).appointment?.scheduled_at) {
-                aptDate = (comanda as any).appointment.scheduled_at;
               }
             }
           }
@@ -757,11 +755,11 @@ export default function POSInterface() {
           })
           .map((item) => {
             const isService = item.item_type === "service";
-            const aptId = isService ? (item.appointment_id || openComanda.appointment_id || undefined) : undefined;
-            const matchedAppt = isService ? allClientAppointments.find((a) => a.id === aptId) : undefined;
+            const aptId = isService ? (item.appointment_id ?? undefined) : undefined;
+            const matchedAppt = isService && aptId ? allClientAppointments.find((a) => a.id === aptId) : undefined;
             let aptDate: string | undefined = undefined;
-            if (isService) {
-              aptDate = item.appointment_date || matchedAppt?.scheduled_at || (aptId === openComanda.appointment_id ? (openComanda as any).appointment?.scheduled_at : undefined) || undefined;
+            if (isService && aptId) {
+              aptDate = item.appointment_date || matchedAppt?.scheduled_at || undefined;
             }
             return {
               item_id: item.item_id,
