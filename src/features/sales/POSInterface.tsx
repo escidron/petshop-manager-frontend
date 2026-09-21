@@ -27,7 +27,7 @@ import CheckoutModal from "./CheckoutModal";
 import SaleReceiptModal from "./SaleReceiptModal";
 import PullAppointmentDialog from "./PullAppointmentDialog";
 import { useAuth } from "../../hooks/useAuth";
-import type { SaleItem, Comanda, SaleResponse } from "./schemas";
+import type { SaleItem, Comanda, ComandaItem, SaleResponse } from "./schemas";
 import { useToast } from "../../hooks/useToast";
 import type { Appointment } from "../appointments/types";
 import type { Pet } from "../pets/types";
@@ -343,7 +343,7 @@ export default function POSInterface() {
   };
 
   // ── Session Control ──────────────────────────────────────────────────────
-  const handlePullComanda = (comanda: Comanda) => {
+  const handlePullComanda = async (comanda: Comanda) => {
     isInitialLoadRef.current = true;
     setSelectedClientId(comanda.client_id);
     setSelectedAppointmentId(comanda.appointment_id || null);
@@ -356,24 +356,71 @@ export default function POSInterface() {
     } else {
       setDiscountPctInput("0");
     }
-    setCart(
-      (comanda.items || []).map((item) => ({
-        item_id: item.item_id,
-        item_type: item.item_type,
-        name: item.name,
-        quantity: item.quantity,
-        unit_price: item.unit_price,
-        subtotal: item.subtotal,
-        employee_id: item.employee_id || null,
-        pet_ids: item.pet_ids || undefined,
-        client_package_id_to_pay: item.client_package_id_to_pay || null,
-        unit: item.unit || "UN",
-        appointment_id: item.appointment_id || (item.item_type === "service" ? comanda.appointment_id || undefined : undefined),
-      }))
-    );
+
+    const resolveComandaItems = (items: ComandaItem[] = [], extraAppts: Appointment[] = []): SaleItem[] => {
+      const allAppts = [
+        ...extraAppts,
+        ...(clientDetailsData?.client_appointments || []),
+        ...(startupData?.appointments || []),
+      ];
+
+      return items
+        .filter((item) => {
+          if (item.status && item.status !== "active") {
+            return false;
+          }
+          if (item.item_type === "service" && (item.subtotal === 0 || item.name.includes("(via pacote)"))) {
+            return false;
+          }
+          return true;
+        })
+        .map((item) => {
+          const isService = item.item_type === "service";
+          const aptId = isService ? (item.appointment_id || (comanda.appointment_id ?? undefined)) : undefined;
+          let aptDate: string | undefined = undefined;
+          if (isService) {
+            if (item.appointment_date) {
+              aptDate = item.appointment_date;
+            } else if (aptId) {
+              const matched = allAppts.find((a) => a.id === aptId);
+              if (matched?.scheduled_at) {
+                aptDate = matched.scheduled_at;
+              } else if (aptId === comanda.appointment_id && (comanda as any).appointment?.scheduled_at) {
+                aptDate = (comanda as any).appointment.scheduled_at;
+              }
+            }
+          }
+          return {
+            item_id: item.item_id,
+            item_type: item.item_type,
+            name: item.name,
+            quantity: item.quantity,
+            unit_price: item.unit_price,
+            subtotal: item.subtotal,
+            employee_id: item.employee_id || null,
+            pet_ids: item.pet_ids || undefined,
+            client_package_id_to_pay: item.client_package_id_to_pay || null,
+            unit: item.unit || "UN",
+            appointment_id: aptId,
+            appointment_date: aptDate,
+          };
+        });
+    };
+
+    setCart(resolveComandaItems(comanda.items || []));
     setComandaSyncStatus("saved");
     setIsPullDialogOpen(false);
     setSearchTerm("");
+
+    try {
+      const details = await fetchPOSClientDetails(comanda.client_id);
+      const freshComanda = details.open_comandas?.[0] || comanda;
+      const appts = details.client_appointments || [];
+      const updatedCart = resolveComandaItems(freshComanda.items || comanda.items || [], appts);
+      setCart(updatedCart);
+    } catch {
+      // ignore
+    }
   };
 
   const startNewSession = async (clientId?: number) => {
@@ -423,6 +470,27 @@ export default function POSInterface() {
       handlePullComanda(clientDetailsData.open_comandas[0]);
     }
   }, [selectedClientId, clientDetailsData]);
+
+  // Backfill missing appointment_date in cart when client appointments or all appointments are loaded
+  useEffect(() => {
+    if (!clientAppointments.length && !allAppointments.length) return;
+    const hasMissingDate = cart.some(
+      (i) => i.item_type === "service" && !i.appointment_date && i.appointment_id
+    );
+    if (!hasMissingDate) return;
+
+    setCart((prevCart) =>
+      prevCart.map((item) => {
+        if (item.item_type === "service" && !item.appointment_date && item.appointment_id) {
+          const apt = clientAppointments.find((a) => a.id === item.appointment_id) || allAppointments.find((a) => a.id === item.appointment_id);
+          if (apt?.scheduled_at) {
+            return { ...item, appointment_date: apt.scheduled_at };
+          }
+        }
+        return item;
+      })
+    );
+  }, [clientAppointments, allAppointments, cart]);
 
   const endSession = () => {
     isInitialLoadRef.current = true;
@@ -642,7 +710,13 @@ export default function POSInterface() {
       if (openComanda) {
         initialCart = (openComanda.items || [])
           .filter((item) => {
+            if (item.status && item.status !== "active") {
+              return false;
+            }
             if (item.item_type === "service") {
+              if (item.subtotal === 0 || item.name.includes("(via pacote)")) {
+                return false;
+              }
               const aptId = item.appointment_id || openComanda.appointment_id;
               if (aptId && removedServiceKeys.has(`${aptId}-${item.item_id}`)) {
                 return false;
@@ -650,19 +724,29 @@ export default function POSInterface() {
             }
             return true;
           })
-          .map((item) => ({
-            item_id: item.item_id,
-            item_type: item.item_type,
-            name: item.name,
-            quantity: item.quantity,
-            unit_price: item.unit_price,
-            subtotal: item.subtotal,
-            employee_id: item.employee_id || null,
-            pet_ids: item.pet_ids || undefined,
-            client_package_id_to_pay: item.client_package_id_to_pay || null,
-            unit: item.unit || "UN",
-            appointment_id: item.appointment_id || (item.item_type === "service" ? openComanda.appointment_id || undefined : undefined),
-          }));
+          .map((item) => {
+            const isService = item.item_type === "service";
+            const aptId = isService ? (item.appointment_id || openComanda.appointment_id || undefined) : undefined;
+            const matchedAppt = isService ? allClientAppointments.find((a) => a.id === aptId) : undefined;
+            let aptDate: string | undefined = undefined;
+            if (isService) {
+              aptDate = item.appointment_date || matchedAppt?.scheduled_at || (aptId === openComanda.appointment_id ? (openComanda as any).appointment?.scheduled_at : undefined) || undefined;
+            }
+            return {
+              item_id: item.item_id,
+              item_type: item.item_type,
+              name: item.name,
+              quantity: item.quantity,
+              unit_price: item.unit_price,
+              subtotal: item.subtotal,
+              employee_id: item.employee_id || null,
+              pet_ids: item.pet_ids || undefined,
+              client_package_id_to_pay: item.client_package_id_to_pay || null,
+              unit: item.unit || "UN",
+              appointment_id: aptId,
+              appointment_date: aptDate,
+            };
+          });
         setActiveComandaId(openComanda.id);
         const discCents = Math.round((openComanda.discount_amount || 0) * 100);
         setDiscountCents(discCents);
@@ -678,6 +762,7 @@ export default function POSInterface() {
         for (const item of apt.items) {
           for (const s of item.services) {
             if (s.is_removed) continue;
+            if (s.is_package_covered) continue; // Não leva serviços cobertos por pacote para o carrinho
             const alreadyExists = initialCart.some(
               (ci) => ci.appointment_id === apt.id && ci.item_id === s.id && ci.item_type === "service"
             );
@@ -685,13 +770,14 @@ export default function POSInterface() {
               initialCart.push({
                 item_id: s.id,
                 item_type: "service",
-                name: s.is_package_covered ? `${s.name} (via pacote)` : s.name,
+                name: s.name,
                 quantity: 1,
-                unit_price: s.is_package_covered ? 0 : s.price_cents / 100,
-                subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
+                unit_price: s.price_cents / 100,
+                subtotal: s.price_cents / 100,
                 employee_id: s.employee_id || null,
                 pet_ids: [item.pet.id],
                 appointment_id: apt.id,
+                appointment_date: apt.scheduled_at,
               });
             }
           }
@@ -710,22 +796,23 @@ export default function POSInterface() {
     // Fallback: if no open comanda on backend, pull appointment items
     const pulledItems: SaleItem[] = appointment.items.flatMap((item) =>
       item.services
-        .filter((s) => !s.is_removed)
+        .filter((s) => !s.is_removed && !s.is_package_covered)
         .map((s) => ({
           item_id: s.id,
           item_type: "service" as const,
-          name: s.is_package_covered ? `${s.name} (via pacote)` : s.name,
+          name: s.name,
           quantity: 1,
-          unit_price: s.is_package_covered ? 0 : s.price_cents / 100,
-          subtotal: s.is_package_covered ? 0 : s.price_cents / 100,
+          unit_price: s.price_cents / 100,
+          subtotal: s.price_cents / 100,
           employee_id: s.employee_id || null,
           pet_ids: [item.pet.id],
           appointment_id: appointment.id,
+          appointment_date: appointment.scheduled_at,
         }))
     );
 
     if (pulledItems.length === 0) {
-      toast.info("Nenhum serviço encontrado no agendamento.");
+      toast.info("Nenhum serviço a pagar encontrado no agendamento (serviços cobertos por pacote).");
       return;
     }
 
@@ -1175,6 +1262,7 @@ export default function POSInterface() {
             clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
             activeComandaId={activeComandaId}
             comandaSyncStatus={comandaSyncStatus}
+            appointments={[...clientAppointments, ...allAppointments]}
             cashControl={
               <POSCashControlPill
                 currentSession={cashStatus?.current_session}
@@ -1338,6 +1426,7 @@ export default function POSInterface() {
               clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
               activeComandaId={activeComandaId}
               comandaSyncStatus={comandaSyncStatus}
+              appointments={[...clientAppointments, ...allAppointments]}
               cashControl={
                 <POSCashControlPill
                   currentSession={cashStatus?.current_session}
