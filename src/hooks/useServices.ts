@@ -1,22 +1,15 @@
-import { useCallback, useEffect, useState } from "react"
-import { fetchServices } from "../api/services/tenant_services"
-import type { Service } from "../features/tenant_services/types"
+import { useQuery } from "@tanstack/react-query";
+import { fetchServices } from "../api/services/tenant_services";
+import type { Service } from "../features/tenant_services/types";
 
-export function useServices() {
-  const [services, setServices] = useState<Service[]>([])
-  const [loading, setLoading] = useState(false)
-  const loadServices = useCallback(async () => {
-    setLoading(true)
-    try {
-      setServices(await fetchServices())
-    } finally {
-      setLoading(false)
-    }
-  }, [])
+export function useServices(options?: { enabled?: boolean }) {
+  const { data: services = [], isLoading: loading, refetch } = useQuery<Service[]>({
+    queryKey: ["services"],
+    queryFn: fetchServices,
+    staleTime: 1000 * 60 * 60, // 1 hora
+    gcTime: 1000 * 60 * 120,   // 2 horas
+    enabled: options?.enabled ?? true,
+  });
 
-  useEffect(() => {
-    loadServices()
-  }, [loadServices])
-
-  return { services, loading, getServices: loadServices }
+  return { services, loading, getServices: refetch };
 }

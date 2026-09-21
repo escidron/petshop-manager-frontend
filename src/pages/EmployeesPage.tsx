@@ -20,6 +20,7 @@ import {
 } from "@mui/material";
 import { TablePaginationActions } from "../components/TablePaginationActions";
 import { useMemo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Plus,
   Search,
@@ -53,6 +54,7 @@ const ROLE_LABELS: Record<string, string> = {
 
 export default function EmployeesPage() {
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
   const { employees, loading, getEmployees } = useEmployees();
   const toast = useToast();
   const [modalOpen, setModalOpen] = useState(false);
@@ -153,6 +155,7 @@ export default function EmployeesPage() {
       await deleteEmployee(employeeToDelete.id);
       toast.success("Funcionário excluído!");
       setEmployeeToDelete(undefined);
+      queryClient.invalidateQueries({ queryKey: ["employees"] });
       getEmployees();
     } catch {
       toast.error("Erro ao excluir funcionário.");
@@ -623,6 +626,7 @@ export default function EmployeesPage() {
         onClose={() => setModalOpen(false)}
         onSuccess={() => {
           setModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["employees"] });
           getEmployees();
         }}
       />

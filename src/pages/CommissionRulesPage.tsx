@@ -15,6 +15,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Plus, Search, Edit2, Trash2, Pencil, User, Scissors } from "lucide-react";
 import CommissionRuleFormModal from "../features/commissions/CommissionRuleFormModal";
 import CommissionRuleDeleteModal from "../features/commissions/CommissionRuleDeleteModal";
@@ -35,6 +36,7 @@ const headerCellSx = {
 
 export default function CommissionRulesPage() {
   const [search, setSearch] = useState("");
+  const queryClient = useQueryClient();
   const [rules, setRules] = useState<CommissionRule[]>([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
@@ -78,6 +80,7 @@ export default function CommissionRulesPage() {
       setIsDeleting(true);
       await deleteCommissionRule(ruleToDelete.id);
       toast.success("Regra excluída!");
+      queryClient.invalidateQueries({ queryKey: ["commissionRules"] });
       loadRules();
       setRuleToDelete(null);
     } catch {
@@ -426,7 +429,11 @@ export default function CommissionRulesPage() {
         mode={ruleToEdit ? "edit" : "create"}
         rule={ruleToEdit}
         onClose={() => setModalOpen(false)}
-        onSuccess={() => { setModalOpen(false); loadRules(); }}
+        onSuccess={() => {
+          setModalOpen(false);
+          queryClient.invalidateQueries({ queryKey: ["commissionRules"] });
+          loadRules();
+        }}
       />
 
       {ruleToDelete && (

@@ -22,7 +22,6 @@ import {
   useQuery,
   useMutation,
   useQueryClient,
-  useQueries,
 } from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
 import {
@@ -37,7 +36,6 @@ import { formatServiceLabel } from "../../utils/formatServiceLabel";
 import { getServicesForPet } from "../../utils/serviceMatcher";
 import { getCommissionRules } from "../../api/services/commissions";
 import {
-  listClientPackagesByPet,
   listClientPackagesByClient,
 } from "../../api/services/client_packages";
 import { fetchClientById } from "../../api/services/clients";
@@ -140,11 +138,13 @@ const AppointmentDetailsModal = ({
     },
   });
 
-  const { services: tenantServices = [] } = useServices();
   const [addServicePet, setAddServicePet] = useState<{
     petId: number;
     petName: string;
   } | null>(null);
+  const { services: tenantServices = [] } = useServices({
+    enabled: Boolean(addServicePet),
+  });
   const [selectedNewServiceId, setSelectedNewServiceId] = useState<number | null>(null);
   const [selectedNewEmployeeId, setSelectedNewEmployeeId] = useState<number | null>(null);
 
@@ -192,6 +192,8 @@ const AppointmentDetailsModal = ({
     queryKey: ["employees"],
     queryFn: getEmployees,
     enabled: open,
+    staleTime: 1000 * 60 * 60, // 1 hora
+    gcTime: 1000 * 60 * 120,   // 2 horas
   });
 
   const activeEmployees = employees.filter((e) => e.is_active);
@@ -201,6 +203,8 @@ const AppointmentDetailsModal = ({
     queryKey: ["commissionRules"],
     queryFn: getCommissionRules,
     enabled: open,
+    staleTime: 1000 * 60 * 60, // 1 hora
+    gcTime: 1000 * 60 * 120,   // 2 horas
   });
 
   const checkHasCommission = (employeeId: number, serviceId: number) => {
@@ -224,6 +228,7 @@ const AppointmentDetailsModal = ({
     queryKey: ["clientPackages", "client", appointment?.client?.id],
     queryFn: () => listClientPackagesByClient(appointment.client.id),
     enabled: open && !!appointment?.client?.id,
+    staleTime: 1000 * 60 * 5,
   });
 
   // Fetch full client details (to guarantee full details such as address even if loaded from older cache or summary)
@@ -231,6 +236,8 @@ const AppointmentDetailsModal = ({
     queryKey: ["client", appointment?.client?.id],
     queryFn: () => fetchClientById(appointment.client.id),
     enabled: open && !!appointment?.client?.id,
+    initialData: appointment?.client as any,
+    staleTime: 1000 * 60 * 5,
   });
 
   const client = fullClient || appointment.client;
@@ -238,7 +245,8 @@ const AppointmentDetailsModal = ({
   const { data: clientAppointments = [] } = useQuery<Appointment[]>({
     queryKey: ["appointments", "client", appointment?.client?.id],
     queryFn: () => listAppointmentsByClient(appointment.client.id),
-    enabled: open && !!appointment?.client?.id,
+    enabled: open && !!appointment?.client?.id && !!appointment?.recurrence_id,
+    staleTime: 1000 * 60 * 5,
   });
 
   const upcomingRecurringAppt = useMemo(() => {
@@ -290,15 +298,6 @@ const AppointmentDetailsModal = ({
       .filter((pkg) => pkg.remaining > 0);
   }, [clientPackages]);
 
-  // Fetch Active Packages for all Pets in Appointment
-  const packageQueries = useQueries({
-    queries: (appointment?.items || []).map((item) => ({
-      queryKey: ["clientPackages", "pet", item.pet.id],
-      queryFn: () => listClientPackagesByPet(item.pet.id),
-      enabled: open,
-    })),
-  });
-
   // Dynamically map which services will be covered by packages
   const coveredServiceKeys = useMemo(() => {
     const coveredIds = new Set<string>();
@@ -309,17 +308,16 @@ const AppointmentDetailsModal = ({
     // Map petId -> Map<serviceId, creditId[]>
     const petServiceToCredits = new Map<number, Map<number, number[]>>();
 
-    packageQueries.forEach((q, idx) => {
-      const petId = appointment.items[idx]?.pet?.id;
+    appointment.items.forEach((item) => {
+      const petId = item.pet?.id;
       if (!petId) return;
 
-      const pkgs = q.data || [];
       if (!petServiceToCredits.has(petId)) {
         petServiceToCredits.set(petId, new Map());
       }
       const serviceMap = petServiceToCredits.get(petId)!;
 
-      pkgs.forEach((pkg) => {
+      clientPackages.forEach((pkg) => {
         if (!pkg.is_active) return;
         // Verify this package actually applies to this pet
         const isPetInPkg = !pkg.pets || pkg.pets.length === 0 || pkg.pets.some((p) => p.id === petId);
@@ -365,7 +363,7 @@ const AppointmentDetailsModal = ({
     });
 
     return coveredIds;
-  }, [appointment, packageQueries]);
+  }, [appointment, clientPackages]);
 
   // Compute precise appointment total excluding currently-covered, future-covered or removed
   const totalCents = useMemo(() => {
@@ -406,19 +404,16 @@ const AppointmentDetailsModal = ({
       let serviceName = "";
       const seenCreditIds = new Set<number>();
 
-      packageQueries.forEach((q) => {
-        const pkgs = q.data || [];
-        pkgs.forEach((pkg) => {
-          if (!pkg.is_active) return;
-          pkg.credits.forEach((c) => {
-            if (c.service_id === serviceId) {
-              if (!seenCreditIds.has(c.id)) {
-                seenCreditIds.add(c.id);
-                totalRemaining += c.remaining_qty;
-                if (!serviceName) serviceName = c.service_name || "Serviço";
-              }
+      clientPackages.forEach((pkg) => {
+        if (!pkg.is_active) return;
+        pkg.credits?.forEach((c) => {
+          if (c.service_id === serviceId) {
+            if (!seenCreditIds.has(c.id)) {
+              seenCreditIds.add(c.id);
+              totalRemaining += c.remaining_qty;
+              if (!serviceName) serviceName = c.service_name || "Serviço";
             }
-          });
+          }
         });
       });
       if (totalRemaining > 0 || seenCreditIds.size > 0) {
@@ -426,7 +421,7 @@ const AppointmentDetailsModal = ({
       }
     });
     return balances;
-  }, [appointment, packageQueries]);
+  }, [appointment, clientPackages]);
 
   const [localAssignments, setLocalAssignments] = useState<
     Record<string, number | null>
