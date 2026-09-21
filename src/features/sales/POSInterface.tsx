@@ -471,6 +471,7 @@ export default function POSInterface() {
   useEffect(() => {
     if (
       selectedClientId &&
+      !selectedAppointmentId &&
       cart.length === 0 &&
       !activeComandaId &&
       clientDetailsData?.open_comandas &&
@@ -478,7 +479,7 @@ export default function POSInterface() {
     ) {
       handlePullComanda(clientDetailsData.open_comandas[0]);
     }
-  }, [selectedClientId, clientDetailsData]);
+  }, [selectedClientId, selectedAppointmentId, clientDetailsData]);
 
   // Backfill missing appointment_date in cart when client appointments or all appointments are loaded
   useEffect(() => {
