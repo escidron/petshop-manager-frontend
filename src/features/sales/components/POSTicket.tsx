@@ -11,10 +11,13 @@ import {
   Tooltip,
   Chip,
 } from "@mui/material";
-import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Calendar } from "lucide-react";
 import { Button } from "../../../components/Button/Button";
 import { formatBRLFromCents } from "../../../utils/masks";
 import type { SaleItem } from "../schemas";
+import dayjs from "dayjs";
+
+import type { Appointment } from "../../appointments/types";
 
 interface POSTicketProps {
   cart: SaleItem[];
@@ -28,6 +31,7 @@ interface POSTicketProps {
   cashControl?: React.ReactNode;
   activeComandaId?: number | null;
   comandaSyncStatus?: "idle" | "saving" | "saved" | "error";
+  appointments?: Appointment[];
   onUpdateQuantity: (index: number, delta: number) => void;
   onSetQuantity: (index: number, value: number) => void;
   onRemoveItem: (index: number) => void;
@@ -41,6 +45,7 @@ function CartItemRow({
   item,
   index,
   petName,
+  appointments,
   onUpdateQuantity,
   onSetQuantity,
   onRemoveItem,
@@ -48,6 +53,7 @@ function CartItemRow({
   item: SaleItem;
   index: number;
   petName?: string | null;
+  appointments?: Appointment[];
   onUpdateQuantity: (i: number, d: number) => void;
   onSetQuantity: (i: number, v: number) => void;
   onRemoveItem: (i: number) => void;
@@ -56,19 +62,43 @@ function CartItemRow({
     item.subtotal === 0 &&
     (item.item_type === "service" || item.name.toLowerCase().includes("pacote"));
 
+  const appointmentDate =
+    item.item_type === "service"
+      ? item.appointment_date ||
+        (item.appointment_id && appointments ? appointments.find((a) => a.id === item.appointment_id)?.scheduled_at : undefined)
+      : undefined;
+
   return (
     <Box>
       <ListItem sx={{ flexDirection: "column", alignItems: "stretch", py: 1.25, px: 0 }}>
         <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5, gap: 1 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, flex: 1, color: "text.primary", lineHeight: 1.3 }}>
-            {petName && (
-              <Typography component="span" sx={{ fontWeight: 800, color: "primary.main", mr: 0.5, fontSize: "0.75rem" }}>
-                {petName} •
-              </Typography>
+          <Box sx={{ minWidth: 0, flex: 1 }}>
+            <Typography variant="body2" sx={{ fontWeight: 700, color: "text.primary", lineHeight: 1.3 }}>
+              {petName && (
+                <Typography component="span" sx={{ fontWeight: 800, color: "primary.main", mr: 0.5, fontSize: "0.75rem" }}>
+                  {petName} •
+                </Typography>
+              )}
+              {item.name}
+            </Typography>
+            {appointmentDate && (
+              <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.4, mt: 0.25, color: "text.secondary" }}>
+                <Calendar size={11} style={{ opacity: 0.65, flexShrink: 0 }} />
+                <Typography
+                  variant="caption"
+                  sx={{
+                    fontSize: "0.7rem",
+                    fontWeight: 600,
+                    color: "text.secondary",
+                    lineHeight: 1,
+                  }}
+                >
+                  Agendamento: {dayjs(appointmentDate).format("DD/MM/YYYY")}
+                </Typography>
+              </Box>
             )}
-            {item.name}
-          </Typography>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+          </Box>
+          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexShrink: 0 }}>
             {isPackageCovered && (
               <Chip
                 label="Pacote"
@@ -150,6 +180,7 @@ export default function POSTicket({
   maxDiscountPercentage,
   clientPetNames,
   cashControl,
+  appointments,
   onUpdateQuantity,
   onSetQuantity,
   onRemoveItem,
@@ -262,6 +293,7 @@ export default function POSTicket({
                   item={item}
                   index={index}
                   petName={petName}
+                  appointments={appointments}
                   onUpdateQuantity={onUpdateQuantity}
                   onSetQuantity={onSetQuantity}
                   onRemoveItem={onRemoveItem}

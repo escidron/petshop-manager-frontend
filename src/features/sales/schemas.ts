@@ -19,6 +19,7 @@ export const SaleItemSchema = z.object({
   client_package_id_to_pay: z.number().nullable().optional(),
   unit: z.string().optional(),
   appointment_id: z.number().nullable().optional(),
+  appointment_date: z.string().nullable().optional(),
   status: z.enum(["active", "canceled"]).optional(),
   cancel_reason: z.string().nullable().optional(),
   canceled_at: z.string().nullable().optional(),
@@ -99,6 +100,8 @@ export interface ComandaItem {
   client_package_id_to_pay?: number | null;
   unit?: string;
   appointment_id?: number | null;
+  appointment_date?: string | null;
+  status?: string;
 }
 
 export interface Comanda {
