@@ -746,7 +746,7 @@ export default function POSInterface() {
               if (item.subtotal === 0 || item.name.includes("(via pacote)")) {
                 return false;
               }
-              const aptId = item.appointment_id || openComanda.appointment_id;
+              const aptId = item.appointment_id;
               if (aptId && removedServiceKeys.has(`${aptId}-${item.item_id}`)) {
                 return false;
               }
