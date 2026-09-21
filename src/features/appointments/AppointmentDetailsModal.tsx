@@ -138,11 +138,13 @@ const AppointmentDetailsModal = ({
     },
   });
 
-  const { services: tenantServices = [] } = useServices();
   const [addServicePet, setAddServicePet] = useState<{
     petId: number;
     petName: string;
   } | null>(null);
+  const { services: tenantServices = [] } = useServices({
+    enabled: Boolean(addServicePet),
+  });
   const [selectedNewServiceId, setSelectedNewServiceId] = useState<number | null>(null);
   const [selectedNewEmployeeId, setSelectedNewEmployeeId] = useState<number | null>(null);
 
@@ -190,7 +192,8 @@ const AppointmentDetailsModal = ({
     queryKey: ["employees"],
     queryFn: getEmployees,
     enabled: open,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 60, // 1 hora
+    gcTime: 1000 * 60 * 120,   // 2 horas
   });
 
   const activeEmployees = employees.filter((e) => e.is_active);
@@ -200,7 +203,8 @@ const AppointmentDetailsModal = ({
     queryKey: ["commissionRules"],
     queryFn: getCommissionRules,
     enabled: open,
-    staleTime: 1000 * 60 * 10,
+    staleTime: 1000 * 60 * 60, // 1 hora
+    gcTime: 1000 * 60 * 120,   // 2 horas
   });
 
   const checkHasCommission = (employeeId: number, serviceId: number) => {
