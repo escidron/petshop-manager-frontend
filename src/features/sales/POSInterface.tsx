@@ -80,6 +80,7 @@ export default function POSInterface() {
 
   const [activeComandaId, setActiveComandaId] = useState<number | null>(null);
   const [comandaSyncStatus, setComandaSyncStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+  const [isCartLoading, setIsCartLoading] = useState(false);
   const isInitialLoadRef = useRef(false);
   const autoSaveTimeoutRef = useRef<any>(null);
 
@@ -686,26 +687,8 @@ export default function POSInterface() {
     setDiscountPctInput("0");
     setActiveComandaId(null);
     setComandaSyncStatus("idle");
-
-    // Preenche o carrinho imediatamente com os itens do agendamento clicado (resposta instantânea em 0ms)
-    const immediateCart: SaleItem[] = (appointment.items || []).flatMap((item) =>
-      (item.services || [])
-        .filter((s) => !s.is_removed && !s.is_package_covered)
-        .map((s) => ({
-          item_id: s.id,
-          item_type: "service" as const,
-          name: s.name,
-          quantity: 1,
-          unit_price: s.price_cents / 100,
-          subtotal: s.price_cents / 100,
-          employee_id: s.employee_id || null,
-          pet_ids: item.pet?.id ? [item.pet.id] : undefined,
-          appointment_id: appointment.id,
-          appointment_date: appointment.scheduled_at,
-          unit: "UN",
-        }))
-    );
-    setCart(immediateCart);
+    setCart([]);
+    setIsCartLoading(true);
 
     // Fetch fresh client comanda directly from backend and unify any open appointments
     try {
@@ -817,10 +800,13 @@ export default function POSInterface() {
         isInitialLoadRef.current = true;
         setCart(initialCart);
         setComandaSyncStatus(openComanda ? "saved" : "idle");
+        setIsCartLoading(false);
         return;
       }
     } catch {
       // fallback
+    } finally {
+      setIsCartLoading(false);
     }
 
     // Fallback: if no open comanda on backend, pull appointment items
@@ -848,6 +834,7 @@ export default function POSInterface() {
 
     isInitialLoadRef.current = true;
     setCart(pulledItems);
+    setIsCartLoading(false);
   };
 
   const handlePullPackage = (pkg: ClientPackage) => {
@@ -1289,6 +1276,7 @@ export default function POSInterface() {
             clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
             activeComandaId={activeComandaId}
             comandaSyncStatus={comandaSyncStatus}
+            isCartLoading={isCartLoading}
             appointments={[...clientAppointments, ...allAppointments]}
             cashControl={
               <POSCashControlPill
@@ -1453,6 +1441,7 @@ export default function POSInterface() {
               clientPetNames={Object.fromEntries(clientPets.map((p) => [p.id, p.name]))}
               activeComandaId={activeComandaId}
               comandaSyncStatus={comandaSyncStatus}
+              isCartLoading={isCartLoading}
               appointments={[...clientAppointments, ...allAppointments]}
               cashControl={
                 <POSCashControlPill

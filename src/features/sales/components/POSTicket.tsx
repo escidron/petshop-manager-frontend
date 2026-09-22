@@ -10,6 +10,7 @@ import {
   IconButton,
   Tooltip,
   Chip,
+  Skeleton,
 } from "@mui/material";
 import { ShoppingCart, Trash2, Plus, Minus, Calendar } from "lucide-react";
 import { Button } from "../../../components/Button/Button";
@@ -31,6 +32,7 @@ interface POSTicketProps {
   cashControl?: React.ReactNode;
   activeComandaId?: number | null;
   comandaSyncStatus?: "idle" | "saving" | "saved" | "error";
+  isCartLoading?: boolean;
   appointments?: Appointment[];
   onUpdateQuantity: (index: number, delta: number) => void;
   onSetQuantity: (index: number, value: number) => void;
@@ -180,6 +182,9 @@ export default function POSTicket({
   maxDiscountPercentage,
   clientPetNames,
   cashControl,
+  activeComandaId,
+  comandaSyncStatus,
+  isCartLoading = false,
   appointments,
   onUpdateQuantity,
   onSetQuantity,
@@ -276,7 +281,23 @@ export default function POSTicket({
 
       {/* ── Items List ── */}
       <Box sx={{ flexGrow: 1, overflowY: "auto", px: 2, py: 1, minHeight: 0 }}>
-        {cart.length === 0 ? (
+        {isCartLoading ? (
+          <Box sx={{ pt: 1, display: "flex", flexDirection: "column", gap: 1.5 }}>
+            {[1, 2, 3].map((i) => (
+              <Box key={i}>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                  <Box sx={{ flex: 1 }}>
+                    <Skeleton variant="text" width="55%" height={16} sx={{ mb: 0.5 }} />
+                    <Skeleton variant="text" width="75%" height={14} />
+                    <Skeleton variant="text" width="40%" height={12} />
+                  </Box>
+                  <Skeleton variant="text" width={52} height={16} />
+                </Box>
+                <Skeleton variant="rectangular" width="100%" height={1} sx={{ opacity: 0.3, mt: 0.5 }} />
+              </Box>
+            ))}
+          </Box>
+        ) : cart.length === 0 ? (
           <Box sx={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", opacity: 0.3, py: 8 }}>
             <ShoppingCart size={40} style={{ opacity: 0.3 }} />
             <Typography variant="body2" sx={{ mt: 1 }}>Carrinho Vazio</Typography>
