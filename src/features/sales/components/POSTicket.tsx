@@ -182,8 +182,6 @@ export default function POSTicket({
   maxDiscountPercentage,
   clientPetNames,
   cashControl,
-  activeComandaId,
-  comandaSyncStatus,
   isCartLoading = false,
   appointments,
   onUpdateQuantity,
