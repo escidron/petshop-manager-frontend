@@ -670,6 +670,7 @@ export default function POSInterface() {
     setCart(newCart);
     if (newCart.length === 0) {
       setSelectedAppointmentId(null);
+      setActiveComandaId(null);
     }
     setPendingRemoveItemIndex(null);
   };
@@ -884,7 +885,10 @@ export default function POSInterface() {
             queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
             queryClient.invalidateQueries({ queryKey: ["appointments"] });
           })
-          .catch(() => {});
+          .catch(() => {
+            setActiveComandaId(null);
+            setComandaSyncStatus("idle");
+          });
       } else {
         setComandaSyncStatus("idle");
       }
