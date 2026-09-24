@@ -11,6 +11,13 @@ export const createTenant = async (
         ...payload,
         email: payload.email || null,
         document: payload.document || null,
+        cep: payload.cep || null,
+        street: payload.street || null,
+        number: payload.number || null,
+        complement: payload.complement || null,
+        neighborhood: payload.neighborhood || null,
+        city: payload.city || null,
+        state: payload.state || null,
         is_active: true,
         plan_code: planCode,
     };
@@ -24,12 +31,19 @@ export const createTenant = async (
 
 export const createMyNewTenant = async (
     payload: TenantFormData,
-    planCode: "MONTHLY" | "FREE_TRIAL"
+    planCode: "MONTHLY" | "FREE_TRIAL" = "FREE_TRIAL"
 ): Promise<Tenant> => {
     const data = {
         ...payload,
         email: payload.email || null,
         document: payload.document || null,
+        cep: payload.cep || null,
+        street: payload.street || null,
+        number: payload.number || null,
+        complement: payload.complement || null,
+        neighborhood: payload.neighborhood || null,
+        city: payload.city || null,
+        state: payload.state || null,
         is_active: true,
         plan_code: planCode,
     };

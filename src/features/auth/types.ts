@@ -11,6 +11,13 @@ export interface SignupPayload {
     document?: string | null;
     plan_code: "MONTHLY" | "FREE_TRIAL";
     whatsapp_package?: string | null;
+    cep?: string | null;
+    street?: string | null;
+    number?: string | null;
+    complement?: string | null;
+    neighborhood?: string | null;
+    city?: string | null;
+    state?: string | null;
   };
 }
 

@@ -5,6 +5,13 @@ export const DEFAULT_TENANT_FORM: TenantFormData = {
   email: "",
   phone: "",
   document: "",
+  cep: "",
+  street: "",
+  number: "",
+  complement: "",
+  neighborhood: "",
+  city: "",
+  state: "",
 };
 
 export const days = [
