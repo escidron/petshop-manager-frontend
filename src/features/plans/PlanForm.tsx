@@ -171,7 +171,7 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
           >
             <Gift size={18} strokeWidth={2.5} />
             <Typography sx={{ fontSize: "0.9rem", fontWeight: 800 }}>
-              6 primeiros meses grátis!
+              1º mês de teste grátis!
             </Typography>
           </Box>
 
@@ -208,7 +208,7 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
           >
             <Info size={18} color="#313485" style={{ marginTop: 2, flexShrink: 0 }} />
             <Typography sx={{ fontSize: "0.84rem", color: "#475569", lineHeight: 1.45, fontWeight: 500 }}>
-              Após os 6 primeiros meses, o plano será cobrado normalmente por R$ 99,90/mês.
+              Após os 30 dias de teste grátis, o plano será cobrado normalmente por R$ 99,90/mês.
             </Typography>
           </Box>
         </Box>

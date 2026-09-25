@@ -25,6 +25,7 @@ import AppointmentDetailsModal from "./AppointmentDetailsModal";
 import DashboardCalendar from "../dashboard/DashboardCalendar";
 
 import { useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
 import NoAppointmentsBanner from "./NoAppointmentsBanner";
 import { useAuth } from "../../hooks/useAuth";
 import { DEFAULT_WORKING_HOURS } from "../tenants/types";
@@ -128,16 +129,53 @@ const AppointmentsDailyList = ({
   ) => {
     setLoadingAction(action);
     try {
-      await applyAppointmentAction(appointment.id, action, cancelAllFuture);
-      queryClient.invalidateQueries({ queryKey: ["appointments"] });
-      queryClient.invalidateQueries({ queryKey: ["sales"] });
-      queryClient.invalidateQueries({ queryKey: ["clientPackages"] });
-      queryClient.invalidateQueries({ queryKey: ["commissions"] });
-      queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
-      queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
-      queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
-      queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
-      queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+      const updated = await applyAppointmentAction(appointment.id, action, cancelAllFuture);
+
+      // 1. Atualiza imediatamente o cache do React Query com o agendamento retornado pelo backend
+      queryClient.setQueriesData({ queryKey: ["appointments"] }, (old: any) => {
+        if (!old) return old;
+        if (Array.isArray(old)) {
+          return old.map((a: Appointment) => (a.id === updated.id ? { ...a, ...updated } : a));
+        }
+        if (old.appointments && Array.isArray(old.appointments)) {
+          return {
+            ...old,
+            appointments: old.appointments.map((a: Appointment) =>
+              a.id === updated.id ? { ...a, ...updated } : a
+            ),
+          };
+        }
+        return old;
+      });
+
+      queryClient.setQueriesData({ queryKey: ["dashboard-startup"] }, (old: any) => {
+        if (!old) return old;
+        if (old.appointments_today && Array.isArray(old.appointments_today)) {
+          return {
+            ...old,
+            appointments_today: old.appointments_today.map((a: Appointment) =>
+              a.id === updated.id ? { ...a, ...updated } : a
+            ),
+          };
+        }
+        return old;
+      });
+
+      // 2. Aguarda a invalidação de queries para manter tudo consistente
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["appointments"] }),
+        queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] }),
+        queryClient.invalidateQueries({ queryKey: ["open-comandas"] }),
+        queryClient.invalidateQueries({ queryKey: ["open-invoices"] }),
+        queryClient.invalidateQueries({ queryKey: ["sales"] }),
+        queryClient.invalidateQueries({ queryKey: ["clientPackages"] }),
+        queryClient.invalidateQueries({ queryKey: ["commissions"] }),
+        queryClient.invalidateQueries({ queryKey: ["pos-startup"] }),
+        queryClient.invalidateQueries({ queryKey: ["pos-client"] }),
+      ]);
+    } catch (err: any) {
+      const msg = err?.response?.data?.detail || "Erro ao atualizar status do agendamento.";
+      toast.error(msg);
     } finally {
       setLoadingAction(null);
     }

@@ -6,7 +6,8 @@ import {
   Button,
   CircularProgress,
 } from "@mui/material";
-import { X, Copy, Check, Clock, HelpCircle, ShieldCheck, RefreshCw } from "lucide-react";
+import { X, Copy, Check, Clock, RefreshCw } from "lucide-react";
+import { PixIcon } from "../../components/PixIcon";
 import { QRCodeSVG } from "qrcode.react";
 import dayjs from "dayjs";
 import { maskDocument } from "../../utils/masks";
@@ -40,8 +41,8 @@ export default function PixPaymentModal({
   payerName = "Seu Estabelecimento",
   payerDocument,
   title = "Pagamento da assinatura do sistema Data Pet",
-  providerName = "Data Pet Tecnologia LTDA",
-  providerCnpj = "54.123.456/0001-89",
+  providerName = "Sistema Data Pet",
+  providerCnpj = "99.999.999/0001-99",
   onCancelCharge,
   onPaymentConfirmed,
 }: PixPaymentModalProps) {
@@ -97,9 +98,15 @@ export default function PixPaymentModal({
         setTimeLeft("Expirado");
         return;
       }
-      const mins = Math.floor(diff / 60);
-      const secs = diff % 60;
-      setTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`);
+      if (diff > 3600) {
+        const hours = Math.floor(diff / 3600);
+        const mins = Math.floor((diff % 3600) / 60);
+        setTimeLeft(`${hours}h ${mins}min`);
+      } else {
+        const mins = Math.floor(diff / 60);
+        const secs = diff % 60;
+        setTimeLeft(`${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")} min`);
+      }
     };
 
     calculateTime();
@@ -312,80 +319,65 @@ export default function PixPaymentModal({
                 borderBottom: "1px dashed #CBD5E1",
               }}
             >
-              <Box sx={{ flex: 1 }}>
-                <Typography
-                  variant="subtitle1"
-                  fontWeight={800}
-                  color="#0F172A"
-                  sx={{ fontSize: "1rem", mb: 0.5 }}
+              <Box sx={{ flex: 1, display: "flex", alignItems: "flex-start", gap: 2 }}>
+                {/* Badge Oficial PIX no canto esquerdo da seção */}
+                <Box
+                  sx={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: 0.6,
+                    px: 1.8,
+                    py: 1.2,
+                    borderRadius: 2.5,
+                    bgcolor: "rgba(0, 180, 157, 0.08)",
+                    border: "1px solid rgba(0, 180, 157, 0.25)",
+                    flexShrink: 0,
+                    mt: 0.25,
+                  }}
                 >
-                  Opção 1: QRCode
-                </Typography>
-                <Typography variant="body2" color="#475569" sx={{ fontSize: "0.85rem", lineHeight: 1.4 }}>
-                  Abra o App do seu Banco e escaneie o código QR ao lado para efetuar o pagamento.
-                </Typography>
+                  <PixIcon size={28} color="#00B49D" />
+                  <Typography variant="caption" fontWeight={900} color="#00B49D" sx={{ fontSize: "0.8rem", letterSpacing: 0.5 }}>
+                    pix
+                  </Typography>
+                </Box>
 
-                <Box sx={{ display: "flex", alignItems: "center", gap: 1, mt: 2 }}>
-                  <ShieldCheck size={18} color="#16A34A" />
-                  <Typography variant="caption" fontWeight={600} color="#166534">
-                    Pagamento instantâneo via Banco Central
+                <Box sx={{ flex: 1 }}>
+                  <Typography
+                    variant="subtitle1"
+                    fontWeight={800}
+                    color="#0F172A"
+                    sx={{ fontSize: "1rem", mb: 0.5 }}
+                  >
+                    Opção 1: QRCode
+                  </Typography>
+                  <Typography variant="body2" color="#475569" sx={{ fontSize: "0.85rem", lineHeight: 1.4 }}>
+                    Abra o App do seu Banco e escaneie o código QR ao lado para efetuar o pagamento.
                   </Typography>
                 </Box>
               </Box>
 
-              {/* QR Code Container com logo do PIX */}
-              <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                <Box
-                  sx={{
-                    p: 1.5,
-                    bgcolor: "white",
-                    borderRadius: 3,
-                    border: "1.5px solid #E2E8F0",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  <QRCodeSVG
-                    value={qrCode}
-                    size={150}
-                    level="M"
-                    marginSize={1}
-                  />
-                </Box>
-
-                {/* Badge Oficial PIX */}
-                <Box
-                  sx={{
-                    display: { xs: "none", sm: "flex" },
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 0.5,
-                    px: 1.5,
-                    py: 1,
-                    borderRadius: 2,
-                    bgcolor: "rgba(50, 188, 173, 0.08)",
-                    border: "1px solid rgba(50, 188, 173, 0.25)",
-                  }}
-                >
-                  <Box
-                    sx={{
-                      width: 28,
-                      height: 28,
-                      transform: "rotate(45deg)",
-                      bgcolor: "#32BCAD",
-                      borderRadius: 1,
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                    }}
-                  />
-                  <Typography variant="caption" fontWeight={900} color="#0D9488" sx={{ fontSize: "0.8rem", letterSpacing: 0.5 }}>
-                    pix
-                  </Typography>
-                </Box>
+              {/* QR Code Container */}
+              <Box
+                sx={{
+                  p: 1.5,
+                  bgcolor: "white",
+                  borderRadius: 3,
+                  border: "1.5px solid #E2E8F0",
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.04)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  flexShrink: 0,
+                }}
+              >
+                <QRCodeSVG
+                  value={qrCode}
+                  size={150}
+                  level="M"
+                  marginSize={1}
+                />
               </Box>
             </Box>
 
@@ -500,35 +492,13 @@ export default function PixPaymentModal({
             <Box sx={{ display: "flex", alignItems: "center", gap: 0.8 }}>
               <Clock size={15} color="#92400E" />
               <Typography variant="caption" fontWeight={700} color="#92400E" sx={{ fontSize: "0.8rem" }}>
-                {timeLeft ? `Expira em: ${timeLeft}` : expiresAt ? `Válido até ${dayjs(expiresAt).format("HH:mm")}` : "Válido por 1 hora"}
+                {timeLeft ? `Expira em: ${timeLeft}` : expiresAt ? `Válido até ${dayjs(expiresAt).format("HH:mm")}` : "Válido por 30 minutos"}
               </Typography>
             </Box>
           </Box>
 
-          {/* ── 5. RODAPÉ: SUPORTE E BOTÕES ── */}
+          {/* ── 5. RODAPÉ: BOTÕES ── */}
           <Box sx={{ textAlign: "center" }}>
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 0.6, mb: 2 }}>
-              <HelpCircle size={15} color="#64748B" />
-              <Typography variant="caption" color="#64748B">
-                Precisa de ajuda?{" "}
-                <Box
-                  component="a"
-                  href="https://wa.me/5511999999999?text=Ol%C3%A1%2C%20preciso%20de%20ajuda%20com%20o%20pagamento%20PIX%20do%20Data%20Pet"
-                  target="_blank"
-                  rel="noreferrer"
-                  sx={{
-                    color: "#0F766E",
-                    fontWeight: 700,
-                    textDecoration: "underline",
-                    cursor: "pointer",
-                    "&:hover": { color: "#115E59" },
-                  }}
-                >
-                  Clique aqui para falar com nosso atendimento
-                </Box>
-              </Typography>
-            </Box>
-
             <Box sx={{ display: "flex", justifyContent: "center", gap: 2, flexWrap: "wrap" }}>
               <Button
                 variant="outlined"
