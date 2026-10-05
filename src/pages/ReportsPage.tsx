@@ -37,30 +37,34 @@ export default function ReportsPage() {
     setSearchParams({ tab: newTab });
   };
 
-  // Ref para o container de meses começar rolado para a direita (mês atual sempre visível)
+  // Ref para o container de meses
   const monthsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (monthsContainerRef.current) {
-      monthsContainerRef.current.scrollLeft = monthsContainerRef.current.scrollWidth;
+      const activeBtn = monthsContainerRef.current.querySelector<HTMLElement>(".MuiButton-contained");
+      if (activeBtn) {
+        activeBtn.scrollIntoView({ behavior: "smooth", block: "nearest", inline: "center" });
+      }
     }
   }, []);
 
-  // Generate dynamic last 9 months selector
+  // Generate dynamic 12 months selector for the selected year (JAN to DEZ)
+  const selectedYear = startDate ? startDate.year() : dayjs().year();
+
   const months = useMemo(() => {
     const list = [];
-    const now = dayjs();
-    for (let i = 8; i >= 0; i--) {
-      const d = now.subtract(i, "month");
+    for (let m = 0; m < 12; m++) {
+      const d = dayjs().year(selectedYear).month(m).startOf("month");
       list.push({
         label: d.format("MMM").toUpperCase().replace(".", ""),
-        month: d.month(),
-        year: d.year(),
+        month: m,
+        year: selectedYear,
         d,
       });
     }
     return list;
-  }, []);
+  }, [selectedYear]);
 
   const handleSelectMonth = (m: { d: Dayjs }) => {
     setStartDate(m.d.startOf("month"));
