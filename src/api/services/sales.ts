@@ -52,8 +52,18 @@ export const fetchPOSStartup = async (): Promise<POSStartupResponse> => {
     ...data,
     products: (data.products || []).map((p: any) => ({
       ...p,
-      price_cents: p.price_cents ?? (typeof p.price === "number" ? p.price : 0),
-      cost_cents: p.cost_cents ?? (typeof p.cost === "number" ? p.cost : 0),
+      price_cents:
+        typeof p.price_cents === "number"
+          ? p.price_cents
+          : typeof p.price === "number"
+          ? Math.round(p.price * 100)
+          : 0,
+      cost_cents:
+        typeof p.cost_cents === "number"
+          ? p.cost_cents
+          : typeof p.cost === "number"
+          ? Math.round(p.cost * 100)
+          : 0,
     })),
   };
 };

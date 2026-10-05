@@ -201,8 +201,18 @@ export default function POSInterface() {
   const products = useMemo(() => {
     return (startupData?.products || []).map((p: any) => ({
       ...p,
-      price_cents: p.price_cents ?? (typeof p.price === "number" ? p.price : 0),
-      cost_cents: p.cost_cents ?? (typeof p.cost === "number" ? p.cost : 0),
+      price_cents:
+        typeof p.price_cents === "number"
+          ? p.price_cents
+          : typeof p.price === "number"
+          ? Math.round(p.price * 100)
+          : 0,
+      cost_cents:
+        typeof p.cost_cents === "number"
+          ? p.cost_cents
+          : typeof p.cost === "number"
+          ? Math.round(p.cost * 100)
+          : 0,
     }));
   }, [startupData?.products]);
   const services = startupData?.services || [];
@@ -567,7 +577,12 @@ export default function POSInterface() {
     petIds?: number[],
     petNames?: string[]
   ) => {
-    const rawCents = item.price_cents ?? (typeof (item as any).price === "number" ? (item as any).price : 0);
+    const rawCents =
+      typeof item.price_cents === "number"
+        ? item.price_cents
+        : typeof (item as any).price === "number"
+        ? Math.round((item as any).price * 100)
+        : 0;
     const price = rawCents / 100;
     const displayName =
       type === "package" && petNames && petNames.length > 0
