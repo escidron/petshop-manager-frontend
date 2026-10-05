@@ -2,17 +2,40 @@ import type { Product, ProductFormData, ProductPhoto } from "../../features/prod
 import apiClient from "../apiClient";
 
 
-const mapProductFromApi = (p: any): Product => ({
-  ...p,
-  price_cents: p.price_cents ?? p.price ?? 0,
-  cost_cents: p.cost_cents ?? p.cost ?? 0,
-});
+const mapProductFromApi = (p: any): Product => {
+  const priceInCents =
+    typeof p.price_cents === "number"
+      ? p.price_cents
+      : typeof p.price === "number"
+      ? Math.round(p.price * 100)
+      : 0;
+
+  const costInCents =
+    typeof p.cost_cents === "number"
+      ? p.cost_cents
+      : typeof p.cost === "number"
+      ? Math.round(p.cost * 100)
+      : undefined;
+
+  return {
+    ...p,
+    price_cents: priceInCents,
+    cost_cents: costInCents,
+  };
+};
 
 const mapProductToApi = (p: any) => {
   const { price_cents, cost_cents, ...rest } = p;
   const mapped: any = { ...rest };
-  if (price_cents !== undefined) mapped.price = price_cents;
-  if (cost_cents !== undefined) mapped.cost = cost_cents;
+  if (price_cents !== undefined) {
+    mapped.price = Number((price_cents / 100).toFixed(2));
+  }
+  if (cost_cents !== undefined) {
+    mapped.cost =
+      cost_cents !== null && cost_cents !== ""
+        ? Number((Number(cost_cents) / 100).toFixed(2))
+        : null;
+  }
   return mapped;
 };
 

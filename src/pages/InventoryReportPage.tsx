@@ -151,7 +151,7 @@ export default function InventoryReportPage({
     const totalProducts = products.length;
     const lowStock = products.filter((p) => p.quantity <= p.min_stock).length;
     const stockValue = products.reduce(
-      (acc, p) => acc + p.quantity * (p.cost_cents ?? p.price_cents),
+      (acc, p) => acc + p.quantity * ((p.cost_cents ?? p.price_cents ?? 0) / 100),
       0,
     );
 

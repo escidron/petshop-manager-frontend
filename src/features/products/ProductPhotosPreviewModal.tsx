@@ -61,7 +61,12 @@ export default function ProductPhotosPreviewModal({
   if (!product) return null;
 
   const currentPhoto = photos[currentIndex];
-  const priceValue = product.price_cents ?? (product as any).price ?? 0;
+  const priceValue =
+    typeof product.price_cents === "number"
+      ? product.price_cents
+      : typeof (product as any).price === "number"
+      ? Math.round((product as any).price * 100)
+      : 0;
 
   return (
     <Dialog
