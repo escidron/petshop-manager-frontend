@@ -1494,7 +1494,7 @@ const AppointmentDetailsModal = ({
                       startIcon={<Plus size={14} />}
                       onClick={() => {
                         setSelectedNewServiceId(null);
-                        setSelectedNewEmployeeId(null);
+                        setSelectedNewEmployeeIds([]);
                         setAddServicePet({ petId: item.pet.id, petName: item.pet.name });
                       }}
                       sx={{ fontSize: "0.75rem", py: 0.25, px: 1, height: 26, borderRadius: 1.5, fontWeight: 600 }}
