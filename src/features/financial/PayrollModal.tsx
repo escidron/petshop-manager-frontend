@@ -69,6 +69,21 @@ const fmtBRL = (val: number | undefined | null): string => {
   return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 };
 
+const MONTH_NAMES = [
+  "Jan",
+  "Fev",
+  "Mar",
+  "Abr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Ago",
+  "Set",
+  "Out",
+  "Nov",
+  "Dez",
+];
+
 const ROLE_LABELS: Record<string, string> = {
   groomer: "Tosador(a)",
   bather: "Banhista",
@@ -98,6 +113,58 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
   const queryClient = useQueryClient();
 
   const [selectedYear, setSelectedYear] = useState<number>(initialYear);
+  const currentYear = useMemo(() => dayjs().year(), []);
+  const currentMonth = useMemo(() => dayjs().month() + 1, []); // 1-12
+
+  // Escopo de meses para lançamento no DRE
+  const [scopeMode, setScopeMode] = useState<"from_current" | "full_year" | "custom">("from_current");
+  const [selectedMonths, setSelectedMonths] = useState<number[]>(() => {
+    if (initialYear === dayjs().year()) {
+      const cur = dayjs().month() + 1;
+      return Array.from({ length: 12 - cur + 1 }, (_, i) => cur + i);
+    }
+    return [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+  });
+
+  useEffect(() => {
+    setSelectedYear(initialYear);
+    if (initialYear === dayjs().year()) {
+      const cur = dayjs().month() + 1;
+      setScopeMode("from_current");
+      setSelectedMonths(Array.from({ length: 12 - cur + 1 }, (_, i) => cur + i));
+    } else {
+      setScopeMode("full_year");
+      setSelectedMonths([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    }
+  }, [open, initialYear]);
+
+  const handleSelectFromCurrent = () => {
+    setScopeMode("from_current");
+    if (selectedYear === currentYear) {
+      setSelectedMonths(
+        Array.from({ length: 12 - currentMonth + 1 }, (_, i) => currentMonth + i),
+      );
+    } else {
+      setSelectedMonths([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+    }
+  };
+
+  const handleSelectFullYear = () => {
+    setScopeMode("full_year");
+    setSelectedMonths([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+  };
+
+  const handleToggleMonth = (monthNumber: number) => {
+    setScopeMode("custom");
+    setSelectedMonths((prev) => {
+      if (prev.includes(monthNumber)) {
+        return prev.filter((m) => m !== monthNumber);
+      } else {
+        return [...prev, monthNumber].sort((a, b) => a - b);
+      }
+    });
+  };
+
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(
     null,
   );
@@ -317,6 +384,13 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
   const [isSyncing, setIsSyncing] = useState<boolean>(false);
 
   const handleSyncToDRE = async () => {
+    if (selectedMonths.length === 0) {
+      toast.warning(
+        "Selecione pelo menos um mês de competência para lançar a folha no DRE.",
+      );
+      return;
+    }
+
     try {
       setIsSyncing(true);
 
@@ -343,14 +417,22 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
         return;
       }
 
-      // 3. Executa a sincronização para o DRE
+      // 3. Executa a sincronização para o DRE com os meses selecionados
       const result = await syncPayrollToDRE({
         year: selectedYear,
+        months: selectedMonths,
         account_mapping: accountMapping,
       });
 
+      const monthLabel =
+        result.months_updated.length === 12
+          ? `ano completo de ${result.year}`
+          : `${result.months_updated.length} meses (${result.months_updated
+              .map((m) => MONTH_NAMES[m - 1])
+              .join(", ")})`;
+
       toast.success(
-        `Folha de ${fmtBRL(totalCost)}/mês lançada com sucesso no DRE de ${result.year}! (${result.entries_created_or_updated} lançamentos)`,
+        `Folha de ${fmtBRL(totalCost)}/mês lançada com sucesso no DRE para ${monthLabel}! (${result.entries_created_or_updated} lançamentos)`,
       );
 
       // Invalida todos os caches do DRE e Folha
@@ -1809,6 +1891,122 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
           </Box>
         </Box>
 
+        {/* Seletor de Escopo de Meses para Aplicação no DRE */}
+        <Paper
+          elevation={0}
+          sx={{
+            p: 1.5,
+            mb: 2,
+            borderRadius: 2,
+            border: "1px solid",
+            borderColor: "divider",
+            backgroundColor: (theme) => alpha(theme.palette.primary.main, 0.03),
+            display: "flex",
+            flexDirection: "column",
+            gap: 1.25,
+          }}
+        >
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Calendar size={16} color={theme.palette.primary.main} />
+              <Typography variant="subtitle2" fontWeight={700}>
+                Período de Aplicação no DRE ({selectedYear})
+              </Typography>
+            </Box>
+
+            <Box sx={{ display: "flex", gap: 0.75, flexWrap: "wrap" }}>
+              <Button
+                size="small"
+                variant={scopeMode === "from_current" ? "contained" : "outlined"}
+                color="primary"
+                onClick={handleSelectFromCurrent}
+                sx={{
+                  textTransform: "none",
+                  fontSize: "0.75rem",
+                  py: 0.25,
+                  px: 1.25,
+                  borderRadius: 1.5,
+                  fontWeight: 600,
+                }}
+              >
+                A partir deste mês ({MONTH_NAMES[currentMonth - 1]} a Dez)
+              </Button>
+              <Button
+                size="small"
+                variant={scopeMode === "full_year" ? "contained" : "outlined"}
+                color="inherit"
+                onClick={handleSelectFullYear}
+                sx={{
+                  textTransform: "none",
+                  fontSize: "0.75rem",
+                  py: 0.25,
+                  px: 1.25,
+                  borderRadius: 1.5,
+                  fontWeight: 600,
+                }}
+              >
+                Ano Completo (Jan a Dez)
+              </Button>
+            </Box>
+          </Box>
+
+          {/* Chips interativos dos 12 Meses */}
+          <Box sx={{ display: "flex", gap: 0.5, flexWrap: "wrap", alignItems: "center" }}>
+            {MONTH_NAMES.map((name, idx) => {
+              const mNum = idx + 1;
+              const isSelected = selectedMonths.includes(mNum);
+              const isPast = selectedYear === currentYear && mNum < currentMonth;
+              return (
+                <Chip
+                  key={mNum}
+                  label={name}
+                  size="small"
+                  onClick={() => handleToggleMonth(mNum)}
+                  color={isSelected ? "primary" : "default"}
+                  variant={isSelected ? "filled" : "outlined"}
+                  sx={{
+                    fontWeight: isSelected ? 700 : 500,
+                    cursor: "pointer",
+                    opacity: isPast && !isSelected ? 0.6 : 1,
+                    fontSize: "0.75rem",
+                    transition: "all 0.15s ease",
+                  }}
+                />
+              );
+            })}
+          </Box>
+
+          {/* Mensagem explicativa de proteção do passado */}
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ display: "flex", alignItems: "center", gap: 0.5, fontSize: "0.72rem" }}
+          >
+            <Info size={13} style={{ flexShrink: 0 }} />
+            {selectedMonths.length === 12 ? (
+              <span>
+                <strong>Atenção:</strong> Serão atualizados todos os 12 meses de {selectedYear}.
+              </span>
+            ) : selectedMonths.length > 0 ? (
+              <span>
+                Serão atualizados <strong>{selectedMonths.length} meses</strong> ({selectedMonths.map((m) => MONTH_NAMES[m - 1]).join(", ")}). Os meses anteriores não selecionados <strong>permanecerão intactos</strong>, preservando o histórico contábil fechado.
+              </span>
+            ) : (
+              <span style={{ color: theme.palette.error.main }}>
+                Nenhum mês selecionado. Escolha pelo menos um mês para lançar.
+              </span>
+            )}
+          </Typography>
+        </Paper>
+
         {/* Linha Final de Ações: Lançar no DRE */}
         <Box
           sx={{
@@ -1836,7 +2034,7 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
               variant="contained"
               color="success"
               onClick={handleSyncToDRE}
-              disabled={isSyncing}
+              disabled={isSyncing || selectedMonths.length === 0}
               startIcon={
                 isSyncing ? (
                   <CircularProgress size={16} color="inherit" />
@@ -1852,7 +2050,11 @@ export const PayrollModal: React.FC<PayrollModalProps> = ({
                 boxShadow: 2,
               }}
             >
-              Lançar Folha no DRE de {selectedYear}
+              {selectedMonths.length === 12
+                ? `Lançar Folha no DRE (Ano Completo ${selectedYear})`
+                : selectedMonths.length > 0
+                ? `Lançar Folha no DRE (${selectedMonths.length} meses de ${selectedYear})`
+                : `Selecione os meses para lançar`}
             </Button>
           </Box>
         </Box>
