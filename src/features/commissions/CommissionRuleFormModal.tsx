@@ -17,11 +17,12 @@ import {
   TextField,
   Typography,
   alpha,
+  Tooltip,
   IconButton,
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { X } from "lucide-react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -78,6 +79,16 @@ const ALL_SERVICES_OPTION: Service = {
   is_active: true,
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  bather: "Banhista",
+  groomer: "Tosador(a)",
+  vet: "Veterinário(a)",
+  salesperson: "Vendedor(a)",
+  receptionist: "Recepcionista",
+  driver: "Entregador/Motorista",
+  other: "Outro",
+};
+
 type Props = {
   open: boolean;
   mode: "create" | "edit";
@@ -94,12 +105,13 @@ export default function CommissionRuleFormModal({
   const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
   const [employees, setEmployees] = useState<Employee[]>([]);
   const [services, setServices] = useState<Service[]>([]);
+  const [selectedRoles, setSelectedRoles] = useState<string[]>([]);
   const [loadingOptions, setLoadingOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [employeeLimit, setEmployeeLimit] = useState(20);
   const [serviceLimit, setServiceLimit] = useState(20);
 
-  const { control, handleSubmit, reset, watch } = useForm<CommissionRuleFormData>({
+  const { control, handleSubmit, reset, watch, setValue } = useForm<CommissionRuleFormData>({
     resolver: zodResolver(schema) as any,
     defaultValues: {
       name: "",
@@ -117,15 +129,81 @@ export default function CommissionRuleFormModal({
 
   const commissionType = watch("commission_type");
 
+  const availableRoles = useMemo(() => {
+    const activeEmps = employees.filter((e) => e.is_active);
+    const roleCounts: Record<string, number> = {};
+    activeEmps.forEach((e) => {
+      const roleKey = e.role || "other";
+      roleCounts[roleKey] = (roleCounts[roleKey] || 0) + 1;
+    });
+
+    return Object.entries(roleCounts)
+      .map(([role, count]) => ({
+        role,
+        label: ROLE_LABELS[role] || role,
+        count,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [employees]);
+
+  const handleRolesChange = (newRoles: string[]) => {
+    const activeEmps = employees.filter((e) => e.is_active);
+    const currentEmpIds = watch("employee_ids") || [];
+
+    const addedRoles = newRoles.filter((r) => !selectedRoles.includes(r));
+    const removedRoles = selectedRoles.filter((r) => !newRoles.includes(r));
+
+    let updatedEmpIds = [...currentEmpIds];
+
+    if (addedRoles.length > 0) {
+      const toAdd = activeEmps
+        .filter((e) => addedRoles.includes(e.role))
+        .map((e) => e.id);
+      updatedEmpIds = Array.from(new Set([...updatedEmpIds, ...toAdd]));
+    }
+
+    if (removedRoles.length > 0) {
+      const toRemove = new Set(
+        activeEmps
+          .filter((e) => removedRoles.includes(e.role))
+          .map((e) => e.id)
+      );
+      updatedEmpIds = updatedEmpIds.filter((id) => !toRemove.has(id));
+    }
+
+    setSelectedRoles(newRoles);
+    setValue("employee_ids", updatedEmpIds, {
+      shouldValidate: true,
+      shouldDirty: true,
+    });
+  };
+
   useEffect(() => {
     if (open) {
       let isMounted = true;
       setLoadingOptions(true);
+      const initialEmpIds = rule?.employee_ids ?? (rule?.employees?.map((e) => e.id) ?? (rule?.employee_id ? [rule.employee_id] : []));
+
       Promise.all([fetchEmployees(), fetchServices()])
         .then(([empData, svcData]) => {
           if (isMounted) {
             setEmployees(empData);
             setServices(svcData);
+
+            if (initialEmpIds.length > 0) {
+              const activeEmps = empData.filter((e) => e.is_active);
+              const distinctRoles = Array.from(new Set(activeEmps.map((e) => e.role)));
+              const matched = distinctRoles.filter((r) => {
+                const empsInRole = activeEmps.filter((e) => e.role === r);
+                return (
+                  empsInRole.length > 0 &&
+                  empsInRole.every((e) => initialEmpIds.includes(e.id))
+                );
+              });
+              setSelectedRoles(matched);
+            } else {
+              setSelectedRoles([]);
+            }
           }
         })
         .catch(() => {
@@ -135,7 +213,6 @@ export default function CommissionRuleFormModal({
           if (isMounted) setLoadingOptions(false);
         });
 
-      const initialEmpIds = rule?.employee_ids ?? (rule?.employees?.map((e) => e.id) ?? (rule?.employee_id ? [rule.employee_id] : []));
       reset({
         name: rule?.name ?? "",
         commission_type: rule?.commission_type ?? "percentage",
@@ -369,6 +446,160 @@ export default function CommissionRuleFormModal({
                 </Typography>
               </Box>
 
+              {/* ── SELEÇÃO RÁPIDA POR CARGO / ÁREA ──────────── */}
+              <FormControl fullWidth>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 0.5,
+                  }}
+                >
+                  <FormLabel sx={{ color: "text.primary", mb: 0 }}>
+                    Filtrar por Área / Cargo
+                  </FormLabel>
+                  {selectedRoles.length > 0 && (
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: "primary.main",
+                        cursor: "pointer",
+                        fontWeight: 600,
+                        fontSize: "0.75rem",
+                        "&:hover": { textDecoration: "underline" },
+                      }}
+                      onClick={() => handleRolesChange([])}
+                    >
+                      Limpar cargos
+                    </Typography>
+                  )}
+                </Box>
+                <Autocomplete
+                  multiple
+                  size="small"
+                  options={availableRoles}
+                  value={availableRoles.filter((r) =>
+                    selectedRoles.includes(r.role)
+                  )}
+                  getOptionLabel={(o) => `${o.label} (${o.count})`}
+                  isOptionEqualToValue={(o, v) => o.role === v.role}
+                  onChange={(_, newValues) => {
+                    handleRolesChange(newValues.map((v) => v.role));
+                  }}
+                  renderInput={(params) => {
+                    const hasSelected = selectedRoles.length > 0;
+                    return (
+                      <TextField
+                        {...params}
+                        placeholder={
+                          !hasSelected
+                            ? "Ex: Banhista, Tosador..."
+                            : "Adicionar outro cargo..."
+                        }
+                        sx={{
+                          "& .MuiInputBase-root": {
+                            display: "flex",
+                            flexWrap: "wrap",
+                            alignItems: "center",
+                            gap: 0.5,
+                            p: hasSelected ? "6px 8px !important" : undefined,
+                          },
+                          "& .MuiAutocomplete-input": {
+                            ...(hasSelected
+                              ? {
+                                  minWidth: "100% !important",
+                                  width: "100% !important",
+                                  flexBasis: "100% !important",
+                                  mt: "4px",
+                                  pt: "2px",
+                                  pb: "2px",
+                                }
+                              : {}),
+                          },
+                          "& .MuiAutocomplete-endAdornment": {
+                            ...(hasSelected
+                              ? {
+                                  top: "auto",
+                                  bottom: "7px",
+                                }
+                              : {}),
+                          },
+                        }}
+                      />
+                    );
+                  }}
+                  renderTags={(tagValue, getTagProps) => {
+                    const MAX_ROLES = 2;
+                    const visible = tagValue.slice(0, MAX_ROLES);
+                    const remaining = tagValue.length - MAX_ROLES;
+
+                    return (
+                      <>
+                        {visible.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key || option.role}
+                              size="small"
+                              color="primary"
+                              variant="outlined"
+                              label={`${option.label} (${option.count})`}
+                              {...tagProps}
+                              sx={{
+                                height: "22px",
+                                fontSize: "0.72rem",
+                                fontWeight: 600,
+                                m: 0.25,
+                              }}
+                            />
+                          );
+                        })}
+                        {remaining > 0 && (
+                          <Tooltip
+                            title={tagValue
+                              .slice(MAX_ROLES)
+                              .map((o) => `${o.label} (${o.count})`)
+                              .join(", ")}
+                            arrow
+                          >
+                            <Chip
+                              size="small"
+                              label={`+${remaining}`}
+                              sx={{
+                                height: "22px",
+                                fontSize: "0.72rem",
+                                fontWeight: 700,
+                                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                color: "primary.main",
+                                m: 0.25,
+                                cursor: "pointer",
+                              }}
+                            />
+                          </Tooltip>
+                        )}
+                      </>
+                    );
+                  }}
+                  noOptionsText={
+                    loadingOptions
+                      ? "Carregando..."
+                      : "Nenhum cargo encontrado"
+                  }
+                />
+                <Typography
+                  variant="caption"
+                  color="text.secondary"
+                  sx={{ mt: 0.5, display: "block", fontSize: "0.75rem" }}
+                >
+                  {selectedRoles.length === 0
+                    ? "Dica: selecione cargos para marcar em lote os colaboradores abaixo."
+                    : `✓ Marcando colaboradores de: ${selectedRoles
+                        .map((r) => ROLE_LABELS[r] || r)
+                        .join(", ")}`}
+                </Typography>
+              </FormControl>
+
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
                   Funcionários
@@ -398,7 +629,8 @@ export default function CommissionRuleFormModal({
                                 if (option.id === ALL_EMPLOYEES_ID) {
                                   return "todos os funcionários".includes(input);
                                 }
-                                return option.name.toLowerCase().includes(input);
+                                const roleLabel = option.role ? (ROLE_LABELS[option.role] || option.role).toLowerCase() : "";
+                                return option.name.toLowerCase().includes(input) || roleLabel.includes(input);
                               })
                               .slice(0, employeeLimit);
                           }}
@@ -426,6 +658,7 @@ export default function CommissionRuleFormModal({
                             const previouslyHadAll = isAllEmployees;
 
                             if (clickedAll && !previouslyHadAll) {
+                              setSelectedRoles([]);
                               field.onChange([]);
                               return;
                             }
@@ -434,12 +667,23 @@ export default function CommissionRuleFormModal({
                               (e) => e.id !== ALL_EMPLOYEES_ID
                             );
 
-                            if (previouslyHadAll && specificEmployees.length > 0) {
-                              field.onChange(specificEmployees.map((e) => e.id));
-                              return;
-                            }
+                            const nextEmpIds = specificEmployees.map((e) => e.id);
+                            field.onChange(nextEmpIds);
 
-                            field.onChange(specificEmployees.map((e) => e.id));
+                            // Atualiza os cargos selecionados caso funcionários sejam alterados manualmente
+                            if (selectedRoles.length > 0) {
+                              const activeEmps = employees.filter((e) => e.is_active);
+                              const stillFullRoles = selectedRoles.filter((r) => {
+                                const empsInRole = activeEmps.filter((e) => e.role === r);
+                                return (
+                                  empsInRole.length > 0 &&
+                                  empsInRole.every((e) => nextEmpIds.includes(e.id))
+                                );
+                              });
+                              if (stillFullRoles.length !== selectedRoles.length) {
+                                setSelectedRoles(stillFullRoles);
+                              }
+                            }
                           }}
                           noOptionsText={loadingOptions ? "Carregando..." : "Nenhum funcionário cadastrado"}
                           renderOption={(props, option) => {
@@ -455,6 +699,7 @@ export default function CommissionRuleFormModal({
                                 style={{
                                   display: "flex",
                                   alignItems: "center",
+                                  justifyContent: "space-between",
                                   gap: 8,
                                   padding: "6px 12px",
                                   backgroundColor: isAll && isChecked
@@ -462,27 +707,43 @@ export default function CommissionRuleFormModal({
                                     : undefined,
                                 }}
                               >
-                                <Checkbox
-                                  size="small"
-                                  checked={isChecked}
-                                  disableRipple
-                                  sx={{
-                                    color: "primary.main",
-                                    p: 0,
-                                    "&.Mui-checked": {
+                                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                                  <Checkbox
+                                    size="small"
+                                    checked={isChecked}
+                                    disableRipple
+                                    sx={{
                                       color: "primary.main",
-                                    },
-                                  }}
-                                />
-                                <Typography
-                                  variant="body2"
-                                  sx={{
-                                    fontWeight: isAll ? 600 : 400,
-                                    color: isAll ? "primary.main" : "text.primary",
-                                  }}
-                                >
-                                  {option.name}
-                                </Typography>
+                                      p: 0,
+                                      "&.Mui-checked": {
+                                        color: "primary.main",
+                                      },
+                                    }}
+                                  />
+                                  <Typography
+                                    variant="body2"
+                                    sx={{
+                                      fontWeight: isAll ? 600 : 400,
+                                      color: isAll ? "primary.main" : "text.primary",
+                                    }}
+                                  >
+                                    {option.name}
+                                  </Typography>
+                                </Box>
+                                {!isAll && option.role && (
+                                  <Chip
+                                    size="small"
+                                    label={ROLE_LABELS[option.role] || option.role}
+                                    sx={{
+                                      height: 18,
+                                      fontSize: "0.68rem",
+                                      fontWeight: 500,
+                                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                                      color: "primary.main",
+                                      borderRadius: 1,
+                                    }}
+                                  />
+                                )}
                               </li>
                             );
                           }}
@@ -490,41 +751,106 @@ export default function CommissionRuleFormModal({
                             if (isAllEmployees) {
                               return null;
                             }
-                            return value.map((option, index) => {
-                              const { key, ...tagProps } = getTagProps({ index });
-                              return (
-                                <Chip
-                                  key={key || option.id}
-                                  size="small"
-                                  label={option.name}
-                                  {...tagProps}
-                                  sx={{
-                                    maxWidth: "160px",
-                                    height: "22px",
-                                    fontSize: "0.72rem",
-                                    m: 0.25,
-                                  }}
-                                />
-                              );
-                            });
+                            const MAX_TAGS = 3;
+                            const visible = value.slice(0, MAX_TAGS);
+                            const remaining = value.length - MAX_TAGS;
+
+                            return (
+                              <>
+                                {visible.map((option, index) => {
+                                  const { key, ...tagProps } = getTagProps({ index });
+                                  return (
+                                    <Chip
+                                      key={key || option.id}
+                                      size="small"
+                                      label={option.name}
+                                      {...tagProps}
+                                      sx={{
+                                        maxWidth: "140px",
+                                        height: "22px",
+                                        fontSize: "0.72rem",
+                                        m: 0.25,
+                                      }}
+                                    />
+                                  );
+                                })}
+                                {remaining > 0 && (
+                                  <Tooltip
+                                    title={value
+                                      .slice(MAX_TAGS)
+                                      .map((o) => o.name)
+                                      .join(", ")}
+                                    arrow
+                                  >
+                                    <Chip
+                                      size="small"
+                                      label={`+${remaining}`}
+                                      sx={{
+                                        height: "22px",
+                                        fontSize: "0.72rem",
+                                        fontWeight: 700,
+                                        bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                        color: "primary.main",
+                                        m: 0.25,
+                                        cursor: "pointer",
+                                      }}
+                                    />
+                                  </Tooltip>
+                                )}
+                              </>
+                            );
                           }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              placeholder={isAllEmployees ? "Todos os funcionários" : "Adicionar outro funcionário..."}
-                              sx={
-                                isAllEmployees
-                                  ? {
-                                      "& .MuiInputBase-input::placeholder": {
-                                        color: "text.primary",
-                                        opacity: 1,
-                                        fontWeight: 500,
-                                      },
-                                    }
-                                  : undefined
-                              }
-                            />
-                          )}
+                          renderInput={(params) => {
+                            const hasSelected = !isAllEmployees && (field.value ?? []).length > 0;
+                            return (
+                              <TextField
+                                {...params}
+                                placeholder={
+                                  isAllEmployees
+                                    ? "Todos os funcionários"
+                                    : "Adicionar outro funcionário..."
+                                }
+                                sx={{
+                                  "& .MuiInputBase-root": {
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                    p: hasSelected ? "6px 8px !important" : undefined,
+                                  },
+                                  "& .MuiAutocomplete-input": {
+                                    ...(hasSelected
+                                      ? {
+                                          minWidth: "100% !important",
+                                          width: "100% !important",
+                                          flexBasis: "100% !important",
+                                          mt: "4px",
+                                          pt: "2px",
+                                          pb: "2px",
+                                        }
+                                      : {}),
+                                  },
+                                  "& .MuiAutocomplete-endAdornment": {
+                                    ...(hasSelected
+                                      ? {
+                                          top: "auto",
+                                          bottom: "7px",
+                                        }
+                                      : {}),
+                                  },
+                                  ...(isAllEmployees
+                                    ? {
+                                        "& .MuiInputBase-input::placeholder": {
+                                          color: "text.primary",
+                                          opacity: 1,
+                                          fontWeight: 500,
+                                        },
+                                      }
+                                    : {}),
+                                }}
+                              />
+                            );
+                          }}
                         />
                         <Typography
                           variant="caption"
@@ -676,41 +1002,106 @@ export default function CommissionRuleFormModal({
                             if (isAllServices) {
                               return null;
                             }
-                            return value.map((option, index) => {
-                              const { key, ...tagProps } = getTagProps({ index });
-                              return (
-                                <Chip
-                                  key={key || option.id}
-                                  size="small"
-                                  label={formatServiceLabel(option)}
-                                  {...tagProps}
-                                  sx={{
-                                    maxWidth: "160px",
-                                    height: "22px",
-                                    fontSize: "0.72rem",
-                                    m: 0.25,
-                                  }}
-                                />
-                              );
-                            });
+                            const MAX_TAGS = 3;
+                            const visible = value.slice(0, MAX_TAGS);
+                            const remaining = value.length - MAX_TAGS;
+
+                            return (
+                              <>
+                                {visible.map((option, index) => {
+                                  const { key, ...tagProps } = getTagProps({ index });
+                                  return (
+                                    <Chip
+                                      key={key || option.id}
+                                      size="small"
+                                      label={formatServiceLabel(option)}
+                                      {...tagProps}
+                                      sx={{
+                                        maxWidth: "150px",
+                                        height: "22px",
+                                        fontSize: "0.72rem",
+                                        m: 0.25,
+                                      }}
+                                    />
+                                  );
+                                })}
+                                {remaining > 0 && (
+                                  <Tooltip
+                                    title={value
+                                      .slice(MAX_TAGS)
+                                      .map((o) => formatServiceLabel(o))
+                                      .join(", ")}
+                                    arrow
+                                  >
+                                    <Chip
+                                      size="small"
+                                      label={`+${remaining}`}
+                                      sx={{
+                                        height: "22px",
+                                        fontSize: "0.72rem",
+                                        fontWeight: 700,
+                                        bgcolor: alpha(theme.palette.primary.main, 0.12),
+                                        color: "primary.main",
+                                        m: 0.25,
+                                        cursor: "pointer",
+                                      }}
+                                    />
+                                  </Tooltip>
+                                )}
+                              </>
+                            );
                           }}
-                          renderInput={(params) => (
-                            <TextField
-                              {...params}
-                              placeholder={isAllServices ? "Todos os serviços" : "Adicionar outro serviço..."}
-                              sx={
-                                isAllServices
-                                  ? {
-                                      "& .MuiInputBase-input::placeholder": {
-                                        color: "text.primary",
-                                        opacity: 1,
-                                        fontWeight: 500,
-                                      },
-                                    }
-                                  : undefined
-                              }
-                            />
-                          )}
+                          renderInput={(params) => {
+                            const hasSelected = !isAllServices && (field.value ?? []).length > 0;
+                            return (
+                              <TextField
+                                {...params}
+                                placeholder={
+                                  isAllServices
+                                    ? "Todos os serviços"
+                                    : "Adicionar outro serviço..."
+                                }
+                                sx={{
+                                  "& .MuiInputBase-root": {
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    alignItems: "center",
+                                    gap: 0.5,
+                                    p: hasSelected ? "6px 8px !important" : undefined,
+                                  },
+                                  "& .MuiAutocomplete-input": {
+                                    ...(hasSelected
+                                      ? {
+                                          minWidth: "100% !important",
+                                          width: "100% !important",
+                                          flexBasis: "100% !important",
+                                          mt: "4px",
+                                          pt: "2px",
+                                          pb: "2px",
+                                        }
+                                      : {}),
+                                  },
+                                  "& .MuiAutocomplete-endAdornment": {
+                                    ...(hasSelected
+                                      ? {
+                                          top: "auto",
+                                          bottom: "7px",
+                                        }
+                                      : {}),
+                                  },
+                                  ...(isAllServices
+                                    ? {
+                                        "& .MuiInputBase-input::placeholder": {
+                                          color: "text.primary",
+                                          opacity: 1,
+                                          fontWeight: 500,
+                                        },
+                                      }
+                                    : {}),
+                                }}
+                              />
+                            );
+                          }}
                         />
                         <Typography
                           variant="caption"

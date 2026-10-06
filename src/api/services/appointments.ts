@@ -82,7 +82,12 @@ export const applyAppointmentAction = async (
 
 export const assignAppointmentEmployees = async (
   appointmentId: number,
-  assignments: { appointment_item_id: number; service_id: number; employee_id: number | null }[]
+  assignments: {
+    appointment_item_id: number;
+    service_id: number;
+    employee_id?: number | null;
+    employee_ids?: number[];
+  }[]
 ) => {
   const response = await apiClient.patch<Appointment>(
     `/api/v1/appointments/${appointmentId}/assign-employees`,
@@ -135,6 +140,7 @@ export const addAppointmentService = async (
     pet_id: number;
     service_id: number;
     employee_id?: number;
+    employee_ids?: number[];
   },
 ): Promise<Appointment> => {
   const response = await apiClient.post<Appointment>(

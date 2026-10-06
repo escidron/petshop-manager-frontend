@@ -583,7 +583,7 @@ export default function CommissionReportPage({
                         Base: R$ {Number(entry.base_amount).toFixed(2)}
                       </Typography>
                       <Typography variant="caption" display="block" color="text.secondary">
-                        Taxa: {entry.commission_type === "percentage" ? `${entry.rate}%` : `R$ ${Number(entry.rate).toFixed(2)}`}
+                        Taxa: {entry.commission_type === "percentage" ? `${Number(entry.rate).toFixed(2)}%` : `R$ ${Number(entry.rate).toFixed(2)}`}
                       </Typography>
                     </Box>
                   </Box>
@@ -710,7 +710,7 @@ export default function CommissionReportPage({
                     </TableCell>
                     <TableCell>
                       {entry.commission_type === "percentage"
-                        ? `${entry.rate}%`
+                        ? `${Number(entry.rate).toFixed(2)}%`
                         : `R$ ${Number(entry.rate).toFixed(2)}`}
                     </TableCell>
                     <TableCell sx={{ fontWeight: 700 }}>
