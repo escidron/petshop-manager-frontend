@@ -15,16 +15,24 @@ export type CommissionRuleServiceInfo = {
   coat_type?: string | null;
 };
 
+export type CommissionRuleProductInfo = {
+  id: number;
+  name: string;
+};
+
 export type CommissionRule = {
   id: number;
   tenant_id: number;
   name: string;
   employee_id?: number | null;
   employee_ids?: number[];
+  roles?: string[];
   employee_name?: string | null;
   employees?: CommissionRuleEmployeeInfo[];
   service_ids: number[];
   services?: CommissionRuleServiceInfo[];
+  product_ids?: number[];
+  products?: CommissionRuleProductInfo[];
   applies_to: AppliesTo;
   commission_type: CommissionType;
   value: number;
@@ -39,7 +47,9 @@ export type CommissionRuleFormData = {
   name: string;
   employee_id?: number | null;
   employee_ids?: number[];
+  roles?: string[];
   service_ids: number[];
+  product_ids?: number[];
   applies_to: AppliesTo;
   commission_type: CommissionType;
   value: number;

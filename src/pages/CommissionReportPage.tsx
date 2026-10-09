@@ -20,8 +20,9 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { useMemo, useState, useEffect } from "react";
-import { Clock, CheckCircle2, DollarSign, Receipt } from "lucide-react";
+import { Clock, CheckCircle2, DollarSign, Receipt, FileDown } from "lucide-react";
 import { useEmployees } from "../hooks/useEmployees";
+import { useAuth } from "../hooks/useAuth";
 import {
   getCommissionEntries,
   payCommissionEntries,
@@ -29,6 +30,7 @@ import {
 import { useToast } from "../hooks/useToast";
 import theme from "../theme";
 import type { CommissionEntry } from "../features/commissions/types";
+import { generateCommissionReceiptPDF } from "../features/commissions/generateCommissionReceiptPDF";
 import SaleDetailsModal from "../features/sales/SaleDetailsModal";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
@@ -114,11 +116,13 @@ export default function CommissionReportPage({
   const isMobile = useMediaQuery(currentTheme.breakpoints.down("md"));
 
   const { employees, getEmployees } = useEmployees();
+  const { tenant } = useAuth();
   const toast = useToast();
 
   const [entries, setEntries] = useState<CommissionEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [paying, setPaying] = useState(false);
+  const [generatingPDF, setGeneratingPDF] = useState(false);
   const [employeeLimit, setEmployeeLimit] = useState(20);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
 
@@ -133,6 +137,51 @@ export default function CommissionReportPage({
   const handleOpenSaleDetails = (saleId: number) => {
     setSelectedSaleId(saleId);
     setIsSaleModalOpen(true);
+  };
+
+  const handleDownloadPDF = async () => {
+    const targetEntries =
+      selectedIds.size > 0
+        ? entries.filter((e) => selectedIds.has(e.id))
+        : entries;
+
+    if (targetEntries.length === 0) {
+      toast.info("Nenhuma comissão para gerar o relatório.");
+      return;
+    }
+
+    try {
+      setGeneratingPDF(true);
+      // Garante a transição visual do botão para o estado com spinner
+      await new Promise((resolve) => setTimeout(resolve, 250));
+
+      const effectiveFrom = propStartDate
+        ? propStartDate.format("YYYY-MM-DD")
+        : (filterFrom || undefined);
+      const effectiveTo = propEndDate
+        ? propEndDate.format("YYYY-MM-DD")
+        : (filterTo || undefined);
+
+      const { pdf, fileName } = await generateCommissionReceiptPDF({
+        tenant,
+        entries: targetEntries,
+        employees,
+        employeeMap,
+        filterFrom: effectiveFrom,
+        filterTo: effectiveTo,
+      });
+
+      pdf.save(fileName);
+
+      // Aguarda o navegador iniciar o disparo do download antes de liberar o botão e mostrar o toast
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      toast.success("Relatório de comissões baixado com sucesso!");
+    } catch (error) {
+      console.error("Erro ao gerar PDF de comissões:", error);
+      toast.error("Erro ao gerar o relatório em PDF.");
+    } finally {
+      setGeneratingPDF(false);
+    }
   };
 
   const loadEntries = async () => {
@@ -468,6 +517,29 @@ export default function CommissionReportPage({
           >
             Limpar Filtros
           </Button>
+
+          <Box sx={{ ml: { sm: "auto" }, width: { xs: "100%", sm: "auto" } }}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleDownloadPDF}
+              disabled={generatingPDF || entries.length === 0}
+              startIcon={
+                generatingPDF ? (
+                  <CircularProgress size={16} color="inherit" />
+                ) : (
+                  <FileDown size={18} />
+                )
+              }
+              sx={{ width: { xs: "100%", sm: "auto" } }}
+            >
+              {generatingPDF
+                ? "Gerando PDF..."
+                : selectedIds.size > 0
+                ? `Baixar Recibo (${selectedIds.size})`
+                : "Baixar Relatório"}
+            </Button>
+          </Box>
         </Box>
       </Paper>
 

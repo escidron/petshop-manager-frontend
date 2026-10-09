@@ -75,6 +75,16 @@ import { formatAppointmentDate } from "../../utils/formatAppointmentDate";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
 
+const ROLE_LABELS: Record<string, string> = {
+  bather: "Banhista",
+  groomer: "Tosador(a)",
+  vet: "Veterinário(a)",
+  salesperson: "Vendedor(a)",
+  receptionist: "Recepcionista",
+  driver: "Entregador/Motorista",
+  other: "Outro",
+};
+
 type Props = {
   open: boolean;
   appointment: Appointment;
@@ -213,6 +223,9 @@ const AppointmentDetailsModal = ({
   });
 
   const checkHasCommission = (employeeId: number, serviceId: number) => {
+    const emp = employees.find((e) => Number(e.id) === Number(employeeId));
+    const empRole = emp?.role ? String(emp.role).toLowerCase() : "";
+
     return commissionRules.some((rule) => {
       if (!rule.is_active) return false;
       if (rule.applies_to === "product") return false;
@@ -224,17 +237,28 @@ const AppointmentDetailsModal = ({
         if (rule.valid_until && rule.valid_until < apptDate) return false;
       }
 
-      // Check employee: if no specific employees are defined, applies to all
+      // 1. Se a regra tiver funcionários específicos vinculados:
       const hasSpecificEmployees =
         (rule.employee_ids && rule.employee_ids.length > 0) ||
         (rule.employees && rule.employees.length > 0) ||
         Boolean(rule.employee_id);
 
-      const employeeMatch =
-        !hasSpecificEmployees ||
-        (rule.employee_ids && rule.employee_ids.some((id) => Number(id) === Number(employeeId))) ||
-        (rule.employees && rule.employees.some((e) => Number(e.id) === Number(employeeId))) ||
-        Number(rule.employee_id) === Number(employeeId);
+      // 2. Se a regra tiver cargos específicos (roles):
+      const ruleRoles = (rule.roles || []).map((r) => String(r).toLowerCase());
+      const hasSpecificRoles = ruleRoles.length > 0;
+
+      let employeeMatch = false;
+      if (hasSpecificEmployees) {
+        employeeMatch =
+          Boolean(rule.employee_ids && rule.employee_ids.some((id) => Number(id) === Number(employeeId))) ||
+          Boolean(rule.employees && rule.employees.some((e) => Number(e.id) === Number(employeeId))) ||
+          Number(rule.employee_id) === Number(employeeId);
+      } else if (hasSpecificRoles) {
+        employeeMatch = Boolean(empRole && ruleRoles.includes(empRole));
+      } else {
+        // Regra global sem restrição de colaborador ou cargo
+        employeeMatch = true;
+      }
 
       // Check service: if no specific services are defined, applies to all
       const hasSpecificServices =
@@ -1756,58 +1780,99 @@ const AppointmentDetailsModal = ({
                                     );
                                     const { key: optKey, ...otherProps } = props;
                                     return (
-                                      <li key={option.id} {...otherProps}>
+                                      <li key={option.id} {...otherProps} style={{ padding: "6px 12px" }}>
                                         <Box
                                           sx={{
                                             display: "flex",
                                             alignItems: "center",
+                                            justifyContent: "space-between",
                                             width: "100%",
-                                            gap: 1,
+                                            gap: 1.5,
                                           }}
                                         >
-                                          <Checkbox size="small" checked={selected} sx={{ p: 0.5 }} />
-                                          <Box
-                                            sx={{
-                                              display: "flex",
-                                              flexDirection: "column",
-                                              flex: 1,
-                                            }}
-                                          >
+                                          {/* Lado Esquerdo: Checkbox + Nome + Cargo */}
+                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                                            <Checkbox size="small" checked={selected} disableRipple sx={{ p: 0.25 }} />
                                             <Typography
                                               variant="body2"
-                                              fontWeight={500}
+                                              sx={{
+                                                fontWeight: selected ? 600 : 500,
+                                                color: "text.primary",
+                                                fontSize: "0.86rem",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
+                                              }}
                                             >
                                               {option.name}
                                             </Typography>
-                                            {!hasComm && (
-                                              <Box
+                                            {option.role && (
+                                              <Chip
+                                                size="small"
+                                                label={ROLE_LABELS[option.role] || option.role}
                                                 sx={{
-                                                  display: "flex",
-                                                  alignItems: "center",
-                                                  gap: 0.5,
-                                                  mt: -0.25,
+                                                  height: 18,
+                                                  fontSize: "0.68rem",
+                                                  fontWeight: 500,
+                                                  bgcolor: "#F1F5F9",
+                                                  color: "#64748B",
+                                                  borderRadius: "4px",
+                                                  flexShrink: 0,
                                                 }}
-                                              >
-                                                <AlertTriangle
-                                                  size={12}
-                                                  color={
-                                                    theme.palette.warning.main
-                                                  }
-                                                />
-                                                <Typography
-                                                  variant="caption"
-                                                  color="warning.main"
-                                                  sx={{
-                                                    fontSize: "10px",
-                                                    fontStyle: "italic",
-                                                  }}
-                                                >
-                                                  Sem regra de comissão compatível
-                                                  cadastrada.
-                                                </Typography>
-                                              </Box>
+                                              />
                                             )}
                                           </Box>
+
+                                          {/* Lado Direito: Status Limpo de Comissao */}
+                                          {hasComm ? (
+                                            <Box
+                                              sx={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: 0.5,
+                                                px: 0.85,
+                                                py: 0.25,
+                                                borderRadius: "6px",
+                                                bgcolor: "#ECFDF5",
+                                                border: "1px solid #A7F3D0",
+                                                color: "#059669",
+                                                fontSize: "0.72rem",
+                                                fontWeight: 600,
+                                                flexShrink: 0,
+                                                whiteSpace: "nowrap",
+                                              }}
+                                            >
+                                              <CheckCircle2 size={12} />
+                                              Comissionado
+                                            </Box>
+                                          ) : (
+                                            <Tooltip
+                                              title="Sem regra de comissão aplicável a este profissional/cargo para este serviço"
+                                              arrow
+                                              placement="left"
+                                            >
+                                              <Box
+                                                sx={{
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 0.5,
+                                                  px: 0.85,
+                                                  py: 0.25,
+                                                  borderRadius: "6px",
+                                                  bgcolor: "#FFFBEB",
+                                                  border: "1px solid #FDE68A",
+                                                  color: "#D97706",
+                                                  fontSize: "0.72rem",
+                                                  fontWeight: 600,
+                                                  flexShrink: 0,
+                                                  whiteSpace: "nowrap",
+                                                }}
+                                              >
+                                                <AlertTriangle size={12} />
+                                                Sem comissão
+                                              </Box>
+                                            </Tooltip>
+                                          )}
                                         </Box>
                                       </li>
                                     );
@@ -2165,26 +2230,101 @@ const AppointmentDetailsModal = ({
                     : true;
                   const { key, ...otherProps } = props;
                   return (
-                    <li key={option.id} {...otherProps}>
-                      <Box sx={{ display: "flex", alignItems: "center", width: "100%", gap: 1 }}>
-                        <Checkbox size="small" checked={selected} sx={{ p: 0.5 }} />
-                        <Box sx={{ display: "flex", flexDirection: "column", flex: 1 }}>
-                          <Typography variant="body2" fontWeight={500}>
+                    <li key={option.id} {...otherProps} style={{ padding: "6px 12px" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          width: "100%",
+                          gap: 1.5,
+                        }}
+                      >
+                        {/* Lado Esquerdo: Checkbox + Nome + Cargo */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                          <Checkbox size="small" checked={selected} disableRipple sx={{ p: 0.25 }} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: selected ? 600 : 500,
+                              color: "text.primary",
+                              fontSize: "0.86rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
                             {option.name}
                           </Typography>
-                          {selectedNewServiceId && !hasComm && (
-                            <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, mt: -0.25 }}>
-                              <AlertTriangle size={12} color={theme.palette.warning.main} />
-                              <Typography
-                                variant="caption"
-                                color="warning.main"
-                                sx={{ fontSize: "10px", fontStyle: "italic" }}
-                              >
-                                Sem regra de comissão compatível cadastrada.
-                              </Typography>
-                            </Box>
+                          {option.role && (
+                            <Chip
+                              size="small"
+                              label={ROLE_LABELS[option.role] || option.role}
+                              sx={{
+                                height: 18,
+                                fontSize: "0.68rem",
+                                fontWeight: 500,
+                                bgcolor: "#F1F5F9",
+                                color: "#64748B",
+                                borderRadius: "4px",
+                                flexShrink: 0,
+                              }}
+                            />
                           )}
                         </Box>
+
+                        {/* Lado Direito: Status de Comissao */}
+                        {selectedNewServiceId && (
+                          hasComm ? (
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                px: 0.85,
+                                py: 0.25,
+                                borderRadius: "6px",
+                                bgcolor: "#ECFDF5",
+                                border: "1px solid #A7F3D0",
+                                color: "#059669",
+                                fontSize: "0.72rem",
+                                fontWeight: 600,
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              <CheckCircle2 size={12} />
+                              Comissionado
+                            </Box>
+                          ) : (
+                            <Tooltip
+                              title="Sem regra de comissão aplicável a este profissional/cargo para este serviço"
+                              arrow
+                              placement="left"
+                            >
+                              <Box
+                                sx={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 0.5,
+                                  px: 0.85,
+                                  py: 0.25,
+                                  borderRadius: "6px",
+                                  bgcolor: "#FFFBEB",
+                                  border: "1px solid #FDE68A",
+                                  color: "#D97706",
+                                  fontSize: "0.72rem",
+                                  fontWeight: 600,
+                                  flexShrink: 0,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <AlertTriangle size={12} />
+                                Sem comissão
+                              </Box>
+                            </Tooltip>
+                          )
+                        )}
                       </Box>
                     </li>
                   );

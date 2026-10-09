@@ -34,6 +34,16 @@ const headerCellSx = {
   fontSize: "0.875rem",
 };
 
+const ROLE_LABELS: Record<string, string> = {
+  bather: "Banhista",
+  groomer: "Tosador(a)",
+  vet: "Veterinário(a)",
+  salesperson: "Vendedor(a)",
+  receptionist: "Recepcionista",
+  driver: "Entregador/Motorista",
+  other: "Outro",
+};
+
 export default function CommissionRulesPage() {
   const [search, setSearch] = useState("");
   const queryClient = useQueryClient();
@@ -67,7 +77,17 @@ export default function CommissionRulesPage() {
 
   const filteredRows = useMemo(() => {
     if (!search) return rules;
-    return rules.filter((r) => r.name.toLowerCase().includes(search.toLowerCase()));
+    const s = search.toLowerCase();
+    return rules.filter((r) => {
+      const nameMatch = r.name.toLowerCase().includes(s);
+      const roleMatch = (r.roles || []).some(
+        (role) => (ROLE_LABELS[role] || role).toLowerCase().includes(s)
+      );
+      const empMatch = (r.employees || []).some((e) =>
+        e.name.toLowerCase().includes(s)
+      );
+      return nameMatch || roleMatch || empMatch;
+    });
   }, [rules, search]);
 
   const handleDeleteClick = (rule: CommissionRule) => {
@@ -91,15 +111,20 @@ export default function CommissionRulesPage() {
   };
 
   const getCoverageLabel = (row: CommissionRule) => {
+    const hasRoles = row.roles && row.roles.length > 0;
     const hasEmployees =
       (row.employees && row.employees.length > 0) ||
       (row.employee_ids && row.employee_ids.length > 0) ||
       row.employee_id;
-    const hasServices = row.service_ids?.length;
+    const hasItems =
+      (row.service_ids && row.service_ids.length > 0) ||
+      (row.product_ids && row.product_ids.length > 0);
 
-    if (hasEmployees && hasServices) return "Funcionários + Serviços";
+    if (hasRoles && hasItems) return "Cargos + Itens";
+    if (hasRoles) return "Cargos";
+    if (hasEmployees && hasItems) return "Funcionários + Itens";
     if (hasEmployees) return "Funcionários";
-    if (hasServices) return "Serviços";
+    if (hasItems) return "Itens específicos";
     return "Global";
   };
 
@@ -191,26 +216,41 @@ export default function CommissionRulesPage() {
                 : `R$ ${Number(row.value).toFixed(2).replace(".", ",")}`;
 
               const isAllEmployees =
+                (!row.roles || row.roles.length === 0) &&
                 (!row.employees || row.employees.length === 0) &&
                 (!row.employee_ids || row.employee_ids.length === 0) &&
                 !row.employee_id &&
                 !row.employee_name;
 
-              const isAllServices =
+              const isAllItems =
                 (!row.services || row.services.length === 0) &&
-                (!row.service_ids || row.service_ids.length === 0);
+                (!row.service_ids || row.service_ids.length === 0) &&
+                (!row.products || row.products.length === 0) &&
+                (!row.product_ids || row.product_ids.length === 0);
 
               const empText = isAllEmployees
                 ? "Todos os funcionários"
+                : row.roles?.length
+                ? `Cargo: ${row.roles.map((r) => ROLE_LABELS[r] || r).join(", ")}`
                 : row.employees?.length
                 ? row.employees.map((e) => e.name).join(", ")
                 : row.employee_name || "Todos os funcionários";
 
-              const svcText = isAllServices
-                ? "Todos os serviços"
-                : row.services?.length
-                ? row.services.map((s) => formatServiceLabel(s)).join(", ")
-                : "Todos os serviços";
+              const itemsParts: string[] = [];
+              if (row.services?.length) {
+                itemsParts.push(row.services.map((s) => formatServiceLabel(s)).join(", "));
+              }
+              if (row.products?.length) {
+                itemsParts.push(row.products.map((p) => p.name).join(", "));
+              }
+
+              const itemsText = isAllItems
+                ? row.applies_to === "product"
+                  ? "Todos os produtos"
+                  : row.applies_to === "both"
+                  ? "Todos os serviços e produtos"
+                  : "Todos os serviços"
+                : itemsParts.join(" | ");
 
               return (
                 <Paper
@@ -279,7 +319,7 @@ export default function CommissionRulesPage() {
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                       <Scissors size={13} color="#64748B" style={{ flexShrink: 0 }} />
                       <Typography variant="caption" color="text.secondary" fontWeight={500} noWrap>
-                        {svcText}
+                        {itemsText}
                       </Typography>
                     </Box>
                   </Box>
@@ -334,7 +374,7 @@ export default function CommissionRulesPage() {
               <TableRow>
                 <TableCell sx={headerCellSx}>Nome</TableCell>
                 <TableCell sx={headerCellSx}>Funcionário</TableCell>
-                <TableCell sx={headerCellSx}>Serviço</TableCell>
+                <TableCell sx={headerCellSx}>Itens / Catálogo</TableCell>
                 <TableCell sx={headerCellSx}>Comissão</TableCell>
                 <TableCell sx={headerCellSx}>Abrangência</TableCell>
                 <TableCell sx={headerCellSx}>Status</TableCell>
@@ -355,20 +395,46 @@ export default function CommissionRulesPage() {
                 >
                   <TableCell sx={{ fontWeight: 600 }}>{row.name}</TableCell>
                   <TableCell>
-                    {row.employees?.length
-                      ? row.employees.map((emp) => (
-                          <Chip key={emp.id} label={emp.name} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
-                        ))
-                      : row.employee_name
-                      ? <Chip label={row.employee_name} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
-                      : <em style={{ color: "gray" }}>Todos</em>}
+                    {row.roles?.length ? (
+                      row.roles.map((r) => (
+                        <Chip
+                          key={r}
+                          label={`Cargo: ${ROLE_LABELS[r] || r}`}
+                          color="primary"
+                          variant="outlined"
+                          size="small"
+                          sx={{ mr: 0.5, mb: 0.25, fontWeight: 600 }}
+                        />
+                      ))
+                    ) : row.employees?.length ? (
+                      row.employees.map((emp) => (
+                        <Chip key={emp.id} label={emp.name} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                      ))
+                    ) : row.employee_name ? (
+                      <Chip label={row.employee_name} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                    ) : (
+                      <em style={{ color: "gray" }}>Todos</em>
+                    )}
                   </TableCell>
                   <TableCell>
-                    {row.services?.length
-                      ? row.services.map((svc) => (
-                          <Chip key={svc.id} label={formatServiceLabel(svc)} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
-                        ))
-                      : <em style={{ color: "gray" }}>Todos</em>}
+                    {row.services?.length || row.products?.length ? (
+                      <>
+                        {row.services?.map((svc) => (
+                          <Chip key={`svc-${svc.id}`} label={formatServiceLabel(svc)} size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                        ))}
+                        {row.products?.map((prod) => (
+                          <Chip key={`prod-${prod.id}`} label={`Prod: ${prod.name}`} color="secondary" variant="outlined" size="small" sx={{ mr: 0.5, mb: 0.25 }} />
+                        ))}
+                      </>
+                    ) : (
+                      <em style={{ color: "gray" }}>
+                        {row.applies_to === "product"
+                          ? "Todos os produtos"
+                          : row.applies_to === "both"
+                          ? "Todos os serviços e produtos"
+                          : "Todos os serviços"}
+                      </em>
+                    )}
                   </TableCell>
                   <TableCell sx={{ fontWeight: 700, color: "primary.main" }}>
                     {row.commission_type === "percentage"
