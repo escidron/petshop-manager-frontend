@@ -193,7 +193,12 @@ export default function OpenInvoices({
 
             if (type === "comanda") {
               const cmd = data as Comanda;
-              totalFormatted = cmd.total_amount.toLocaleString("pt-BR", {
+              const activeItems = (cmd.items || []).filter((i) => !i.status || i.status === "active");
+              const effectiveTotal =
+                cmd.items && cmd.items.length > 0
+                  ? Math.max(0, activeItems.reduce((acc, i) => acc + (i.subtotal || 0), 0) - (cmd.discount_amount || 0))
+                  : cmd.total_amount;
+              totalFormatted = effectiveTotal.toLocaleString("pt-BR", {
                 style: "currency",
                 currency: "BRL",
               });

@@ -20,7 +20,7 @@ import { User, ShoppingCart, X, CalendarDays, Printer } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useState, useMemo, useEffect, useRef } from "react";
 import { useQuery, useQueryClient, keepPreviousData } from "@tanstack/react-query";
-import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda, listSales } from "../../api/services/sales";
+import { fetchPOSStartup, fetchPOSClientDetails, saveComanda, deleteComanda, listSales, getComanda } from "../../api/services/sales";
 import DaySalesModal from "../reports/DaySalesModal";
 import dayjs from "dayjs";
 import CheckoutModal from "./CheckoutModal";
@@ -356,14 +356,28 @@ export default function POSInterface() {
   // ── Session Control ──────────────────────────────────────────────────────
   const handlePullComanda = async (comanda: Comanda) => {
     isInitialLoadRef.current = true;
-    setSelectedClientId(comanda.client_id);
-    setSelectedAppointmentId(comanda.appointment_id || null);
-    setActiveComandaId(comanda.id);
-    const discCents = Math.round((comanda.discount_amount || 0) * 100);
+    setIsCartLoading(true);
+
+    let targetComanda = comanda;
+    if (comanda?.id) {
+      try {
+        const fresh = await getComanda(comanda.id);
+        if (fresh) {
+          targetComanda = fresh;
+        }
+      } catch {
+        // fallback to comanda
+      }
+    }
+
+    setSelectedClientId(targetComanda.client_id);
+    setSelectedAppointmentId(targetComanda.appointment_id || null);
+    setActiveComandaId(targetComanda.id);
+    const discCents = Math.round((targetComanda.discount_amount || 0) * 100);
     setDiscountCents(discCents);
-    const itemsSubtotal = (comanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
-    if (itemsSubtotal > 0 && comanda.discount_amount > 0) {
-      setDiscountPctInput(((comanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+    const itemsSubtotal = (targetComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
+    if (itemsSubtotal > 0 && targetComanda.discount_amount > 0) {
+      setDiscountPctInput(((targetComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
     } else {
       setDiscountPctInput("0");
     }
@@ -416,25 +430,22 @@ export default function POSInterface() {
         });
     };
 
-    setCart(resolveComandaItems(comanda.items || []));
-    setComandaSyncStatus("saved");
-    setIsPullDialogOpen(false);
-    setSearchTerm("");
-
+    let appts: Appointment[] = [];
     try {
-      const details = await queryClient.fetchQuery({
-        queryKey: ["pos-client", comanda.client_id],
-        queryFn: () => fetchPOSClientDetails(comanda.client_id),
-        staleTime: 1000 * 30,
-      });
-      const freshComanda = details.open_comandas?.[0] || comanda;
-      const appts = details.client_appointments || [];
-      const updatedCart = resolveComandaItems(freshComanda.items || comanda.items || [], appts);
-      isInitialLoadRef.current = true;
-      setCart(updatedCart);
+      const details = await fetchPOSClientDetails(targetComanda.client_id);
+      queryClient.setQueryData(["pos-client", targetComanda.client_id], details);
+      appts = details.client_appointments || [];
     } catch {
       // ignore
     }
+
+    const updatedCart = resolveComandaItems(targetComanda.items || [], appts);
+    isInitialLoadRef.current = true;
+    setCart(updatedCart);
+    setComandaSyncStatus("saved");
+    setIsPullDialogOpen(false);
+    setSearchTerm("");
+    setIsCartLoading(false);
   };
 
   const startNewSession = async (clientId?: number) => {
@@ -549,6 +560,8 @@ export default function POSInterface() {
           queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
           queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
+          queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+          queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
         })
         .catch(() => {});
     }
@@ -899,6 +912,8 @@ export default function POSInterface() {
             queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
             queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
             queryClient.invalidateQueries({ queryKey: ["appointments"] });
+            queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+            queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
           })
           .catch(() => {
             setActiveComandaId(null);
@@ -931,6 +946,8 @@ export default function POSInterface() {
         queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
         queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
         queryClient.invalidateQueries({ queryKey: ["appointments"] });
+        queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+        queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       } catch (err) {
         setComandaSyncStatus("error");
       }
@@ -939,6 +956,24 @@ export default function POSInterface() {
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
+        if (selectedClientId && cart.length > 0) {
+          saveComanda({
+            comanda_id: activeComandaId,
+            client_id: selectedClientId,
+            appointment_id: selectedAppointmentId,
+            items: cart,
+            discount_amount: discountAmount,
+          })
+            .then(() => {
+              queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+              queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+              queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+              queryClient.invalidateQueries({ queryKey: ["appointments"] });
+              queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+              queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+            })
+            .catch(() => {});
+        }
       }
     };
   }, [cart, discountAmount, selectedClientId, selectedAppointmentId]);

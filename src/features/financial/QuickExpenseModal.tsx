@@ -12,11 +12,21 @@ import {
   Tab,
   Paper,
   CircularProgress,
-  Tooltip,
   useTheme,
   alpha,
 } from "@mui/material";
-import { X, Save, Copy, ChevronDown, ChevronRight, Users } from "lucide-react";
+import {
+  X,
+  Save,
+  ChevronDown,
+  ChevronUp,
+  Users,
+  Repeat,
+  Calendar,
+  RotateCcw,
+  Maximize2,
+  Minimize2,
+} from "lucide-react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   batchUpsertDREEntries,
@@ -77,6 +87,8 @@ const AccountExpenseRow = React.memo(function AccountExpenseRow({
   onReplicateAll,
   onToggleExpand,
 }: AccountExpenseRowProps) {
+  const theme = useTheme();
+
   const totalAnnual = useMemo(() => {
     let sum = 0;
     for (let m = 1; m <= 12; m++) {
@@ -95,7 +107,7 @@ const AccountExpenseRow = React.memo(function AccountExpenseRow({
         border: "1px solid",
         borderColor: isDirty ? "primary.main" : "divider",
         borderRadius: 2.5,
-        transition: "border-color 0.15s ease",
+        transition: "all 0.15s ease",
         "&:hover": { borderColor: "primary.main" },
       }}
     >
@@ -108,7 +120,7 @@ const AccountExpenseRow = React.memo(function AccountExpenseRow({
           gap: 1.5,
         }}
       >
-        <Box sx={{ minWidth: 240 }}>
+        <Box sx={{ minWidth: 220 }}>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
             {account.code && (
               <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
@@ -125,71 +137,204 @@ const AccountExpenseRow = React.memo(function AccountExpenseRow({
             )}
           </Box>
           <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
-            {isExpanded
-              ? `Total no ano: ${fmtBRL(totalAnnual)} • Média mensal: ${fmtBRL(monthlyAverage)}`
-              : "Valor mensal padrão (ou clique na seta para ajustar mês a mês)"}
+            Total anual: <strong style={{ color: totalAnnual > 0 ? theme.palette.primary.main : "inherit" }}>{fmtBRL(totalAnnual)}</strong>
+            {" • "}
+            Média: <strong>{fmtBRL(monthlyAverage)}</strong>/mês
           </Typography>
         </Box>
 
-        <Box sx={{ display: "flex", alignItems: "center", gap: 1, width: { xs: "100%", sm: "auto" } }}>
-          <MoneyInput
-            value={defaultValue}
-            onChange={(val) => onDefaultChange(account.id, val)}
-            placeholder="0,00"
-            sx={{ width: { xs: "100%", sm: 160 } }}
-          />
-
-          <Tooltip title="Replicar este valor para todos os 12 meses">
-            <IconButton
-              size="small"
-              onClick={() => onReplicateAll(account.id)}
-              sx={{ border: "1px solid", borderColor: "divider", borderRadius: 1.5 }}
-            >
-              <Copy size={16} />
-            </IconButton>
-          </Tooltip>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            flexWrap: { xs: "wrap", sm: "nowrap" },
+            gap: 1,
+            width: { xs: "100%", sm: "auto" },
+          }}
+        >
+          <Box sx={{ width: { xs: "100%", sm: 150 } }}>
+            <MoneyInput
+              value={defaultValue}
+              onChange={(val) => onDefaultChange(account.id, val)}
+              placeholder="0,00"
+              sx={{ width: "100%" }}
+            />
+          </Box>
 
           <Button
             size="small"
-            variant="text"
-            onClick={() => onToggleExpand(account.id)}
-            sx={{ minWidth: 36, p: 0.5 }}
-            title={isExpanded ? "Ocultar meses" : "Ver / Ajustar cada mês"}
+            variant="outlined"
+            color="primary"
+            onClick={() => onReplicateAll(account.id)}
+            startIcon={<Repeat size={14} />}
+            sx={{
+              textTransform: "none",
+              fontWeight: 700,
+              fontSize: "0.8rem",
+              borderRadius: 2,
+              whiteSpace: "nowrap",
+              height: 40,
+              px: 1.5,
+              borderColor: alpha(theme.palette.primary.main, 0.35),
+              bgcolor: alpha(theme.palette.primary.main, 0.04),
+              "&:hover": {
+                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                borderColor: "primary.main",
+              },
+            }}
           >
-            {isExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
+            Replicar 12x
+          </Button>
+
+          <Button
+            size="small"
+            variant={isExpanded ? "contained" : "outlined"}
+            color={isExpanded ? "primary" : "inherit"}
+            onClick={() => onToggleExpand(account.id)}
+            endIcon={isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            sx={{
+              textTransform: "none",
+              fontWeight: 600,
+              fontSize: "0.8rem",
+              borderRadius: 2,
+              whiteSpace: "nowrap",
+              height: 40,
+              px: 1.5,
+              ...(isExpanded
+                ? { bgcolor: "primary.main", color: "#fff", boxShadow: "none" }
+                : { border: "1px solid", borderColor: "divider", color: "text.primary" }),
+            }}
+          >
+            {isExpanded ? "Ocultar" : "Ajustar"}
           </Button>
         </Box>
       </Box>
 
-      {/* Meses detalhados - exibidos ao clicar no chevron */}
+      {/* Meses detalhados - exibidos ao expandir */}
       {isExpanded && (
         <Box
           sx={{
             mt: 2,
-            pt: 1.5,
+            pt: 2,
             borderTop: "1px dashed",
             borderColor: "divider",
-            display: "grid",
-            gridTemplateColumns: { xs: "repeat(2, 1fr)", sm: "repeat(3, 1fr)", md: "repeat(6, 1fr)" },
-            gap: 1.5,
           }}
         >
-          {MONTH_NAMES.map((mName, mIdx) => {
-            const mNum = mIdx + 1;
-            const mVal = monthsMap[mNum] ?? defaultValue ?? 0;
-            return (
-              <Box key={mName}>
-                <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.25 }}>
-                  {mName.slice(0, 3)}
-                </Typography>
-                <MoneyInput
-                  value={mVal}
-                  onChange={(val) => onMonthChange(account.id, mNum, val)}
-                  size="small"
-                />
-              </Box>
-            );
-          })}
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1.5,
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+              <Calendar size={15} color={theme.palette.primary.main} />
+              <Typography variant="caption" fontWeight={700} color="text.primary">
+                Ajuste individual mês a mês:
+              </Typography>
+            </Box>
+
+            <Button
+              size="small"
+              variant="text"
+              color="primary"
+              onClick={() => onReplicateAll(account.id)}
+              startIcon={<RotateCcw size={13} />}
+              sx={{ textTransform: "none", fontSize: "0.75rem", fontWeight: 700, p: 0.5 }}
+            >
+              Preencher todos os 12 meses com {fmtBRL(defaultValue)}
+            </Button>
+          </Box>
+
+          <Box
+            sx={{
+              display: "grid",
+              gridTemplateColumns: {
+                xs: "repeat(2, 1fr)",
+                sm: "repeat(3, 1fr)",
+                md: "repeat(6, 1fr)",
+              },
+              gap: 1,
+            }}
+          >
+            {MONTH_NAMES.map((mName, mIdx) => {
+              const mNum = mIdx + 1;
+              const mVal = monthsMap[mNum] ?? defaultValue ?? 0;
+              return (
+                <Box
+                  key={mName}
+                  sx={{
+                    p: 0.85,
+                    borderRadius: 2,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    bgcolor: "background.paper",
+                    "&:hover": {
+                      borderColor: "primary.light",
+                    },
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    fontWeight={700}
+                    color="text.secondary"
+                    sx={{ fontSize: "0.72rem", textTransform: "uppercase", display: "block", mb: 0.5 }}
+                  >
+                    {mName.slice(0, 3)}
+                  </Typography>
+                  <MoneyInput
+                    value={mVal}
+                    onChange={(val) => onMonthChange(account.id, mNum, val)}
+                    size="small"
+                    sx={{
+                      width: "100%",
+                      "& .MuiInputBase-root": {
+                        px: 0.5,
+                        height: 34,
+                        fontSize: mVal >= 100000 ? "0.68rem" : mVal >= 10000 ? "0.72rem" : "0.75rem",
+                      },
+                      "& .MuiInputBase-input": {
+                        fontSize: "inherit",
+                        fontWeight: 600,
+                        py: 0.5,
+                        px: 0.25,
+                      },
+                      "& .MuiInputAdornment-root": {
+                        mr: 0.35,
+                      },
+                      "& .MuiInputAdornment-root .MuiTypography-root": {
+                        fontSize: "0.70rem",
+                      },
+                    }}
+                  />
+                </Box>
+              );
+            })}
+          </Box>
+
+          {/* Resumo da conta expandida */}
+          <Box
+            sx={{
+              mt: 1.5,
+              pt: 1.25,
+              borderTop: "1px solid",
+              borderColor: "divider",
+              display: "flex",
+              justifyContent: "flex-end",
+              gap: 2,
+              flexWrap: "wrap",
+            }}
+          >
+            <Typography variant="caption" color="text.secondary">
+              Média mensal: <strong style={{ color: theme.palette.text.primary }}>{fmtBRL(monthlyAverage)}</strong>
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              Total anual ({account.name}): <strong style={{ color: theme.palette.primary.main }}>{fmtBRL(totalAnnual)}</strong>
+            </Typography>
+          </Box>
         </Box>
       )}
     </Paper>
@@ -256,13 +401,21 @@ export default function QuickExpenseModal({
     markDirty(accountId);
     setYearDefaultValues((prev) => ({ ...prev, [accountId]: val }));
 
-    // Ao digitar no campo base, já preenche todos os 12 meses da conta
     setValuesByAccount((prev) => {
-      const monthsMap: Record<number, number> = {};
-      for (let m = 1; m <= 12; m++) {
-        monthsMap[m] = val;
+      const currentMap = prev[accountId] || {};
+      const amounts = Object.values(currentMap);
+      const allSameOrEmpty =
+        amounts.length === 0 ||
+        amounts.every((v) => v === amounts[0]);
+
+      if (allSameOrEmpty) {
+        const newMap: Record<number, number> = {};
+        for (let m = 1; m <= 12; m++) {
+          newMap[m] = val;
+        }
+        return { ...prev, [accountId]: newMap };
       }
-      return { ...prev, [accountId]: monthsMap };
+      return prev;
     });
   }, [markDirty]);
 
@@ -287,8 +440,9 @@ export default function QuickExpenseModal({
       }
       return { ...prev, [accountId]: monthsMap };
     });
-    toast.info("Valor replicado para os 12 meses!");
-  }, [yearDefaultValues, markDirty]);
+    const acc = accounts.find((a) => a.id === accountId);
+    toast.success(`Valor de ${fmtBRL(val)} replicado para os 12 meses${acc ? ` de "${acc.name}"` : ""}!`);
+  }, [yearDefaultValues, accounts, markDirty]);
 
   const handleToggleExpand = useCallback((accountId: number) => {
     setExpandedAccounts((prev) => ({ ...prev, [accountId]: !prev[accountId] }));
@@ -334,8 +488,24 @@ export default function QuickExpenseModal({
     );
   }, [accounts, activeTab]);
 
+  const isAllExpanded = useMemo(() => {
+    if (activeAccounts.length === 0) return false;
+    return activeAccounts.every((acc) => Boolean(expandedAccounts[acc.id]));
+  }, [activeAccounts, expandedAccounts]);
+
+  const handleToggleExpandAll = useCallback(() => {
+    setExpandedAccounts((prev) => {
+      const nextState = !isAllExpanded;
+      const updated: Record<number, boolean> = { ...prev };
+      for (const acc of activeAccounts) {
+        updated[acc.id] = nextState;
+      }
+      return updated;
+    });
+  }, [activeAccounts, isAllExpanded]);
+
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} maxWidth="lg" fullWidth PaperProps={{ sx: { maxWidth: 1060, width: "100%" } }}>
       <DialogTitle sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", pb: 1 }}>
         <Box>
           <Typography variant="h6" fontWeight={800}>
@@ -429,6 +599,56 @@ export default function QuickExpenseModal({
               </Button>
             )}
           </Paper>
+        )}
+
+        {/* ── BARRA DE CONTROLE: EXPANDIR/RECOLHER TODOS E STATUS ──────── */}
+        {activeAccounts.length > 0 && (
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              mb: 1.5,
+              px: 0.5,
+              flexWrap: "wrap",
+              gap: 1,
+            }}
+          >
+            <Typography variant="caption" color="text.secondary" fontWeight={600}>
+              {activeAccounts.length} {activeAccounts.length === 1 ? "conta disponível" : "contas disponíveis"} neste grupo
+              {dirtyAccountIds.size > 0 && (
+                <>
+                  {" • "}
+                  <span style={{ color: theme.palette.primary.main, fontWeight: 700 }}>
+                    {dirtyAccountIds.size} alterada(s)
+                  </span>
+                </>
+              )}
+            </Typography>
+
+            <Button
+              size="small"
+              variant="outlined"
+              color="inherit"
+              onClick={handleToggleExpandAll}
+              startIcon={isAllExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+              sx={{
+                textTransform: "none",
+                borderRadius: 2,
+                fontSize: "0.78rem",
+                fontWeight: 600,
+                borderColor: "divider",
+                color: "text.primary",
+                "&:hover": {
+                  borderColor: "primary.main",
+                  color: "primary.main",
+                  bgcolor: alpha(theme.palette.primary.main, 0.04),
+                },
+              }}
+            >
+              {isAllExpanded ? "Recolher todos os meses" : "Expandir todos os meses"}
+            </Button>
+          </Box>
         )}
 
         {/* ── LISTA DE CONTAS MEMOIZADAS ─────────────────────────────────── */}

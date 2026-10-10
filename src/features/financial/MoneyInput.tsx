@@ -37,12 +37,12 @@ export const MoneyInput: React.FC<MoneyInputProps> = ({
         input: {
           ...slotProps?.input,
           startAdornment: (
-            <InputAdornment position="start">
+            <InputAdornment position="start" sx={{ mr: 0.35 }}>
               <Typography
                 sx={{
                   color: "text.secondary",
                   fontWeight: 600,
-                  fontSize: size === "small" ? "0.8rem" : "0.9rem",
+                  fontSize: size === "small" ? "0.72rem" : "0.9rem",
                 }}
               >
                 R$
