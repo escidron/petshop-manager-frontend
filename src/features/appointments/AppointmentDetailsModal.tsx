@@ -14,6 +14,7 @@ import {
   useMediaQuery,
   IconButton,
   Tooltip,
+  Checkbox,
 } from "@mui/material";
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
@@ -61,6 +62,7 @@ import {
   XCircle,
   Plus,
   CheckCircle2,
+  Users,
 } from "lucide-react";
 import type { Appointment, AppointmentAction } from "./types";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
@@ -72,6 +74,16 @@ import { AppointmentStatusChip } from "./AppointmentStatusChip";
 import { formatAppointmentDate } from "../../utils/formatAppointmentDate";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
+
+const ROLE_LABELS: Record<string, string> = {
+  bather: "Banhista",
+  groomer: "Tosador(a)",
+  vet: "Veterinário(a)",
+  salesperson: "Vendedor(a)",
+  receptionist: "Recepcionista",
+  driver: "Entregador/Motorista",
+  other: "Outro",
+};
 
 type Props = {
   open: boolean;
@@ -146,30 +158,33 @@ const AppointmentDetailsModal = ({
     enabled: Boolean(addServicePet),
   });
   const [selectedNewServiceId, setSelectedNewServiceId] = useState<number | null>(null);
-  const [selectedNewEmployeeId, setSelectedNewEmployeeId] = useState<number | null>(null);
+  const [selectedNewEmployeeIds, setSelectedNewEmployeeIds] = useState<number[]>([]);
 
   const addServiceMutation = useMutation({
     mutationFn: async ({
       petId,
       serviceId,
       employeeId,
+      employeeIds,
     }: {
       petId: number;
       serviceId: number;
       employeeId?: number;
+      employeeIds?: number[];
     }) => {
       if (!appointment) return;
       return await addAppointmentService(appointment.id, {
         pet_id: petId,
         service_id: serviceId,
         employee_id: employeeId,
+        employee_ids: employeeIds,
       });
     },
     onSuccess: () => {
       toast.success("Serviço adicionado com sucesso!");
       setAddServicePet(null);
       setSelectedNewServiceId(null);
-      setSelectedNewEmployeeId(null);
+      setSelectedNewEmployeeIds([]);
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
       queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
@@ -203,21 +218,57 @@ const AppointmentDetailsModal = ({
     queryKey: ["commissionRules"],
     queryFn: getCommissionRules,
     enabled: open,
-    staleTime: 1000 * 60 * 60, // 1 hora
-    gcTime: 1000 * 60 * 120,   // 2 horas
+    staleTime: 1000 * 60 * 5, // 5 minutos
+    gcTime: 1000 * 60 * 15,
   });
 
   const checkHasCommission = (employeeId: number, serviceId: number) => {
+    const emp = employees.find((e) => Number(e.id) === Number(employeeId));
+    const empRole = emp?.role ? String(emp.role).toLowerCase() : "";
+
     return commissionRules.some((rule) => {
       if (!rule.is_active) return false;
       if (rule.applies_to === "product") return false;
 
-      // Check employee
-      const employeeMatch =
-        !rule.employee_id || rule.employee_id === employeeId;
-      // Check service
+      // Check validity dates if appointment date is available
+      if (appointment?.scheduled_at) {
+        const apptDate = appointment.scheduled_at.slice(0, 10);
+        if (rule.valid_from && rule.valid_from > apptDate) return false;
+        if (rule.valid_until && rule.valid_until < apptDate) return false;
+      }
+
+      // 1. Se a regra tiver funcionários específicos vinculados:
+      const hasSpecificEmployees =
+        (rule.employee_ids && rule.employee_ids.length > 0) ||
+        (rule.employees && rule.employees.length > 0) ||
+        Boolean(rule.employee_id);
+
+      // 2. Se a regra tiver cargos específicos (roles):
+      const ruleRoles = (rule.roles || []).map((r) => String(r).toLowerCase());
+      const hasSpecificRoles = ruleRoles.length > 0;
+
+      let employeeMatch = false;
+      if (hasSpecificEmployees) {
+        employeeMatch =
+          Boolean(rule.employee_ids && rule.employee_ids.some((id) => Number(id) === Number(employeeId))) ||
+          Boolean(rule.employees && rule.employees.some((e) => Number(e.id) === Number(employeeId))) ||
+          Number(rule.employee_id) === Number(employeeId);
+      } else if (hasSpecificRoles) {
+        employeeMatch = Boolean(empRole && ruleRoles.includes(empRole));
+      } else {
+        // Regra global sem restrição de colaborador ou cargo
+        employeeMatch = true;
+      }
+
+      // Check service: if no specific services are defined, applies to all
+      const hasSpecificServices =
+        (rule.service_ids && rule.service_ids.length > 0) ||
+        (rule.services && rule.services.length > 0);
+
       const serviceMatch =
-        rule.service_ids.length === 0 || rule.service_ids.includes(serviceId);
+        !hasSpecificServices ||
+        (rule.service_ids && rule.service_ids.some((id) => Number(id) === Number(serviceId))) ||
+        (rule.services && rule.services.some((s) => Number(s.id) === Number(serviceId)));
 
       return employeeMatch && serviceMatch;
     });
@@ -424,7 +475,7 @@ const AppointmentDetailsModal = ({
   }, [appointment, clientPackages]);
 
   const [localAssignments, setLocalAssignments] = useState<
-    Record<string, number | null>
+    Record<string, number[]>
   >({});
   const [showAllNotes, setShowAllNotes] = useState(false);
   const [employeeLimit, setEmployeeLimit] = useState(20);
@@ -439,11 +490,17 @@ const AppointmentDetailsModal = ({
   useEffect(() => {
     if (open && appointment) {
       setShowAllNotes(false);
-      const initial: Record<string, number | null> = {};
+      const initial: Record<string, number[]> = {};
       appointment.items.forEach((item) => {
         item.services.forEach((svc) => {
           const key = `${item.id}-${svc.id}`;
-          initial[key] = svc.employee_id || null;
+          if (svc.employee_ids && Array.isArray(svc.employee_ids) && svc.employee_ids.length > 0) {
+            initial[key] = svc.employee_ids;
+          } else if (svc.employee_id) {
+            initial[key] = [svc.employee_id];
+          } else {
+            initial[key] = [];
+          }
         });
       });
       // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -457,15 +514,17 @@ const AppointmentDetailsModal = ({
         appointment_item_id: number;
         service_id: number;
         employee_id: number | null;
+        employee_ids: number[];
       }[],
     ) => assignAppointmentEmployees(appointment.id, assignments),
     onSuccess: () => {
-      toast.success("Profissional salvo com sucesso!");
+      toast.success("Profissional(is) salvo(s) com sucesso!");
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
+      queryClient.invalidateQueries({ queryKey: ["commissions"] });
     },
     onError: () => {
-      toast.error("Erro ao salvar profissional");
+      toast.error("Erro ao salvar profissional(is)");
     },
   });
 
@@ -1459,7 +1518,7 @@ const AppointmentDetailsModal = ({
                       startIcon={<Plus size={14} />}
                       onClick={() => {
                         setSelectedNewServiceId(null);
-                        setSelectedNewEmployeeId(null);
+                        setSelectedNewEmployeeIds([]);
                         setAddServicePet({ petId: item.pet.id, petName: item.pet.name });
                       }}
                       sx={{ fontSize: "0.75rem", py: 0.25, px: 1, height: 26, borderRadius: 1.5, fontWeight: 600 }}
@@ -1471,7 +1530,13 @@ const AppointmentDetailsModal = ({
                 <Box>
                   {item.services.map((s) => {
                     const key = `${item.id}-${s.id}`;
-                    const currentEmpId = localAssignments[key];
+                    const currentEmpIds = localAssignments[key] || [];
+                    const selectedEmployees = activeEmployees.filter((e) =>
+                      currentEmpIds.map(Number).includes(Number(e.id)),
+                    );
+                    const uncommissionedEmps = selectedEmployees.filter(
+                      (e) => !checkHasCommission(Number(e.id), s.id),
+                    );
 
                     return (
                       <Box
@@ -1611,7 +1676,7 @@ const AppointmentDetailsModal = ({
                                 variant="caption"
                                 sx={{ minWidth: { xs: "unset", sm: "80px" }, mt: { xs: 0, sm: 0.5 } }}
                               >
-                                Profissional:
+                                Profissional{selectedEmployees.length > 1 ? "s" : ""}:
                               </Typography>
                               <Box
                                 sx={{
@@ -1622,6 +1687,7 @@ const AppointmentDetailsModal = ({
                                 }}
                               >
                                 <Autocomplete
+                                  multiple
                                   size="small"
                                   sx={{ width: "100%" }}
                                   options={activeEmployees}
@@ -1643,86 +1709,169 @@ const AppointmentDetailsModal = ({
                                     }
                                   }}
                                   getOptionLabel={(option) => option.name}
-
                                   isOptionEqualToValue={(option, value) =>
                                     String(option.id) === String(value.id)
                                   }
-                                  value={
-                                    activeEmployees.find(
-                                      (e) =>
-                                        String(e.id) === String(currentEmpId),
-                                    ) || null
-                                  }
+                                  value={selectedEmployees}
                                   onChange={(_: any, val: any) => {
+                                    const newEmpIds: number[] = (val || []).map((e: any) => Number(e.id));
                                     const newAssignments = {
                                       ...localAssignments,
-                                      [key]: val ? val.id : null,
+                                      [key]: newEmpIds,
                                     };
                                     setLocalAssignments(newAssignments);
 
                                     const payload = Object.entries(
                                       newAssignments,
-                                    ).map(([k, empId]) => {
+                                    ).map(([k, empIds]) => {
                                       const [itemId, svcId] = k
                                         .split("-")
                                         .map(Number);
                                       return {
                                         appointment_item_id: itemId,
                                         service_id: svcId,
-                                        employee_id: empId as number | null,
+                                        employee_id: empIds.length > 0 ? empIds[0] : null,
+                                        employee_ids: empIds,
                                       };
                                     });
 
                                     assignMutation.mutate(payload);
                                   }}
-                                  renderOption={(props: any, option: any) => {
+                                  renderTags={(tagValue, getTagProps) => {
+                                    const maxVisible = 2;
+                                    const visibleTags = tagValue.slice(0, maxVisible);
+                                    const hiddenCount = tagValue.length - maxVisible;
+                                    return (
+                                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                        {visibleTags.map((option, index) => {
+                                          const hasComm = checkHasCommission(option.id, s.id);
+                                          return (
+                                            <Chip
+                                              {...getTagProps({ index })}
+                                              key={option.id}
+                                              label={option.name}
+                                              size="small"
+                                              color={!hasComm ? "warning" : "default"}
+                                              sx={{
+                                                maxWidth: 160,
+                                                height: 24,
+                                                fontSize: "0.75rem",
+                                                "& .MuiChip-label": { overflow: "hidden", textOverflow: "ellipsis" }
+                                              }}
+                                            />
+                                          );
+                                        })}
+                                        {hiddenCount > 0 && (
+                                          <Tooltip title={tagValue.slice(maxVisible).map((o) => o.name).join(", ")}>
+                                            <Chip
+                                              label={`+${hiddenCount}`}
+                                              size="small"
+                                              sx={{ height: 24, fontSize: "0.75rem", bgcolor: "grey.200", fontWeight: 600 }}
+                                            />
+                                          </Tooltip>
+                                        )}
+                                      </Box>
+                                    );
+                                  }}
+                                  renderOption={(props: any, option: any, { selected }: any) => {
                                     const hasComm = checkHasCommission(
                                       option.id,
                                       s.id,
                                     );
-                                    const { key, ...otherProps } = props;
+                                    const { key: optKey, ...otherProps } = props;
                                     return (
-                                      <li key={option.id} {...otherProps}>
+                                      <li key={option.id} {...otherProps} style={{ padding: "6px 12px" }}>
                                         <Box
                                           sx={{
                                             display: "flex",
-                                            flexDirection: "column",
+                                            alignItems: "center",
+                                            justifyContent: "space-between",
                                             width: "100%",
+                                            gap: 1.5,
                                           }}
                                         >
-                                          <Typography
-                                            variant="body2"
-                                            fontWeight={500}
-                                          >
-                                            {option.name}
-                                          </Typography>
-                                          {!hasComm && (
-                                            <Box
+                                          {/* Lado Esquerdo: Checkbox + Nome + Cargo */}
+                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                                            <Checkbox size="small" checked={selected} disableRipple sx={{ p: 0.25 }} />
+                                            <Typography
+                                              variant="body2"
                                               sx={{
-                                                display: "flex",
-                                                alignItems: "center",
-                                                gap: 0.5,
-                                                mt: -0.25,
+                                                fontWeight: selected ? 600 : 500,
+                                                color: "text.primary",
+                                                fontSize: "0.86rem",
+                                                overflow: "hidden",
+                                                textOverflow: "ellipsis",
+                                                whiteSpace: "nowrap",
                                               }}
                                             >
-                                              <AlertTriangle
-                                                size={12}
-                                                color={
-                                                  theme.palette.warning.main
-                                                }
-                                              />
-                                              <Typography
-                                                variant="caption"
-                                                color="warning.main"
+                                              {option.name}
+                                            </Typography>
+                                            {option.role && (
+                                              <Chip
+                                                size="small"
+                                                label={ROLE_LABELS[option.role] || option.role}
                                                 sx={{
-                                                  fontSize: "10px",
-                                                  fontStyle: "italic",
+                                                  height: 18,
+                                                  fontSize: "0.68rem",
+                                                  fontWeight: 500,
+                                                  bgcolor: "#F1F5F9",
+                                                  color: "#64748B",
+                                                  borderRadius: "4px",
+                                                  flexShrink: 0,
+                                                }}
+                                              />
+                                            )}
+                                          </Box>
+
+                                          {/* Lado Direito: Status Limpo de Comissao */}
+                                          {hasComm ? (
+                                            <Box
+                                              sx={{
+                                                display: "inline-flex",
+                                                alignItems: "center",
+                                                gap: 0.5,
+                                                px: 0.85,
+                                                py: 0.25,
+                                                borderRadius: "6px",
+                                                bgcolor: "#ECFDF5",
+                                                border: "1px solid #A7F3D0",
+                                                color: "#059669",
+                                                fontSize: "0.72rem",
+                                                fontWeight: 600,
+                                                flexShrink: 0,
+                                                whiteSpace: "nowrap",
+                                              }}
+                                            >
+                                              <CheckCircle2 size={12} />
+                                              Comissionado
+                                            </Box>
+                                          ) : (
+                                            <Tooltip
+                                              title="Sem regra de comissão aplicável a este profissional/cargo para este serviço"
+                                              arrow
+                                              placement="left"
+                                            >
+                                              <Box
+                                                sx={{
+                                                  display: "inline-flex",
+                                                  alignItems: "center",
+                                                  gap: 0.5,
+                                                  px: 0.85,
+                                                  py: 0.25,
+                                                  borderRadius: "6px",
+                                                  bgcolor: "#FFFBEB",
+                                                  border: "1px solid #FDE68A",
+                                                  color: "#D97706",
+                                                  fontSize: "0.72rem",
+                                                  fontWeight: 600,
+                                                  flexShrink: 0,
+                                                  whiteSpace: "nowrap",
                                                 }}
                                               >
-                                                Sem regra de comissão compatível
-                                                cadastrada.
-                                              </Typography>
-                                            </Box>
+                                                <AlertTriangle size={12} />
+                                                Sem comissão
+                                              </Box>
+                                            </Tooltip>
                                           )}
                                         </Box>
                                       </li>
@@ -1731,49 +1880,68 @@ const AppointmentDetailsModal = ({
                                   renderInput={(params: any) => (
                                     <TextField
                                       {...params}
-                                      placeholder="Selecionar..."
-                                      error={
-                                        currentEmpId
-                                          ? !checkHasCommission(
-                                              Number(currentEmpId),
-                                              s.id,
-                                            )
-                                          : false
-                                      }
+                                      placeholder={selectedEmployees.length === 0 ? "Selecionar profissional(is)..." : ""}
+                                      error={uncommissionedEmps.length > 0}
+                                      sx={{
+                                        "& .MuiInputBase-root": {
+                                          flexWrap: "wrap",
+                                          gap: 0.5,
+                                          p: "4px 8px !important",
+                                          minHeight: 40,
+                                        },
+                                      }}
                                     />
                                   )}
                                 />
-                                {currentEmpId &&
-                                  !checkHasCommission(
-                                    Number(currentEmpId),
-                                    s.id,
-                                  ) && (
-                                    <Box
-                                      sx={{
-                                        mt: 0.5,
-                                        display: "flex",
-                                        alignItems: "flex-start",
-                                        gap: 0.5,
-                                      }}
+                                {uncommissionedEmps.length > 0 && (
+                                  <Box
+                                    sx={{
+                                      mt: 0.5,
+                                      display: "flex",
+                                      alignItems: "flex-start",
+                                      gap: 0.5,
+                                    }}
+                                  >
+                                    <AlertTriangle
+                                      size={12}
+                                      color={theme.palette.warning.main}
+                                      style={{ marginTop: "2px", flexShrink: 0 }}
+                                    />
+                                    <Typography
+                                      variant="caption"
+                                      color="warning.main"
+                                      fontWeight={600}
+                                      sx={{ lineHeight: 1.2 }}
                                     >
-                                      <AlertTriangle
-                                        size={12}
-                                        color={theme.palette.warning.main}
-                                        style={{ marginTop: "2px" }}
-                                      />
-                                      <Typography
-                                        variant="caption"
-                                        color="warning.main"
-                                        fontWeight={600}
-                                        sx={{ lineHeight: 1.2 }}
-                                      >
-                                        Aviso: Não há uma regra de comissão para
-                                        este caso. Para gerar comissionamento,
-                                        verifique as regras cadastradas.
-                                      </Typography>
-                                    </Box>
-                                  )}
-                                {!currentEmpId &&
+                                      Aviso: {uncommissionedEmps.map((e) => e.name).join(", ")} não possui regra de comissão cadastrada para este serviço.
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {selectedEmployees.length > 1 && (
+                                  <Box
+                                    sx={{
+                                      mt: 0.5,
+                                      display: "flex",
+                                      alignItems: "center",
+                                      gap: 0.5,
+                                    }}
+                                  >
+                                    <Users
+                                      size={12}
+                                      color={theme.palette.info.main}
+                                      style={{ flexShrink: 0 }}
+                                    />
+                                    <Typography
+                                      variant="caption"
+                                      color="info.main"
+                                      fontWeight={600}
+                                      sx={{ lineHeight: 1.2 }}
+                                    >
+                                      {selectedEmployees.length} profissionais vinculados: a comissão deste serviço será dividida igualmente ({(100 / selectedEmployees.length).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% para cada).
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {selectedEmployees.length === 0 &&
                                   coveredServiceKeys.has(key) && (
                                     <Box
                                       sx={{
@@ -1786,7 +1954,7 @@ const AppointmentDetailsModal = ({
                                       <AlertTriangle
                                         size={12}
                                         color={theme.palette.warning.main}
-                                        style={{ marginTop: "2px" }}
+                                        style={{ marginTop: "2px", flexShrink: 0 }}
                                       />
                                       <Typography
                                         variant="caption"
@@ -2013,16 +2181,167 @@ const AppointmentDetailsModal = ({
 
             <Box>
               <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
-                Profissional (opcional)
+                Profissional(is) (opcional)
               </Typography>
               <Autocomplete
+                multiple
                 size="small"
                 options={activeEmployees}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, val) => option.id === val.id}
-                onChange={(_, val) => setSelectedNewEmployeeId(val?.id || null)}
+                value={activeEmployees.filter((e) => selectedNewEmployeeIds.includes(e.id))}
+                onChange={(_, val) => setSelectedNewEmployeeIds((val || []).map((e: any) => e.id))}
+                renderTags={(tagValue, getTagProps) => {
+                  const maxVisible = 2;
+                  const visibleTags = tagValue.slice(0, maxVisible);
+                  const hiddenCount = tagValue.length - maxVisible;
+                  return (
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                      {visibleTags.map((option, index) => {
+                        const hasComm = selectedNewServiceId
+                          ? checkHasCommission(option.id, selectedNewServiceId)
+                          : true;
+                        return (
+                          <Chip
+                            {...getTagProps({ index })}
+                            key={option.id}
+                            label={option.name}
+                            size="small"
+                            color={!hasComm ? "warning" : "default"}
+                            sx={{ maxWidth: 140, height: 22, fontSize: "0.75rem" }}
+                          />
+                        );
+                      })}
+                      {hiddenCount > 0 && (
+                        <Tooltip title={tagValue.slice(maxVisible).map((o) => o.name).join(", ")}>
+                          <Chip
+                            label={`+${hiddenCount}`}
+                            size="small"
+                            sx={{ height: 22, fontSize: "0.75rem", bgcolor: "grey.200", fontWeight: 600 }}
+                          />
+                        </Tooltip>
+                      )}
+                    </Box>
+                  );
+                }}
+                renderOption={(props: any, option: any, { selected }: any) => {
+                  const hasComm = selectedNewServiceId
+                    ? checkHasCommission(option.id, selectedNewServiceId)
+                    : true;
+                  const { key, ...otherProps } = props;
+                  return (
+                    <li key={option.id} {...otherProps} style={{ padding: "6px 12px" }}>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          width: "100%",
+                          gap: 1.5,
+                        }}
+                      >
+                        {/* Lado Esquerdo: Checkbox + Nome + Cargo */}
+                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
+                          <Checkbox size="small" checked={selected} disableRipple sx={{ p: 0.25 }} />
+                          <Typography
+                            variant="body2"
+                            sx={{
+                              fontWeight: selected ? 600 : 500,
+                              color: "text.primary",
+                              fontSize: "0.86rem",
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {option.name}
+                          </Typography>
+                          {option.role && (
+                            <Chip
+                              size="small"
+                              label={ROLE_LABELS[option.role] || option.role}
+                              sx={{
+                                height: 18,
+                                fontSize: "0.68rem",
+                                fontWeight: 500,
+                                bgcolor: "#F1F5F9",
+                                color: "#64748B",
+                                borderRadius: "4px",
+                                flexShrink: 0,
+                              }}
+                            />
+                          )}
+                        </Box>
+
+                        {/* Lado Direito: Status de Comissao */}
+                        {selectedNewServiceId && (
+                          hasComm ? (
+                            <Box
+                              sx={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 0.5,
+                                px: 0.85,
+                                py: 0.25,
+                                borderRadius: "6px",
+                                bgcolor: "#ECFDF5",
+                                border: "1px solid #A7F3D0",
+                                color: "#059669",
+                                fontSize: "0.72rem",
+                                fontWeight: 600,
+                                flexShrink: 0,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              <CheckCircle2 size={12} />
+                              Comissionado
+                            </Box>
+                          ) : (
+                            <Tooltip
+                              title="Sem regra de comissão aplicável a este profissional/cargo para este serviço"
+                              arrow
+                              placement="left"
+                            >
+                              <Box
+                                sx={{
+                                  display: "inline-flex",
+                                  alignItems: "center",
+                                  gap: 0.5,
+                                  px: 0.85,
+                                  py: 0.25,
+                                  borderRadius: "6px",
+                                  bgcolor: "#FFFBEB",
+                                  border: "1px solid #FDE68A",
+                                  color: "#D97706",
+                                  fontSize: "0.72rem",
+                                  fontWeight: 600,
+                                  flexShrink: 0,
+                                  whiteSpace: "nowrap",
+                                }}
+                              >
+                                <AlertTriangle size={12} />
+                                Sem comissão
+                              </Box>
+                            </Tooltip>
+                          )
+                        )}
+                      </Box>
+                    </li>
+                  );
+                }}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Selecione o profissional..." />
+                  <TextField
+                    {...params}
+                    placeholder={selectedNewEmployeeIds.length === 0 ? "Selecione o(s) profissional(is)..." : ""}
+                    sx={{
+                      "& .MuiInputBase-root": {
+                        flexWrap: "wrap",
+                        gap: 0.5,
+                        p: "4px 8px !important",
+                        minHeight: 40,
+                      },
+                    }}
+                  />
                 )}
               />
             </Box>
@@ -2045,7 +2364,8 @@ const AppointmentDetailsModal = ({
                   addServiceMutation.mutate({
                     petId: addServicePet.petId,
                     serviceId: selectedNewServiceId,
-                    employeeId: selectedNewEmployeeId || undefined,
+                    employeeId: selectedNewEmployeeIds.length > 0 ? selectedNewEmployeeIds[0] : undefined,
+                    employeeIds: selectedNewEmployeeIds,
                   });
                 }
               }}

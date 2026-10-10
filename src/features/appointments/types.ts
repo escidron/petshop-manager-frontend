@@ -37,6 +37,7 @@ export type ServiceBase = {
   removed_at?: string | null;
   removal_reason?: string | null;
   employee_id?: number | null;
+  employee_ids?: number[];
   species?: string | null;
   size?: string | null;
   coat_type?: string | null;
