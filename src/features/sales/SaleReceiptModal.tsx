@@ -126,6 +126,7 @@ export default function SaleReceiptModal({
           clonedElem.style.maxHeight = "none";
           clonedElem.style.height = "auto";
           clonedElem.style.overflow = "visible";
+          clonedElem.style.backgroundColor = "#ffffff";
           clonedElem.style.boxShadow = "none";
           clonedElem.style.border = "none";
           clonedElem.style.outline = "none";
@@ -290,49 +291,39 @@ export default function SaleReceiptModal({
 
 
 
-      <DialogContent sx={{ p: { xs: 1.5, sm: 2 }, pt: 1, maxHeight: "72vh", overflowY: "auto", bgcolor: "#F9FAFB" }}>
-        {/* Moldura de exibição para a pré-visualização no modal */}
+      <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 }, pt: 2, pb: 2.5, maxHeight: "72vh", overflowY: "auto", bgcolor: "#F1F5F9" }}>
+        {/* Printable Thermal Receipt Box */}
         <Box
+          id="sale-receipt-print-area"
           sx={{
-            maxWidth: "430px",
+            fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
+            "&, & *": {
+              fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
+            },
+            maxWidth: "420px",
+            bgcolor: "#FEFCE8",
+            p: { xs: 2.5, sm: 3 },
+            border: "1px solid #EFE4B8",
+            borderRadius: 2,
+            width: "100%",
             mx: "auto",
-            bgcolor: "#ffffff",
-            p: 1,
-            border: "1px solid #E5E7EB",
-            borderRadius: 2.5,
-            boxShadow: "0 1px 3px rgba(0, 0, 0, 0.05)",
+            color: "#000000",
+            lineHeight: 1.4,
+            fontSize: "0.92rem",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)",
+            boxSizing: "border-box",
+            height: "fit-content",
+            minHeight: "fit-content",
+            "@media print": {
+              border: "none",
+              p: 0,
+              width: "100%",
+              maxWidth: "100%",
+              boxShadow: "none",
+              bgcolor: "#ffffff !important",
+            },
           }}
         >
-          {/* Printable Thermal Receipt Box */}
-          <Box
-            id="sale-receipt-print-area"
-            sx={{
-              fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
-              "&, & *": {
-                fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
-              },
-              bgcolor: "#ffffff",
-              p: { xs: 2, sm: 2.5 },
-              border: "none",
-              borderRadius: 0,
-              width: "100%",
-              mx: "auto",
-              color: "#000000",
-              lineHeight: 1.4,
-              fontSize: "0.92rem",
-              boxShadow: "none",
-              boxSizing: "border-box",
-              height: "fit-content",
-              minHeight: "fit-content",
-              "@media print": {
-                border: "none",
-                p: 0,
-                width: "100%",
-                maxWidth: "100%",
-                boxShadow: "none",
-              },
-            }}
-          >
             {/* Cabeçalho superior: Data e Link do Sistema */}
             <Box
               className="receipt-flex-row"
@@ -492,7 +483,6 @@ export default function SaleReceiptModal({
             </Box>
           </Box>
         </Box>
-      </Box>
     </DialogContent>
 
       <Divider sx={{ borderColor: "#E5E7EB" }} className="no-print" />
