@@ -6,13 +6,16 @@ export function clientToFormData(
 ): ClientFormData | undefined {
   if (!client) return undefined;
 
+  const rawDoc = client.document ? String(client.document).replace(/\D/g, "") : "";
+  const docType = client.document_type || (rawDoc.length > 11 ? "CNPJ" : "CPF");
+
   return {
     name: client.name,
     is_active: client.is_active ?? true,
 
     email: client.email ?? undefined,
 
-    document_type: client.document_type ?? undefined,
+    document_type: docType,
     document: client.document ?? undefined,
     birth_date: client.birth_date ? isoToBrDate(client.birth_date) : undefined,
 

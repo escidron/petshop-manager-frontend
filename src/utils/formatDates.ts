@@ -16,8 +16,11 @@ export function isoToBrDate(date?: string | null) {
   if (!date) return "";
 
   const cleaned = date.trim();
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(cleaned)) {
+    return cleaned;
+  }
 
-  const match = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  const match = cleaned.match(/^(\d{4})-(\d{2})-(\d{2})/);
 
   if (!match) return "";
 
