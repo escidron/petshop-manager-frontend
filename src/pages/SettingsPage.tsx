@@ -53,9 +53,12 @@ import {
   Percent,
   BarChart2,
   Edit2,
+  TrendingUp,
+  ChartNoAxesCombined,
+  WalletCards,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
-import { usePermission, SYSTEM_MODULES } from "../hooks/usePermission";
+import { usePermission, SYSTEM_MODULES, DEFAULT_EMPLOYEE_PERMISSIONS } from "../hooks/usePermission";
 import dayjs from "dayjs";
 import { useSearchParams } from "react-router-dom";
 import { useForm, Controller } from "react-hook-form";
@@ -185,7 +188,7 @@ const SettingsPage = () => {
       };
       const updatedTenant = await updateTenant(tenant.id, payload);
       setTenant({ ...tenant, ...updatedTenant });
-      toast.success(enabled ? "Limite de agendamentos ativado!" : "Limite de agendamentos desativado!");
+      toast.success(enabled ? "Limite de agendamentos simultâneos ativado!" : "Limite de agendamentos simultâneos desativado!");
     } catch (error) {
       console.error("Failed to toggle limit:", error);
       toast.error("Erro ao alterar configuração de limite.");
@@ -207,10 +210,10 @@ const SettingsPage = () => {
       };
       const updatedTenant = await updateTenant(tenant.id, payload);
       setTenant({ ...tenant, ...updatedTenant });
-      toast.success("Limite de agendamentos atualizado!");
+      toast.success("Capacidade máxima atualizada com sucesso!");
     } catch (error) {
       console.error("Failed to save limit value:", error);
-      toast.error("Erro ao atualizar o limite de agendamentos.");
+      toast.error("Erro ao atualizar a capacidade máxima de agendamentos.");
     } finally {
       setSavingLimit(false);
     }
@@ -249,16 +252,9 @@ const SettingsPage = () => {
   const [loadingExportSuppliers, setLoadingExportSuppliers] = useState(false);
   const [loadingExportUsers, setLoadingExportUsers] = useState(false);
 
-  const [selectedPermissions, setSelectedPermissions] = useState<string[]>([
-    "dashboard",
-    "clients",
-    "pets",
-    "services",
-    "products",
-    "packages",
-    "pos",
-    "inventory",
-  ]);
+  const [selectedPermissions, setSelectedPermissions] = useState<string[]>(
+    DEFAULT_EMPLOYEE_PERMISSIONS
+  );
   const [userToEditPermissions, setUserToEditPermissions] = useState<TenantUserResponse | null>(null);
   const [editPermissionsList, setEditPermissionsList] = useState<string[]>([]);
   const [savingPermissions, setSavingPermissions] = useState(false);
@@ -312,6 +308,12 @@ const SettingsPage = () => {
         return <Percent size={18} />;
       case "reports":
         return <BarChart2 size={18} />;
+      case "dre":
+        return <TrendingUp size={18} />;
+      case "operational-result":
+        return <ChartNoAxesCombined size={18} />;
+      case "financial-bills":
+        return <WalletCards size={18} />;
       case "settings":
         return <Settings size={18} />;
       default:
@@ -769,16 +771,7 @@ const SettingsPage = () => {
       setTenantUsers((prev) => [...prev, newUser]);
       setOpenCreateUser(false);
       resetCreateUser();
-      setSelectedPermissions([
-        "dashboard",
-        "clients",
-        "pets",
-        "services",
-        "products",
-        "packages",
-        "pos",
-        "inventory",
-      ]);
+      setSelectedPermissions(DEFAULT_EMPLOYEE_PERMISSIONS);
       toast.success("Usuário criado com sucesso!");
     } catch (error: unknown) {
       const message = axios.isAxiosError(error) ? error.response?.data?.detail : "Erro ao criar usuário. Verifique os dados e tente novamente.";
@@ -1000,15 +993,15 @@ const SettingsPage = () => {
               </Stack>
             </Paper>
 
-            {/* CARD 2: Agendamento Online */}
+            {/* CARD 2: Capacidade de Atendimento */}
             <Paper elevation={0} sx={{ p: { xs: 2, sm: 3 }, borderRadius: 3, border: "1.5px solid", borderColor: "divider" }}>
               <Stack spacing={2}>
                 <Typography variant="subtitle2" fontWeight={700} color="primary.main" sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <span style={{ width: 3, height: 14, backgroundColor: "#6f42c1", borderRadius: 1.5, display: "inline-block" }} />
-                  Agendamento Online
+                  Capacidade de Atendimento (Pets Simultâneos)
                 </Typography>
                 <Typography variant="body2" color="text.primary" mb={1}>
-                  Configure as políticas de concorrência e capacidade de agendamentos online.
+                  Configure o limite de pets que a loja comporta atender simultaneamente no mesmo horário.
                 </Typography>
                 <Divider sx={{ mb: 1 }} />
 
@@ -1025,14 +1018,14 @@ const SettingsPage = () => {
                       }
                       label={
                         <Typography variant="body2" fontWeight={700} color="text.primary">
-                          Limitar agendamentos simultâneos
+                          Limitar pets simultâneos por horário
                         </Typography>
                       }
                       sx={{ mb: 1 }}
                     />
                     
                     <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 400 }}>
-                      Ative para configurar a capacidade de agendamentos que a loja suporta atender no mesmo horário. Se desativado, o agendamento online ficará livre sem bloqueio de concorrência.
+                      A capacidade é calculada por <strong>quantidade de pets</strong> (ex: se um cliente agendar 2 pets para o mesmo horário, ocupará 2 vagas de atendimento). Se desativado, não haverá limite de concorrência.
                     </Typography>
                   </Box>
 
@@ -1040,7 +1033,7 @@ const SettingsPage = () => {
                     <Stack spacing={1.5} sx={{ mt: 1, pt: 1.5, borderTop: "1px dashed", borderColor: "divider" }}>
                       <FormControl fullWidth>
                         <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 700, fontSize: "0.75rem" }}>
-                          Limite de agendamentos por horário
+                          Capacidade máxima de pets por horário
                         </FormLabel>
                         <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: { xs: "wrap", sm: "nowrap" } }}>
                           <TextField
@@ -1062,13 +1055,13 @@ const SettingsPage = () => {
                             disabled={savingLimit}
                             sx={{ py: 0.75, px: 2, flex: { xs: 1, sm: "none" } }}
                           >
-                            {savingLimit ? <CircularProgress size={16} color="inherit" /> : "Salvar Limite"}
+                            {savingLimit ? <CircularProgress size={16} color="inherit" /> : "Salvar Capacidade"}
                           </Button>
                         </Box>
                       </FormControl>
 
                       <Typography variant="caption" color="text.secondary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
-                        Ex: se for {limitValue}, o horário será bloqueado para novos agendamentos online se já houver {limitValue} pets agendados nesse mesmo intervalo na loja inteira.
+                        Ex: com limite de {limitValue} pets, se um agendamento tiver {limitValue} pets ou se agendamentos somarem {limitValue} pets no mesmo horário, a capacidade estará completa e o sistema emitirá um alerta caso alguém tente encaixar mais pets.
                       </Typography>
                     </Stack>
                   )}
@@ -1464,18 +1457,7 @@ const SettingsPage = () => {
                                       Módulos Permitidos:
                                     </Typography>
                                     {SYSTEM_MODULES.filter((m) =>
-                                      (
-                                        u.permissions || [
-                                          "dashboard",
-                                          "clients",
-                                          "pets",
-                                          "services",
-                                          "products",
-                                          "packages",
-                                          "pos",
-                                          "inventory",
-                                        ]
-                                      ).includes(m.id)
+                                      (u.permissions || DEFAULT_EMPLOYEE_PERMISSIONS).includes(m.id)
                                     ).map((m) => (
                                       <Typography key={m.id} variant="caption" sx={{ display: "block", color: "rgba(255,255,255,0.9)" }}>
                                         • {m.label}
@@ -1486,7 +1468,7 @@ const SettingsPage = () => {
                                 arrow
                               >
                                 <Chip
-                                  label={`${(u.permissions || ["dashboard", "clients", "pets", "services", "products", "packages", "pos", "inventory"]).length} de ${SYSTEM_MODULES.length} módulos`}
+                                  label={`${(u.permissions || DEFAULT_EMPLOYEE_PERMISSIONS).length} de ${SYSTEM_MODULES.length} módulos`}
                                   size="small"
                                   variant="outlined"
                                   sx={{ fontWeight: 600, fontSize: "0.72rem", height: 24, cursor: "help" }}

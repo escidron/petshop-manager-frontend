@@ -148,27 +148,27 @@ export default function AppRoutes() {
         <Route
           path="/managerial/bills"
           element={
-            <OwnerRoute>
+            <PermissionRoute module="financial-bills">
               <FinancialBillsPage />
-            </OwnerRoute>
+            </PermissionRoute>
           }
         />
         <Route path="/financial/bills" element={<Navigate to="/managerial/bills" replace />} />
         <Route
           path="/managerial/dre"
           element={
-            <OwnerRoute>
+            <PermissionRoute module="dre">
               <DREReportPage />
-            </OwnerRoute>
+            </PermissionRoute>
           }
         />
         <Route path="/financial/dre" element={<Navigate to="/managerial/dre" replace />} />
         <Route
           path="/managerial/operational-result"
           element={
-            <OwnerRoute>
+            <PermissionRoute module="operational-result">
               <OperationalResultPage />
-            </OwnerRoute>
+            </PermissionRoute>
           }
         />
         <Route path="/financial/operational-result" element={<Navigate to="/managerial/operational-result" replace />} />

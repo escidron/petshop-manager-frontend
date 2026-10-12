@@ -14,12 +14,26 @@ export type SystemModuleId =
   | "inventory"
   | "commissions"
   | "reports"
+  | "dre"
+  | "operational-result"
+  | "financial-bills"
   | "settings";
+
+export const DEFAULT_EMPLOYEE_PERMISSIONS: SystemModuleId[] = [
+  "dashboard",
+  "clients",
+  "pets",
+  "services",
+  "products",
+  "packages",
+  "pos",
+  "inventory",
+];
 
 export const SYSTEM_MODULES: {
   id: SystemModuleId;
   label: string;
-  section: "INÍCIO" | "CADASTROS" | "OPERACIONAL" | "SISTEMA";
+  section: "INÍCIO" | "CADASTROS" | "OPERACIONAL" | "GERENCIAL" | "SISTEMA";
   path: string;
 }[] = [
   { id: "dashboard", label: "Início", section: "INÍCIO", path: "/dashboard" },
@@ -34,6 +48,9 @@ export const SYSTEM_MODULES: {
   { id: "inventory", label: "Estoque", section: "OPERACIONAL", path: "/inventory" },
   { id: "commissions", label: "Comissão", section: "OPERACIONAL", path: "/commissions/rules" },
   { id: "reports", label: "Relatórios", section: "OPERACIONAL", path: "/reports" },
+  { id: "dre", label: "DRE", section: "GERENCIAL", path: "/managerial/dre" },
+  { id: "operational-result", label: "Resultado Operacional", section: "GERENCIAL", path: "/managerial/operational-result" },
+  { id: "financial-bills", label: "Contas a Pagar e Receber", section: "GERENCIAL", path: "/managerial/bills" },
   { id: "settings", label: "Configurações", section: "SISTEMA", path: "/settings" },
 ];
 
@@ -50,16 +67,7 @@ export const usePermission = () => {
         return user.permissions.includes(moduleId);
       }
       // Default fallback for legacy employee records
-      return [
-        "dashboard",
-        "clients",
-        "pets",
-        "services",
-        "products",
-        "packages",
-        "pos",
-        "inventory",
-      ].includes(moduleId);
+      return (DEFAULT_EMPLOYEE_PERMISSIONS as string[]).includes(moduleId);
     },
     [isOwner, user]
   );

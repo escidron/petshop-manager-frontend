@@ -259,11 +259,12 @@ export default function POSInterface() {
   }, [pendingAppointments, searchTerm]);
 
   const cartTotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
-  const discountPercentage = cartTotal > 0 ? (discountAmount / cartTotal) * 100 : 0;
+  const maxDiscountPercentage = tenant?.max_discount_percentage ?? 100;
+  const maxAllowedDiscountCents = Math.round((maxDiscountPercentage / 100) * cartTotal * 100);
   const isDiscountExceeded =
     tenant?.allow_discount === false
       ? discountAmount > 0
-      : discountPercentage > (tenant?.max_discount_percentage ?? 100);
+      : discountCents > maxAllowedDiscountCents;
 
   const isLoadingItems = startupLoading || clientDetailsLoading;
 
@@ -377,7 +378,8 @@ export default function POSInterface() {
     setDiscountCents(discCents);
     const itemsSubtotal = (targetComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
     if (itemsSubtotal > 0 && targetComanda.discount_amount > 0) {
-      setDiscountPctInput(((targetComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+      const pct = (targetComanda.discount_amount / itemsSubtotal) * 100;
+      setDiscountPctInput(Number(pct.toFixed(2)).toString());
     } else {
       setDiscountPctInput("0");
     }
@@ -581,6 +583,10 @@ export default function POSInterface() {
     if (!cashStatus?.is_open) {
       toast.error("O caixa está fechado! Abra o caixa antes de realizar vendas.");
       setIsOpenCashModalOpen(true);
+      return;
+    }
+    if (isDiscountExceeded) {
+      toast.error(`O desconto aplicado excede o limite máximo permitido (${tenant?.max_discount_percentage ?? 100}%).`);
       return;
     }
     for (const item of cart) {
@@ -855,7 +861,8 @@ export default function POSInterface() {
         setDiscountCents(discCents);
         const itemsSubtotal = (openComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
         if (itemsSubtotal > 0 && openComanda.discount_amount > 0) {
-          setDiscountPctInput(((openComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+          const pct = (openComanda.discount_amount / itemsSubtotal) * 100;
+          setDiscountPctInput(Number(pct.toFixed(2)).toString());
         } else {
           setDiscountPctInput("0");
         }

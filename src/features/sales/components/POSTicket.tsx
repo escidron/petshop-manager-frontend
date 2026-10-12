@@ -293,19 +293,31 @@ export default function POSTicket({
     const finalCents = Math.min(maxCents, cents);
     onDiscountCentsChange(finalCents);
     if (cartTotal > 0) {
-      onDiscountPctChange(Number(((finalCents / 100 / cartTotal) * 100).toFixed(2)).toString());
+      const maxAllowedCents = Math.round((maxDiscountPercentage / 100) * cartTotal * 100);
+      if (finalCents === maxAllowedCents) {
+        onDiscountPctChange(maxDiscountPercentage.toString());
+      } else {
+        const pct = (finalCents / 100 / cartTotal) * 100;
+        onDiscountPctChange(Number(pct.toFixed(2)).toString());
+      }
     } else {
       onDiscountPctChange("0");
     }
   };
 
   const handleDiscountPctChange = (value: string) => {
-    let val = value.replace(/[^0-9.,]/g, "").replace(",", ".");
-    const parts = val.split(".");
-    if (parts.length > 2) val = parts[0] + "." + parts.slice(1).join("");
+    let val = value.replace(/[^0-9.,]/g, "");
+    const parts = val.split(/[.,]/);
+    if (parts.length > 2) {
+      val = parts[0] + (val.includes(",") ? "," : ".") + parts.slice(1).join("");
+    }
     onDiscountPctChange(val);
-    const pct = parseFloat(val) || 0;
-    const newCents = Math.round((pct / 100) * cartTotal * 100);
+    const parsed = parseFloat(val.replace(",", ".")) || 0;
+    const maxAllowedCents = Math.round((maxDiscountPercentage / 100) * cartTotal * 100);
+    const newCents =
+      Math.abs(parsed - maxDiscountPercentage) < 0.0001
+        ? maxAllowedCents
+        : Math.round((parsed / 100) * cartTotal * 100);
     const maxCents = Math.round(cartTotal * 100);
     onDiscountCentsChange(Math.min(maxCents, newCents));
   };
@@ -446,6 +458,11 @@ export default function POSTicket({
                   placeholder="0,00"
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => handleDiscountCentsChange(e.target.value)}
+                  onBlur={() => {
+                    if (discountCents === 0) {
+                      onDiscountPctChange("0");
+                    }
+                  }}
                   slotProps={{
                     input: {
                       startAdornment: (
@@ -465,6 +482,12 @@ export default function POSTicket({
                   placeholder="0"
                   onFocus={(e) => e.target.select()}
                   onChange={(e) => handleDiscountPctChange(e.target.value)}
+                  onBlur={() => {
+                    if (!discountPctInput || parseFloat(discountPctInput.replace(",", ".")) === 0) {
+                      onDiscountPctChange("0");
+                      onDiscountCentsChange(0);
+                    }
+                  }}
                   slotProps={{
                     input: {
                       endAdornment: (
@@ -480,7 +503,7 @@ export default function POSTicket({
                 />
                 {isDiscountExceeded && (
                   <Typography color="error" sx={{ position: "absolute", top: "100%", right: 0, whiteSpace: "nowrap", margin: 0, fontSize: "0.62rem", zIndex: 10, mt: 0.5 }}>
-                    {`Máx: R$ ${((cartTotal * maxDiscountPercentage) / 100).toFixed(2)} (${maxDiscountPercentage}%)`}
+                    {`Máx: R$ ${((cartTotal * maxDiscountPercentage) / 100).toFixed(2).replace(".", ",")} (${maxDiscountPercentage}%)`}
                   </Typography>
                 )}
               </Box>

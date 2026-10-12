@@ -277,17 +277,17 @@ export default function WorkingHoursSettings() {
                     Regras de Funcionamento
                   </Typography>
                   <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500 }}>
-                    • Os clientes só poderão selecionar horários de agendamento online que estejam dentro do intervalo configurado como <strong>Aberto</strong>.
+                    • Os agendamentos devem estar dentro do intervalo configurado como <strong>Aberto</strong>.
                   </Typography>
                   <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500, mt: 1 }}>
-                    • Horários fora desse período ou marcados como <strong>Fechado</strong> ficarão indisponíveis no agendamento online.
+                    • Horários fora desse período ou marcados como <strong>Fechado</strong> ficarão indisponíveis na agenda.
                   </Typography>
                 </Box>
               </Stack>
 
               <Box sx={{ mt: 2, pt: 2, borderTop: "1px solid", borderColor: "divider" }}>
                 <Typography variant="caption" color="text.primary" sx={{ display: "block", lineHeight: 1.4, fontWeight: 500, fontStyle: "italic" }}>
-                  * Lembre-se de clicar no botão "Salvar Horários" para aplicar as alterações nos agendamentos online.
+                  * Lembre-se de clicar no botão "Salvar Horários" para aplicar as alterações na agenda.
                 </Typography>
               </Box>
             </Stack>

@@ -165,9 +165,10 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
     let totalItemsCount = 0;
     completed.forEach((s) => {
       s.items?.forEach((item) => {
-        totalItemsCount += item.quantity || 1;
+        totalItemsCount += Number(item.quantity) || 1;
       });
     });
+    totalItemsCount = Math.round(totalItemsCount * 100) / 100;
 
     // Payment methods breakdown
     const byMethod: Record<string, number> = {};
@@ -648,7 +649,12 @@ export default function DaySalesModal({ open, date, sales = [], onRefresh, isLoa
                 </Typography>
               </Box>
               <Typography variant="h5" fontWeight={800} color="text.primary">
-                {stats.totalItemsCount}
+                {Number.isInteger(stats.totalItemsCount)
+                  ? stats.totalItemsCount
+                  : stats.totalItemsCount.toLocaleString("pt-BR", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}
               </Typography>
             </Paper>
           </Box>

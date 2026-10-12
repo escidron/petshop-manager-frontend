@@ -11,13 +11,15 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { X } from "lucide-react";
+import { X, AlertTriangle } from "lucide-react";
+import dayjs from "dayjs";
 
-import { createAppointment, updateAppointment } from "../../api/services/appointments";
+import { createAppointment, updateAppointment, getAppointmentsByDay } from "../../api/services/appointments";
 import { useClients } from "../../hooks/useClients";
 import { useServices } from "../../hooks/useServices";
 import { useClient } from "../../hooks/useClient";
 import { useToast } from "../../hooks/useToast";
+import { useAuth } from "../../hooks/useAuth";
 import { Button } from "../../components/Button/Button";
 
 import AppointmentForm from "./AppointmentForm";
@@ -58,6 +60,7 @@ export default function AppointmentModal({
   prefill,
 }: Props) {
   const toast = useToast();
+  const { tenant } = useAuth();
   const defaultValues: AppointmentFormData = appointment
     ? appointmentToFormData(appointment)!
     : { ...DEFAULT_APPOINTMENT_FORM, ...prefill };
@@ -71,6 +74,15 @@ export default function AppointmentModal({
   const { services, getServices } = useServices();
   const { pets, setClientId, refetchPets, loadedClientId } = useClient(initialClientId);
   const queryClient = useQueryClient();
+
+  const [capacityWarningOpen, setCapacityWarningOpen] = useState(false);
+  const [capacityInfo, setCapacityInfo] = useState<{
+    current: number;
+    newPets: number;
+    total: number;
+    max: number;
+    time: string;
+  } | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -138,13 +150,85 @@ export default function AppointmentModal({
     }
   };
 
-  const handleSubmit = (data: AppointmentFormData) => {
+  const proceedSubmit = (data: AppointmentFormData) => {
     if (mode === "edit" && (appointment?.recurrence_id || data.recurrence)) {
       setPendingFormData(data);
       setEditRecurrenceConfirmOpen(true);
       return;
     }
     executeSubmit(data, false);
+  };
+
+  const handleConfirmEncaixe = () => {
+    setCapacityWarningOpen(false);
+    if (pendingFormData) {
+      proceedSubmit(pendingFormData);
+    }
+  };
+
+  const handleSubmit = async (data: AppointmentFormData) => {
+    if (tenant?.max_simultaneous_appointments && typeof tenant.max_simultaneous_appointments === "number") {
+      try {
+        const scheduledAt = dayjs(data.scheduled_at);
+        const dayStr = scheduledAt.format("YYYY-MM-DD");
+        const dayAppts = await getAppointmentsByDay(dayStr);
+
+        let newDurationMinutes = 0;
+        for (const item of data.items || []) {
+          for (const sId of item.service_ids || []) {
+            const s = services?.find((svc) => svc.id === sId);
+            newDurationMinutes += s?.duration_minutes || 30;
+          }
+        }
+        if (newDurationMinutes === 0) newDurationMinutes = 30;
+        const newStart = scheduledAt;
+        const newEnd = newStart.add(newDurationMinutes, "minute");
+
+        // Quantidade de pets no novo agendamento
+        const newPetsCount = (data.items || []).filter((i) => i.pet_id).length || 1;
+
+        // Soma de pets já agendados com horários sobrepostos
+        let overlappingPetsCount = 0;
+        for (const appt of dayAppts) {
+          if (mode === "edit" && appt.id === appointment?.id) continue;
+          if (appt.status === "canceled") continue;
+
+          const apptStart = dayjs(appt.scheduled_at);
+          let apptDuration = 0;
+          for (const item of appt.items || []) {
+            for (const s of item.services || []) {
+              apptDuration += s.duration_minutes || 30;
+            }
+          }
+          if (apptDuration === 0) apptDuration = 30;
+          const apptEnd = apptStart.add(apptDuration, "minute");
+
+          if (apptStart.isBefore(newEnd) && apptEnd.isAfter(newStart)) {
+            const petsInAppt = (appt.items || []).filter((i) => Boolean(i.pet)).length || (appt.items?.length || 1);
+            overlappingPetsCount += petsInAppt;
+          }
+        }
+
+        const totalPets = overlappingPetsCount + newPetsCount;
+
+        if (totalPets > tenant.max_simultaneous_appointments) {
+          setCapacityInfo({
+            current: overlappingPetsCount,
+            newPets: newPetsCount,
+            total: totalPets,
+            max: tenant.max_simultaneous_appointments,
+            time: newStart.format("HH:mm"),
+          });
+          setPendingFormData(data);
+          setCapacityWarningOpen(true);
+          return;
+        }
+      } catch (err) {
+        console.error("Erro ao verificar capacidade simultânea:", err);
+      }
+    }
+
+    proceedSubmit(data);
   };
 
   const handleClientCreated = async (client: Client) => {
@@ -397,6 +481,60 @@ export default function AppointmentModal({
             disabled={isSubmitting}
           >
             Voltar para edição
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={capacityWarningOpen}
+        onClose={() => !isSubmitting && setCapacityWarningOpen(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3, p: 1 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1, color: "warning.dark" }}>
+          <AlertTriangle size={22} color="#ed6c02" />
+          Aviso de Capacidade (Pets)
+        </DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.primary" sx={{ mb: 1.5 }}>
+            Já existem <strong>{capacityInfo?.current} pet(s)</strong> agendados para às <strong>{capacityInfo?.time}</strong>.
+            {capacityInfo && capacityInfo.newPets > 1 ? (
+              <> Com este agendamento (+<strong>{capacityInfo.newPets} pets</strong>), serão <strong>{capacityInfo.total} pets</strong> simultâneos.</>
+            ) : (
+              <> Com este agendamento (+<strong>1 pet</strong>), serão <strong>{capacityInfo?.total} pets</strong> simultâneos.</>
+            )}
+          </Typography>
+          <Alert severity="warning" sx={{ fontSize: "0.85rem", borderRadius: 2 }}>
+            A capacidade máxima da loja é de <strong>{capacityInfo?.max} pet(s) simultâneo(s)</strong>.
+            <br /><br />
+            Deseja confirmar e forçar o encaixe deste agendamento mesmo assim?
+          </Alert>
+        </DialogContent>
+        <DialogActions
+          sx={{
+            flexDirection: "column",
+            alignItems: "stretch",
+            p: 2,
+            gap: 1,
+          }}
+        >
+          <Button
+            variant="contained"
+            color="primary"
+            onClick={handleConfirmEncaixe}
+            loading={isSubmitting}
+            disabled={isSubmitting}
+          >
+            Confirmar e Forçar Encaixe
+          </Button>
+
+          <Button
+            variant="outlined"
+            onClick={() => setCapacityWarningOpen(false)}
+            disabled={isSubmitting}
+          >
+            Voltar e Alterar Horário
           </Button>
         </DialogActions>
       </Dialog>

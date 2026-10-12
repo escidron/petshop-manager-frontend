@@ -353,7 +353,11 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                             })()}
                           </TableCell>
                           <TableCell align="center" sx={{ color: isCanceled ? "text.secondary" : "inherit" }}>
-                            {item.quantity}
+                            {typeof item.quantity === "number"
+                              ? (Number.isInteger(item.quantity)
+                                  ? item.quantity
+                                  : Number(item.quantity.toFixed(3)).toLocaleString("pt-BR"))
+                              : item.quantity}
                           </TableCell>
                           <TableCell align="right">
                             {(() => {

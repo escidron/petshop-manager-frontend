@@ -388,6 +388,12 @@ export default function SaleReceiptModal({
               const itemUnitPrice = Number(item.unit_price) || 0;
               const itemSubtotal = Number(item.subtotal) || 0;
               const petPrefix = getPetLabel(item);
+              const itemQtyDisplay =
+                typeof item.quantity === "number"
+                  ? Number.isInteger(item.quantity)
+                    ? item.quantity
+                    : Number(item.quantity.toFixed(3)).toLocaleString("pt-BR")
+                  : item.quantity;
 
               return (
                 <Box key={idx} sx={{ mb: 1.25, fontSize: "0.9rem", px: 0.5, color: "#000000" }}>
@@ -399,7 +405,7 @@ export default function SaleReceiptModal({
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: "4px" }}
                   >
                     <span>
-                      {item.quantity}{item.unit ? ` ${item.unit}` : ""} &nbsp;x R$ &nbsp;{itemUnitPrice.toFixed(2).replace(".", ",")}
+                      {itemQtyDisplay}{item.unit ? ` ${item.unit}` : ""} &nbsp;x R$ &nbsp;{itemUnitPrice.toFixed(2).replace(".", ",")}
                     </span>
                     <span style={{ fontWeight: 700 }}>
                       {itemSubtotal.toFixed(2).replace(".", ",")}
