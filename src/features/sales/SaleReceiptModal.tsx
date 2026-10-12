@@ -399,7 +399,7 @@ export default function SaleReceiptModal({
                     style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", marginTop: "4px" }}
                   >
                     <span>
-                      {item.quantity} &nbsp;x R$ &nbsp;{itemUnitPrice.toFixed(2).replace(".", ",")}
+                      {item.quantity}{item.unit ? ` ${item.unit}` : ""} &nbsp;x R$ &nbsp;{itemUnitPrice.toFixed(2).replace(".", ",")}
                     </span>
                     <span style={{ fontWeight: 700 }}>
                       {itemSubtotal.toFixed(2).replace(".", ",")}

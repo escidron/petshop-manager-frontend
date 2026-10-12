@@ -144,13 +144,14 @@ function CartItemRow({
               </IconButton>
               <input
                 type="number"
+                step="any"
                 value={item.quantity}
                 onChange={(e) => {
-                  const val = parseInt(e.target.value);
+                  const val = parseFloat(e.target.value.replace(",", "."));
                   if (!isNaN(val)) onSetQuantity(index, val);
                 }}
-                min={1}
-                style={{ width: "32px", textAlign: "center", border: "none", background: "transparent", fontWeight: 700, outline: "none", fontSize: "0.78rem" }}
+                min={0.001}
+                style={{ width: "42px", textAlign: "center", border: "none", background: "transparent", fontWeight: 700, outline: "none", fontSize: "0.78rem" }}
               />
               <Typography variant="caption" sx={{ fontWeight: 700, fontSize: "0.65rem", opacity: 0.6, mr: 0.25 }}>
                 {item.unit || "UN"}

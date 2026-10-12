@@ -560,7 +560,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
           </Typography>
           {itemToCancel?.item_type === "product" && (
             <Alert severity="info" sx={{ mb: 2, fontSize: "0.82rem" }}>
-              <strong>Estoque:</strong> A quantidade ({itemToCancel.quantity} un) será devolvida automaticamente ao estoque.
+              <strong>Estoque:</strong> A quantidade ({itemToCancel.quantity} {itemToCancel.unit || "un"}) será devolvida automaticamente ao estoque.
             </Alert>
           )}
           <TextField
