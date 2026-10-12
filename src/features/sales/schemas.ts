@@ -23,6 +23,7 @@ export const SaleItemSchema = z.object({
   status: z.enum(["active", "canceled"]).optional(),
   cancel_reason: z.string().nullable().optional(),
   canceled_at: z.string().nullable().optional(),
+  max_stock: z.number().optional(),
 });
 
 export const SalePaymentSchema = z.object({
