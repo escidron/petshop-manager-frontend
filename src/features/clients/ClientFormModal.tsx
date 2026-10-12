@@ -15,7 +15,7 @@ import ClientForm from "./ClientForm";
 import { clientToFormData } from "./mapper";
 import { DEFAULT_CLIENT_FORM } from "./constants";
 import { X } from "lucide-react";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { brDateToISO } from "../../utils/formatDates";
 
 type Props = {
@@ -38,10 +38,32 @@ export default function ClientFormModal({
   onSuccessAndAddPet,
 }: Props) {
   const toast = useToast();
+
   const defaultValues = useMemo(() => {
     return client ? clientToFormData(client) : DEFAULT_CLIENT_FORM;
   }, [client]);
+
   const [showAdditionalInfo, setShowAdditionalInfo] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      if (mode === "edit" && client) {
+        const hasAdditional = Boolean(
+          client.document ||
+          client.birth_date ||
+          client.email ||
+          client.instagram ||
+          client.facebook ||
+          client.cep ||
+          client.street
+        );
+        setShowAdditionalInfo(hasAdditional);
+      } else {
+        setShowAdditionalInfo(false);
+      }
+    }
+  }, [open, mode, client]);
+
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (data: ClientFormData, action?: "addPet") => {

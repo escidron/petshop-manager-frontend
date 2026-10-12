@@ -11,7 +11,7 @@ export const SaleItemSchema = z.object({
   item_type: z.enum(["product", "service", "package"]),
   item_id: z.number(),
   name: z.string(),
-  quantity: z.number().min(1),
+  quantity: z.number().gt(0),
   unit_price: z.number().min(0),
   subtotal: z.number().min(0),
   pet_ids: z.array(z.number()).optional(),
@@ -23,6 +23,7 @@ export const SaleItemSchema = z.object({
   status: z.enum(["active", "canceled"]).optional(),
   cancel_reason: z.string().nullable().optional(),
   canceled_at: z.string().nullable().optional(),
+  max_stock: z.number().optional(),
 });
 
 export const SalePaymentSchema = z.object({

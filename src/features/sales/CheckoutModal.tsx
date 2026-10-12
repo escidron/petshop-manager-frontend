@@ -264,6 +264,13 @@ export default function CheckoutModal({
   });
 
   const doCheckout = () => {
+    for (const item of cart) {
+      if (item.item_type === "product" && typeof item.max_stock === "number" && item.quantity > item.max_stock) {
+        toast.error(`Quantidade de "${item.name}" (${item.quantity} ${item.unit || "UN"}) excede o estoque disponível (${item.max_stock} ${item.unit || "UN"}).`);
+        return;
+      }
+    }
+
     const itemsWithEmployee: SaleItem[] = cart.map((item, idx) => ({
       ...item,
       employee_id: item.item_type === "service" ? (employeeMap[idx] ?? null) : null,

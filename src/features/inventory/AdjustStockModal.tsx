@@ -13,7 +13,7 @@ import {
   useTheme,
   useMediaQuery,
 } from "@mui/material";
-import { useForm, Controller } from "react-hook-form";
+import { useForm, Controller, type Resolver } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import { adjustStock, fetchProducts } from "../../api/services/products";
@@ -53,7 +53,7 @@ export default function AdjustStockModal({
     watch,
     formState: { errors },
   } = useForm<InventoryAdjustment>({
-    resolver: zodResolver(InventoryAdjustmentSchema),
+    resolver: zodResolver(InventoryAdjustmentSchema) as Resolver<InventoryAdjustment>,
     defaultValues: {
       product_id: product?.id || 0,
       log_type: "adjustment",
@@ -225,17 +225,18 @@ export default function AdjustStockModal({
                 render={({ field }) => (
                   <TextField
                     size="small"
-                    type="number"
                     fullWidth
                     placeholder="Quantidade"
+                    inputMode="decimal"
                     error={!!errors.quantity_changed}
                     helperText={errors.quantity_changed?.message}
                     value={field.value === 0 ? "" : field.value}
-                    onChange={(e) =>
-                      field.onChange(
-                        e.target.value === "" ? 0 : Number(e.target.value),
-                      )
-                    }
+                    onChange={(e) => {
+                      const val = e.target.value.trim();
+                      if (/^[0-9]*[.,]?[0-9]*$/.test(val) || val === "") {
+                        field.onChange(val);
+                      }
+                    }}
                     onBlur={field.onBlur}
                     name={field.name}
                     ref={field.ref}

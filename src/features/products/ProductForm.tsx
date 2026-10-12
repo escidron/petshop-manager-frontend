@@ -235,14 +235,16 @@ const ProductForm = ({
                   render={({ field, fieldState }) => (
                     <TextField
                       {...field}
-                      type="number"
                       size="small"
                       error={!!fieldState.error}
                       helperText={fieldState.error?.message}
                       placeholder="0"
+                      inputMode="decimal"
                       onChange={(e) => {
-                        const val = e.target.value;
-                        field.onChange(val === "" ? "" : Number(val));
+                        const val = e.target.value.trim();
+                        if (/^[0-9]*[.,]?[0-9]*$/.test(val) || val === "") {
+                          field.onChange(val);
+                        }
                       }}
                       value={field.value ?? ""}
                     />
@@ -260,14 +262,16 @@ const ProductForm = ({
                   render={({ field, fieldState }) => (
                     <TextField
                       {...field}
-                      type="number"
                       size="small"
                       error={!!fieldState.error}
                       helperText={fieldState.error?.message}
                       placeholder="0"
+                      inputMode="decimal"
                       onChange={(e) => {
-                        const val = e.target.value;
-                        field.onChange(val === "" ? "" : Number(val));
+                        const val = e.target.value.trim();
+                        if (/^[0-9]*[.,]?[0-9]*$/.test(val) || val === "") {
+                          field.onChange(val);
+                        }
                       }}
                       value={field.value ?? ""}
                     />

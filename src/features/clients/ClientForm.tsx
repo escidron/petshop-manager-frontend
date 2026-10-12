@@ -13,7 +13,7 @@ import {
 } from "@mui/material";
 import { Controller, useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 
 import CustomTextField from "../../components/Textfield/CustomTextfield";
 import { Button } from "../../components/Button/Button";
@@ -57,6 +57,9 @@ export default function ClientForm({
 }: Props) {
   const [loadingCep, setLoadingCep] = useState(false);
   const toast = useToast();
+  const lastLookedUpCepRef = useRef<string | null>(
+    defaultValues?.cep?.replace(/\D/g, "") || null
+  );
   const form = useForm<ClientFormData>({
     resolver: zodResolver(clientSchema),
     defaultValues: {
@@ -94,6 +97,9 @@ export default function ClientForm({
   const applyMasksOnEdit = (data?: Partial<ClientFormData>) => {
     if (!data) return data;
 
+    const rawDoc = data.document ? String(data.document).replace(/\D/g, "") : "";
+    const docType = data.document_type || (rawDoc.length > 11 ? "CNPJ" : "CPF");
+
     return {
       ...data,
       phone: data.phone ? maskPhone(data.phone) : "",
@@ -102,12 +108,10 @@ export default function ClientForm({
         : "",
       phone_tertiary: data.phone_tertiary ? maskPhone(data.phone_tertiary) : "",
       cep: data.cep ? maskCep(data.cep) : "",
-      document:
-        data.document && data.document_type === "CPF"
-          ? maskCpf(data.document)
-          : data.document && data.document_type === "CNPJ"
-            ? maskCnpj(data.document)
-            : "",
+      document_type: docType,
+      document: rawDoc
+        ? (docType === "CNPJ" ? maskCnpj(rawDoc) : maskCpf(rawDoc))
+        : "",
       birth_date: data.birth_date
         ? maskBirthDate(data.birth_date) // DD/MM/YYYY
         : "",
@@ -116,6 +120,9 @@ export default function ClientForm({
 
   useEffect(() => {
     if (open === false || !defaultValues) return;
+
+    const initialCep = defaultValues.cep?.replace(/\D/g, "") || null;
+    lastLookedUpCepRef.current = initialCep;
 
     reset({
       is_active: true,
@@ -126,8 +133,10 @@ export default function ClientForm({
   useEffect(() => {
     const cleanCep = cepValue?.replace(/\D/g, "");
 
-    if (cleanCep?.length !== 8) return;
+    if (!cleanCep || cleanCep.length !== 8) return;
+    if (lastLookedUpCepRef.current === cleanCep) return;
 
+    lastLookedUpCepRef.current = cleanCep;
     handleCepLookup(cleanCep);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cepValue]);

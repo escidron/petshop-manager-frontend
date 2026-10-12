@@ -259,11 +259,12 @@ export default function POSInterface() {
   }, [pendingAppointments, searchTerm]);
 
   const cartTotal = cart.reduce((acc, item) => acc + item.subtotal, 0);
-  const discountPercentage = cartTotal > 0 ? (discountAmount / cartTotal) * 100 : 0;
+  const maxDiscountPercentage = tenant?.max_discount_percentage ?? 100;
+  const maxAllowedDiscountCents = Math.round((maxDiscountPercentage / 100) * cartTotal * 100);
   const isDiscountExceeded =
     tenant?.allow_discount === false
       ? discountAmount > 0
-      : discountPercentage > (tenant?.max_discount_percentage ?? 100);
+      : discountCents > maxAllowedDiscountCents;
 
   const isLoadingItems = startupLoading || clientDetailsLoading;
 
@@ -377,7 +378,8 @@ export default function POSInterface() {
     setDiscountCents(discCents);
     const itemsSubtotal = (targetComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
     if (itemsSubtotal > 0 && targetComanda.discount_amount > 0) {
-      setDiscountPctInput(((targetComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+      const pct = (targetComanda.discount_amount / itemsSubtotal) * 100;
+      setDiscountPctInput(Number(pct.toFixed(2)).toString());
     } else {
       setDiscountPctInput("0");
     }
@@ -413,6 +415,7 @@ export default function POSInterface() {
               }
             }
           }
+          const product = item.item_type === "product" ? products.find((p) => p.id === item.item_id) : undefined;
           return {
             item_id: item.item_id,
             item_type: item.item_type,
@@ -426,6 +429,7 @@ export default function POSInterface() {
             unit: item.unit || "UN",
             appointment_id: aptId,
             appointment_date: aptDate,
+            max_stock: product ? product.quantity : undefined,
           };
         });
     };
@@ -581,6 +585,20 @@ export default function POSInterface() {
       setIsOpenCashModalOpen(true);
       return;
     }
+    if (isDiscountExceeded) {
+      toast.error(`O desconto aplicado excede o limite máximo permitido (${tenant?.max_discount_percentage ?? 100}%).`);
+      return;
+    }
+    for (const item of cart) {
+      if (item.item_type === "product") {
+        const product = products.find((p) => p.id === item.item_id);
+        const maxStock = typeof item.max_stock === "number" ? item.max_stock : (product ? product.quantity : undefined);
+        if (typeof maxStock === "number" && item.quantity > maxStock) {
+          toast.error(`Quantidade de "${item.name}" (${item.quantity} ${item.unit || "UN"}) excede o estoque disponível (${maxStock} ${item.unit || "UN"}). Ajuste antes de finalizar.`);
+          return;
+        }
+      }
+    }
     setIsCheckoutOpen(true);
   };
 
@@ -607,8 +625,20 @@ export default function POSInterface() {
     );
 
     if (existingIndex >= 0) {
-      if (type === "product" && cart[existingIndex].quantity >= (item.quantity || 0)) {
-        toast.warning("Quantidade máxima em estoque atingida.");
+      if (type === "product") {
+        const product = products.find((p) => p.id === item.id);
+        const maxStock = typeof item.quantity === "number" ? item.quantity : (product ? product.quantity : (cart[existingIndex].max_stock ?? 0));
+        const currentQty = cart[existingIndex].quantity;
+        if (currentQty >= maxStock) {
+          toast.warning(`Quantidade máxima em estoque atingida (${maxStock} ${item.unit || "UN"}).`);
+          return;
+        }
+        const newCart = [...cart];
+        const nextQty = Math.min(maxStock, Math.round((currentQty + 1) * 1000) / 1000);
+        newCart[existingIndex].quantity = nextQty;
+        newCart[existingIndex].max_stock = maxStock;
+        newCart[existingIndex].subtotal = Math.round(nextQty * newCart[existingIndex].unit_price * 100) / 100;
+        setCart(newCart);
         return;
       }
       const newCart = [...cart];
@@ -616,6 +646,27 @@ export default function POSInterface() {
       newCart[existingIndex].subtotal = newCart[existingIndex].quantity * newCart[existingIndex].unit_price;
       setCart(newCart);
     } else {
+      if (type === "product") {
+        const product = products.find((p) => p.id === item.id);
+        const stock = typeof item.quantity === "number" ? item.quantity : (product ? product.quantity : 0);
+        if (stock <= 0) {
+          toast.warning("Produto sem estoque disponível.");
+          return;
+        }
+        const initialQty = Math.min(1, stock);
+        setCart([...cart, {
+          item_id: item.id,
+          item_type: type,
+          name: displayName,
+          quantity: initialQty,
+          unit_price: price,
+          subtotal: Math.round(initialQty * price * 100) / 100,
+          pet_ids: petIds,
+          unit: item.unit || "UN",
+          max_stock: stock,
+        }]);
+        return;
+      }
       setCart([...cart, {
         item_id: item.id,
         item_type: type,
@@ -624,7 +675,7 @@ export default function POSInterface() {
         unit_price: price,
         subtotal: price,
         pet_ids: petIds,
-        unit: type === "product" ? item.unit || "UN" : "UN",
+        unit: "UN",
       }]);
     }
   };
@@ -660,14 +711,24 @@ export default function POSInterface() {
   const handleUpdateQuantity = (index: number, delta: number) => {
     const newCart = [...cart];
     const item = newCart[index];
-    const newQuantity = item.quantity + delta;
+    let newQuantity = Math.round((item.quantity + delta) * 1000) / 1000;
     if (newQuantity <= 0) { handleRemoveItem(index); return; }
     if (item.item_type === "product") {
       const product = products.find((p) => p.id === item.item_id);
-      if (product && newQuantity > product.quantity) { toast.warning("Limite de estoque atingido."); return; }
+      const maxStock = typeof item.max_stock === "number" ? item.max_stock : (product ? product.quantity : undefined);
+      if (typeof maxStock === "number") {
+        if (item.quantity >= maxStock && delta > 0) {
+          toast.warning(`Quantidade máxima em estoque atingida (${maxStock} ${item.unit || "UN"}).`);
+          return;
+        }
+        if (newQuantity > maxStock) {
+          toast.warning(`Ajustado para o estoque máximo disponível (${maxStock} ${item.unit || "UN"}).`);
+          newQuantity = maxStock;
+        }
+      }
     }
     item.quantity = newQuantity;
-    item.subtotal = item.quantity * item.unit_price;
+    item.subtotal = Math.round(item.quantity * item.unit_price * 100) / 100;
     setCart(newCart);
   };
 
@@ -675,12 +736,17 @@ export default function POSInterface() {
     if (value <= 0) return;
     const newCart = [...cart];
     const item = newCart[index];
+    let roundedValue = Math.round(value * 1000) / 1000;
     if (item.item_type === "product") {
       const product = products.find((p) => p.id === item.item_id);
-      if (product && value > product.quantity) { toast.warning("Limite de estoque atingido."); return; }
+      const maxStock = typeof item.max_stock === "number" ? item.max_stock : (product ? product.quantity : undefined);
+      if (typeof maxStock === "number" && roundedValue > maxStock) {
+        toast.warning(`Limite de estoque atingido: máximo ${maxStock} ${item.unit || "UN"}`);
+        roundedValue = maxStock;
+      }
     }
-    item.quantity = value;
-    item.subtotal = item.quantity * item.unit_price;
+    item.quantity = roundedValue;
+    item.subtotal = Math.round(item.quantity * item.unit_price * 100) / 100;
     setCart(newCart);
   };
 
@@ -773,6 +839,7 @@ export default function POSInterface() {
             if (isService && aptId) {
               aptDate = item.appointment_date || matchedAppt?.scheduled_at || undefined;
             }
+            const product = item.item_type === "product" ? products.find((p) => p.id === item.item_id) : undefined;
             return {
               item_id: item.item_id,
               item_type: item.item_type,
@@ -786,6 +853,7 @@ export default function POSInterface() {
               unit: item.unit || "UN",
               appointment_id: aptId,
               appointment_date: aptDate,
+              max_stock: product ? product.quantity : undefined,
             };
           });
         setActiveComandaId(openComanda.id);
@@ -793,7 +861,8 @@ export default function POSInterface() {
         setDiscountCents(discCents);
         const itemsSubtotal = (openComanda.items || []).reduce((acc, i) => acc + i.subtotal, 0);
         if (itemsSubtotal > 0 && openComanda.discount_amount > 0) {
-          setDiscountPctInput(((openComanda.discount_amount / itemsSubtotal) * 100).toFixed(2));
+          const pct = (openComanda.discount_amount / itemsSubtotal) * 100;
+          setDiscountPctInput(Number(pct.toFixed(2)).toString());
         } else {
           setDiscountPctInput("0");
         }

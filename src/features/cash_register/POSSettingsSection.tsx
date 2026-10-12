@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Box,
   Typography,
@@ -17,6 +17,7 @@ import {
   DialogContent,
   DialogActions,
   TextField,
+  InputAdornment,
   FormControl,
   FormLabel,
   Select,
@@ -78,22 +79,44 @@ export default function POSSettingsSection() {
   const [discountEnabled, setDiscountEnabled] = useState<boolean>(
     tenant?.allow_discount ?? true
   );
-  const [discountValue, setDiscountValue] = useState<number>(
-    tenant?.max_discount_percentage ?? 100
-  );
+  const [discountInput, setDiscountInput] = useState<string>(() => {
+    const val = tenant?.max_discount_percentage ?? 100;
+    return Number.isInteger(val) ? String(val) : String(val).replace(".", ",");
+  });
   const [savingDiscount, setSavingDiscount] = useState(false);
+
+  useEffect(() => {
+    if (tenant) {
+      setDiscountEnabled(tenant.allow_discount ?? true);
+      const val = tenant.max_discount_percentage ?? 100;
+      setDiscountInput(Number.isInteger(val) ? String(val) : String(val).replace(".", ","));
+    }
+  }, [tenant?.allow_discount, tenant?.max_discount_percentage]);
+
+  const parseDiscountInput = (raw: string): number => {
+    const normalized = raw.trim().replace(",", ".");
+    if (!normalized || isNaN(parseFloat(normalized))) return 0;
+    const num = parseFloat(normalized);
+    return Math.min(100, Math.max(0, Math.round(num * 100) / 100));
+  };
+
+  const handleDiscountBlur = () => {
+    const finalVal = parseDiscountInput(discountInput);
+    setDiscountInput(Number.isInteger(finalVal) ? String(finalVal) : String(finalVal).replace(".", ","));
+  };
 
   const handleToggleDiscount = async (enabled: boolean) => {
     if (!tenant) return;
     setDiscountEnabled(enabled);
     setSavingDiscount(true);
+    const finalVal = parseDiscountInput(discountInput);
     try {
       const payload = {
         name: tenant.name,
         phone: tenant.phone,
         document: tenant.document || null,
         allow_discount: enabled,
-        max_discount_percentage: enabled ? Number(discountValue) : 0,
+        max_discount_percentage: enabled ? finalVal : 0,
       };
       const updatedTenant = await updateTenant(tenant.id, payload);
       setTenant({ ...tenant, ...updatedTenant });
@@ -111,6 +134,8 @@ export default function POSSettingsSection() {
 
   const handleSaveDiscountValue = async () => {
     if (!tenant) return;
+    const finalVal = parseDiscountInput(discountInput);
+    setDiscountInput(Number.isInteger(finalVal) ? String(finalVal) : String(finalVal).replace(".", ","));
     setSavingDiscount(true);
     try {
       const payload = {
@@ -118,7 +143,7 @@ export default function POSSettingsSection() {
         phone: tenant.phone,
         document: tenant.document || null,
         allow_discount: discountEnabled,
-        max_discount_percentage: discountEnabled ? Number(discountValue) : 0,
+        max_discount_percentage: discountEnabled ? finalVal : 0,
       };
       const updatedTenant = await updateTenant(tenant.id, payload);
       setTenant({ ...tenant, ...updatedTenant });
@@ -899,21 +924,53 @@ export default function POSSettingsSection() {
 
                 <Box sx={{ display: "flex", gap: 1.25, alignItems: "center", width: { xs: "100%", sm: "auto" } }}>
                   <TextField
-                    type="number"
+                    type="text"
+                    inputMode="decimal"
                     size="small"
-                    value={discountValue}
+                    placeholder="0"
+                    value={discountInput}
                     disabled={savingDiscount}
-                    onChange={(e) =>
-                      setDiscountValue(
-                        Math.max(0, Math.min(100, parseFloat(e.target.value) || 0))
-                      )
-                    }
-                    slotProps={{ htmlInput: { min: 0, max: 100, step: 1 } }}
+                    onFocus={(e) => e.target.select()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (val === "" || /^[0-9]*[.,]?[0-9]*$/.test(val)) {
+                        setDiscountInput(val);
+                      }
+                    }}
+                    onBlur={handleDiscountBlur}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.currentTarget.blur();
+                        handleSaveDiscountValue();
+                      }
+                    }}
+                    slotProps={{
+                      input: {
+                        endAdornment: (
+                          <InputAdornment position="end" sx={{ mr: 0.5 }}>
+                            <Typography sx={{ color: "text.secondary", fontWeight: 700, fontSize: "0.85rem" }}>
+                              %
+                            </Typography>
+                          </InputAdornment>
+                        ),
+                      },
+                      htmlInput: {
+                        style: {
+                          textAlign: "right",
+                          fontWeight: 800,
+                          fontSize: "0.95rem",
+                          padding: "6px 8px",
+                        },
+                      },
+                    }}
                     sx={{
-                      width: { xs: 80, sm: 90 },
+                      width: { xs: 90, sm: 105 },
                       bgcolor: "#ffffff",
                       borderRadius: 1.5,
-                      "& .MuiInputBase-input": { py: 0.75, fontWeight: 800, fontSize: "0.9rem" },
+                      "& input::-webkit-outer-spin-button, & input::-webkit-inner-spin-button": {
+                        WebkitAppearance: "none",
+                        margin: 0,
+                      },
                     }}
                   />
                   <Button

@@ -284,7 +284,7 @@ export default function MainLayout() {
           </Box>
 
           <Box sx={{ display: "flex", alignItems: "center", gap: { xs: 0.5, sm: 1 }, flexShrink: 0 }}>
-            {isOwner && <BillNotificationBell />}
+            {(isOwner || hasPermission("financial-bills")) && <BillNotificationBell />}
 
             <Box
               component="button"

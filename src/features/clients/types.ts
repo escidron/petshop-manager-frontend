@@ -35,6 +35,7 @@ export type Client = {
   // Redes sociais
   instagram?: string | null;
   facebook?: string | null;
+  x?: string | null;
   created_at?: string;
   updated_at?: string;
 

@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -45,6 +45,18 @@ type Props = {
   onSuccess?: () => void;
 };
 
+const getMaxOccurrences = (freq: "weekly" | "biweekly" | "monthly") => {
+  if (freq === "weekly") return 52;
+  if (freq === "biweekly") return 26;
+  return 12;
+};
+
+const getPresetOccurrences = (freq: "weekly" | "biweekly" | "monthly") => {
+  if (freq === "weekly") return [4, 8, 12, 16, 24, 52];
+  if (freq === "biweekly") return [4, 8, 12, 16, 26];
+  return [2, 4, 6, 8, 12];
+};
+
 export default function ManageRecurrenceModal({
   open,
   appointment,
@@ -70,23 +82,41 @@ export default function ManageRecurrenceModal({
     appointment ? dayjs(appointment.scheduled_at) : dayjs().hour(9).minute(0)
   );
   const [occurrences, setOccurrences] = useState<number>(
-    appointment?.recurrence?.occurrences || 8
+    Math.min(
+      appointment?.recurrence?.occurrences || (initialFrequency === "monthly" ? 6 : 8),
+      getMaxOccurrences(initialFrequency)
+    )
   );
   const [saving, setSaving] = useState(false);
   const [confirmCancelOpen, setConfirmCancelOpen] = useState(false);
   const [canceling, setCanceling] = useState(false);
 
-  // Sync state if appointment changes
-  useState(() => {
-    if (appointment) {
-      setFrequency(initialFrequency);
+  // Sync state if modal opens or appointment changes
+  useEffect(() => {
+    if (open && appointment) {
+      const freq = (
+        appointment.recurrence_frequency === "monthly"
+          ? "monthly"
+          : appointment.recurrence_frequency === "biweekly"
+          ? "biweekly"
+          : "weekly"
+      ) as "weekly" | "biweekly" | "monthly";
+
+      const maxAllowed = getMaxOccurrences(freq);
+      const initialOcc = appointment.recurrence?.occurrences || (freq === "monthly" ? 6 : 8);
+
+      setFrequency(freq);
       setScheduledDate(dayjs(appointment.scheduled_at));
       setScheduledTime(dayjs(appointment.scheduled_at));
-      if (appointment.recurrence?.occurrences) {
-        setOccurrences(appointment.recurrence.occurrences);
-      }
+      setOccurrences(Math.min(Math.max(2, initialOcc), maxAllowed));
     }
-  });
+  }, [open, appointment]);
+
+  const handleFrequencyChange = (newFreq: "weekly" | "biweekly" | "monthly") => {
+    setFrequency(newFreq);
+    const maxAllowed = getMaxOccurrences(newFreq);
+    setOccurrences((prev) => Math.min(Number(prev) || 2, maxAllowed));
+  };
 
   // Calculate upcoming dates preview
   const upcomingPreviewDates = useMemo(() => {
@@ -135,13 +165,16 @@ export default function ManageRecurrenceModal({
       .millisecond(0)
       .toISOString();
 
+    const maxAllowed = getMaxOccurrences(frequency);
+    const finalOccurrences = Math.max(2, Math.min(Number(occurrences) || 2, maxAllowed));
+
     setSaving(true);
     try {
       await updateAppointment(appointment.id, {
         scheduled_at: finalDateTime,
         recurrence: {
           frequency,
-          occurrences,
+          occurrences: finalOccurrences,
         },
         update_all_future: true,
       });
@@ -298,7 +331,7 @@ export default function ManageRecurrenceModal({
                   <Paper
                     key={opt.id}
                     elevation={0}
-                    onClick={() => setFrequency(opt.id as any)}
+                    onClick={() => handleFrequencyChange(opt.id as any)}
                     sx={{
                       p: 1.5,
                       borderRadius: 2.5,
@@ -372,7 +405,7 @@ export default function ManageRecurrenceModal({
               Quantidade de Sessões Futuras
             </Typography>
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap", mb: 1.5 }}>
-              {[4, 8, 12, 16, 24].map((num) => (
+              {getPresetOccurrences(frequency).map((num) => (
                 <Chip
                   key={num}
                   label={`${num} sessões`}
@@ -390,16 +423,28 @@ export default function ManageRecurrenceModal({
               label="Número personalizado de repetições"
               value={occurrences}
               onChange={(e) => {
-                const val = parseInt(e.target.value, 10);
-                if (!isNaN(val) && val >= 2 && val <= 52) {
-                  setOccurrences(val);
-                } else if (e.target.value === "") {
-                  setOccurrences(2);
+                const val = e.target.value;
+                if (val === "") {
+                  setOccurrences("" as any);
+                  return;
+                }
+                const num = parseInt(val, 10);
+                if (!isNaN(num)) {
+                  setOccurrences(Math.min(num, getMaxOccurrences(frequency)));
                 }
               }}
-              inputProps={{ min: 2, max: 52 }}
-              helperText="Mínimo de 2 e máximo de 52 sessões"
-              sx={{ width: { xs: "100%", sm: "260px" } }}
+              onBlur={() => {
+                const maxAllowed = getMaxOccurrences(frequency);
+                const num = Number(occurrences);
+                if (isNaN(num) || num < 2) {
+                  setOccurrences(2);
+                } else if (num > maxAllowed) {
+                  setOccurrences(maxAllowed);
+                }
+              }}
+              inputProps={{ min: 2, max: getMaxOccurrences(frequency) }}
+              helperText={`Mínimo de 2 e máximo de ${getMaxOccurrences(frequency)} sessões (até 1 ano)`}
+              sx={{ width: { xs: "100%", sm: "280px" } }}
             />
           </Box>
 

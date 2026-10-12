@@ -63,7 +63,7 @@ export default function CashReceiptPrintModal({
         </IconButton>
       </Box>
 
-      <DialogContent sx={{ p: 2 }}>
+      <DialogContent sx={{ p: { xs: 1.5, sm: 2.5 }, pt: 2, pb: 2.5, bgcolor: "#F1F5F9" }}>
         {/* Printable Thermal Receipt Box */}
         <Box
           id="cash-receipt-print-area"
@@ -72,11 +72,12 @@ export default function CashReceiptPrintModal({
             "&, & *": {
               fontFamily: "'Courier New', Courier, 'Lucida Console', Monaco, monospace !important",
             },
-            bgcolor: "#ffffff",
+            bgcolor: "#FEFCE8",
             p: 2.5,
-            border: "1px solid #E5E7EB",
+            border: "1px solid #EFE4B8",
             borderRadius: 2,
-            maxWidth: "320px",
+            boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04)",
+            maxWidth: "340px",
             mx: "auto",
             color: "#111827",
             lineHeight: 1.4,
@@ -85,6 +86,8 @@ export default function CashReceiptPrintModal({
               p: 0,
               width: "100%",
               maxWidth: "100%",
+              bgcolor: "#ffffff !important",
+              boxShadow: "none",
             },
           }}
         >

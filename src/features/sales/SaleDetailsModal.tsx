@@ -353,7 +353,11 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
                             })()}
                           </TableCell>
                           <TableCell align="center" sx={{ color: isCanceled ? "text.secondary" : "inherit" }}>
-                            {item.quantity}
+                            {typeof item.quantity === "number"
+                              ? (Number.isInteger(item.quantity)
+                                  ? item.quantity
+                                  : Number(item.quantity.toFixed(3)).toLocaleString("pt-BR"))
+                              : item.quantity}
                           </TableCell>
                           <TableCell align="right">
                             {(() => {
@@ -560,7 +564,7 @@ export default function SaleDetailsModal({ open, saleId, onClose }: Props) {
           </Typography>
           {itemToCancel?.item_type === "product" && (
             <Alert severity="info" sx={{ mb: 2, fontSize: "0.82rem" }}>
-              <strong>Estoque:</strong> A quantidade ({itemToCancel.quantity} un) será devolvida automaticamente ao estoque.
+              <strong>Estoque:</strong> A quantidade ({itemToCancel.quantity} {itemToCancel.unit || "un"}) será devolvida automaticamente ao estoque.
             </Alert>
           )}
           <TextField
