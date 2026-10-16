@@ -73,8 +73,8 @@ export default function ServicePickerDrawer({
 
     return list.filter((s) => {
       const matchName = s.name.toLowerCase().includes(term);
-      const matchSize = s.size ? s.size.toLowerCase().includes(term) : false;
-      const matchCoat = s.coat_type ? s.coat_type.toLowerCase().includes(term) : false;
+      const matchSize = (s.sizes?.join(" ") || s.size || "").toLowerCase().includes(term);
+      const matchCoat = (s.coat_types?.join(" ") || s.coat_type || "").toLowerCase().includes(term);
       return matchName || matchSize || matchCoat;
     });
   }, [services, pet, showAllServices, search]);

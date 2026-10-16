@@ -237,7 +237,7 @@ export default function ServiceLibraryModal({
                 <ListItem sx={{ px: 0 }}>
                   <ListItemText
                     primary="especie, porte e pelagem"
-                    secondary="Espécie (Canino, Felino), porte (PP, P, M, G, GG) e pelagem (Curta, Média, Longa). Permite criar variantes do mesmo serviço."
+                    secondary="Permite um ou múltiplos valores separados por vírgula (ex: Canino, Felino | P, M, G | Curta, Média). Se deixar a célula em branco, o serviço será compatível com todas as opções."
                     primaryTypographyProps={{ fontWeight: "bold", fontSize: "13px", color: "text.primary" }}
                     secondaryTypographyProps={{ color: "text.primary", fontSize: "12px" }}
                   />

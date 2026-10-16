@@ -828,14 +828,27 @@ export default function POSCatalogPanel({
                           </Box>
                         )}
 
-                        {(service.species || service.size || service.coat_type || service.duration_minutes) && (
-                          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
-                            {service.species && <Chip label={service.species} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                            {service.size && <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                            {service.coat_type && <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                            {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
-                          </Box>
-                        )}
+                        {(() => {
+                          const speciesLabel = Array.isArray(service.species) ? service.species.join(", ") : service.species;
+                          const sizeLabel = service.sizes && service.sizes.length > 0 ? service.sizes.join(", ") : service.size;
+                          let coatLabel = "";
+                          if (service.coat_types && service.coat_types.length > 0) {
+                            coatLabel = service.coat_types.map((c) => getCoatTypeLabel(c as CoatType)).filter(Boolean).join(", ");
+                          } else if (service.coat_type) {
+                            coatLabel = getCoatTypeLabel(service.coat_type as CoatType);
+                          }
+                          const hasDetails = speciesLabel || sizeLabel || coatLabel || service.duration_minutes;
+                          if (!hasDetails) return null;
+
+                          return (
+                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mb: 1 }}>
+                              {speciesLabel && <Chip label={speciesLabel} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                              {sizeLabel && <Chip label={`Porte ${sizeLabel}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                              {coatLabel && <Chip label={`Pel. ${coatLabel}`} size="small" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                              {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.6rem", height: 18, fontWeight: 600 }} />}
+                            </Box>
+                          );
+                        })()}
                         <Box sx={{ mt: "auto", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                           <Typography variant="subtitle1" sx={{ fontWeight: 800, color: isCompatible ? "primary.main" : "text.primary" }}>
                             R$ {((service.price_cents || 0) / 100).toFixed(2)}
@@ -932,14 +945,27 @@ export default function POSCatalogPanel({
                               )
                             )}
                           </Box>
-                          {(service.species || service.size || service.coat_type || service.duration_minutes) && (
-                            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
-                              {service.species && <Chip label={service.species} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                              {service.size && <Chip label={`Porte ${service.size}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                              {service.coat_type && <Chip label={`Pel. ${getCoatTypeLabel(service.coat_type as CoatType)}`} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                              {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
-                            </Box>
-                          )}
+                          {(() => {
+                            const speciesLabel = Array.isArray(service.species) ? service.species.join(", ") : service.species;
+                            const sizeLabel = service.sizes && service.sizes.length > 0 ? service.sizes.join(", ") : service.size;
+                            let coatLabel = "";
+                            if (service.coat_types && service.coat_types.length > 0) {
+                              coatLabel = service.coat_types.map((c) => getCoatTypeLabel(c as CoatType)).filter(Boolean).join(", ");
+                            } else if (service.coat_type) {
+                              coatLabel = getCoatTypeLabel(service.coat_type as CoatType);
+                            }
+                            const hasDetails = speciesLabel || sizeLabel || coatLabel || service.duration_minutes;
+                            if (!hasDetails) return null;
+
+                            return (
+                              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+                                {speciesLabel && <Chip label={speciesLabel} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                                {sizeLabel && <Chip label={`Porte ${sizeLabel}`} size="small" color="primary" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                                {coatLabel && <Chip label={`Pel. ${coatLabel}`} size="small" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                                {service.duration_minutes && <Chip label={`${service.duration_minutes} min`} size="small" variant="outlined" sx={{ fontSize: "0.55rem", height: 16, fontWeight: 600 }} />}
+                              </Box>
+                            );
+                          })()}
                         </Box>
                         <Typography variant="body2" sx={{ fontWeight: 800, color: isCompatible ? "primary.main" : "text.primary", minWidth: 80, textAlign: "right" }}>
                           R$ {((service.price_cents || 0) / 100).toFixed(2)}

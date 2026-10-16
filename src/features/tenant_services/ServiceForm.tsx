@@ -1,6 +1,7 @@
 import {
   Autocomplete,
   Box,
+  Chip,
   Divider,
   FormControl,
   FormControlLabel,
@@ -11,6 +12,7 @@ import {
   Typography,
 } from "@mui/material";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
+import { useEffect } from "react";
 import type { ServiceFormData } from "./types";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -43,6 +45,16 @@ const ServiceForm = ({
       ...defaultValues,
     },
   });
+
+  useEffect(() => {
+    if (defaultValues) {
+      form.reset({
+        name: "",
+        is_active: true,
+        ...defaultValues,
+      });
+    }
+  }, [defaultValues, form]);
 
   const {
     control,
@@ -208,30 +220,51 @@ const ServiceForm = ({
 
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5 }}>
-                  Tipo de animal
+                  Tipo de animal (Espécies)
                 </FormLabel>
                 <Controller
                   name="species"
                   control={control}
                   render={({ field, fieldState }) => (
                     <Autocomplete
+                      multiple
                       options={PET_SPECIES ?? []}
                       size="small"
                       value={
-                        PET_SPECIES?.find((s) => s.value === field.value) ??
-                        null
+                        (PET_SPECIES ?? []).filter((s) =>
+                          (field.value ?? []).some(
+                            (v) => String(v).trim().toLowerCase() === s.value.toLowerCase(),
+                          ),
+                        )
                       }
-                      onChange={(_, specie) =>
-                        field.onChange(specie?.value ?? null)
+                      onChange={(_, selected) =>
+                        field.onChange(selected.map((s) => s.value))
                       }
                       getOptionLabel={(option) => option.label}
                       isOptionEqualToValue={(option, value) =>
-                        option.value === value.value
+                        option.value.toLowerCase() === value.value.toLowerCase()
+                      }
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={option.label}
+                              size="small"
+                              {...tagProps}
+                            />
+                          );
+                        })
                       }
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          placeholder="Pesquisar Espécie"
+                          placeholder={
+                            field.value && field.value.length > 0
+                              ? ""
+                              : "Todas as espécies (padrão)"
+                          }
                           error={!!fieldState.error}
                           helperText={fieldState.error?.message}
                         />
@@ -246,25 +279,51 @@ const ServiceForm = ({
                   Porte do animal
                 </FormLabel>
                 <Controller
-                  name="size"
+                  name="sizes"
                   control={control}
-                  render={({ field }) => (
+                  render={({ field, fieldState }) => (
                     <Autocomplete
+                      multiple
                       options={PET_SIZES}
                       size="small"
                       value={
-                        PET_SIZES.find((size) => size.value === field.value) ??
-                        null
+                        PET_SIZES.filter((size) =>
+                          (field.value ?? []).some(
+                            (v) => String(v).trim().toLowerCase() === size.value.toLowerCase(),
+                          ),
+                        )
                       }
                       isOptionEqualToValue={(option, value) =>
-                        option.value === value.value
+                        option.value.toLowerCase() === value.value.toLowerCase()
                       }
                       getOptionLabel={(option) => option.label}
-                      onChange={(_, value) =>
-                        field.onChange(value?.value ?? null)
+                      onChange={(_, selected) =>
+                        field.onChange(selected.map((s) => s.value))
+                      }
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={option.label}
+                              size="small"
+                              {...tagProps}
+                            />
+                          );
+                        })
                       }
                       renderInput={(params) => (
-                        <TextField {...params} placeholder="Selecionar Porte" />
+                        <TextField
+                          {...params}
+                          placeholder={
+                            field.value && field.value.length > 0
+                              ? ""
+                              : "Todos os portes (padrão)"
+                          }
+                          error={!!fieldState.error}
+                          helperText={fieldState.error?.message}
+                        />
                       )}
                     />
                   )}
@@ -276,26 +335,48 @@ const ServiceForm = ({
                   Tipo de pelagem
                 </FormLabel>
                 <Controller
-                  name="coat_type"
+                  name="coat_types"
                   control={control}
                   render={({ field, fieldState }) => (
                     <Autocomplete
+                      multiple
                       options={COAT_TYPES ?? []}
                       size="small"
                       value={
-                        COAT_TYPES?.find(
-                          (type) => type.value === field.value,
-                        ) ?? null
+                        (COAT_TYPES ?? []).filter((type) =>
+                          (field.value ?? []).some(
+                            (v) => String(v).trim().toLowerCase() === type.value.toLowerCase(),
+                          ),
+                        )
                       }
                       isOptionEqualToValue={(option, value) =>
-                        option.value === value.value
+                        option.value.toLowerCase() === value.value.toLowerCase()
                       }
                       getOptionLabel={(option) => option.label}
-                      onChange={(_, type) => field.onChange(type?.value ?? null)}
+                      onChange={(_, selected) =>
+                        field.onChange(selected.map((t) => t.value))
+                      }
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={option.label}
+                              size="small"
+                              {...tagProps}
+                            />
+                          );
+                        })
+                      }
                       renderInput={(params) => (
                         <TextField
                           {...params}
-                          placeholder="Pesquisar Tipo"
+                          placeholder={
+                            field.value && field.value.length > 0
+                              ? ""
+                              : "Todas as pelagens (padrão)"
+                          }
                           error={!!fieldState.error}
                           helperText={fieldState.error?.message}
                         />

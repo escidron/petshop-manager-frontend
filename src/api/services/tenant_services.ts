@@ -28,7 +28,7 @@ export const createService = async ( payload: ServiceFormData) => {
   return response.data;
 };
 
-export const updateService = async (serviceId: number, payload: Partial<Service>) => {
+export const updateService = async (serviceId: number, payload: Partial<ServiceFormData | Service>) => {
   const response = await apiClient.patch<Service>(
     `/api/v1/services/${serviceId}`,
     payload,

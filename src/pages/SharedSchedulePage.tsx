@@ -104,6 +104,19 @@ export default function SharedSchedulePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
+  useEffect(() => {
+    // Garantir que a cor de fundo do html e body seja o mesmo azul escuro durante a exibição desta página
+    const originalBodyBg = document.body.style.backgroundColor;
+    const originalHtmlBg = document.documentElement.style.backgroundColor;
+    document.body.style.backgroundColor = "#1e3c72";
+    document.documentElement.style.backgroundColor = "#1e3c72";
+
+    return () => {
+      document.body.style.backgroundColor = originalBodyBg;
+      document.documentElement.style.backgroundColor = originalHtmlBg;
+    };
+  }, []);
+
   if (loading) {
     return <LoadingScreen message="Carregando sua agenda profissional..." />;
   }
@@ -160,12 +173,27 @@ export default function SharedSchedulePage() {
   return (
     <Box
       sx={{
-        minHeight: "100vh",
-        background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
+        minHeight: "100dvh",
+        width: "100%",
         color: "white",
         py: 4,
+        pb: { xs: 8, sm: 6 },
+        position: "relative",
       }}
     >
+      {/* Camada de fundo fixo que preenche 100% da viewport em qualquer rolagem */}
+      <Box
+        sx={{
+          position: "fixed",
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: "linear-gradient(135deg, #1e3c72 0%, #2a5298 100%)",
+          zIndex: -1,
+          pointerEvents: "none",
+        }}
+      />
       <Container maxWidth="sm">
         {/* HEADER */}
         <Box
