@@ -83,6 +83,7 @@ export default function POSInterface() {
   const [isCartLoading, setIsCartLoading] = useState(false);
   const isInitialLoadRef = useRef(false);
   const autoSaveTimeoutRef = useRef<any>(null);
+  const autoPulledClientIdRef = useRef<number | null>(null);
 
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false);
   const [completedSaleForReceipt, setCompletedSaleForReceipt] = useState<SaleResponse | null>(null);
@@ -371,6 +372,7 @@ export default function POSInterface() {
       }
     }
 
+    autoPulledClientIdRef.current = targetComanda.client_id;
     setSelectedClientId(targetComanda.client_id);
     setSelectedAppointmentId(targetComanda.appointment_id || null);
     setActiveComandaId(targetComanda.id);
@@ -384,11 +386,19 @@ export default function POSInterface() {
       setDiscountPctInput("0");
     }
 
-    const resolveComandaItems = (items: ComandaItem[] = [], extraAppts: Appointment[] = []): SaleItem[] => {
+    const resolveComandaItems = (
+      items: ComandaItem[] = [],
+      extraAppts: Appointment[] = [],
+      extraPkgs: ClientPackage[] = []
+    ): SaleItem[] => {
       const allAppts = [
         ...extraAppts,
         ...(clientDetailsData?.client_appointments || []),
         ...(startupData?.appointments || []),
+      ];
+      const allPkgs = [
+        ...extraPkgs,
+        ...(clientDetailsData?.client_packages || []),
       ];
 
       return items
@@ -396,8 +406,22 @@ export default function POSInterface() {
           if (item.status && item.status !== "active") {
             return false;
           }
-          if (item.item_type === "service" && (item.subtotal === 0 || item.name.includes("(via pacote)"))) {
-            return false;
+          if (item.item_type === "service") {
+            if (item.subtotal === 0 || item.name.includes("(via pacote)")) {
+              return false;
+            }
+            if (item.appointment_id) {
+              const matchedApt = allAppts.find((a) => a.id === item.appointment_id);
+              if (matchedApt?.is_paid) {
+                return false; // Previne cobrança em duplicidade de agendamento já pago
+              }
+            }
+          }
+          if (item.item_type === "package" && item.client_package_id_to_pay) {
+            const matchedPkg = allPkgs.find((p) => p.id === item.client_package_id_to_pay);
+            if (matchedPkg?.is_paid) {
+              return false; // Previne cobrança em duplicidade de pacote já pago
+            }
           }
           return true;
         })
@@ -435,15 +459,17 @@ export default function POSInterface() {
     };
 
     let appts: Appointment[] = [];
+    let pkgs: ClientPackage[] = [];
     try {
       const details = await fetchPOSClientDetails(targetComanda.client_id);
       queryClient.setQueryData(["pos-client", targetComanda.client_id], details);
       appts = details.client_appointments || [];
+      pkgs = details.client_packages || [];
     } catch {
       // ignore
     }
 
-    const updatedCart = resolveComandaItems(targetComanda.items || [], appts);
+    const updatedCart = resolveComandaItems(targetComanda.items || [], appts, pkgs);
     isInitialLoadRef.current = true;
     setCart(updatedCart);
     setComandaSyncStatus("saved");
@@ -460,6 +486,7 @@ export default function POSInterface() {
     setIsClientModalOpen(false);
 
     if (!clientId) {
+      autoPulledClientIdRef.current = null;
       setCart([]);
       setDiscountCents(0);
       setDiscountPctInput("0");
@@ -470,6 +497,7 @@ export default function POSInterface() {
       return;
     }
 
+    autoPulledClientIdRef.current = clientId;
     setSelectedClientId(clientId);
     setCart([]);
     setDiscountCents(0);
@@ -493,14 +521,23 @@ export default function POSInterface() {
   };
 
   useEffect(() => {
+    if (!selectedClientId) {
+      autoPulledClientIdRef.current = null;
+      return;
+    }
+    // Only auto-pull once per client selection session
+    if (autoPulledClientIdRef.current === selectedClientId) {
+      return;
+    }
+
     if (
-      selectedClientId &&
       !selectedAppointmentId &&
       cart.length === 0 &&
       !activeComandaId &&
       clientDetailsData?.open_comandas &&
       clientDetailsData.open_comandas.length > 0
     ) {
+      autoPulledClientIdRef.current = selectedClientId;
       handlePullComanda(clientDetailsData.open_comandas[0]);
     }
   }, [selectedClientId, selectedAppointmentId, clientDetailsData]);
@@ -527,6 +564,7 @@ export default function POSInterface() {
   }, [clientAppointments, allAppointments, cart]);
 
   const endSession = () => {
+    autoPulledClientIdRef.current = null;
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
       autoSaveTimeoutRef.current = null;
@@ -566,13 +604,18 @@ export default function POSInterface() {
       autoSaveTimeoutRef.current = null;
     }
     if (activeComandaId) {
-      deleteComanda(activeComandaId)
+      const comandaToDelete = activeComandaId;
+      setActiveComandaId(null);
+      setComandaSyncStatus("idle");
+      deleteComanda(comandaToDelete)
         .then(() => {
           queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
           queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
           queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
           queryClient.invalidateQueries({ queryKey: ["appointments"] });
-          queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+          if (selectedClientId) {
+            queryClient.invalidateQueries({ queryKey: ["pos-client", selectedClientId] });
+          }
           queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
         })
         .catch(() => {});
@@ -774,15 +817,40 @@ export default function POSInterface() {
   const executeRemoveItem = (index: number) => {
     const newCart = cart.filter((_, i) => i !== index);
     setCart(newCart);
+    setPendingRemoveItemIndex(null);
+
     if (newCart.length === 0) {
       setSelectedAppointmentId(null);
-      setActiveComandaId(null);
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+        autoSaveTimeoutRef.current = null;
+      }
+      if (activeComandaId) {
+        const comandaToDelete = activeComandaId;
+        setActiveComandaId(null);
+        setComandaSyncStatus("idle");
+        deleteComanda(comandaToDelete)
+          .then(() => {
+            queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+            queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
+            queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
+            queryClient.invalidateQueries({ queryKey: ["appointments"] });
+            if (selectedClientId) {
+              queryClient.invalidateQueries({ queryKey: ["pos-client", selectedClientId] });
+            }
+            queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
+          })
+          .catch(() => {});
+      } else {
+        setActiveComandaId(null);
+        setComandaSyncStatus("idle");
+      }
     }
-    setPendingRemoveItemIndex(null);
   };
 
   // ── Appointment / Package / Comanda Pull ──────────────────────────────────
   const handlePullAppointment = async (appointment: Appointment) => {
+    autoPulledClientIdRef.current = appointment.client.id;
     isInitialLoadRef.current = true;
     setShowAllPackages(false);
     setShowAllServices(false);
@@ -837,8 +905,20 @@ export default function POSInterface() {
                 return false;
               }
               const aptId = item.appointment_id;
-              if (aptId && removedServiceKeys.has(`${aptId}-${item.item_id}`)) {
-                return false;
+              if (aptId) {
+                if (removedServiceKeys.has(`${aptId}-${item.item_id}`)) {
+                  return false;
+                }
+                const isAptPaid = (details.client_appointments || []).some((a) => a.id === aptId && a.is_paid);
+                if (isAptPaid) {
+                  return false; // Previne cobrança em duplicidade de agendamento já pago
+                }
+              }
+            }
+            if (item.item_type === "package" && item.client_package_id_to_pay) {
+              const isPkgPaid = (details.client_packages || []).some((p) => p.id === item.client_package_id_to_pay && p.is_paid);
+              if (isPkgPaid) {
+                return false; // Previne cobrança em duplicidade de pacote já pago
               }
             }
             return true;
@@ -952,6 +1032,10 @@ export default function POSInterface() {
   };
 
   const handlePullPackage = (pkg: ClientPackage) => {
+    if (pkg.is_paid) {
+      toast.info("Este pacote já foi pago.");
+      return;
+    }
     const packageDef = packages.find((p) => p.id === pkg.package_id);
     if (!packageDef) { toast.error("Pacote não encontrado no catálogo."); return; }
     const price = packageDef.price_cents / 100;
@@ -965,6 +1049,7 @@ export default function POSInterface() {
       pet_ids: pkg.pets ? pkg.pets.map((p) => p.id) : undefined,
       client_package_id_to_pay: pkg.id,
     };
+    autoPulledClientIdRef.current = pkg.client_id;
     isInitialLoadRef.current = true;
     setSelectedClientId(pkg.client_id);
     setSelectedAppointmentId(null);
@@ -1001,7 +1086,9 @@ export default function POSInterface() {
             queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
             queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
             queryClient.invalidateQueries({ queryKey: ["appointments"] });
-            queryClient.invalidateQueries({ queryKey: ["pos-client"] });
+            if (selectedClientId) {
+              queryClient.invalidateQueries({ queryKey: ["pos-client", selectedClientId] });
+            }
             queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
           })
           .catch(() => {
