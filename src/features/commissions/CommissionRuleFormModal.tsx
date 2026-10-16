@@ -1127,7 +1127,7 @@ export default function CommissionRuleFormModal({
                                   if (option.id === ALL_SERVICES_ID) {
                                     return "todos os serviços".includes(input);
                                   }
-                                  return `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                                  return `${option.name} ${option.sizes?.join(" ") ?? ""} ${option.size ?? ""} ${option.coat_types?.join(" ") ?? ""} ${option.coat_type ?? ""}`
                                     .toLowerCase()
                                     .includes(input);
                                 })

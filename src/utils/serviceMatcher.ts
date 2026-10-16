@@ -1,22 +1,45 @@
 import type { Pet } from "../features/pets/types";
 import type { Service } from "../features/tenant_services/types";
 
+const normalize = (val?: string | null) => (val ? val.trim().toLowerCase() : "");
+
 export const isServiceCompatibleWithPet = (
     service: Service,
     pet: Pet
 ) => {
-    // Espécie continua obrigatória
-    if (service.species && service.species !== pet.species) {
+    // Espécie: só valida se o serviço especificou espécies e o pet tem espécie
+    const serviceSpecies = (Array.isArray(service.species)
+        ? service.species
+        : (service.species ? [service.species as any] : []))
+        .map(normalize)
+        .filter(Boolean);
+
+    const petSpecies = normalize(pet.species);
+    if (serviceSpecies.length > 0 && petSpecies && !serviceSpecies.includes(petSpecies)) {
         return false;
     }
 
-    // 🔥 Só valida porte se o pet tiver porte
-    if (pet.size && service.size && service.size !== pet.size) {
+    // 🔥 Só valida porte se o pet tiver porte e o serviço especificou portes
+    const serviceSizes = (Array.isArray(service.sizes)
+        ? service.sizes
+        : (service.size ? service.size.split(",") : []))
+        .map(normalize)
+        .filter(Boolean);
+
+    const petSize = normalize(pet.size);
+    if (petSize && serviceSizes.length > 0 && !serviceSizes.includes(petSize)) {
         return false;
     }
 
-    // 🔥 Só valida pelagem se o pet tiver pelagem
-    if (pet.coat_type && service.coat_type && service.coat_type !== pet.coat_type) {
+    // 🔥 Só valida pelagem se o pet tiver pelagem e o serviço especificou pelagens
+    const serviceCoats = (Array.isArray(service.coat_types)
+        ? service.coat_types
+        : (service.coat_type ? service.coat_type.split(",") : []))
+        .map(normalize)
+        .filter(Boolean);
+
+    const petCoat = normalize(pet.coat_type);
+    if (petCoat && serviceCoats.length > 0 && !serviceCoats.includes(petCoat)) {
         return false;
     }
 
@@ -26,23 +49,29 @@ export const isServiceCompatibleWithPet = (
 function getServiceScore(service: Service, pet: Pet) {
     let score = 0;
 
-    // espécie sempre conta
-    if (service.species === pet.species) {
+    const serviceSpecies = (Array.isArray(service.species)
+        ? service.species
+        : (service.species ? [service.species as any] : []))
+        .map(normalize)
+        .filter(Boolean);
+
+    const petSpecies = normalize(pet.species);
+    if (petSpecies && serviceSpecies.includes(petSpecies)) {
         score += 2;
     }
 
-    // 🔥 só compara size se o pet tiver size
-    if (pet.size && service.size === pet.size) {
+    const serviceSizes = (Array.isArray(service.sizes)
+        ? service.sizes
+        : (service.size ? service.size.split(",") : []))
+        .map(normalize)
+        .filter(Boolean);
+
+    const petSize = normalize(pet.size);
+    if (petSize && serviceSizes.includes(petSize)) {
         score += 2;
-    }
-
-    // 🔥 se o pet NÃO tiver size, não penaliza
-    if (!pet.size && service.size) {
-        score += 1; // dá peso leve para específicos
-    }
-
-    // serviço totalmente geral
-    if (!service.size) {
+    } else if (!petSize && serviceSizes.length > 0) {
+        score += 1;
+    } else if (serviceSizes.length === 0) {
         score += 1;
     }
 

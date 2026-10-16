@@ -221,14 +221,27 @@ export default function ServiceTable({
               {/* Linha 2: Compatibilidade do Animal (apenas quando registrado) */}
               {(() => {
                 const compatParts: string[] = [];
-                if (service.species) compatParts.push(`Espécie: ${service.species}`);
-                if (service.size) compatParts.push(`Porte: ${service.size}`);
-                if (service.coat_type) {
-                  const coatLabel = getCoatTypeLabel(service.coat_type as CoatType);
-                  if (coatLabel && coatLabel !== "-") {
-                    compatParts.push(`Pelagem: ${coatLabel}`);
-                  }
+                const speciesText = Array.isArray(service.species)
+                  ? service.species.join(", ")
+                  : service.species;
+                if (speciesText) compatParts.push(`Espécie: ${speciesText}`);
+
+                const sizeText = service.sizes && service.sizes.length > 0
+                  ? service.sizes.join(", ")
+                  : service.size;
+                if (sizeText) compatParts.push(`Porte: ${sizeText}`);
+
+                let coatLabel = "";
+                if (service.coat_types && service.coat_types.length > 0) {
+                  coatLabel = service.coat_types
+                    .map((c) => getCoatTypeLabel(c as CoatType))
+                    .filter((l) => l && l !== "-")
+                    .join(", ");
+                } else if (service.coat_type) {
+                  const l = getCoatTypeLabel(service.coat_type as CoatType);
+                  if (l && l !== "-") coatLabel = l;
                 }
+                if (coatLabel) compatParts.push(`Pelagem: ${coatLabel}`);
                 if (compatParts.length === 0) return null;
 
                 return (
@@ -461,12 +474,23 @@ export default function ServiceTable({
                 <TableCell align="left">
                   R$ {formatBRLFromCents(row.price_cents) ?? "-"}
                 </TableCell>
-                <TableCell align="left">{row.species ?? "-"}</TableCell>{" "}
-                <TableCell align="left">{row.size ?? "-"}</TableCell>{" "}
                 <TableCell align="left">
-                  {row.coat_type
-                    ? getCoatTypeLabel(row.coat_type as CoatType)
-                    : "-"}
+                  {Array.isArray(row.species)
+                    ? (row.species.length > 0 ? row.species.join(", ") : "-")
+                    : (row.species ?? "-")}
+                </TableCell>
+                <TableCell align="left">
+                  {row.sizes && row.sizes.length > 0
+                    ? row.sizes.join(", ")
+                    : (row.size ?? "-")}
+                </TableCell>
+                <TableCell align="left">
+                  {row.coat_types && row.coat_types.length > 0
+                    ? row.coat_types
+                        .map((c) => getCoatTypeLabel(c as CoatType))
+                        .filter((l) => l && l !== "-")
+                        .join(", ") || "-"
+                    : (row.coat_type ? getCoatTypeLabel(row.coat_type as CoatType) : "-")}
                 </TableCell>
                 <TableCell align="right">
                   <Box

@@ -1,16 +1,19 @@
 import { z } from "zod";
-import { PET_SIZES, PET_SPECIES } from "../pets/constants";
-import type { PetSize, PetSpecies } from "../pets/types";
+import { COAT_TYPES, PET_SIZES, PET_SPECIES } from "../pets/constants";
+import type { CoatType, PetSize, PetSpecies } from "../pets/types";
 
-const petSpeciesValues = PET_SPECIES.map(s => s.value) as [
+const petSpeciesValues = PET_SPECIES.map((s) => s.value) as [
   PetSpecies,
   ...PetSpecies[]
 ];
-const petSizeValues = PET_SIZES.map(s => s.value) as [
+const petSizeValues = PET_SIZES.map((s) => s.value) as [
   PetSize,
   ...PetSize[]
 ];
-
+const coatTypeValues = COAT_TYPES.map((c) => c.value) as [
+  CoatType,
+  ...CoatType[]
+];
 
 export const serviceSchema = z
   .object({
@@ -30,9 +33,9 @@ export const serviceSchema = z
       }),
 
     description: z.string().max(255, "Descrição pode ter no máximo 255 caracteres").nullable().optional(),
-    species: z.enum(petSpeciesValues).nullable().optional(),
-    size: z.enum(petSizeValues).nullable().optional(),
-    coat_type: z.string().max(30, "Tipo de pelagem pode ter no máximo 30 caracteres").nullable().optional(),
+    species: z.array(z.enum(petSpeciesValues)).nullable().optional(),
+    sizes: z.array(z.enum(petSizeValues)).nullable().optional(),
+    coat_types: z.array(z.enum(coatTypeValues)).nullable().optional(),
     duration_minutes: z
       .number()
       .int("Duração deve ser um número inteiro")
@@ -50,4 +53,3 @@ export const serviceSchema = z
       });
     }
   });
-

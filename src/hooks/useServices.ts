@@ -6,8 +6,8 @@ export function useServices(options?: { enabled?: boolean }) {
   const { data: services = [], isLoading: loading, refetch } = useQuery<Service[]>({
     queryKey: ["services"],
     queryFn: fetchServices,
-    staleTime: 1000 * 60 * 60, // 1 hora
-    gcTime: 1000 * 60 * 120,   // 2 horas
+    staleTime: 1000 * 60, // 1 minuto
+    gcTime: 1000 * 60 * 10,   // 10 minutos
     enabled: options?.enabled ?? true,
   });
 

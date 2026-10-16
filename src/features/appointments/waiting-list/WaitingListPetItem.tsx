@@ -148,7 +148,7 @@ export default function WaitingListPetItem({
               filterOptions={(options, state) => {
                 const input = state.inputValue.toLowerCase();
                 return options.filter((option) =>
-                  `${option.name} ${option.size ?? ""} ${option.coat_type ?? ""}`
+                  `${option.name} ${option.sizes?.join(" ") ?? ""} ${option.size ?? ""} ${option.coat_types?.join(" ") ?? ""} ${option.coat_type ?? ""}`
                     .toLowerCase()
                     .includes(input)
                 ).slice(0, serviceLimit);

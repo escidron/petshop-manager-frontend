@@ -527,6 +527,10 @@ export default function POSInterface() {
   }, [clientAppointments, allAppointments, cart]);
 
   const endSession = () => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
     isInitialLoadRef.current = true;
     setCart([]);
     setDiscountCents(0);
@@ -557,6 +561,10 @@ export default function POSInterface() {
   };
 
   const executeClearAll = () => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
+    }
     if (activeComandaId) {
       deleteComanda(activeComandaId)
         .then(() => {
@@ -598,6 +606,10 @@ export default function POSInterface() {
           return;
         }
       }
+    }
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+      autoSaveTimeoutRef.current = null;
     }
     setIsCheckoutOpen(true);
   };
@@ -874,7 +886,11 @@ export default function POSInterface() {
             if (s.is_removed) continue;
             if (s.is_package_covered) continue; // Não leva serviços cobertos por pacote para o carrinho
             const alreadyExists = initialCart.some(
-              (ci) => ci.appointment_id === apt.id && ci.item_id === s.id && ci.item_type === "service"
+              (ci) =>
+                ci.appointment_id === apt.id &&
+                ci.item_id === s.id &&
+                ci.item_type === "service" &&
+                ci.pet_ids?.[0] === item.pet.id
             );
             if (!alreadyExists) {
               initialCart.push({
@@ -971,6 +987,10 @@ export default function POSInterface() {
       return;
     }
 
+    if (isCheckoutOpen) {
+      return;
+    }
+
     if (cart.length === 0) {
       if (activeComandaId) {
         deleteComanda(activeComandaId)
@@ -1019,33 +1039,18 @@ export default function POSInterface() {
         queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
       } catch (err) {
         setComandaSyncStatus("error");
+      } finally {
+        autoSaveTimeoutRef.current = null;
       }
     }, 400);
 
     return () => {
       if (autoSaveTimeoutRef.current) {
         clearTimeout(autoSaveTimeoutRef.current);
-        if (selectedClientId && cart.length > 0) {
-          saveComanda({
-            comanda_id: activeComandaId,
-            client_id: selectedClientId,
-            appointment_id: selectedAppointmentId,
-            items: cart,
-            discount_amount: discountAmount,
-          })
-            .then(() => {
-              queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
-              queryClient.invalidateQueries({ queryKey: ["open-invoices"] });
-              queryClient.invalidateQueries({ queryKey: ["open-comandas"] });
-              queryClient.invalidateQueries({ queryKey: ["appointments"] });
-              queryClient.invalidateQueries({ queryKey: ["pos-client"] });
-              queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
-            })
-            .catch(() => {});
-        }
+        autoSaveTimeoutRef.current = null;
       }
     };
-  }, [cart, discountAmount, selectedClientId, selectedAppointmentId]);
+  }, [cart, discountAmount, selectedClientId, selectedAppointmentId, isCheckoutOpen]);
 
   // ── Effects ──────────────────────────────────────────────────────────────
   useEffect(() => {
