@@ -886,7 +886,11 @@ export default function POSInterface() {
             if (s.is_removed) continue;
             if (s.is_package_covered) continue; // Não leva serviços cobertos por pacote para o carrinho
             const alreadyExists = initialCart.some(
-              (ci) => ci.appointment_id === apt.id && ci.item_id === s.id && ci.item_type === "service"
+              (ci) =>
+                ci.appointment_id === apt.id &&
+                ci.item_id === s.id &&
+                ci.item_type === "service" &&
+                ci.pet_ids?.[0] === item.pet.id
             );
             if (!alreadyExists) {
               initialCart.push({
