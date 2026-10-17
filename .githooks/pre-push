@@ -1,0 +1,21 @@
+#!/bin/sh
+# Git pre-push hook: Executa a checagem de tipos e compilação antes do push
+
+echo "========================================================"
+echo "🚀 [PRE-PUSH] Validando TypeScript e Build antes do push..."
+echo "========================================================"
+
+npm run build
+BUILD_EXIT_CODE=$?
+
+if [ $BUILD_EXIT_CODE -ne 0 ]; then
+    echo ""
+    echo "❌ [PRE-PUSH BLOQUEADO] Erro na compilação do front-end! Push abortado."
+    echo "Corrija os erros antes de subir ou use 'git push --no-verify'."
+    echo "========================================================"
+    exit 1
+fi
+
+echo "✅ [PRE-PUSH APROVADO] Build do front-end passou! Subindo alterações..."
+echo "========================================================"
+exit 0

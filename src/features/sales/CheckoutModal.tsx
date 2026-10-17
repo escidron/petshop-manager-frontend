@@ -989,12 +989,13 @@ export default function CheckoutModal({
           </Button>
           <Button
             variant="contained"
+            disabled={saleMutation.isPending}
             onClick={() => {
               setShowNoEmployeeWarning(false);
               doCheckout();
             }}
           >
-            Finalizar mesmo assim
+            {saleMutation.isPending ? "Processando..." : "Finalizar mesmo assim"}
           </Button>
         </DialogActions>
       </Dialog>
