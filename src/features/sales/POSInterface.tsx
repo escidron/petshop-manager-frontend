@@ -415,6 +415,16 @@ export default function POSInterface() {
               if (matchedApt?.is_paid) {
                 return false; // Previne cobrança em duplicidade de agendamento já pago
               }
+              if (matchedApt) {
+                const petId = item.pet_ids?.[0];
+                const aptItem = petId ? matchedApt.items.find((it) => it.pet?.id === petId) : null;
+                if (aptItem) {
+                  const s = aptItem.services.find((svc) => svc.id === item.item_id);
+                  if (s?.is_removed) {
+                    return false;
+                  }
+                }
+              }
             }
           }
           if (item.item_type === "package" && item.client_package_id_to_pay) {
@@ -874,20 +884,32 @@ export default function POSInterface() {
       });
       const openComanda = details.open_comandas?.[0];
 
-      // Check all unpaid completed appointments of this client (including the clicked one)
-      const allClientAppointments = [
-        appointment,
-        ...(details.client_appointments || []).filter(
-          (a) => a.status === "completed" && !a.is_paid && !a.is_fully_package_covered && a.id !== appointment.id
-        ),
-      ];
+      // Unify all appointments of this client: from allAppointments + client_appointments + the clicked one
+      const clientCompletedAppts = allAppointments.filter(
+        (a) => a.client?.id === appointment.client.id && a.status === "completed" && !a.is_paid && !a.is_fully_package_covered
+      );
+      const apptMap = new Map<number, Appointment>();
+      apptMap.set(appointment.id, appointment);
+      for (const a of (details.client_appointments || [])) {
+        if (a.status === "completed" && !a.is_paid && !a.is_fully_package_covered) {
+          apptMap.set(a.id, a);
+        }
+      }
+      for (const a of clientCompletedAppts) {
+        apptMap.set(a.id, a);
+      }
+      const allClientAppointments = Array.from(apptMap.values());
 
       const removedServiceKeys = new Set<string>();
       for (const apt of allClientAppointments) {
         for (const item of apt.items) {
           for (const s of item.services) {
             if (s.is_removed) {
-              removedServiceKeys.add(`${apt.id}-${s.id}`);
+              if (item.pet?.id) {
+                removedServiceKeys.add(`${apt.id}-${s.id}-${item.pet.id}`);
+              } else {
+                removedServiceKeys.add(`${apt.id}-${s.id}`);
+              }
             }
           }
         }
@@ -906,10 +928,15 @@ export default function POSInterface() {
               }
               const aptId = item.appointment_id;
               if (aptId) {
-                if (removedServiceKeys.has(`${aptId}-${item.item_id}`)) {
+                const petId = item.pet_ids?.[0];
+                const keyWithPet = petId ? `${aptId}-${item.item_id}-${petId}` : null;
+                const genericKey = `${aptId}-${item.item_id}`;
+                if ((keyWithPet && removedServiceKeys.has(keyWithPet)) || (!keyWithPet && removedServiceKeys.has(genericKey))) {
                   return false;
                 }
-                const isAptPaid = (details.client_appointments || []).some((a) => a.id === aptId && a.is_paid);
+                const isAptPaid =
+                  allClientAppointments.some((a) => a.id === aptId && a.is_paid) ||
+                  (details.client_appointments || []).some((a) => a.id === aptId && a.is_paid);
                 if (isAptPaid) {
                   return false; // Previne cobrança em duplicidade de agendamento já pago
                 }
