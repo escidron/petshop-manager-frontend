@@ -71,6 +71,7 @@ import CustomCard from "../../components/Card/CustomCard";
 import theme from "../../theme";
 import { Button } from "../../components/Button/Button";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
+import { AppointmentPaymentChip } from "./AppointmentPaymentChip";
 import { formatAppointmentDate } from "../../utils/formatAppointmentDate";
 import { getCoatTypeLabel } from "../../utils/formatCoatType";
 import type { CoatType } from "../pets/types";
@@ -680,7 +681,16 @@ const AppointmentDetailsModal = ({
                     />
                   )}
                 </Box>
-                <AppointmentStatusChip status={appointment.status} />
+                <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                  {appointment.status === "completed" && (
+                    <AppointmentPaymentChip
+                      isPaid={appointment.is_paid}
+                      isFullyPackageCovered={appointment.is_fully_package_covered}
+                      size="small"
+                    />
+                  )}
+                  <AppointmentStatusChip status={appointment.status} />
+                </Box>
               </Box>
               {appointment.notes && (
                 <Box sx={{ mt: 1 }}>
