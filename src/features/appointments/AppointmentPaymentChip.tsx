@@ -1,5 +1,5 @@
-import { Box, Tooltip, Typography, useTheme } from "@mui/material";
-import { AlertCircle } from "lucide-react";
+import { Box, Tooltip, useTheme } from "@mui/material";
+import { AlertTriangle } from "lucide-react";
 
 type Props = {
   isPaid?: boolean;
@@ -16,8 +16,7 @@ export function AppointmentPaymentChip({
   const isSettled = Boolean(isPaid || isFullyPackageCovered);
   const isSmall = size === "small";
 
-  // Se já foi pago ou coberto por pacote, NÃO exibe chip.
-  // O card fica limpo e o atendente bate o olho e vê apenas o que falta cobrar.
+  // Se já foi pago ou coberto por pacote, NÃO exibe o indicador.
   if (isSettled) {
     return null;
   }
@@ -27,7 +26,7 @@ export function AppointmentPaymentChip({
 
   return (
     <Tooltip
-      title="Serviço finalizado pendente de cobrança no caixa"
+      title="Pagamento Pendente"
       arrow
       placement="top"
     >
@@ -35,37 +34,21 @@ export function AppointmentPaymentChip({
         sx={{
           display: "inline-flex",
           alignItems: "center",
-          gap: 0.5,
-          bgcolor: "#FFFFFF",
-          border: "1.5px solid",
-          borderColor: warningColor,
-          px: isSmall ? 1 : 1.25,
-          py: isSmall ? "2px" : "4px",
-          borderRadius: 1,
-          color: warningText,
+          justifyContent: "center",
+          color: warningColor,
           flexShrink: 0,
           cursor: "default",
-          boxShadow: "0 1px 2px rgba(245, 158, 11, 0.08)",
-          transition: "all 0.15s ease",
+          transition: "transform 0.15s ease, color 0.15s ease",
           "&:hover": {
-            bgcolor: "#FFFBEB",
-            borderColor: warningText,
+            color: warningText,
+            transform: "scale(1.15)",
           },
         }}
       >
-        <AlertCircle
-          size={isSmall ? 13 : 16}
+        <AlertTriangle
+          size={isSmall ? 24 : 28}
           strokeWidth={2.4}
-          color={warningColor}
         />
-        <Typography
-          fontSize={isSmall ? "12px" : "14px"}
-          fontWeight={700}
-          color={warningText}
-          lineHeight={1.2}
-        >
-          A Pagar
-        </Typography>
       </Box>
     </Tooltip>
   );
