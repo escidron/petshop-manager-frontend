@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
+import dayjs from "dayjs";
 import {
   Box,
   Typography,
@@ -128,6 +129,25 @@ export default function ClientHistory({
     setTabValue(newValue);
   };
 
+  // Filtra agendamentos para o Histórico (deve ficar antes do return de loading para respeitar as regras de hooks do React):
+  // - Apenas agendamentos que já aconteceram no tempo (data agendada <= hoje, nada do futuro)
+  // - Apenas status que compõem histórico (finalizados, cancelados ou não compareceu)
+  // - Exclui qualquer agendamento futuro (ex: recorrências de semanas/meses/anos à frente como 2027)
+  const historyAppointments = useMemo(() => {
+    const endOfToday = dayjs().endOf("day").toDate();
+    return appointments
+      .filter((appt) => {
+        const apptDate = new Date(appt.scheduled_at);
+        // Exclui qualquer agendamento com data futura (amanhã em diante)
+        if (apptDate > endOfToday) {
+          return false;
+        }
+        // Exclui pendentes ou confirmados (que ainda não foram realizados)
+        return ["completed", "canceled", "no_show"].includes(appt.status);
+      })
+      .sort((a, b) => new Date(b.scheduled_at).getTime() - new Date(a.scheduled_at).getTime());
+  }, [appointments]);
+
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" p={4}>
@@ -195,13 +215,13 @@ export default function ClientHistory({
       </Box>
 
       <CustomTabPanel value={tabValue} index={0}>
-        {appointments.length === 0 ? (
+        {historyAppointments.length === 0 ? (
           <Typography variant="body2" color="text.disabled" sx={{ textAlign: "center", py: 4 }}>
             Nenhum serviço realizado ainda.
           </Typography>
         ) : (
           <List disablePadding>
-            {appointments.map((appt, idx) => (
+            {historyAppointments.map((appt, idx) => (
               <Box key={appt.id}>
                 <ListItem
                   alignItems="flex-start"
@@ -279,7 +299,7 @@ export default function ClientHistory({
                     }
                   />
                 </ListItem>
-                {idx < appointments.length - 1 && <Divider component="li" />}
+                {idx < historyAppointments.length - 1 && <Divider component="li" />}
               </Box>
             ))}
           </List>

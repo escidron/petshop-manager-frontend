@@ -10,6 +10,7 @@ import { useState } from "react";
 import AppointmentServiceList from "./AppointmentServiceList";
 import { Info, ShoppingBag, Repeat } from "lucide-react";
 import { AppointmentStatusChip } from "./AppointmentStatusChip";
+import { AppointmentPaymentChip } from "./AppointmentPaymentChip";
 import AppointmentObservationList from "./AppointmentObservationList";
 
 
@@ -213,11 +214,21 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
           <Box
             sx={{
               display: { xs: "none", sm: "flex" },
+              alignItems: "center",
+              gap: 0.75,
               justifyContent: "flex-end",
-              minWidth: 120,
+              minWidth: { sm: 120 },
               flexShrink: 0,
+              flexWrap: "nowrap",
             }}
           >
+            {appointment.status === "completed" && (
+              <AppointmentPaymentChip
+                isPaid={appointment.is_paid}
+                isFullyPackageCovered={appointment.is_fully_package_covered}
+                size="small"
+              />
+            )}
             <AppointmentStatusChip status={appointment.status} size="small" />
           </Box>
           <Box
