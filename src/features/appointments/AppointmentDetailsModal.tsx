@@ -344,7 +344,7 @@ const AppointmentDetailsModal = ({
       .map((pkg) => ({
         ...pkg,
         remaining:
-          pkg.credits?.reduce((acc, credit) => acc + credit.remaining_qty, 0) ||
+          pkg.credits?.reduce((acc, credit) => acc + Math.max(0, credit.remaining_qty), 0) ||
           0,
       }))
       .filter((pkg) => pkg.remaining > 0);
@@ -1382,7 +1382,7 @@ const AppointmentDetailsModal = ({
                                     : theme.palette.text.disabled,
                               }}
                             >
-                              restam {credit.remaining_qty}
+                              restam {Math.max(0, credit.remaining_qty)}
                             </Box>{" "}
                             <Box
                               component="span"

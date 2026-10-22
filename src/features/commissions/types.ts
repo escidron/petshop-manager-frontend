@@ -10,9 +10,11 @@ export type CommissionRuleEmployeeInfo = {
 export type CommissionRuleServiceInfo = {
   id: number;
   name: string;
-  species?: string | null;
+  species?: string | string[] | null;
   size?: string | null;
+  sizes?: string[] | null;
   coat_type?: string | null;
+  coat_types?: string[] | null;
 };
 
 export type CommissionRuleProductInfo = {
