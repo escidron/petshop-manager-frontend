@@ -428,9 +428,18 @@ export default function PetPackageCredits({ packages, clientPhone, onRefresh }: 
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
               {pkg.credits.map((credit) => {
-                const creditUsages = pkg.usages
-                  .filter((u) => u.credit_id === credit.id && u.change_qty > 0)
+                const allCreditUsages = (pkg.usages || [])
+                  .filter((u) => u.credit_id === credit.id)
                   .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
+
+                const creditUsages: typeof allCreditUsages = [];
+                for (const u of allCreditUsages) {
+                  if (u.change_qty > 0) {
+                    creditUsages.push(u);
+                  } else if (u.change_qty < 0) {
+                    creditUsages.pop();
+                  }
+                }
 
                 return (
                   <Box key={credit.id} sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
