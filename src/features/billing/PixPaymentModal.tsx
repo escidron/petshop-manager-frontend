@@ -20,7 +20,7 @@ interface PixPaymentModalProps {
   qrCode: string;
   qrCodeUrl?: string | null;
   expiresAt?: string | null;
-  amount?: number | null; // Cents or total (e.g. 9990 or 99.90)
+  amount?: number | null; // Cents or total (e.g. 14990 or 149.90)
   chargeId?: string | null;
   payerName?: string;
   payerDocument?: string | null;
@@ -36,7 +36,7 @@ export default function PixPaymentModal({
   onClose,
   qrCode,
   expiresAt,
-  amount = 9990,
+  amount = 14990,
   chargeId,
   payerName = "Seu Estabelecimento",
   payerDocument,
@@ -80,7 +80,7 @@ export default function PixPaymentModal({
 
   // Formata o valor para BRL
   const formattedAmount = (() => {
-    if (!amount && amount !== 0) return "R$ 99,90";
+    if (!amount && amount !== 0) return "R$ 149,90";
     const val = amount > 1000 ? amount / 100 : amount;
     return val.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   })();

@@ -97,8 +97,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       };
     }
 
+    // 0. Assinatura Cancelada tem prioridade máxima: nunca está ativa e nunca entra em grace period
+    if (sub.status === "canceled" || Boolean(sub.canceled_at)) {
+      return {
+        isActive: false,
+        inGracePeriod: false,
+        gracePeriodDaysLeft: 0,
+        isTrial: false,
+        trialDaysLeft: null,
+      };
+    }
+
     // Check if the plan is in trial: code === 'FREE_TRIAL', status === 'trialing', or active trial date in future
-    const isTrial = sub.status !== "canceled" && (
+    const isTrial = (
       sub.plan?.code === "FREE_TRIAL" || 
       sub.status === "trialing" || 
       (trialEnd !== null && trialEnd.getTime() > now.getTime())

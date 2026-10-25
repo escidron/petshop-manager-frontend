@@ -119,6 +119,7 @@ export default function PendingWhatsAppBanner() {
         packageCode={normalizedId}
         savedCards={savedCards}
         tenantDocument={tenant?.document}
+        defaultPaymentMethod={tenant?.subscription?.payment_method as any}
         onSuccess={async () => {
           await checkAuth();
           setModalOpen(false);

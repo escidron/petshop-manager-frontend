@@ -88,9 +88,12 @@ import {
   changeSubscriptionToPix,
   cancelPackage,
   cancelCharge,
+  checkoutPackage,
+  cancelScheduledDowngrade,
 } from "../api/services/subscriptions";
 import CheckoutForm from "../features/billing/CheckoutForm";
 import CheckoutStepper from "../features/billing/CheckoutStepper";
+import DowngradeConfirmationModal from "../features/billing/DowngradeConfirmationModal";
 import UpdateCardModal from "../features/billing/UpdateCardModal";
 import PixPaymentModal from "../features/billing/PixPaymentModal";
 import type { PaymentMethod, CheckoutPixResponse, SubscriptionCharge } from "../features/billing/types";
@@ -363,13 +366,88 @@ const SettingsPage = () => {
   const [openPackageCheckout, setOpenPackageCheckout] = useState(false);
   const [selectedPackageForCheckout, setSelectedPackageForCheckout] = useState<string | null>(null);
 
+  const [openDowngradeModal, setOpenDowngradeModal] = useState(false);
+  const [selectedPackageForDowngrade, setSelectedPackageForDowngrade] = useState<string | null>(null);
+  const [downgradeLoading, setDowngradeLoading] = useState(false);
+
+  const packagePriceMap: Record<string, number> = {
+    pkg_200: 2490,
+    pkg_300: 3490,
+    pkg_500: 4990,
+    pkg_750: 6990,
+    pkg_1000: 9990,
+    pkg_2000: 16990,
+  };
+
+  const packageDetailsMap: Record<string, { name: string; messages: number; price: string }> = {
+    pkg_200: { name: "WhatsApp - 200 Mensagens", messages: 200, price: "R$ 24,90/mês" },
+    pkg_300: { name: "WhatsApp - 300 Mensagens", messages: 300, price: "R$ 34,90/mês" },
+    pkg_500: { name: "WhatsApp - 500 Mensagens", messages: 500, price: "R$ 49,90/mês" },
+    pkg_750: { name: "WhatsApp - 750 Mensagens", messages: 750, price: "R$ 69,90/mês" },
+    pkg_1000: { name: "WhatsApp - 1.000 Mensagens", messages: 1000, price: "R$ 99,90/mês" },
+    pkg_2000: { name: "WhatsApp - 2.000 Mensagens", messages: 2000, price: "R$ 169,90/mês" },
+  };
+
+  const handleHirePackage = (pkgId: string) => {
+    const currentPkg = tenant?.subscription?.whatsapp_package_id;
+    const isCurrentlyActive = tenant?.subscription?.whatsapp_package_status === "active";
+    const currentPrice = currentPkg ? packagePriceMap[currentPkg] || 0 : 0;
+    const targetPrice = packagePriceMap[pkgId] || 0;
+
+    // Se o cliente tem pacote ativo e está selecionando um pacote menor: DOWNGRADE!
+    if (isCurrentlyActive && currentPkg && targetPrice < currentPrice) {
+      setSelectedPackageForDowngrade(pkgId);
+      setOpenDowngradeModal(true);
+    } else {
+      setSelectedPackageForCheckout(pkgId);
+      setOpenPackageCheckout(true);
+    }
+  };
+
+  const handleConfirmDowngrade = async () => {
+    if (!selectedPackageForDowngrade) return;
+    setDowngradeLoading(true);
+    try {
+      await checkoutPackage({
+        package_code: selectedPackageForDowngrade,
+        payment_method: (tenant?.subscription?.payment_method as any) || "pix",
+      });
+      const targetDetail = packageDetailsMap[selectedPackageForDowngrade];
+      toast.success(
+        `Alteração para ${targetDetail?.messages || 200} mensagens agendada com sucesso para a próxima renovação!`
+      );
+      setOpenDowngradeModal(false);
+      setSelectedPackageForDowngrade(null);
+      await checkAuth();
+      await fetchCharges();
+    } catch (err: any) {
+      const detail = err.response?.data?.detail || "Erro ao agendar alteração de pacote.";
+      toast.error(typeof detail === "string" ? detail : JSON.stringify(detail));
+    } finally {
+      setDowngradeLoading(false);
+    }
+  };
+
+  const handleCancelScheduledDowngrade = async () => {
+    try {
+      await cancelScheduledDowngrade();
+      toast.success("Agendamento de alteração cancelado com sucesso!");
+      await checkAuth();
+      await fetchCharges();
+    } catch {
+      toast.error("Erro ao cancelar alteração agendada.");
+    }
+  };
+
   const getCheckoutTitle = () => {
     if (selectedAddonPkg) {
       const pkgNames: Record<string, string> = {
-        pkg_200: "Contratar Pacote 200 Mensagens - R$ 37,90/mês",
-        pkg_500: "Contratar Pacote 500 Mensagens - R$ 69,90/mês",
-        pkg_1000: "Contratar Pacote 1.000 Mensagens - R$ 119,90/mês",
-        pkg_2000: "Contratar Pacote 2.000 Mensagens - R$ 199,90/mês",
+        pkg_200: "Contratar Pacote 200 Mensagens - R$ 24,90/mês",
+        pkg_300: "Contratar Pacote 300 Mensagens - R$ 34,90/mês",
+        pkg_500: "Contratar Pacote 500 Mensagens - R$ 49,90/mês",
+        pkg_750: "Contratar Pacote 750 Mensagens - R$ 69,90/mês",
+        pkg_1000: "Contratar Pacote 1.000 Mensagens - R$ 99,90/mês",
+        pkg_2000: "Contratar Pacote 2.000 Mensagens - R$ 169,90/mês",
       };
       return pkgNames[selectedAddonPkg] || "Contratar Pacote de WhatsApp";
     }
@@ -600,31 +678,38 @@ const SettingsPage = () => {
   }, [charges]);
 
   const activePendingPix = useMemo(() => {
+    // 1. Prioridade máxima: Pix acabou de ser gerado (onPixGenerated)
     if (pixModalData?.qrCode) {
       return pixModalData;
     }
-    if (pixData && pixData.pix_qr_code) {
-      return {
-        qrCode: pixData.pix_qr_code,
-        qrCodeUrl: pixData.pix_qr_code_url,
-        expiresAt: pixData.expires_at,
-        amount: 9990,
-        chargeId: (pixData as any).charge_id || (pixData as any).pagarme_subscription_id,
-        title: "Pagamento da assinatura do sistema Data Pet",
-      };
-    }
+    // 2. Cobrança Pix pendente ativa no histórico
     if (activePendingPixCharge && activePendingPixCharge.pix_qr_code) {
       return {
         qrCode: activePendingPixCharge.pix_qr_code,
         qrCodeUrl: activePendingPixCharge.pix_qr_code_url,
         expiresAt: activePendingPixCharge.expires_at,
-        amount: activePendingPixCharge.amount || 9990,
+        amount: activePendingPixCharge.amount || 14990,
         chargeId: activePendingPixCharge.id,
-        title: activePendingPixCharge.amount && activePendingPixCharge.amount !== 9990 ? "Pagamento do Pacote WhatsApp" : "Pagamento da assinatura do sistema Data Pet",
+        title: activePendingPixCharge.amount && activePendingPixCharge.amount !== 14990 ? "Pagamento do Pacote WhatsApp" : "Pagamento da assinatura do sistema Data Pet",
+      };
+    }
+    // 3. Se a assinatura base está ativa e não há cobrança Pix pendente, não exibe modal
+    if (sub?.status === "active") {
+      return null;
+    }
+    // 4. Pix salvo na assinatura em trialing/incompleta
+    if (pixData && pixData.pix_qr_code) {
+      return {
+        qrCode: pixData.pix_qr_code,
+        qrCodeUrl: pixData.pix_qr_code_url,
+        expiresAt: pixData.expires_at,
+        amount: (pixData as any).amount || 14990,
+        chargeId: (pixData as any).charge_id || (pixData as any).pagarme_subscription_id,
+        title: "Pagamento da assinatura do sistema Data Pet",
       };
     }
     return null;
-  }, [pixModalData, pixData, activePendingPixCharge]);
+  }, [pixModalData, pixData, activePendingPixCharge, sub?.status, sub?.whatsapp_package_status]);
 
   const handleClosePixModal = () => {
     setOpenPixModal(false);
@@ -662,7 +747,6 @@ const SettingsPage = () => {
     const hasPending = Boolean(
       openPixModal ||
       activePendingPixCharge ||
-      tenant?.subscription?.whatsapp_package_status === "pending_payment" ||
       charges.some((c) => c.payment_method === "pix" && c.status === "pending")
     );
     if (!hasPending) return;
@@ -822,7 +906,11 @@ const SettingsPage = () => {
     try {
       if (tenant?.subscription?.eligible_for_refund) {
         await refundAndCancelSubscription();
-        toast.success("Assinatura cancelada e valor estornado com sucesso.");
+        toast.success(
+          isTrialActive
+            ? "Período de teste cancelado e valor estornado com sucesso."
+            : "Assinatura cancelada e valor estornado com sucesso."
+        );
       } else {
         await cancelSubscription();
         toast.success(
@@ -1117,15 +1205,14 @@ const SettingsPage = () => {
             <Box sx={{ pt: 1 }}>
               <BillingAddonsSection
                 activePackageId={tenant?.subscription?.whatsapp_package_id}
+                nextPackageId={tenant?.subscription?.whatsapp_next_package_id}
                 packageStatus={tenant?.subscription?.whatsapp_package_status as any}
                 messagesLimit={tenant?.subscription?.whatsapp_messages_limit}
                 messagesUsed={tenant?.subscription?.whatsapp_messages_used}
                 periodEnd={tenant?.subscription?.whatsapp_period_end}
-                onHirePackage={(pkgId) => {
-                  setSelectedPackageForCheckout(pkgId);
-                  setOpenPackageCheckout(true);
-                }}
+                onHirePackage={handleHirePackage}
                 onCancelPackage={() => setOpenCancelPackageModal(true)}
+                onCancelScheduledDowngrade={handleCancelScheduledDowngrade}
               />
             </Box>
 
@@ -2887,6 +2974,7 @@ const SettingsPage = () => {
         planId={selectedAddonPkg || (tenant?.subscription?.plan?.code && tenant?.subscription?.plan?.code !== "FREE_TRIAL" ? tenant.subscription.plan.code : "MONTHLY")}
         tenantDocument={tenant?.document}
         savedCards={savedCards}
+        defaultPaymentMethod={tenant?.subscription?.payment_method as any}
         existingPixData={pixData ? {
           pix_qr_code: pixData.pix_qr_code,
           pix_qr_code_url: pixData.pix_qr_code_url,
@@ -2908,8 +2996,8 @@ const SettingsPage = () => {
         }}
         packageCode={selectedPackageForCheckout}
         savedCards={savedCards}
-        defaultPaymentMethod={tenant?.subscription?.payment_method as any}
         tenantDocument={tenant?.document}
+        defaultPaymentMethod={tenant?.subscription?.payment_method as any}
         onPixGenerated={(pix) => {
           setPixModalData(pix);
           setOpenPixModal(true);
@@ -2924,6 +3012,39 @@ const SettingsPage = () => {
           setSelectedPackageForCheckout(null);
         }}
       />
+
+      {/* --- MODAL DE CONFIRMAÇÃO DE DOWNGRADE (SEM PEDIR PAGAMENTO / PIX / CARTÃO) --- */}
+      {selectedPackageForDowngrade && (
+        <DowngradeConfirmationModal
+          open={openDowngradeModal}
+          onClose={() => {
+            setOpenDowngradeModal(false);
+            setSelectedPackageForDowngrade(null);
+          }}
+          onConfirm={handleConfirmDowngrade}
+          currentPackage={
+            packageDetailsMap[tenant?.subscription?.whatsapp_package_id || "pkg_1000"] || {
+              name: "Pacote Atual",
+              messages: tenant?.subscription?.whatsapp_messages_limit || 1000,
+              price: "R$ 99,90/mês",
+            }
+          }
+          targetPackage={
+            packageDetailsMap[selectedPackageForDowngrade] || {
+              name: "Novo Pacote",
+              messages: 200,
+              price: "R$ 24,90/mês",
+            }
+          }
+          renewalDate={
+            tenant?.subscription?.whatsapp_period_end
+              ? dayjs(tenant.subscription.whatsapp_period_end).format("DD/MM/YYYY")
+              : "próximo ciclo"
+          }
+          paymentMethod={tenant?.subscription?.payment_method}
+          loading={downgradeLoading}
+        />
+      )}
 
       {/* --- NOVO MODAL DE PAGAMENTO VIA PIX (Estilo Institucional / Bemprático) --- */}
       {activePendingPix && (
