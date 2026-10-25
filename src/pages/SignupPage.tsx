@@ -142,13 +142,17 @@ const SignupPage = () => {
   const getPackagePrice = (pkgId: string | null) => {
     switch (pkgId) {
       case "200":
-        return "R$ 37,90";
+        return "R$ 24,90";
+      case "300":
+        return "R$ 34,90";
       case "500":
+        return "R$ 49,90";
+      case "750":
         return "R$ 69,90";
       case "1000":
-        return "R$ 119,90";
+        return "R$ 99,90";
       case "2000":
-        return "R$ 199,90";
+        return "R$ 169,90";
       default:
         return "R$ 0,00";
     }

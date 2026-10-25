@@ -10,6 +10,7 @@ import {
 } from "@mui/material";
 import { CreditCard, Lock, MapPin } from "lucide-react";
 import { Button } from "../../components/Button/Button";
+import { translatePagarmeError } from "../../utils/translatePagarmeError";
 import type { BillingAddress } from "./types";
 
 export type { BillingAddress };
@@ -18,34 +19,6 @@ interface Props {
   onSuccess: (cardToken: string, document: string, billingAddress: BillingAddress) => Promise<void> | void;
   buttonLabel?: string;
   defaultDocument?: string | null;
-}
-
-const PAGARME_ERROR_MAP: Record<string, string> = {
-  "Card expired.": "Cartão expirado. Verifique a validade e tente novamente.",
-  "Invalid card number.": "Número do cartão inválido.",
-  "Invalid cvv.": "CVV inválido.",
-  "Invalid expiration date.": "Data de validade inválida.",
-  "Card number is required.": "Número do cartão é obrigatório.",
-  "Holder name is required.": "Nome do titular é obrigatório.",
-  "Invalid holder name.": "Nome do titular inválido.",
-  "Card declined.": "Cartão recusado. Entre em contato com seu banco.",
-  "Insufficient funds.": "Saldo insuficiente.",
-  "Card blocked.": "Cartão bloqueado. Entre em contato com seu banco.",
-};
-
-function translatePagarmeError(err: { message?: string; errors?: Record<string, string[]> }): string {
-  // Tenta pegar o erro específico dentro de `errors`
-  if (err.errors) {
-    const firstErrors = Object.values(err.errors).flat();
-    for (const msg of firstErrors) {
-      if (PAGARME_ERROR_MAP[msg]) return PAGARME_ERROR_MAP[msg];
-    }
-    // Retorna o primeiro erro específico traduzido ou em PT fallback
-    if (firstErrors.length > 0) {
-      return PAGARME_ERROR_MAP[firstErrors[0]] ?? "Dados do cartão inválidos. Verifique e tente novamente.";
-    }
-  }
-  return "Dados do cartão inválidos. Verifique e tente novamente.";
 }
 
 const formatCardNumber = (value: string) =>

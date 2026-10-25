@@ -28,8 +28,17 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
       id: "200",
       count: "200",
       label: "mensagens / mês",
-      price: "R$ 37,90",
-      priceNum: 37.9,
+      price: "R$ 24,90",
+      priceNum: 24.9,
+      period: "/mês",
+      popular: false,
+    },
+    {
+      id: "300",
+      count: "300",
+      label: "mensagens / mês",
+      price: "R$ 34,90",
+      priceNum: 34.9,
       period: "/mês",
       popular: false,
     },
@@ -37,26 +46,35 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
       id: "500",
       count: "500",
       label: "mensagens / mês",
+      price: "R$ 49,90",
+      priceNum: 49.9,
+      period: "/mês",
+      popular: false,
+    },
+    {
+      id: "750",
+      count: "750",
+      label: "mensagens / mês",
       price: "R$ 69,90",
       priceNum: 69.9,
       period: "/mês",
-      popular: false,
+      popular: true,
     },
     {
       id: "1000",
       count: "1.000",
       label: "mensagens / mês",
-      price: "R$ 119,90",
-      priceNum: 119.9,
+      price: "R$ 99,90",
+      priceNum: 99.9,
       period: "/mês",
-      popular: true,
+      popular: false,
     },
     {
       id: "2000",
       count: "2.000",
       label: "mensagens / mês",
-      price: "R$ 199,90",
-      priceNum: 199.9,
+      price: "R$ 169,90",
+      priceNum: 169.9,
       period: "/mês",
       popular: false,
     },
@@ -146,7 +164,7 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
               R$
             </Typography>
             <Typography sx={{ fontSize: { xs: "2.4rem", sm: "2.85rem" }, fontWeight: 900, color: "#0F172A", lineHeight: 1 }}>
-              99,90
+              149,90
             </Typography>
             <Typography sx={{ fontSize: "0.95rem", color: "#64748B", fontWeight: 600, ml: 1 }}>
               /mês
@@ -208,7 +226,7 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
           >
             <Info size={18} color="#313485" style={{ marginTop: 2, flexShrink: 0 }} />
             <Typography sx={{ fontSize: "0.84rem", color: "#475569", lineHeight: 1.45, fontWeight: 500 }}>
-              Após os 30 dias de teste grátis, o plano será cobrado normalmente por R$ 99,90/mês.
+              Após os 30 dias de teste grátis, o plano será cobrado normalmente por R$ 149,90/mês.
             </Typography>
           </Box>
         </Box>
@@ -436,7 +454,7 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
             </Box>{" "}
             • A partir do 7º mês:{" "}
             <Box component="span" sx={{ fontWeight: 800, color: "#0F172A" }}>
-              R$ {selectedPkgData ? formatCurrency(99.9 + selectedPkgData.priceNum) : "99,90"}/mês
+              R$ {selectedPkgData ? formatCurrency(149.9 + selectedPkgData.priceNum) : "149,90"}/mês
             </Box>
           </Typography>
         </Box>

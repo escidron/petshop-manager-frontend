@@ -53,6 +53,14 @@ export const refundAndCancelSubscription = async () => {
   return response.data;
 };
 
+export const reactivateSubscription = async (cardId?: string) => {
+  const response = await apiClient.post<SubscriptionResponse>(
+    "/api/v1/subscriptions/reactivate",
+    cardId ? { card_id: cardId } : {}
+  );
+  return response.data;
+};
+
 export const addPaymentMethod = async (
   cardToken: string,
   billingAddress?: BillingAddress,
@@ -169,6 +177,13 @@ export const cancelPackage = async () => {
 export const simulatePixPayment = async () => {
   const response = await apiClient.post<{ success: boolean; message: string; current_period_end?: string }>(
     `/api/v1/subscriptions/simulate-pix-paid`
+  );
+  return response.data;
+};
+
+export const cancelScheduledDowngrade = async () => {
+  const response = await apiClient.post<{ success: boolean; message: string }>(
+    `/api/v1/subscriptions/package/cancel-downgrade`
   );
   return response.data;
 };

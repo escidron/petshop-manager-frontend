@@ -44,12 +44,12 @@ export default function TrialNotificationBanner() {
     }
 
     // 3. Status CANCELADO
-    if (status === "canceled") {
+    if (status === "canceled" || Boolean(sub?.canceled_at)) {
       return {
         stage: "canceled" as const,
         diffDays: 0,
         canDismiss: false,
-        actionUrl: "/settings?tab=billing",
+        actionUrl: "/settings?tab=billing&action=reactivate",
       };
     }
 

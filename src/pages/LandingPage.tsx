@@ -72,8 +72,17 @@ const LandingPage = () => {
       id: "200",
       count: "200",
       label: "mensagens / mês",
-      price: "R$ 37,90",
-      priceNum: 37.9,
+      price: "R$ 24,90",
+      priceNum: 24.9,
+      period: "/mês",
+      popular: false,
+    },
+    {
+      id: "300",
+      count: "300",
+      label: "mensagens / mês",
+      price: "R$ 34,90",
+      priceNum: 34.9,
       period: "/mês",
       popular: false,
     },
@@ -81,26 +90,35 @@ const LandingPage = () => {
       id: "500",
       count: "500",
       label: "mensagens / mês",
+      price: "R$ 49,90",
+      priceNum: 49.9,
+      period: "/mês",
+      popular: false,
+    },
+    {
+      id: "750",
+      count: "750",
+      label: "mensagens / mês",
       price: "R$ 69,90",
       priceNum: 69.9,
       period: "/mês",
-      popular: false,
+      popular: true,
     },
     {
       id: "1000",
       count: "1.000",
       label: "mensagens / mês",
-      price: "R$ 119,90",
-      priceNum: 119.9,
+      price: "R$ 99,90",
+      priceNum: 99.9,
       period: "/mês",
-      popular: true,
+      popular: false,
     },
     {
       id: "2000",
       count: "2.000",
       label: "mensagens / mês",
-      price: "R$ 199,90",
-      priceNum: 199.9,
+      price: "R$ 169,90",
+      priceNum: 169.9,
       period: "/mês",
       popular: false,
     },
@@ -1575,7 +1593,7 @@ const LandingPage = () => {
                   R$
                 </Typography>
                 <Typography sx={{ fontSize: { xs: "2.4rem", sm: "2.8rem" }, fontWeight: 900, color: "#0F172A", lineHeight: 1 }}>
-                  99,90
+                  149,90
                 </Typography>
                 <Typography sx={{ fontSize: "0.95rem", color: "#64748B", fontWeight: 500, ml: 1 }}>
                   /mês
@@ -1639,7 +1657,7 @@ const LandingPage = () => {
               >
                 <Info size={18} color="#313485" style={{ marginTop: 2, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: "0.82rem", color: "#475569", lineHeight: 1.5, fontWeight: 500 }}>
-                  Após os primeiros 30 dias grátis, o plano será de R$ 99,90/mês. Sem contrato de fidelidade, cancele quando desejar.
+                  Após os primeiros 30 dias grátis, o plano será de R$ 149,90/mês. Sem contrato de fidelidade, cancele quando desejar.
                 </Typography>
               </Box>
             </Box>
@@ -1909,7 +1927,7 @@ const LandingPage = () => {
                     Apenas Sistema Data Pet Pro (Sem pacote de mensagens)
                   </Typography>
                   <Typography sx={{ fontSize: "0.82rem", color: "#64748B", mt: 0.3, lineHeight: 1.4 }}>
-                    Você <strong>não paga nada nos primeiros 30 dias</strong> (R$ 0,00). Após o período gratuito, o sistema será <strong>R$ 99,90/mês</strong>.
+                    Você <strong>não paga nada nos primeiros 30 dias</strong> (R$ 0,00). Após o período gratuito, o sistema será <strong>R$ 149,90/mês</strong>.
                   </Typography>
                 </Box>
               </Box>
@@ -1951,7 +1969,7 @@ const LandingPage = () => {
                     A partir do 2º Mês
                   </Typography>
                   <Typography sx={{ fontWeight: 800, color: "#0F172A", fontSize: { xs: "1.05rem", sm: "1.15rem" }, lineHeight: 1.2 }}>
-                    R$ 99,90
+                    R$ 149,90
                     <Typography component="span" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "#64748B" }}>
                       /mês
                     </Typography>
@@ -2054,13 +2072,13 @@ const LandingPage = () => {
                     A partir do 2º Mês
                   </Typography>
                   <Typography sx={{ fontWeight: 800, color: "#0F172A", fontSize: { xs: "1.05rem", sm: "1.15rem" }, lineHeight: 1.2 }}>
-                    R$ {selectedPkgData ? formatCurrency(99.9 + selectedPkgData.priceNum) : "169,80"}
+                    R$ {selectedPkgData ? formatCurrency(149.9 + selectedPkgData.priceNum) : "174,80"}
                     <Typography component="span" sx={{ fontSize: "0.75rem", fontWeight: 500, color: "#64748B" }}>
                       /mês
                     </Typography>
                   </Typography>
                   <Typography sx={{ fontSize: "0.68rem", color: "#64748B" }}>
-                    {selectedPkgData ? `R$ 99,90 + ${selectedPkgData.price}` : "R$ 99,90 + R$ 69,90"}
+                    {selectedPkgData ? `R$ 149,90 + ${selectedPkgData.price}` : "R$ 149,90 + R$ 24,90"}
                   </Typography>
                 </Box>
               </Box>

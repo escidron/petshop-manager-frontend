@@ -12,6 +12,7 @@ export type Subscription = {
   pagarme_subscription_id?: string | null;
   eligible_for_refund?: boolean;
   whatsapp_package_id?: string | null;
+  whatsapp_next_package_id?: string | null;
   whatsapp_package_status?: "inactive" | "pending_payment" | "active" | "canceled";
   whatsapp_messages_limit?: number;
   whatsapp_messages_used?: number;

@@ -8,6 +8,9 @@ import {
   FormControlLabel,
   Checkbox,
   Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
   CircularProgress,
   Tooltip,
 } from "@mui/material";
@@ -31,6 +34,8 @@ import {
   Check,
   HelpCircle,
   Plus,
+  ShieldAlert,
+  RotateCw,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import dayjs from "dayjs";
@@ -43,7 +48,9 @@ import {
   setDefaultPaymentMethod,
   createCheckout,
   getChargeStatus,
+  reactivateSubscription,
 } from "../../api/services/subscriptions";
+import { translatePagarmeError } from "../../utils/translatePagarmeError";
 import type { PaymentMethod, SubscriptionCharge } from "./types";
 
 dayjs.locale("pt-br");
@@ -74,36 +81,6 @@ type ModalStep =
   | "add_card"
   | "pix_payment"
   | "success";
-
-const PAGARME_ERROR_MAP: Record<string, string> = {
-  "card.number": "Número do cartão inválido.",
-  "card.holder_name": "Nome no cartão inválido.",
-  "card.exp_month": "Mês de expiração inválido.",
-  "card.exp_year": "Ano de expiração inválido.",
-  "card.cvv": "Código de segurança (CVV) inválido.",
-  "card expired": "Cartão expirado.",
-  "invalid card": "Dados do cartão inválidos. Verifique e tente novamente.",
-  "insufficient funds": "Saldo ou limite insuficiente no cartão.",
-  "card not supported": "Bandeira de cartão não suportada.",
-  "acquirer error": "Transação não autorizada pela operadora do cartão.",
-};
-
-function translatePagarmeError(err: any): string {
-  if (typeof err === "string") return err;
-  if (err?.message) {
-    const msg = err.message.toLowerCase();
-    if (PAGARME_ERROR_MAP[msg]) return PAGARME_ERROR_MAP[msg];
-    return err.message;
-  }
-  if (err?.errors) {
-    const firstKey = Object.keys(err.errors)[0];
-    const firstErrors = err.errors[firstKey];
-    if (Array.isArray(firstErrors) && firstErrors.length > 0) {
-      return PAGARME_ERROR_MAP[firstErrors[0]] ?? "Dados do cartão inválidos. Verifique e tente novamente.";
-    }
-  }
-  return "Erro ao processar dados do cartão. Verifique e tente novamente.";
-}
 
 function formatCardNumber(value: string) {
   const digits = value.replace(/\D/g, "").slice(0, 16);
@@ -163,7 +140,6 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   const [loadingSaveCard, setLoadingSaveCard] = useState(false);
   const [cardFormError, setCardFormError] = useState<string | null>(null);
 
-  // Seleção de cartão no modal de troca de método
   const [selectedCardId, setSelectedCardId] = useState<string>(() => defaultCard?.id || savedCards?.[0]?.id || "new");
   const [loadingSwitchCard, setLoadingSwitchCard] = useState(false);
 
@@ -189,11 +165,18 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   } | null>(null);
   const [loadingGeneratePix, setLoadingGeneratePix] = useState(false);
 
+  const hasPendingChargeInDb = useMemo(() => {
+    return charges?.some((c) => c.status === "pending" && c.payment_method === "pix");
+  }, [charges]);
+
   const effectivePixData = useMemo(() => {
+    if (sub?.status === "active" && !hasPendingChargeInDb) {
+      return null;
+    }
     if (localPixData?.qrCode) return localPixData;
     if (activePendingPix?.qrCode) return activePendingPix;
     return null;
-  }, [localPixData, activePendingPix]);
+  }, [localPixData, activePendingPix, sub?.status, hasPendingChargeInDb]);
 
   // Helper para parsing seguro de datas sem retroceder o dia por fuso horário
   const parseDateSafe = (dateStr?: string | null) => {
@@ -225,7 +208,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     const isTrialFuture = Boolean(trialEndMs && trialEndMs > nowMs);
 
     // Cancelado
-    if (sub.status === "canceled") {
+    if (sub.status === "canceled" || Boolean(sub.canceled_at)) {
       return {
         key: "canceled",
         label: "Cancelada",
@@ -353,18 +336,20 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
 
   const isTrialActive = subscriptionStatus.key === "trialing";
   const isTrialExpired = subscriptionStatus.key === "trial_expired";
+  const isCanceled = sub?.status === "canceled" || Boolean(sub?.canceled_at);
 
   // Se o usuário está em teste grátis mas antecipou o pagamento via PIX (período além do trial)
   const hasPaidInAdvance = useMemo(() => {
+    if (isCanceled) return false;
     if (!sub?.trial_ends_at || !sub?.current_period_end) return false;
     const dTrial = parseDateSafe(sub.trial_ends_at);
     const dPeriod = parseDateSafe(sub.current_period_end);
     return Boolean(dTrial && dPeriod && dPeriod.isAfter(dTrial, "day"));
-  }, [sub?.trial_ends_at, sub?.current_period_end]);
+  }, [sub?.trial_ends_at, sub?.current_period_end, isCanceled]);
 
   // Verifica se o ciclo atual já está quitado e ainda não atingiu a janela de renovação (5 dias antes do vencimento)
   const isPeriodPaidAndNotDueYet = useMemo(() => {
-    if (!sub) return false;
+    if (!sub || isCanceled) return false;
     // Se está em teste grátis e já antecipou além do trial:
     if (hasPaidInAdvance) return true;
 
@@ -380,7 +365,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     }
 
     // Se a assinatura for ativa (ou tiver current_period_end no futuro):
-    if (sub.current_period_end) {
+    if (sub.status === "active" && sub.current_period_end) {
       const dPeriod = parseDateSafe(sub.current_period_end);
       if (dPeriod) {
         const daysUntilDue = dPeriod.diff(dayjs(), "day", true);
@@ -391,7 +376,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       }
     }
     return false;
-  }, [sub, hasPaidInAdvance, isTrialActive]);
+  }, [sub, hasPaidInAdvance, isTrialActive, isCanceled]);
 
   // Datas calculadas
   const trialEndDateFormatted = useMemo(() => {
@@ -400,6 +385,10 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   }, [sub?.trial_ends_at]);
 
   const nextPaymentDateFormatted = useMemo(() => {
+    if (isCanceled) {
+      return "Nenhum (Cancelada)";
+    }
+
     // 1. Se antecipou o pagamento além do trial (ex: pagou com PIX adiantado):
     // Playbook §4.3: Próximo período já está pago — a próxima COBRANÇA é no final do período pago
     if (hasPaidInAdvance && sub?.current_period_end) {
@@ -426,9 +415,13 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     if (dTrial) return dTrial.format("DD/MM/YYYY");
 
     return dayjs().add(1, "month").format("DD/MM/YYYY");
-  }, [sub?.current_period_end, sub?.trial_ends_at, sub?.status, isTrialActive, hasPaidInAdvance]);
+  }, [sub?.current_period_end, sub?.trial_ends_at, sub?.status, isTrialActive, hasPaidInAdvance, isCanceled]);
 
   const nextPaymentLongDate = useMemo(() => {
+    if (isCanceled) {
+      return "Assinatura cancelada";
+    }
+
     // 1. Se antecipou o pagamento além do trial (ex: pagou com PIX adiantado):
     if (hasPaidInAdvance && sub?.current_period_end) {
       const dPeriod = parseDateSafe(sub.current_period_end);
@@ -454,24 +447,27 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
     if (dTrial) return dTrial.locale("pt-br").format("D [de] MMMM [de] YYYY");
 
     return dayjs().add(1, "month").locale("pt-br").format("D [de] MMMM [de] YYYY");
-  }, [sub?.current_period_end, sub?.trial_ends_at, sub?.status, isTrialActive, hasPaidInAdvance]);
+  }, [sub?.current_period_end, sub?.trial_ends_at, sub?.status, isTrialActive, hasPaidInAdvance, isCanceled]);
 
   // Detalhes do pacote de WhatsApp ativo para discriminação no próximo pagamento
   const whatsappPackageDetails = useMemo(() => {
-    if (!sub?.whatsapp_package_id || sub.whatsapp_package_status !== "active") {
+    const effectivePackageId = sub?.whatsapp_next_package_id || sub?.whatsapp_package_id;
+    if (!effectivePackageId || sub?.whatsapp_package_status !== "active") {
       return null;
     }
     const map: Record<string, { name: string; priceCents: number; priceFormatted: string }> = {
-      pkg_200: { name: "WhatsApp 200 mensagens", priceCents: 3790, priceFormatted: "R$ 37,90" },
-      pkg_500: { name: "WhatsApp 500 mensagens", priceCents: 6990, priceFormatted: "R$ 69,90" },
-      pkg_1000: { name: "WhatsApp 1.000 mensagens", priceCents: 11990, priceFormatted: "R$ 119,90" },
-      pkg_2000: { name: "WhatsApp 2.000 mensagens", priceCents: 19990, priceFormatted: "R$ 199,90" },
+      pkg_200: { name: "WhatsApp 200 mensagens", priceCents: 2490, priceFormatted: "R$ 24,90" },
+      pkg_300: { name: "WhatsApp 300 mensagens", priceCents: 3490, priceFormatted: "R$ 34,90" },
+      pkg_500: { name: "WhatsApp 500 mensagens", priceCents: 4990, priceFormatted: "R$ 49,90" },
+      pkg_750: { name: "WhatsApp 750 mensagens", priceCents: 6990, priceFormatted: "R$ 69,90" },
+      pkg_1000: { name: "WhatsApp 1.000 mensagens", priceCents: 9990, priceFormatted: "R$ 99,90" },
+      pkg_2000: { name: "WhatsApp 2.000 mensagens", priceCents: 16990, priceFormatted: "R$ 169,90" },
     };
-    return map[sub.whatsapp_package_id] || { name: `WhatsApp (${sub.whatsapp_package_id})`, priceCents: 0, priceFormatted: "" };
-  }, [sub?.whatsapp_package_id, sub?.whatsapp_package_status]);
+    return map[effectivePackageId] || { name: `WhatsApp (${effectivePackageId})`, priceCents: 0, priceFormatted: "" };
+  }, [sub?.whatsapp_package_id, sub?.whatsapp_next_package_id, sub?.whatsapp_package_status]);
 
   const totalNextPaymentFormatted = useMemo(() => {
-    const baseCents = 9990;
+    const baseCents = 14990;
     const addonCents = whatsappPackageDetails ? whatsappPackageDetails.priceCents : 0;
     const total = (baseCents + addonCents) / 100;
     return total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -553,7 +549,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
           qrCode: effectivePixData.qrCode,
           qrCodeUrl: effectivePixData.qrCodeUrl,
           expiresAt: effectivePixData.expiresAt,
-          amount: effectivePixData.amount || 9990,
+          amount: effectivePixData.amount || 14990,
           chargeId: (effectivePixData as any).chargeId || (effectivePixData as any).charge_id,
           title: "Pagamento da assinatura do sistema Data Pet",
         });
@@ -564,7 +560,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       return;
     }
 
-    if (isPeriodPaidAndNotDueYet) {
+    if (isPeriodPaidAndNotDueYet && !isCanceled) {
       toast.info(`O período atual já está pago até ${nextPaymentDateFormatted}. A emissão de Pix para renovação estará disponível 5 dias antes do vencimento.`);
       return;
     }
@@ -578,7 +574,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
           qrCode: data.pix_qr_code,
           qrCodeUrl: data.pix_qr_code_url,
           expiresAt: data.expires_at,
-          amount: data.amount || 9990,
+          amount: data.amount || 14990,
           chargeId: (data as any).charge_id,
         };
         setLocalPixData(pixPayload);
@@ -616,7 +612,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
             qrCode: effectivePixData.qrCode,
             qrCodeUrl: effectivePixData.qrCodeUrl,
             expiresAt: effectivePixData.expiresAt,
-            amount: effectivePixData.amount || 9990,
+            amount: effectivePixData.amount || 14990,
             chargeId: (effectivePixData as any).chargeId || (effectivePixData as any).charge_id,
             title: "Pagamento da assinatura do sistema Data Pet",
           });
@@ -640,6 +636,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
         const res = await getChargeStatus(chargeId);
         if (res.paid) {
           clearInterval(intervalId);
+          setLocalPixData(null);
           toast.success("Pagamento Pix confirmado!");
           await onRefreshData();
           setSuccessMethod("PIX");
@@ -660,10 +657,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       (effectivePixData as any)?.chargeId ||
       (effectivePixData as any)?.charge_id ||
       pendingCharge?.id;
-    const hasPending = Boolean(
-      pendingChargeId ||
-      sub?.whatsapp_package_status === "pending_payment"
-    );
+    const hasPending = Boolean(pendingChargeId);
 
     if (!hasPending) return;
 
@@ -672,19 +666,19 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
         if (pendingChargeId) {
           const res = await getChargeStatus(pendingChargeId);
           if (res.paid) {
+            setLocalPixData(null);
             toast.success("Pagamento PIX confirmado com sucesso!");
             await onRefreshData();
             return;
           }
         }
-        await onRefreshData();
       } catch {
         // Silently ignore background polling errors
       }
     }, 4000);
 
     return () => clearInterval(intervalId);
-  }, [effectivePixData, charges, sub?.whatsapp_package_status, onRefreshData]);
+  }, [effectivePixData, charges, onRefreshData]);
 
   const handleConfirmPixChange = async () => {
     setLoadingPixChange(true);
@@ -782,39 +776,15 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       // 2. Salva método de pagamento
       const newPaymentMethod = await addPaymentMethod(cardToken, billingAddress, cleanCpf);
 
-      // 3. Define como principal se marcado
-      if (setAsDefault && newPaymentMethod?.id) {
+      // 3. Define como principal se marcado ou se for o primeiro cartão
+      // O back-end cuida automaticamente de:
+      // - Se o trial expirou: cobra e ativa imediatamente hoje
+      // - Se o trial está no futuro: agenda a assinatura para o fim do trial
+      // - Se o período foi pago via PIX: agenda para o fim do período sem cobrar agora
+      // - Se já tem assinatura criada: apenas atualiza o cartão sem duplicar cobrança
+      const isFirstCard = !savedCards || savedCards.length === 0;
+      if ((setAsDefault || isFirstCard) && newPaymentMethod?.id) {
         await setDefaultPaymentMethod(newPaymentMethod.id);
-      }
-
-      // 4. Cria a assinatura futura ou ativa no Pagar.me com o cartão novo
-      if (tenant?.id && sub?.payment_method !== "card") {
-        const now = new Date();
-        const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
-        const trialEnd = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
-
-        let startAtIso: string | undefined = undefined;
-        // Playbook §11 Cenário B: se o período atual já está pago no futuro (ex: PIX adiantado),
-        // a subscription futura inicia em current_period_end sem cobrança imediata!
-        if (periodEnd && periodEnd.getTime() > now.getTime()) {
-          startAtIso = dayjs(periodEnd).hour(12).minute(0).second(0).toISOString();
-        } else if (trialEnd && trialEnd.getTime() > now.getTime()) {
-          startAtIso = dayjs(trialEnd).hour(12).minute(0).second(0).toISOString();
-        }
-
-        try {
-          await createCheckout(
-            sub?.plan?.code || "MONTHLY",
-            "credit_card",
-            undefined,
-            cleanCpf,
-            billingAddress,
-            startAtIso,
-            newPaymentMethod?.id
-          );
-        } catch (e) {
-          console.error("Erro ao ativar assinatura futura no Pagar.me:", e);
-        }
       }
 
       await onRefreshData();
@@ -829,8 +799,8 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       setModalStep("success");
     } catch (err: any) {
       console.error(err);
-      const msg = err?.response?.data?.detail || "Erro ao cadastrar cartão. Tente novamente.";
-      setCardFormError(msg);
+      const msg = err?.response?.data?.detail || err?.message || err;
+      setCardFormError(translatePagarmeError(msg));
     } finally {
       setLoadingSaveCard(false);
     }
@@ -839,6 +809,34 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
   const handleFinishSuccess = async () => {
     handleCloseModal();
     await onRefreshData();
+  };
+
+  // Estado e handler do diálogo de reativação de assinatura com cartão salvo
+  const [openReactivateDialog, setOpenReactivateDialog] = useState(false);
+  const [loadingReactivate, setLoadingReactivate] = useState(false);
+
+  React.useEffect(() => {
+    const searchParams = new URLSearchParams(window.location.search);
+    if (searchParams.get("action") === "reactivate" && isCanceled && hasCard) {
+      setOpenReactivateDialog(true);
+    }
+  }, [isCanceled, hasCard]);
+
+  const handleReactivate = async () => {
+    setLoadingReactivate(true);
+    try {
+      await reactivateSubscription(defaultCard?.id);
+      toast.success("Assinatura reativada com sucesso!");
+      setOpenReactivateDialog(false);
+      setIsModalOpen(false);
+      await onRefreshData();
+    } catch (err: any) {
+      console.error(err);
+      const msg = err?.response?.data?.detail || err?.message || "Erro ao reativar assinatura. Verifique seu cartão ou tente novamente.";
+      toast.error(msg);
+    } finally {
+      setLoadingReactivate(false);
+    }
   };
 
   return (
@@ -875,7 +873,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
       </Box>
 
       {/* ALERTA DE COBRANÇA PIX PENDENTE COM POLLING ATIVO */}
-      {(effectivePixData?.qrCode || sub?.whatsapp_package_status === "pending_payment" || charges?.some((c) => c.status === "pending" && c.payment_method === "pix")) && (
+      {Boolean(effectivePixData?.qrCode) && (
         <Box
           sx={{
             p: { xs: 2, sm: 2.5 },
@@ -1030,7 +1028,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
               <Typography
                 variant="caption"
                 sx={{
-                  color: isTrialExpired ? "#DC2626" : "#0F172A",
+                  color: isTrialExpired || isCanceled ? "#DC2626" : "#0F172A",
                   fontWeight: 700,
                   fontSize: "0.82rem",
                   ml: "auto",
@@ -1038,9 +1036,11 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
               >
                 {isTrialActive
                   ? `Até ${trialEndDateFormatted || nextPaymentDateFormatted}`
-                  : trialEndDateFormatted
-                    ? `Encerrado em ${trialEndDateFormatted}`
-                    : "Encerrado"}
+                  : isCanceled && sub?.canceled_at
+                    ? `Cancelado em ${parseDateSafe(sub.canceled_at)?.format("DD/MM/YYYY") || "Cancelado"}`
+                    : trialEndDateFormatted
+                      ? `Encerrado em ${trialEndDateFormatted}`
+                      : "Encerrado"}
               </Typography>
             </Box>
 
@@ -1048,18 +1048,18 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
             <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
               <Clock size={16} color="#64748B" />
               <Typography variant="caption" sx={{ color: "#64748B", fontSize: "0.82rem" }}>
-                {hasPaidInAdvance && isTrialActive ? "Próxima cobrança" : "Próximo pagamento"}
+                {isCanceled ? "Cobranças futuras" : hasPaidInAdvance && isTrialActive ? "Próxima cobrança" : "Próximo pagamento"}
               </Typography>
               <Typography
                 variant="caption"
                 sx={{
-                  color: hasPaidInAdvance && isTrialActive ? "#166534" : "#0F172A",
+                  color: isCanceled ? "#DC2626" : hasPaidInAdvance && isTrialActive ? "#166534" : "#0F172A",
                   fontWeight: 700,
                   fontSize: "0.82rem",
                   ml: "auto",
                 }}
               >
-                {nextPaymentDateFormatted}
+                {isCanceled ? "Nenhuma" : nextPaymentDateFormatted}
               </Typography>
             </Box>
 
@@ -1090,15 +1090,41 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
             </Box>
           </Box>
 
-          {/* Lado Direito: Botão Gerenciar assinatura */}
-          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
+          {/* Lado Direito: Botões de Ação */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 1.5, flexWrap: "wrap" }}>
+            {isCanceled && hasCard && (
+              <Button
+                variant="contained"
+                onClick={() => setOpenReactivateDialog(true)}
+                startIcon={<RotateCw size={16} />}
+                sx={{
+                  bgcolor: "#2E308E",
+                  color: "#FFFFFF",
+                  fontWeight: 700,
+                  textTransform: "none",
+                  borderRadius: "10px",
+                  px: 2.75,
+                  py: 1.1,
+                  fontSize: "0.9rem",
+                  boxShadow: "none",
+                  whiteSpace: "nowrap",
+                  "&:hover": {
+                    bgcolor: "#24276A",
+                    boxShadow: "0 2px 8px rgba(46, 48, 142, 0.25)",
+                  },
+                }}
+              >
+                Reativar assinatura
+              </Button>
+            )}
             <Button
-              variant="contained"
+              variant={isCanceled && hasCard ? "outlined" : "contained"}
               onClick={() => handleOpenModal("manage")}
               endIcon={<ArrowRight size={16} />}
               sx={{
-                bgcolor: "#2E308E",
-                color: "#FFFFFF",
+                bgcolor: isCanceled && hasCard ? "#FFFFFF" : "#2E308E",
+                borderColor: isCanceled && hasCard ? "#CBD5E1" : "transparent",
+                color: isCanceled && hasCard ? "#334155" : "#FFFFFF",
                 fontWeight: 700,
                 textTransform: "none",
                 borderRadius: "10px",
@@ -1108,8 +1134,9 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                 boxShadow: "none",
                 whiteSpace: "nowrap",
                 "&:hover": {
-                  bgcolor: "#24276A",
-                  boxShadow: "0 2px 8px rgba(46, 48, 142, 0.25)",
+                  bgcolor: isCanceled && hasCard ? "#F8FAFC" : "#24276A",
+                  borderColor: isCanceled && hasCard ? "#94A3B8" : "transparent",
+                  boxShadow: isCanceled && hasCard ? "none" : "0 2px 8px rgba(46, 48, 142, 0.25)",
                 },
               }}
             >
@@ -1318,7 +1345,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     )
                   }
                   sx={{
-                    bgcolor: "#00B49D",
+                    bgcolor: isCanceled ? "#313485" : "#00B49D",
                     color: "#FFFFFF",
                     fontWeight: 700,
                     textTransform: "none",
@@ -1329,12 +1356,12 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     whiteSpace: "nowrap",
                     boxShadow: "none",
                     "&:hover": {
-                      bgcolor: "#009682",
+                      bgcolor: isCanceled ? "#24276A" : "#009682",
                       boxShadow: "0 2px 8px rgba(0, 180, 157, 0.25)",
                     },
                   }}
                 >
-                  Gerar PIX
+                  {isCanceled ? "Reativar com PIX" : "Gerar PIX"}
                 </Button>
               )
             ) : (
@@ -1410,13 +1437,13 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                   textTransform: "uppercase",
                 }}
               >
-                Fatura e Próximo Pagamento
+                {isCanceled ? "Fatura e Status" : "Fatura e Próximo Pagamento"}
               </Typography>
               <Typography
                 variant="h6"
                 sx={{
                   fontWeight: 800,
-                  color: "#0F172A",
+                  color: isCanceled ? "#DC2626" : "#0F172A",
                   fontSize: "1.2rem",
                   lineHeight: 1.2,
                   mt: 0.2,
@@ -1428,7 +1455,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                 <Box sx={{ mt: 0.8 }}>
                   <Box sx={{ display: "flex", gap: 0.8, alignItems: "center", flexWrap: "wrap", mb: 0.4 }}>
                     <Box sx={{ bgcolor: "#F1F5F9", px: 1, py: 0.3, borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, color: "#334155" }}>
-                      Plano Base: R$ 99,90
+                      Plano Base: R$ 149,90
                     </Box>
                     <Typography variant="caption" sx={{ color: "#94A3B8", fontWeight: 700 }}>+</Typography>
                     <Box sx={{ bgcolor: "#EFF6FF", px: 1, py: 0.3, borderRadius: "6px", fontSize: "0.78rem", fontWeight: 700, color: "#1D4ED8" }}>
@@ -1444,7 +1471,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                   variant="body2"
                   sx={{ color: "#64748B", fontSize: "0.85rem", mt: 0.4 }}
                 >
-                  Valor mensal do plano: R$ 99,90
+                  Valor mensal do plano: R$ 149,90
                 </Typography>
               )}
             </Box>
@@ -1614,7 +1641,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                         Valor mensal regular
                       </Typography>
                       <Typography variant="body2" sx={{ fontWeight: 800, color: "#0F172A" }}>
-                        R$ 99,90/mês
+                        R$ 149,90/mês
                       </Typography>
                     </Box>
                   </Box>
@@ -1845,57 +1872,132 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                 )
               )}
 
-              {/* Alerta de renovação */}
-              <Box
-                sx={{
-                  p: 2,
-                  borderRadius: "12px",
-                  bgcolor: "#F8FAFC",
-                  border: "1px solid #E2E8F0",
-                  display: "flex",
-                  alignItems: "flex-start",
-                  gap: 1.5,
-                }}
-              >
-                <Info size={18} color="#64748B" style={{ flexShrink: 0, marginTop: 2 }} />
-                <Typography variant="caption" sx={{ color: "#475569", fontSize: "0.82rem", lineHeight: 1.4 }}>
-                  {hasCard
-                    ? `Sua assinatura é renovada automaticamente todo dia ${billingDay}. Você pode alterar sua forma de pagamento a qualquer momento.`
-                    : isPixMethod
-                    ? `O pagamento do seu plano é realizado mensalmente via PIX até o dia ${billingDay}.`
-                    : `Para garantir a continuidade dos serviços, adicione um cartão de crédito para a cobrança no dia ${billingDay}.`}
-                </Typography>
-              </Box>
-
-              {/* Botão Cancelar Assinatura */}
-              <Box sx={{ mt: 1 }}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  color="error"
-                  onClick={() => {
-                    handleCloseModal();
-                    onOpenCancelModal();
-                  }}
-                  startIcon={<Trash2 size={16} />}
+              {isCanceled ? (
+                <Box
                   sx={{
-                    borderColor: "#FECACA",
-                    bgcolor: "#FFFFFF",
-                    color: "#DC2626",
-                    fontWeight: 700,
-                    textTransform: "none",
-                    borderRadius: "10px",
-                    py: 1.2,
-                    fontSize: "0.88rem",
-                    "&:hover": {
-                      borderColor: "#F87171",
-                      bgcolor: "#FEF2F2",
-                    },
+                    p: 2.2,
+                    borderRadius: "14px",
+                    bgcolor: "#FEF2F2",
+                    border: "1px solid #FECACA",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 1.5,
                   }}
                 >
-                  Cancelar assinatura
-                </Button>
-              </Box>
+                  <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                    <ShieldAlert size={20} color="#DC2626" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <Box>
+                      <Typography variant="subtitle2" sx={{ fontWeight: 800, color: "#991B1B" }}>
+                        Assinatura Cancelada
+                      </Typography>
+                      <Typography variant="caption" sx={{ color: "#B91C1C", fontSize: "0.82rem", lineHeight: 1.4, display: "block", mt: 0.3 }}>
+                        {hasCard
+                          ? `Sua assinatura está inativa. Você pode reativá-la agora mesmo utilizando seu cartão cadastrado final ${defaultCard?.last4} para restabelecer o acesso imediatamente.`
+                          : "Sua assinatura está inativa. Adicione uma forma de pagamento para reativar seu acesso."}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {hasCard ? (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => {
+                        handleCloseModal();
+                        setOpenReactivateDialog(true);
+                      }}
+                      startIcon={<RotateCw size={16} />}
+                      sx={{
+                        bgcolor: "#2E308E",
+                        color: "#FFFFFF",
+                        fontWeight: 700,
+                        textTransform: "none",
+                        borderRadius: "10px",
+                        py: 1.2,
+                        fontSize: "0.88rem",
+                        boxShadow: "none",
+                        "&:hover": { bgcolor: "#24276A" },
+                      }}
+                    >
+                      Reativar assinatura com cartão final {defaultCard?.last4}
+                    </Button>
+                  ) : (
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      onClick={() => setModalStep("add_card")}
+                      startIcon={<Plus size={16} />}
+                      sx={{
+                        bgcolor: "#2E308E",
+                        color: "#FFFFFF",
+                        fontWeight: 700,
+                        textTransform: "none",
+                        borderRadius: "10px",
+                        py: 1.2,
+                        fontSize: "0.88rem",
+                        boxShadow: "none",
+                        "&:hover": { bgcolor: "#24276A" },
+                      }}
+                    >
+                      Cadastrar cartão para reativar
+                    </Button>
+                  )}
+                </Box>
+              ) : (
+                <>
+                  {/* Alerta de renovação */}
+                  <Box
+                    sx={{
+                      p: 2,
+                      borderRadius: "12px",
+                      bgcolor: "#F8FAFC",
+                      border: "1px solid #E2E8F0",
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 1.5,
+                    }}
+                  >
+                    <Info size={18} color="#64748B" style={{ flexShrink: 0, marginTop: 2 }} />
+                    <Typography variant="caption" sx={{ color: "#475569", fontSize: "0.82rem", lineHeight: 1.4 }}>
+                      {hasCard
+                        ? `Sua assinatura é renovada automaticamente todo dia ${billingDay}. Você pode alterar sua forma de pagamento a qualquer momento.`
+                        : isPixMethod
+                        ? `O pagamento do seu plano é realizado mensalmente via PIX até o dia ${billingDay}.`
+                        : `Para garantir a continuidade dos serviços, adicione um cartão de crédito para a cobrança no dia ${billingDay}.`}
+                    </Typography>
+                  </Box>
+
+                  {/* Botão Cancelar Assinatura */}
+                  <Box sx={{ mt: 1 }}>
+                    <Button
+                      fullWidth
+                      variant="outlined"
+                      color="error"
+                      onClick={() => {
+                        handleCloseModal();
+                        onOpenCancelModal();
+                      }}
+                      startIcon={<Trash2 size={16} />}
+                      sx={{
+                        borderColor: "#FECACA",
+                        bgcolor: "#FFFFFF",
+                        color: "#DC2626",
+                        fontWeight: 700,
+                        textTransform: "none",
+                        borderRadius: "10px",
+                        py: 1.2,
+                        fontSize: "0.88rem",
+                        "&:hover": {
+                          borderColor: "#F87171",
+                          bgcolor: "#FEF2F2",
+                        },
+                      }}
+                    >
+                      Cancelar assinatura
+                    </Button>
+                  </Box>
+                </>
+              )}
             </Box>
           </Box>
         )}
@@ -2188,34 +2290,12 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     // Usar cartão já salvo existente
                     try {
                       setLoadingSwitchCard(true);
-                      const now = new Date();
-                      const periodEnd = sub?.current_period_end ? new Date(sub.current_period_end) : null;
-                      const trialEnd = sub?.trial_ends_at ? new Date(sub.trial_ends_at) : null;
-
-                      let startAtIso: string | undefined = undefined;
-                      // Playbook §11 Cenário B: se o período atual já está pago no futuro,
-                      // a subscription futura inicia em current_period_end sem cobrar agora!
-                      if (periodEnd && periodEnd.getTime() > now.getTime()) {
-                        startAtIso = dayjs(periodEnd).hour(12).minute(0).second(0).toISOString();
-                      } else if (trialEnd && trialEnd.getTime() > now.getTime()) {
-                        startAtIso = dayjs(trialEnd).hour(12).minute(0).second(0).toISOString();
-                      }
-
-                      await createCheckout(
-                        sub?.plan?.code || "MONTHLY",
-                        "credit_card",
-                        undefined,
-                        tenant?.document || undefined,
-                        undefined,
-                        startAtIso,
-                        selectedCardId
-                      );
-
+                      await setDefaultPaymentMethod(selectedCardId);
                       await onRefreshData();
                       setSuccessMethod("Cartão de Crédito");
                       setModalStep("success");
                     } catch (err: any) {
-                      console.error("Erro ao ativar assinatura futura no cartão:", err);
+                      console.error("Erro ao configurar cartão:", err);
                       const msg = err?.response?.data?.detail || "Erro ao configurar cartão. Tente novamente.";
                       toast.error(msg);
                     } finally {
@@ -2543,7 +2623,7 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
                     <Typography variant="h5" sx={{ fontWeight: 900, color: "#0F172A", mb: 1 }}>
                       {effectivePixData.amount
                         ? `R$ ${(effectivePixData.amount / 100).toFixed(2).replace(".", ",")}`
-                        : "R$ 99,90"}
+                        : "R$ 149,90"}
                     </Typography>
 
                     <Typography variant="caption" sx={{ color: "#64748B", fontWeight: 700, textTransform: "uppercase" }}>
@@ -2937,6 +3017,96 @@ export const SubscriptionManagement: React.FC<SubscriptionManagementProps> = ({
             </Button>
           </Box>
         </Box>
+      </Dialog>
+
+      {/* DIALOG DE CONFIRMAÇÃO DE REATIVAÇÃO */}
+      <Dialog
+        open={openReactivateDialog}
+        onClose={() => !loadingReactivate && setOpenReactivateDialog(false)}
+        maxWidth="xs"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: "18px", p: 1 },
+        }}
+      >
+        <DialogTitle sx={{ fontWeight: 800, color: "#0F172A", pb: 1, display: "flex", alignItems: "center", gap: 1.2 }}>
+          <Box
+            sx={{
+              width: 38,
+              height: 38,
+              borderRadius: "10px",
+              bgcolor: "#EEF2FF",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              color: "#2E308E",
+            }}
+          >
+            <RotateCw size={20} />
+          </Box>
+          Reativar Assinatura
+        </DialogTitle>
+        <DialogContent sx={{ pb: 1.5 }}>
+          <Typography variant="body2" sx={{ color: "#475569", mb: 2 }}>
+            Você está prestes a reativar sua assinatura do <strong>Data Pet Pro</strong>.
+          </Typography>
+
+          <Box sx={{ p: 2, borderRadius: "12px", bgcolor: "#F8FAFC", border: "1px solid #E2E8F0", mb: 2 }}>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.2 }}>
+              <Typography variant="caption" sx={{ color: "#64748B", fontSize: "0.82rem" }}>Plano</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "#0F172A" }}>Data Pet Pro</Typography>
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between", mb: 1.2 }}>
+              <Typography variant="caption" sx={{ color: "#64748B", fontSize: "0.82rem" }}>Valor mensal</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "#0F172A" }}>R$ 149,90 / mês</Typography>
+            </Box>
+            <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <Typography variant="caption" sx={{ color: "#64748B", fontSize: "0.82rem" }}>Forma de cobrança</Typography>
+              <Typography variant="body2" sx={{ fontWeight: 700, color: "#2E308E" }}>
+                Cartão final {defaultCard?.last4} ({defaultCard?.brand?.toUpperCase() || "CRÉDITO"})
+              </Typography>
+            </Box>
+          </Box>
+
+          <Typography variant="caption" sx={{ color: "#64748B", display: "block", lineHeight: 1.45 }}>
+            A cobrança do primeiro ciclo será processada imediatamente no seu cartão salvo e todos os recursos do sistema serão restabelecidos agora mesmo.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5, display: "flex", flexDirection: "column", gap: 1 }}>
+          <Button
+            fullWidth
+            variant="contained"
+            onClick={handleReactivate}
+            disabled={loadingReactivate}
+            startIcon={loadingReactivate ? <CircularProgress size={16} color="inherit" /> : <RotateCw size={16} />}
+            sx={{
+              bgcolor: "#2E308E",
+              color: "#FFFFFF",
+              fontWeight: 700,
+              textTransform: "none",
+              borderRadius: "10px",
+              py: 1.2,
+              fontSize: "0.9rem",
+              boxShadow: "none",
+              "&:hover": { bgcolor: "#24276A" },
+            }}
+          >
+            {loadingReactivate ? "Reativando assinatura..." : "Confirmar e Reativar Agora"}
+          </Button>
+          <Button
+            fullWidth
+            variant="text"
+            onClick={() => setOpenReactivateDialog(false)}
+            disabled={loadingReactivate}
+            sx={{
+              color: "#64748B",
+              fontWeight: 600,
+              textTransform: "none",
+            }}
+          >
+            Voltar
+          </Button>
+        </DialogActions>
       </Dialog>
     </Box>
   );

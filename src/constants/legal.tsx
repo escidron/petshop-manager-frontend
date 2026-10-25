@@ -119,7 +119,7 @@ export const LEGAL_CONTENT = {
           5.1. <strong>Período de Avaliação Gratuita (Trial de 1 Mês):</strong> O Contratante novo tem direito a 1 (um) mês (30 dias corridos) de teste gratuito sem custo de assinatura (R$ 0,00), a contar da data de conclusão do cadastro. Durante o período de teste, o Contratante poderá usufruir das ferramentas do sistema sem qualquer compromisso de fidelidade ou contratação compulsória.
         </Typography>
         <Typography variant="body1">
-          5.2. <strong>Contratação da Assinatura Mensal:</strong> Transcorridos os 30 (trinta) dias de avaliação gratuita, a continuidade de uso da plataforma exigirá a ativação do plano de assinatura mensal (no valor vigente divulgado na plataforma, atualmente de R$ 99,90/mês) e, caso desejado, a aquisição de pacotes adicionais ou combos de mensagens de WhatsApp.
+          5.2. <strong>Contratação da Assinatura Mensal:</strong> Transcorridos os 30 (trinta) dias de avaliação gratuita, a continuidade de uso da plataforma exigirá a ativação do plano de assinatura mensal (no valor vigente divulgado na plataforma, atualmente de R$ 149,90/mês) e, caso desejado, a aquisição de pacotes adicionais ou combos de mensagens de WhatsApp.
         </Typography>
         <Typography variant="body1">
           5.3. <strong>Processamento Financeiro e Meios de Cobrança:</strong> As assinaturas são cobradas na modalidade pré-paga recorrente mensal, via Cartão de Crédito ou PIX dinâmico, sendo as transações processadas com segurança através da infraestrutura de gateway de pagamento parceiro homologado (Pagar.me / StoneCo).

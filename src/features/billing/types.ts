@@ -42,6 +42,7 @@ export interface SubscriptionResponse {
 
   // WhatsApp Add-on Package Tracking
   whatsapp_package_id?: string | null;
+  whatsapp_next_package_id?: string | null;
   whatsapp_package_status?: "inactive" | "pending_payment" | "active" | "canceled";
   whatsapp_messages_limit?: number;
   whatsapp_messages_used?: number;
@@ -62,6 +63,11 @@ export interface ProrationPreviewResponse {
   total_days_in_cycle: number;
   next_billing_date: string;
   is_prorated: boolean;
+  is_downgrade?: boolean;
+  current_package_code?: string | null;
+  current_package_name?: string | null;
+  current_package_price_cents?: number;
+  current_messages_limit?: number;
 }
 
 export interface HirePackagePayload {

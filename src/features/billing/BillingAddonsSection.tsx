@@ -11,6 +11,7 @@ import {
   MessageSquare,
   Info,
   CheckCircle2,
+  CalendarClock,
 } from "lucide-react";
 import { Button } from "../../components/Button/Button";
 import dayjs from "dayjs";
@@ -33,7 +34,15 @@ export const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
     id: "pkg_200",
     count: "200",
     label: "mensagens / mês",
-    price: "R$ 37,90",
+    price: "R$ 24,90",
+    period: "/mês",
+    popular: false,
+  },
+  {
+    id: "pkg_300",
+    count: "300",
+    label: "mensagens / mês",
+    price: "R$ 34,90",
     period: "/mês",
     popular: false,
   },
@@ -41,23 +50,31 @@ export const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
     id: "pkg_500",
     count: "500",
     label: "mensagens / mês",
-    price: "R$ 69,90",
+    price: "R$ 49,90",
     period: "/mês",
     popular: false,
+  },
+  {
+    id: "pkg_750",
+    count: "750",
+    label: "mensagens / mês",
+    price: "R$ 69,90",
+    period: "/mês",
+    popular: true,
   },
   {
     id: "pkg_1000",
     count: "1.000",
     label: "mensagens / mês",
-    price: "R$ 119,90",
+    price: "R$ 99,90",
     period: "/mês",
-    popular: true,
+    popular: false,
   },
   {
     id: "pkg_2000",
     count: "2.000",
     label: "mensagens / mês",
-    price: "R$ 199,90",
+    price: "R$ 169,90",
     period: "/mês",
     popular: false,
   },
@@ -67,28 +84,38 @@ export const WHATSAPP_PACKAGES: WhatsAppPkg[] = [
 
 interface BillingAddonsSectionProps {
   activePackageId?: string | null;
+  nextPackageId?: string | null;
   packageStatus?: "inactive" | "pending_payment" | "active" | "canceled";
   messagesLimit?: number;
   messagesUsed?: number;
   periodEnd?: string | null;
   onHirePackage?: (pkgId: string) => void;
   onCancelPackage?: () => void;
+  onCancelScheduledDowngrade?: () => void;
 }
 
 const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
   activePackageId = null,
+  nextPackageId = null,
   packageStatus = "inactive",
   messagesLimit = 0,
   messagesUsed = 0,
   periodEnd,
   onHirePackage,
   onCancelPackage,
+  onCancelScheduledDowngrade,
 }) => {
   // Normalize active package ID (e.g. "500" -> "pkg_500")
   const normalizedActiveId = activePackageId
     ? activePackageId.startsWith("pkg_")
       ? activePackageId
       : `pkg_${activePackageId}`
+    : null;
+
+  const normalizedNextId = nextPackageId
+    ? nextPackageId.startsWith("pkg_")
+      ? nextPackageId
+      : `pkg_${nextPackageId}`
     : null;
 
   const [selectedPkg, setSelectedPkg] = useState<string | null>(normalizedActiveId);
@@ -100,7 +127,23 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
   const isActive = packageStatus === "active" && normalizedActiveId;
   const isPending = packageStatus === "pending_payment" && normalizedActiveId;
   const currentPkgData = WHATSAPP_PACKAGES.find((p) => p.id === normalizedActiveId);
+  const nextPkgData = WHATSAPP_PACKAGES.find((p) => p.id === normalizedNextId);
   const selectedPkgData = WHATSAPP_PACKAGES.find((p) => p.id === selectedPkg);
+
+  const packagePriceMap: Record<string, number> = {
+    pkg_200: 2490,
+    pkg_300: 3490,
+    pkg_500: 4990,
+    pkg_750: 6990,
+    pkg_1000: 9990,
+    pkg_2000: 16990,
+  };
+
+  const isSelectedDowngrade =
+    isActive &&
+    selectedPkg &&
+    normalizedActiveId &&
+    (packagePriceMap[selectedPkg] || 0) < (packagePriceMap[normalizedActiveId] || 0);
 
   const usagePercent = messagesLimit > 0 ? Math.min(100, Math.round((messagesUsed / messagesLimit) * 100)) : 0;
 
@@ -209,6 +252,55 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
             />
           </Box>
 
+          {/* Banner de Downgrade Agendado */}
+          {nextPkgData && (
+            <Box
+              sx={{
+                mt: 2,
+                p: 1.8,
+                borderRadius: 2.5,
+                bgcolor: "#FEF3C7",
+                border: "1px solid #FDE68A",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                flexWrap: "wrap",
+                gap: 1.5,
+              }}
+            >
+              <Box sx={{ display: "flex", alignItems: "center", gap: 1.2 }}>
+                <CalendarClock size={20} color="#D97706" style={{ flexShrink: 0 }} />
+                <Box>
+                  <Typography variant="body2" sx={{ color: "#92400E", fontWeight: 800, fontSize: "0.85rem" }}>
+                    Alteração agendada para a próxima renovação ({periodEnd ? dayjs(periodEnd).format("DD/MM/YYYY") : "próximo ciclo"})
+                  </Typography>
+                  <Typography variant="caption" sx={{ color: "#B45309", fontSize: "0.78rem", display: "block" }}>
+                    Seu pacote mudará para <strong>{nextPkgData.count} Mensagens/mês ({nextPkgData.price})</strong>. Suas {messagesLimit.toLocaleString("pt-BR")} mensagens atuais continuam liberadas para uso até a renovação.
+                  </Typography>
+                </Box>
+              </Box>
+              {onCancelScheduledDowngrade && (
+                <Button
+                  variant="text"
+                  size="small"
+                  onClick={onCancelScheduledDowngrade}
+                  sx={{
+                    color: "#92400E",
+                    fontSize: "0.78rem",
+                    fontWeight: 800,
+                    textDecoration: "underline",
+                    textTransform: "none",
+                    p: 0,
+                    minWidth: "auto",
+                    "&:hover": { bgcolor: "transparent", color: "#78350F" },
+                  }}
+                >
+                  Cancelar alteração
+                </Button>
+              )}
+            </Box>
+          )}
+
           <Box sx={{ display: "flex", justifyContent: "flex-end", mt: 1.5 }}>
             {onCancelPackage && (
               <Button
@@ -294,6 +386,20 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
                     }}
                   />
                 )}
+                {normalizedNextId === pkg.id && (
+                  <Chip
+                    label="Agendado p/ próxima fatura"
+                    size="small"
+                    sx={{
+                      bgcolor: "#FEF3C7",
+                      color: "#92400E",
+                      fontWeight: 800,
+                      fontSize: "0.68rem",
+                      border: "1px solid #FDE68A",
+                      height: 22,
+                    }}
+                  />
+                )}
                 {isPending && normalizedActiveId === pkg.id && (
                   <Chip
                     label="Aguardando ativação"
@@ -364,14 +470,16 @@ const BillingAddonsSection: React.FC<BillingAddonsSectionProps> = ({
               fontWeight: 800,
               borderRadius: 2.5,
               py: 1.2,
-              bgcolor: "#16A34A",
+              bgcolor: isSelectedDowngrade ? "#D97706" : "#16A34A",
               color: "white",
               fontSize: "0.95rem",
               textTransform: "none",
-              "&:hover": { bgcolor: "#15803D" },
+              "&:hover": { bgcolor: isSelectedDowngrade ? "#B45309" : "#15803D" },
             }}
           >
-            {isActive
+            {isSelectedDowngrade
+              ? `Agendar alteração para ${selectedPkgData?.count} mensagens (sem cobrança hoje)`
+              : isActive
               ? "Alterar para este pacote"
               : isPending && normalizedActiveId === selectedPkg
               ? `Pagar e Ativar pacote (${selectedPkgData?.price}/mês)`
