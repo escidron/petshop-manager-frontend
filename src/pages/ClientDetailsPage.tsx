@@ -16,7 +16,10 @@ import type { ClientPackage } from "../features/client_packages/types";
 import {
   listClientPackagesByClient,
 } from "../api/services/client_packages";
-import { listAppointmentsByClient } from "../api/services/appointments";
+import {
+  buildClientRecurrenceSeries,
+  listAppointmentsByClient,
+} from "../api/services/appointments";
 import type { Appointment } from "../features/appointments/types";
 import ManageRecurrenceModal from "../features/appointments/ManageRecurrenceModal";
 import PetPackageCredits from "../features/client_packages/PetPackageCredits";
@@ -57,23 +60,13 @@ export default function ClientDetailsPage() {
     enabled: !!id,
   });
 
-  const upcomingRecurringAppt = useMemo(() => {
-    const now = new Date();
-    return (
-      appointments
-        .filter(
-          (a) =>
-            a.recurrence_id &&
-            new Date(a.scheduled_at) >= now &&
-            a.status !== "canceled"
-        )
-        .sort(
-          (a, b) =>
-            new Date(a.scheduled_at).getTime() -
-            new Date(b.scheduled_at).getTime()
-        )[0] || null
-    );
+  const recurringSeriesList = useMemo(() => {
+    return buildClientRecurrenceSeries(appointments);
   }, [appointments]);
+
+  const upcomingRecurringAppt = useMemo(() => {
+    return recurringSeriesList[0]?.representative_appointment || null;
+  }, [recurringSeriesList]);
 
   const [editingAppointment, setEditingAppointment] = useState<Appointment | null>(null);
   const [appointmentModalOpen, setAppointmentModalOpen] = useState(false);
@@ -153,6 +146,7 @@ export default function ClientDetailsPage() {
             client={client} 
             onEdit={() => setClientModal({ open: true })}
             upcomingRecurringAppt={upcomingRecurringAppt}
+            recurringSeriesList={recurringSeriesList}
             onManageRecurrence={(appt) => {
               setEditingAppointment(appt);
               setAppointmentModalOpen(true);
@@ -182,19 +176,28 @@ export default function ClientDetailsPage() {
             </Box>
 
             <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-              {pets.map((pet) => (
-                <PetDetailsCard
-                  key={pet.id}
-                  pet={pet}
-                  onEdit={(p) => setPetModal({ open: true, mode: "edit", pet: p })}
-                  onDelete={(p) => setPetToDelete(p)}
-                  onPhotoUploadSuccess={refetchPets}
-                  onViewPhotos={(p) => {
-                    setSelectedPetForPhotos(p);
-                    setPhotosModalOpen(true);
-                  }}
-                />
-              ))}
+              {pets.map((pet) => {
+                const petSeries =
+                  recurringSeriesList.find((s) => s.pet_ids.includes(pet.id)) || null;
+                return (
+                  <PetDetailsCard
+                    key={pet.id}
+                    pet={pet}
+                    onEdit={(p) => setPetModal({ open: true, mode: "edit", pet: p })}
+                    onDelete={(p) => setPetToDelete(p)}
+                    onPhotoUploadSuccess={refetchPets}
+                    onViewPhotos={(p) => {
+                      setSelectedPetForPhotos(p);
+                      setPhotosModalOpen(true);
+                    }}
+                    recurrenceSeries={petSeries}
+                    onManageRecurrence={(appt) => {
+                      setEditingAppointment(appt);
+                      setAppointmentModalOpen(true);
+                    }}
+                  />
+                );
+              })}
             </Box>
           </Box>
 

@@ -27,6 +27,7 @@ import {
 import { getEmployees } from "../../api/services/employees";
 import {
   assignAppointmentEmployees,
+  buildClientRecurrenceSeries,
   listAppointmentsByClient,
   removeUnpaidAppointmentService,
   cancelCompletedAppointment,
@@ -297,31 +298,44 @@ const AppointmentDetailsModal = ({
   const { data: clientAppointments = [] } = useQuery<Appointment[]>({
     queryKey: ["appointments", "client", appointment?.client?.id],
     queryFn: () => listAppointmentsByClient(appointment.client.id),
-    enabled: open && !!appointment?.client?.id && !!appointment?.recurrence_id,
+    enabled: open && !!appointment?.client?.id,
     staleTime: 1000 * 60 * 5,
   });
 
-  const upcomingRecurringAppt = useMemo(() => {
-    const now = new Date();
-    const fromList = clientAppointments
-      .filter(
-        (a) =>
-          a.recurrence_id &&
-          new Date(a.scheduled_at) >= now &&
-          a.status !== "canceled"
-      )
-      .sort(
-        (a, b) =>
-          new Date(a.scheduled_at).getTime() -
-          new Date(b.scheduled_at).getTime()
-      )[0];
+  const currentPetIds = useMemo(
+    () =>
+      appointment?.items
+        ?.map((it) => it.pet?.id)
+        .filter((id): id is number => typeof id === "number") || [],
+    [appointment]
+  );
 
-    if (fromList) return fromList;
-    if (appointment?.recurrence_id && appointment.status !== "canceled") {
-      return appointment;
+  const recurringSeriesList = useMemo(() => {
+    const allSeries = buildClientRecurrenceSeries(clientAppointments, {
+      prioritizeRecurrenceId: appointment?.recurrence_id,
+      prioritizePetIds: currentPetIds,
+      fallbackAppointment:
+        appointment?.recurrence_id && appointment.status !== "canceled"
+          ? appointment
+          : null,
+    });
+
+    if (appointment?.recurrence_id || currentPetIds.length > 0) {
+      const petOrSeriesMatches = allSeries.filter(
+        (s) =>
+          (appointment?.recurrence_id && s.recurrence_id === appointment.recurrence_id) ||
+          s.pet_ids.some((pid) => currentPetIds.includes(pid))
+      );
+      if (petOrSeriesMatches.length > 0) {
+        return petOrSeriesMatches;
+      }
     }
-    return null;
-  }, [clientAppointments, appointment]);
+    return allSeries;
+  }, [clientAppointments, appointment, currentPetIds]);
+
+  const upcomingRecurringAppt = useMemo(() => {
+    return recurringSeriesList[0]?.representative_appointment || null;
+  }, [recurringSeriesList]);
 
   const [manageRecurrenceOpen, setManageRecurrenceOpen] = useState(false);
   const [selectedRecurrenceAppt, setSelectedRecurrenceAppt] = useState<Appointment | null>(null);
@@ -1269,6 +1283,7 @@ const AppointmentDetailsModal = ({
                 variant="appointment"
                 onClientClick={handleClientClick}
                 upcomingRecurringAppt={upcomingRecurringAppt}
+                recurringSeriesList={recurringSeriesList}
                 onManageRecurrence={handleOpenManageRecurrence}
               />
             </Box>

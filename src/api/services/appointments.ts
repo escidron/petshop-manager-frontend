@@ -1,4 +1,10 @@
-import type { Appointment, AppointmentAction, AppointmentFormData, AppointmentStatus } from "../../features/appointments/types";
+import type {
+  Appointment,
+  AppointmentAction,
+  AppointmentFormData,
+  AppointmentStatus,
+  ClientRecurrenceSeries,
+} from "../../features/appointments/types";
 import apiClient from "../apiClient";
 
 export const APPOINTMENT_STATUS_LABEL: Record<AppointmentStatus, string> = {
@@ -176,4 +182,103 @@ export const cancelCompletedAppointment = async (
   );
   return response.data;
 };
+
+export const buildClientRecurrenceSeries = (
+  appointments: Appointment[],
+  options?: {
+    prioritizeRecurrenceId?: string | null;
+    prioritizePetIds?: number[];
+    fallbackAppointment?: Appointment | null;
+  }
+): ClientRecurrenceSeries[] => {
+  const mergedMap = new Map<number, Appointment>();
+  for (const appt of appointments) {
+    if (appt && appt.id) {
+      mergedMap.set(appt.id, appt);
+    }
+  }
+  if (options?.fallbackAppointment?.id && !mergedMap.has(options.fallbackAppointment.id)) {
+    mergedMap.set(options.fallbackAppointment.id, options.fallbackAppointment);
+  }
+
+  const byRecId = new Map<string, Appointment[]>();
+  for (const appt of mergedMap.values()) {
+    if (!appt.recurrence_id || appt.status === "canceled") continue;
+    const list = byRecId.get(appt.recurrence_id) || [];
+    list.push(appt);
+    byRecId.set(appt.recurrence_id, list);
+  }
+
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+
+  const result: ClientRecurrenceSeries[] = [];
+
+  for (const [recId, list] of byRecId.entries()) {
+    list.sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
+    const lastAppt = list[list.length - 1];
+
+    const freqRaw = lastAppt.recurrence_frequency || lastAppt.recurrence?.frequency || "weekly";
+    const frequency: "weekly" | "biweekly" | "monthly" =
+      freqRaw === "monthly" ? "monthly" : freqRaw === "biweekly" ? "biweekly" : "weekly";
+
+    const petIds = Array.from(
+      new Set(
+        lastAppt.items
+          ?.map((it) => it.pet?.id)
+          .filter((id): id is number => typeof id === "number") || []
+      )
+    );
+    const petNames = Array.from(
+      new Set(
+        lastAppt.items
+          ?.map((it) => it.pet?.name)
+          .filter((name): name is string => Boolean(name)) || []
+      )
+    );
+
+    const upcoming = list.filter(
+      (a) =>
+        (a.status === "pending" || a.status === "confirmed" || a.status === "in_progress") &&
+        new Date(a.scheduled_at) >= startOfToday
+    );
+
+    if (upcoming.length > 0) {
+      const nextAppt = upcoming[0];
+
+      result.push({
+        recurrence_id: recId,
+        frequency,
+        representative_appointment: nextAppt,
+        next_appointment: nextAppt,
+        last_appointment: lastAppt,
+        pet_ids: petIds,
+        pet_names: petNames,
+      });
+    }
+  }
+
+  const priorityRecId = options?.prioritizeRecurrenceId;
+  const priorityPets = new Set(options?.prioritizePetIds || []);
+
+  result.sort((a, b) => {
+    if (priorityRecId) {
+      if (a.recurrence_id === priorityRecId && b.recurrence_id !== priorityRecId) return -1;
+      if (b.recurrence_id === priorityRecId && a.recurrence_id !== priorityRecId) return 1;
+    }
+    if (priorityPets.size > 0) {
+      const aHasPet = a.pet_ids.some((id) => priorityPets.has(id));
+      const bHasPet = b.pet_ids.some((id) => priorityPets.has(id));
+      if (aHasPet && !bHasPet) return -1;
+      if (bHasPet && !aHasPet) return 1;
+    }
+    // Active / last_session before ended, or ended first? Let's show active/last_session ordered by next date, then ended
+    const aTime = new Date((a.next_appointment || a.last_appointment).scheduled_at).getTime();
+    const bTime = new Date((b.next_appointment || b.last_appointment).scheduled_at).getTime();
+    return aTime - bTime;
+  });
+
+  return result;
+};
+
 
