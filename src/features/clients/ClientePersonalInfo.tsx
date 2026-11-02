@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { Chip, Typography, Box, Grid, Paper, Button, IconButton, Tooltip, alpha } from "@mui/material";
 import type { Client } from "./types";
-import type { Appointment } from "../appointments/types";
+import type { Appointment, ClientRecurrenceSeries } from "../appointments/types";
 import { maskPhone, maskCpf, maskCnpj, maskCep } from "../../utils/masks";
 import { isoToBrDate } from "../../utils/formatDates";
 
@@ -23,6 +23,7 @@ type Props = {
   onClientClick?: () => void;
   variant?: "full" | "appointment";
   upcomingRecurringAppt?: Appointment | null;
+  recurringSeriesList?: ClientRecurrenceSeries[];
   onManageRecurrence?: (appointment: Appointment) => void;
 };
 
@@ -74,6 +75,7 @@ const ClientePersonalInfo = ({
   onClientClick,
   variant = "full",
   upcomingRecurringAppt,
+  recurringSeriesList,
   onManageRecurrence,
 }: Props) => {
   const formatDocument = (doc?: string | null, type?: string | null) => {
@@ -204,9 +206,38 @@ const ClientePersonalInfo = ({
     );
   };
 
-  // Card de Recorrência Ativa compartilhado entre os modos
+  // Card de Recorrência por Pet compartilhado entre os modos
   const renderActiveRecurrenceCard = () => {
-    if (!upcomingRecurringAppt) return null;
+    const resolvedSeries: ClientRecurrenceSeries[] =
+      recurringSeriesList && recurringSeriesList.length > 0
+        ? recurringSeriesList
+        : upcomingRecurringAppt
+        ? [
+            {
+              recurrence_id: upcomingRecurringAppt.recurrence_id || String(upcomingRecurringAppt.id),
+              frequency:
+                upcomingRecurringAppt.recurrence_frequency === "monthly"
+                  ? "monthly"
+                  : upcomingRecurringAppt.recurrence_frequency === "biweekly"
+                  ? "biweekly"
+                  : "weekly",
+              representative_appointment: upcomingRecurringAppt,
+              next_appointment: upcomingRecurringAppt,
+              last_appointment: upcomingRecurringAppt,
+              pet_ids:
+                upcomingRecurringAppt.items
+                  ?.map((it) => it.pet?.id)
+                  .filter((id): id is number => typeof id === "number") || [],
+              pet_names:
+                upcomingRecurringAppt.items
+                  ?.map((it) => it.pet?.name)
+                  .filter((name): name is string => Boolean(name)) || [],
+            },
+          ]
+        : [];
+
+    if (resolvedSeries.length === 0) return null;
+
     return (
       <Box
         sx={{
@@ -214,82 +245,101 @@ const ClientePersonalInfo = ({
           pt: 1.5,
           borderTop: "1px dashed",
           borderColor: "divider",
+          display: "flex",
+          flexDirection: "column",
+          gap: 1.25,
         }}
       >
-        <Box
-          sx={{
-            p: { xs: 1.5, sm: 2 },
-            borderRadius: 2.5,
-            border: "1px solid",
-            borderColor: (theme) => alpha(theme.palette.primary.main, 0.25),
-            bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
-            display: "flex",
-            flexDirection: { xs: "column", sm: "row" },
-            justifyContent: "space-between",
-            alignItems: { xs: "flex-start", sm: "center" },
-            gap: 1.5,
-          }}
-        >
-          <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
-            <Box
-              sx={{
-                p: 1,
-                borderRadius: 2,
-                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
-                color: "primary.main",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                mt: 0.25,
-              }}
-            >
-              <Repeat size={20} />
-            </Box>
-            <Box>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
-                <Typography variant="subtitle2" fontWeight={700} color="text.primary">
-                  Recorrência Ativa
-                </Typography>
-                <Chip
-                  size="small"
-                  label={
-                    upcomingRecurringAppt.recurrence_frequency === "monthly"
-                      ? "Mensal"
-                      : upcomingRecurringAppt.recurrence_frequency === "biweekly"
-                      ? "Quinzenal"
-                      : "Semanal"
-                  }
-                  color="primary"
-                  sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }}
-                />
-              </Box>
-              <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
-                Próximo: <b>{new Date(upcomingRecurringAppt.scheduled_at).toLocaleDateString("pt-BR")} às {new Date(upcomingRecurringAppt.scheduled_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</b>
-                {upcomingRecurringAppt.items?.[0]?.pet?.name ? ` • Pet: ${upcomingRecurringAppt.items[0].pet.name}` : ""}
-              </Typography>
-            </Box>
-          </Box>
+        {resolvedSeries.map((series) => {
+          const refAppt = series.next_appointment || series.last_appointment;
+          const petNamesLabel = series.pet_names.join(", ");
+          const freqLabel =
+            series.frequency === "monthly"
+              ? "Mensal"
+              : series.frequency === "biweekly"
+              ? "Quinzenal"
+              : "Semanal";
 
-          {onManageRecurrence && (
-            <Button
-              size="small"
-              variant="contained"
-              color="primary"
-              startIcon={<Pencil size={14} />}
-              onClick={() => onManageRecurrence(upcomingRecurringAppt)}
+          return (
+            <Box
+              key={series.recurrence_id}
               sx={{
-                alignSelf: { xs: "stretch", sm: "auto" },
-                borderRadius: 2,
-                textTransform: "none",
-                fontWeight: 600,
-                fontSize: "0.8rem",
-                px: 2,
+                p: { xs: 1.5, sm: 2 },
+                borderRadius: 2.5,
+                border: "1px solid",
+                borderColor: (theme) => alpha(theme.palette.primary.main, 0.25),
+                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.04),
+                display: "flex",
+                flexDirection: { xs: "column", sm: "row" },
+                justifyContent: "space-between",
+                alignItems: { xs: "flex-start", sm: "center" },
+                gap: 1.5,
               }}
             >
-              Gerenciar Recorrência
-            </Button>
-          )}
-        </Box>
+              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+                <Box
+                  sx={{
+                    p: 1,
+                    borderRadius: 2,
+                    bgcolor: (theme) => alpha(theme.palette.primary.main, 0.12),
+                    color: "primary.main",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    mt: 0.25,
+                    flexShrink: 0,
+                  }}
+                >
+                  <Repeat size={20} />
+                </Box>
+                <Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+                    <Typography variant="subtitle2" fontWeight={700} color="text.primary">
+                      Recorrência Ativa
+                    </Typography>
+                    <Chip
+                      size="small"
+                      label={freqLabel}
+                      color="primary"
+                      sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }}
+                    />
+                  </Box>
+                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+                    Próximo:{" "}
+                    <b>
+                      {new Date(refAppt.scheduled_at).toLocaleDateString("pt-BR")} às{" "}
+                      {new Date(refAppt.scheduled_at).toLocaleTimeString("pt-BR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </b>
+                    {petNamesLabel ? ` • Pet: ${petNamesLabel}` : ""}
+                  </Typography>
+                </Box>
+              </Box>
+
+              {onManageRecurrence && (
+                <Button
+                  size="small"
+                  variant="contained"
+                  color="primary"
+                  startIcon={<Pencil size={14} />}
+                  onClick={() => onManageRecurrence(series.representative_appointment)}
+                  sx={{
+                    alignSelf: { xs: "stretch", sm: "auto" },
+                    borderRadius: 2,
+                    textTransform: "none",
+                    fontWeight: 600,
+                    fontSize: "0.8rem",
+                    px: 2,
+                  }}
+                >
+                  Gerenciar Recorrência
+                </Button>
+              )}
+            </Box>
+          );
+        })}
       </Box>
     );
   };

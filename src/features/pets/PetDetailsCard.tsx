@@ -6,10 +6,13 @@ import {
   IconButton,
   Typography,
   CircularProgress,
+  Tooltip,
+  alpha,
 } from "@mui/material";
-import { Mars, Pencil, Trash2, Venus, Camera, Image } from "lucide-react";
+import { Mars, Pencil, Trash2, Venus, Camera, Image, Repeat } from "lucide-react";
 import theme from "../../theme";
 import type { Pet } from "./types";
+import type { Appointment, ClientRecurrenceSeries } from "../appointments/types";
 import { useRef, useState } from "react";
 import { uploadPetPhoto } from "../../api/services/pets";
 import { useToast } from "../../hooks/useToast";
@@ -22,9 +25,19 @@ type Props = {
   onDelete: (pet: Pet) => void;
   onPhotoUploadSuccess?: () => void;
   onViewPhotos?: (pet: Pet) => void;
+  recurrenceSeries?: ClientRecurrenceSeries | null;
+  onManageRecurrence?: (appointment: Appointment) => void;
 };
 
-const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPhotos }: Props) => {
+const PetDetailsCard = ({
+  pet,
+  onEdit,
+  onDelete,
+  onPhotoUploadSuccess,
+  onViewPhotos,
+  recurrenceSeries,
+  onManageRecurrence,
+}: Props) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const toast = useToast();
@@ -193,6 +206,38 @@ const PetDetailsCard = ({ pet, onEdit, onDelete, onPhotoUploadSuccess, onViewPho
                   px: 0.5,
                 }}
               />
+            )}
+            {recurrenceSeries && (
+              <Tooltip title="Clique para gerenciar a recorrência deste pet">
+                <Chip
+                  icon={<Repeat size={12} />}
+                  label={
+                    recurrenceSeries.frequency === "monthly"
+                      ? "Mensal"
+                      : recurrenceSeries.frequency === "biweekly"
+                      ? "Quinzenal"
+                      : "Semanal"
+                  }
+                  size="small"
+                  clickable={!!onManageRecurrence}
+                  onClick={
+                    onManageRecurrence
+                      ? () => onManageRecurrence(recurrenceSeries.representative_appointment)
+                      : undefined
+                  }
+                  sx={{
+                    height: 22,
+                    fontSize: "0.7rem",
+                    fontWeight: 700,
+                    bgcolor: (t) => alpha(t.palette.primary.main, 0.12),
+                    color: "primary.main",
+                    "& .MuiChip-icon": {
+                      color: "inherit",
+                      ml: 0.5,
+                    },
+                  }}
+                />
+              </Tooltip>
             )}
           </Box>
           {onViewPhotos && (

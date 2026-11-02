@@ -109,5 +109,15 @@ export type Appointment = {
   created_at: string;
 };
 
+export type ClientRecurrenceSeries = {
+  recurrence_id: string;
+  frequency: "weekly" | "biweekly" | "monthly";
+  representative_appointment: Appointment;
+  next_appointment: Appointment | null;
+  last_appointment: Appointment;
+  pet_ids: number[];
+  pet_names: string[];
+};
+
 export type AppointmentFormData =
   z.infer<typeof appointmentSchema>;
