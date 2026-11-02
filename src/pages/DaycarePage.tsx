@@ -7,7 +7,6 @@ import {
   DialogTitle,
   Divider,
   Fab,
-  Grid,
   IconButton,
   InputAdornment,
   Skeleton,
@@ -17,18 +16,16 @@ import {
   useTheme,
 } from "@mui/material";
 import {
-  AlertTriangle,
   Bell,
   Calendar as CalendarIcon,
-  CalendarCheck,
   CalendarDays,
-  CalendarX,
   ChevronLeft,
   ChevronRight,
   Clock,
   DollarSign,
   Filter,
   Info,
+  LogOut,
   PawPrint,
   Pill,
   Plus,
@@ -101,10 +98,11 @@ const SummaryCard = ({
     sx={{
       height: "100%",
       flex: 1,
+      minWidth: 0,
       display: "flex",
       alignItems: "center",
-      gap: 1.5,
-      p: { xs: 1.2, sm: 1.4 },
+      gap: { xs: 1, sm: 1.25, md: 1.35 },
+      p: { xs: 1, sm: 1.15, md: 1.25 },
     }}
   >
     <Box
@@ -112,9 +110,9 @@ const SummaryCard = ({
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        width: 40,
-        height: 40,
-        minWidth: 40,
+        width: 38,
+        height: 38,
+        minWidth: 38,
         borderRadius: "10px",
         backgroundColor: bgColor,
         color: iconColor,
@@ -128,8 +126,8 @@ const SummaryCard = ({
         sx={{
           fontWeight: 600,
           color: "text.primary",
-          opacity: 0.6,
-          fontSize: "0.8rem",
+          opacity: 0.65,
+          fontSize: { xs: "0.72rem", sm: "0.76rem" },
           display: "block",
           lineHeight: 1.2,
           mb: 0.15,
@@ -141,9 +139,9 @@ const SummaryCard = ({
       <Typography
         variant="h6"
         sx={{
-          fontWeight: 700,
+          fontWeight: 800,
           color: "text.primary",
-          fontSize: "1.25rem",
+          fontSize: { xs: "1.1rem", sm: "1.2rem" },
           lineHeight: 1.2,
         }}
         noWrap
@@ -227,16 +225,13 @@ export default function DaycarePage() {
   const highlightedDays = useMemo(() => new Set<string>(highlightedList), [highlightedList]);
 
   const summary = useMemo(() => {
-    const total = stays.length;
-    const confirmedOrPresent = stays.filter(
-      (s) => s.status === "checked_in" || s.status === "checked_out"
-    ).length;
-    const canceledOrAbsent = stays.filter(
-      (s) => s.status === "canceled" || s.status === "absent"
-    ).length;
+    const presentNow = stays.filter((s) => s.status === "checked_in").length;
+    const pendingArrival = stays.filter((s) => s.status === "pending").length;
+    const checkedOut = stays.filter((s) => s.status === "checked_out").length;
+    const total = stays.filter((s) => s.status !== "canceled").length;
 
     const revenueCents = stays
-      .filter((s) => s.status === "checked_out")
+      .filter((s) => s.status !== "canceled" && s.status !== "absent")
       .reduce(
         (acc, s) =>
           acc +
@@ -244,6 +239,8 @@ export default function DaycarePage() {
             ? s.total_price_cents
             : !s.is_package_covered && s.service
             ? (s.service.price_cents || 0) * (s.quantity || 1)
+            : !s.is_package_covered && s.modality
+            ? (s.modality.price_cents || 0) * (s.quantity || 1)
             : 0),
         0
       );
@@ -254,9 +251,10 @@ export default function DaycarePage() {
     });
 
     return {
+      presentNow,
+      pendingArrival,
+      checkedOut,
       total,
-      confirmedOrPresent,
-      canceledOrAbsent,
       formattedRevenue,
     };
   }, [stays]);
@@ -512,15 +510,15 @@ export default function DaycarePage() {
           },
         }}
       >
-        {/* 1. CARDS DE RESUMO DO TOPO (Idênticos ao DashboardSummaryCards do Banho & Tosa) */}
+        {/* 1. CARDS DE RESUMO DO TOPO (Customizados para a operação da Creche) */}
         <Box sx={{ width: "100%", mb: { xs: 1.25, sm: 1.75 } }}>
-          {/* ── MOBILE: Todos os 4 em 1 única linha compacta ── */}
+          {/* ── MOBILE: Todos os indicadores em 1 única linha compacta ── */}
           <CustomCard
             sx={{
               display: { xs: "flex", md: "none" },
               alignItems: "center",
               justifyContent: "space-between",
-              px: 1,
+              px: 0.75,
               py: 1.25,
               borderRadius: 2.5,
               width: "100%",
@@ -530,9 +528,9 @@ export default function DaycarePage() {
             <Box sx={{ flex: 1, textAlign: "center", minWidth: 0, px: 0.25 }}>
               <Typography
                 sx={{
-                  color: "primary.main",
+                  color: "#10b981",
                   fontWeight: 700,
-                  fontSize: { xs: "0.62rem", sm: "0.75rem" },
+                  fontSize: { xs: "0.58rem", sm: "0.7rem" },
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -540,7 +538,7 @@ export default function DaycarePage() {
                   lineHeight: 1,
                 }}
               >
-                <CalendarDays size={12} /> Agendamentos
+                <PawPrint size={11} /> Presentes
               </Typography>
               <Typography
                 sx={{
@@ -551,7 +549,37 @@ export default function DaycarePage() {
                   mt: 0.35,
                 }}
               >
-                {isFetching ? <Skeleton width={20} sx={{ mx: "auto" }} /> : summary.total}
+                {isFetching ? <Skeleton width={18} sx={{ mx: "auto" }} /> : summary.presentNow}
+              </Typography>
+            </Box>
+
+            <Divider orientation="vertical" flexItem sx={{ my: 0.5, opacity: 0.4 }} />
+
+            <Box sx={{ flex: 1, textAlign: "center", minWidth: 0, px: 0.25 }}>
+              <Typography
+                sx={{
+                  color: "warning.main",
+                  fontWeight: 700,
+                  fontSize: { xs: "0.58rem", sm: "0.7rem" },
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: 0.35,
+                  lineHeight: 1,
+                }}
+              >
+                <Clock size={11} /> A Chegar
+              </Typography>
+              <Typography
+                sx={{
+                  fontWeight: 800,
+                  fontSize: "1.05rem",
+                  color: "text.primary",
+                  lineHeight: 1.2,
+                  mt: 0.35,
+                }}
+              >
+                {isFetching ? <Skeleton width={18} sx={{ mx: "auto" }} /> : summary.pendingArrival}
               </Typography>
             </Box>
 
@@ -562,7 +590,7 @@ export default function DaycarePage() {
                 sx={{
                   color: "info.main",
                   fontWeight: 700,
-                  fontSize: { xs: "0.62rem", sm: "0.75rem" },
+                  fontSize: { xs: "0.58rem", sm: "0.7rem" },
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -570,7 +598,7 @@ export default function DaycarePage() {
                   lineHeight: 1,
                 }}
               >
-                <CalendarCheck size={12} /> Confirmados
+                <LogOut size={11} /> Saíram
               </Typography>
               <Typography
                 sx={{
@@ -581,11 +609,7 @@ export default function DaycarePage() {
                   mt: 0.35,
                 }}
               >
-                {isFetching ? (
-                  <Skeleton width={20} sx={{ mx: "auto" }} />
-                ) : (
-                  summary.confirmedOrPresent
-                )}
+                {isFetching ? <Skeleton width={18} sx={{ mx: "auto" }} /> : summary.checkedOut}
               </Typography>
             </Box>
 
@@ -594,9 +618,9 @@ export default function DaycarePage() {
             <Box sx={{ flex: 1, textAlign: "center", minWidth: 0, px: 0.25 }}>
               <Typography
                 sx={{
-                  color: "error.main",
+                  color: "primary.main",
                   fontWeight: 700,
-                  fontSize: { xs: "0.62rem", sm: "0.75rem" },
+                  fontSize: { xs: "0.58rem", sm: "0.7rem" },
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
@@ -604,7 +628,7 @@ export default function DaycarePage() {
                   lineHeight: 1,
                 }}
               >
-                <CalendarX size={12} /> Cancelados
+                <CalendarDays size={11} /> Total
               </Typography>
               <Typography
                 sx={{
@@ -615,23 +639,19 @@ export default function DaycarePage() {
                   mt: 0.35,
                 }}
               >
-                {isFetching ? (
-                  <Skeleton width={20} sx={{ mx: "auto" }} />
-                ) : (
-                  summary.canceledOrAbsent
-                )}
+                {isFetching ? <Skeleton width={18} sx={{ mx: "auto" }} /> : summary.total}
               </Typography>
             </Box>
 
             {isOwnerOrAdmin && (
               <>
                 <Divider orientation="vertical" flexItem sx={{ my: 0.5, opacity: 0.4 }} />
-                <Box sx={{ flex: 1.25, textAlign: "center", minWidth: 0, px: 0.25 }}>
+                <Box sx={{ flex: 1.2, textAlign: "center", minWidth: 0, px: 0.25 }}>
                   <Typography
                     sx={{
                       color: "success.main",
                       fontWeight: 700,
-                      fontSize: { xs: "0.62rem", sm: "0.75rem" },
+                      fontSize: { xs: "0.58rem", sm: "0.7rem" },
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
@@ -639,12 +659,12 @@ export default function DaycarePage() {
                       lineHeight: 1,
                     }}
                   >
-                    <DollarSign size={12} /> Faturamento
+                    <DollarSign size={11} /> Faturamento
                   </Typography>
                   <Typography
                     sx={{
                       fontWeight: 800,
-                      fontSize: "0.88rem",
+                      fontSize: "0.85rem",
                       color: "text.primary",
                       lineHeight: 1.2,
                       mt: 0.35,
@@ -652,7 +672,7 @@ export default function DaycarePage() {
                     noWrap
                   >
                     {isFetching ? (
-                      <Skeleton width={40} sx={{ mx: "auto" }} />
+                      <Skeleton width={36} sx={{ mx: "auto" }} />
                     ) : (
                       summary.formattedRevenue
                     )}
@@ -662,75 +682,53 @@ export default function DaycarePage() {
             )}
           </CustomCard>
 
-          {/* ── DESKTOP: Cards Individuais em Grade ── */}
-          <Grid
-            container
-            spacing={{ xs: 1.5, sm: 2 }}
-            sx={{ display: { xs: "none", md: "flex" } }}
+          {/* ── DESKTOP: Cards Individuais em Linha Equilibrada ── */}
+          <Box
+            sx={{
+              display: { xs: "none", md: "flex" },
+              gap: { md: 1.5, lg: 2 },
+              width: "100%",
+              alignItems: "stretch",
+            }}
           >
-            <Grid size={{ md: 6, lg: 3 }}>
-              <SummaryCard
-                icon={<CalendarDays size={20} />}
-                label="Agendamentos"
-                value={
-                  isFetching ? (
-                    <Skeleton width={40} sx={{ bgcolor: "grey.200" }} />
-                  ) : (
-                    summary.total
-                  )
-                }
-                iconColor={theme.palette.primary.main}
-                bgColor="rgba(49, 52, 133, 0.1)"
-              />
-            </Grid>
-            <Grid size={{ md: 6, lg: 3 }}>
-              <SummaryCard
-                icon={<CalendarCheck size={20} />}
-                label="Confirmados"
-                value={
-                  isFetching ? (
-                    <Skeleton width={40} sx={{ bgcolor: "grey.200" }} />
-                  ) : (
-                    summary.confirmedOrPresent
-                  )
-                }
-                iconColor={theme.palette.info.main}
-                bgColor="rgba(2, 136, 209, 0.1)"
-              />
-            </Grid>
-            <Grid size={{ md: 6, lg: 3 }}>
-              <SummaryCard
-                icon={<CalendarX size={20} />}
-                label="Cancelados"
-                value={
-                  isFetching ? (
-                    <Skeleton width={40} sx={{ bgcolor: "grey.200" }} />
-                  ) : (
-                    summary.canceledOrAbsent
-                  )
-                }
-                iconColor={theme.palette.error.main}
-                bgColor="rgba(211, 47, 47, 0.1)"
-              />
-            </Grid>
+            <SummaryCard
+              icon={<PawPrint size={20} />}
+              label="Na Creche Agora"
+              value={isFetching ? <Skeleton width={30} /> : summary.presentNow}
+              iconColor="#10b981"
+              bgColor="rgba(16, 185, 129, 0.12)"
+            />
+            <SummaryCard
+              icon={<Clock size={20} />}
+              label="A Chegar"
+              value={isFetching ? <Skeleton width={30} /> : summary.pendingArrival}
+              iconColor="#f59e0b"
+              bgColor="rgba(245, 158, 11, 0.12)"
+            />
+            <SummaryCard
+              icon={<LogOut size={20} />}
+              label="Já Saíram"
+              value={isFetching ? <Skeleton width={30} /> : summary.checkedOut}
+              iconColor="#0288d1"
+              bgColor="rgba(2, 136, 209, 0.12)"
+            />
+            <SummaryCard
+              icon={<CalendarDays size={20} />}
+              label="Total do Dia"
+              value={isFetching ? <Skeleton width={30} /> : summary.total}
+              iconColor={theme.palette.primary.main}
+              bgColor="rgba(49, 52, 133, 0.1)"
+            />
             {isOwnerOrAdmin && (
-              <Grid size={{ md: 6, lg: 3 }}>
-                <SummaryCard
-                  icon={<DollarSign size={20} />}
-                  label="Faturamento"
-                  value={
-                    isFetching ? (
-                      <Skeleton width={80} sx={{ bgcolor: "grey.200" }} />
-                    ) : (
-                      summary.formattedRevenue
-                    )
-                  }
-                  iconColor={theme.palette.success.main}
-                  bgColor="rgba(46, 125, 50, 0.1)"
-                />
-              </Grid>
+              <SummaryCard
+                icon={<DollarSign size={20} />}
+                label="Faturamento"
+                value={isFetching ? <Skeleton width={60} /> : summary.formattedRevenue}
+                iconColor={theme.palette.success.main}
+                bgColor="rgba(46, 125, 50, 0.12)"
+              />
             )}
-          </Grid>
+          </Box>
         </Box>
 
         {/* 2. CORPO PRINCIPAL (Idêntico ao layout do Dashboard de Banho & Tosa) */}
@@ -1048,9 +1046,6 @@ export default function DaycarePage() {
                     )
                   );
 
-                  const pendingTasks = group.stays.flatMap((s) =>
-                    (s.tasks || []).filter((t) => !t.is_completed)
-                  );
                   const hasFeeding = group.stays.some(
                     (s) =>
                       Boolean(s.food_info) ||
@@ -1260,30 +1255,12 @@ export default function DaycarePage() {
                             sx={{
                               display: { xs: "none", sm: "flex" },
                               alignItems: "center",
-                              gap: 1,
                               justifyContent: "flex-end",
                               minWidth: { sm: 120 },
                               flexShrink: 0,
                               flexWrap: "nowrap",
                             }}
                           >
-                            {pendingTasks.length > 0 && (
-                              <Tooltip
-                                title={`${pendingTasks.length} horário(s) de ração/remédio pendente(s)`}
-                                arrow
-                                placement="top"
-                              >
-                                <Box
-                                  sx={{
-                                    display: "flex",
-                                    alignItems: "center",
-                                    color: "#f59e0b",
-                                  }}
-                                >
-                                  <AlertTriangle size={19} strokeWidth={2.2} />
-                                </Box>
-                              </Tooltip>
-                            )}
                             <DaycareStatusChip status={group.status} size="small" />
                           </Box>
 
