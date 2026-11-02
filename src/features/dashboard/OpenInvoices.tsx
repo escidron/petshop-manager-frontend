@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { Receipt, Clock, ChevronRight, Search, Dog } from "lucide-react";
 import CustomCard from "../../components/Card/CustomCard";
 import { listUnpaidPackages } from "../../api/services/client_packages";
+import { listPackages } from "../../api/services/packages";
 import { getOpenComandas } from "../../api/services/sales";
 import type { ClientPackage } from "../client_packages/types";
 import type { Package } from "../packages/types";
@@ -40,10 +41,10 @@ export default function OpenInvoices({
 
   const isSearching = debouncedSearch.trim().length > 0;
 
-  const { data: searchUnpaidPkgsData, isLoading: isLoadingSearchPkgs } = useQuery({
+  const { data: unpaidPkgsData, isLoading: isLoadingPkgs } = useQuery({
     queryKey: ["unpaid-packages", { limit: 15, search: debouncedSearch }],
     queryFn: () => listUnpaidPackages({ limit: 15, search: debouncedSearch }),
-    enabled: isSearching,
+    initialData: !isSearching && initialUnpaidPackages ? initialUnpaidPackages : undefined,
   });
 
   const { data: openComandasData, isLoading: isLoadingComandas } = useQuery({
@@ -53,16 +54,21 @@ export default function OpenInvoices({
     staleTime: 0,
   });
 
-  const unpaidPkgs = isSearching
-    ? searchUnpaidPkgsData?.items || []
-    : initialUnpaidPackages?.items || [];
+  const { data: catalogData } = useQuery({
+    queryKey: ["packages"],
+    queryFn: () => listPackages(),
+    initialData: packagesCatalog,
+  });
 
+  const unpaidPkgs = unpaidPkgsData?.items || initialUnpaidPackages?.items || [];
   const openComandas = openComandasData?.items || initialOpenComandas?.items || [];
-  const allPackages = packagesCatalog || [];
+  const allPackages = catalogData || packagesCatalog || [];
 
   const isLoading = isSearching
-    ? isLoadingSearchPkgs || isLoadingComandas
-    : propIsFetching && !initialOpenComandas && !openComandasData;
+    ? isLoadingPkgs || isLoadingComandas
+    : (propIsFetching && !initialOpenComandas && !openComandasData) ||
+      (isLoadingComandas && !openComandasData && !initialOpenComandas) ||
+      (isLoadingPkgs && !unpaidPkgsData && !initialUnpaidPackages);
 
   const invoices = useMemo(() => {
     const arr: Array<{
@@ -102,8 +108,12 @@ export default function OpenInvoices({
   }, [openComandas, unpaidPkgs]);
 
   const totalInvoices =
-    (isSearching ? openComandasData?.total || 0 : initialOpenComandas?.total || openComandas.length) +
-    (isSearching ? searchUnpaidPkgsData?.total || 0 : initialUnpaidPackages?.total || 0);
+    (isSearching
+      ? openComandasData?.total || 0
+      : openComandasData?.total ?? initialOpenComandas?.total ?? openComandas.length) +
+    (isSearching
+      ? unpaidPkgsData?.total || 0
+      : unpaidPkgsData?.total ?? initialUnpaidPackages?.total ?? unpaidPkgs.length);
 
   return (
     <Box>

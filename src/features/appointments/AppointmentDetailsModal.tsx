@@ -19,11 +19,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import dayjs from "dayjs";
-import {
-  useQuery,
-  useMutation,
-  useQueryClient,
-} from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getEmployees } from "../../api/services/employees";
 import {
   assignAppointmentEmployees,
@@ -37,9 +33,7 @@ import { useServices } from "../../hooks/useServices";
 import { formatServiceLabel } from "../../utils/formatServiceLabel";
 import { getServicesForPet } from "../../utils/serviceMatcher";
 import { getCommissionRules } from "../../api/services/commissions";
-import {
-  listClientPackagesByClient,
-} from "../../api/services/client_packages";
+import { listClientPackagesByClient } from "../../api/services/client_packages";
 import { fetchClientById } from "../../api/services/clients";
 import { useToast } from "../../hooks/useToast";
 import { useAuth } from "../../hooks/useAuth";
@@ -159,8 +153,12 @@ const AppointmentDetailsModal = ({
   const { services: tenantServices = [] } = useServices({
     enabled: Boolean(addServicePet),
   });
-  const [selectedNewServiceId, setSelectedNewServiceId] = useState<number | null>(null);
-  const [selectedNewEmployeeIds, setSelectedNewEmployeeIds] = useState<number[]>([]);
+  const [selectedNewServiceId, setSelectedNewServiceId] = useState<
+    number | null
+  >(null);
+  const [selectedNewEmployeeIds, setSelectedNewEmployeeIds] = useState<
+    number[]
+  >([]);
 
   const addServiceMutation = useMutation({
     mutationFn: async ({
@@ -210,7 +208,7 @@ const AppointmentDetailsModal = ({
     queryFn: getEmployees,
     enabled: open,
     staleTime: 1000 * 60 * 60, // 1 hora
-    gcTime: 1000 * 60 * 120,   // 2 horas
+    gcTime: 1000 * 60 * 120, // 2 horas
   });
 
   const activeEmployees = employees.filter((e) => e.is_active);
@@ -252,8 +250,14 @@ const AppointmentDetailsModal = ({
       let employeeMatch = false;
       if (hasSpecificEmployees) {
         employeeMatch =
-          Boolean(rule.employee_ids && rule.employee_ids.some((id) => Number(id) === Number(employeeId))) ||
-          Boolean(rule.employees && rule.employees.some((e) => Number(e.id) === Number(employeeId))) ||
+          Boolean(
+            rule.employee_ids &&
+            rule.employee_ids.some((id) => Number(id) === Number(employeeId)),
+          ) ||
+          Boolean(
+            rule.employees &&
+            rule.employees.some((e) => Number(e.id) === Number(employeeId)),
+          ) ||
           Number(rule.employee_id) === Number(employeeId);
       } else if (hasSpecificRoles) {
         employeeMatch = Boolean(empRole && ruleRoles.includes(empRole));
@@ -269,8 +273,10 @@ const AppointmentDetailsModal = ({
 
       const serviceMatch =
         !hasSpecificServices ||
-        (rule.service_ids && rule.service_ids.some((id) => Number(id) === Number(serviceId))) ||
-        (rule.services && rule.services.some((s) => Number(s.id) === Number(serviceId)));
+        (rule.service_ids &&
+          rule.service_ids.some((id) => Number(id) === Number(serviceId))) ||
+        (rule.services &&
+          rule.services.some((s) => Number(s.id) === Number(serviceId)));
 
       return employeeMatch && serviceMatch;
     });
@@ -307,7 +313,7 @@ const AppointmentDetailsModal = ({
       appointment?.items
         ?.map((it) => it.pet?.id)
         .filter((id): id is number => typeof id === "number") || [],
-    [appointment]
+    [appointment],
   );
 
   const recurringSeriesList = useMemo(() => {
@@ -323,8 +329,9 @@ const AppointmentDetailsModal = ({
     if (appointment?.recurrence_id || currentPetIds.length > 0) {
       const petOrSeriesMatches = allSeries.filter(
         (s) =>
-          (appointment?.recurrence_id && s.recurrence_id === appointment.recurrence_id) ||
-          s.pet_ids.some((pid) => currentPetIds.includes(pid))
+          (appointment?.recurrence_id &&
+            s.recurrence_id === appointment.recurrence_id) ||
+          s.pet_ids.some((pid) => currentPetIds.includes(pid)),
       );
       if (petOrSeriesMatches.length > 0) {
         return petOrSeriesMatches;
@@ -338,7 +345,8 @@ const AppointmentDetailsModal = ({
   }, [recurringSeriesList]);
 
   const [manageRecurrenceOpen, setManageRecurrenceOpen] = useState(false);
-  const [selectedRecurrenceAppt, setSelectedRecurrenceAppt] = useState<Appointment | null>(null);
+  const [selectedRecurrenceAppt, setSelectedRecurrenceAppt] =
+    useState<Appointment | null>(null);
 
   const handleOpenManageRecurrence = (appt: Appointment) => {
     setSelectedRecurrenceAppt(appt);
@@ -358,8 +366,10 @@ const AppointmentDetailsModal = ({
       .map((pkg) => ({
         ...pkg,
         remaining:
-          pkg.credits?.reduce((acc, credit) => acc + Math.max(0, credit.remaining_qty), 0) ||
-          0,
+          pkg.credits?.reduce(
+            (acc, credit) => acc + Math.max(0, credit.remaining_qty),
+            0,
+          ) || 0,
       }))
       .filter((pkg) => pkg.remaining > 0);
   }, [clientPackages]);
@@ -386,7 +396,10 @@ const AppointmentDetailsModal = ({
       clientPackages.forEach((pkg) => {
         if (!pkg.is_active) return;
         // Verify this package actually applies to this pet
-        const isPetInPkg = !pkg.pets || pkg.pets.length === 0 || pkg.pets.some((p) => p.id === petId);
+        const isPetInPkg =
+          !pkg.pets ||
+          pkg.pets.length === 0 ||
+          pkg.pets.some((p) => p.id === petId);
         if (!isPetInPkg) return;
 
         pkg.credits?.forEach((credit) => {
@@ -446,12 +459,17 @@ const AppointmentDetailsModal = ({
   }, [appointment, coveredServiceKeys]);
 
   const allServices = appointment.items.flatMap((i) =>
-    i.services.map((s) => ({ ...s, petId: i.pet.id, petName: i.pet.name }))
+    i.services.map((s) => ({ ...s, petId: i.pet.id, petName: i.pet.name })),
   );
-  const coveredServices = allServices.filter((s) => s.is_package_covered && !s.is_removed);
-  const billableServices = allServices.filter((s) => !s.is_package_covered && !s.is_removed);
+  const coveredServices = allServices.filter(
+    (s) => s.is_package_covered && !s.is_removed,
+  );
+  const billableServices = allServices.filter(
+    (s) => !s.is_package_covered && !s.is_removed,
+  );
   const removedServices = allServices.filter((s) => s.is_removed);
-  const isAllRemoved = allServices.length > 0 && removedServices.length === allServices.length;
+  const isAllRemoved =
+    allServices.length > 0 && removedServices.length === allServices.length;
   const billableCount = billableServices.length;
 
   const remainingBalances = useMemo(() => {
@@ -509,7 +527,11 @@ const AppointmentDetailsModal = ({
       appointment.items.forEach((item) => {
         item.services.forEach((svc) => {
           const key = `${item.id}-${svc.id}`;
-          if (svc.employee_ids && Array.isArray(svc.employee_ids) && svc.employee_ids.length > 0) {
+          if (
+            svc.employee_ids &&
+            Array.isArray(svc.employee_ids) &&
+            svc.employee_ids.length > 0
+          ) {
             initial[key] = svc.employee_ids;
           } else if (svc.employee_id) {
             initial[key] = [svc.employee_id];
@@ -550,7 +572,9 @@ const AppointmentDetailsModal = ({
     mutationFn: (reason?: string) =>
       cancelCompletedAppointment(appointment.id, reason),
     onSuccess: () => {
-      toast.success("Agendamento finalizado cancelado e estornos realizados com sucesso!");
+      toast.success(
+        "Agendamento finalizado cancelado e estornos realizados com sucesso!",
+      );
       queryClient.invalidateQueries({ queryKey: ["appointments"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
       queryClient.invalidateQueries({ queryKey: ["sales"] });
@@ -570,7 +594,8 @@ const AppointmentDetailsModal = ({
     },
     onError: (err: any) => {
       toast.error(
-        err?.response?.data?.detail || "Erro ao cancelar agendamento finalizado."
+        err?.response?.data?.detail ||
+          "Erro ao cancelar agendamento finalizado.",
       );
     },
   });
@@ -620,7 +645,10 @@ const AppointmentDetailsModal = ({
           zIndex: 10,
         }}
       >
-        <Typography variant="h5" sx={{ fontSize: { xs: "1.15rem", sm: "1.4rem" }, fontWeight: 700 }}>
+        <Typography
+          variant="h5"
+          sx={{ fontSize: { xs: "1.15rem", sm: "1.4rem" }, fontWeight: 700 }}
+        >
           Detalhes do agendamento
         </Typography>
         <Box
@@ -654,6 +682,7 @@ const AppointmentDetailsModal = ({
           WebkitOverflowScrolling: "touch",
           overscrollBehavior: "contain",
           flex: 1,
+          mt: 1,
         }}
       >
         <Box
@@ -667,11 +696,31 @@ const AppointmentDetailsModal = ({
           }}
         >
           <Box>
-            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
+            <Typography
+              variant="h5"
+              fontWeight={600}
+              sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}
+            >
               Agendamento
             </Typography>
-            <CustomCard sx={{ mt: 1, px: { xs: 1.5, sm: 2 }, py: 1, width: "100%", minWidth: 0 }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 1 }}>
+            <CustomCard
+              sx={{
+                mt: 1,
+                px: { xs: 1.5, sm: 2 },
+                py: 1,
+                width: "100%",
+                minWidth: 0,
+              }}
+            >
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  flexWrap: "wrap",
+                  gap: 1,
+                }}
+              >
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                   <Typography variant="h6" fontWeight={500}>
                     {formatAppointmentDate(appointment.scheduled_at)}
@@ -683,15 +732,21 @@ const AppointmentDetailsModal = ({
                         appointment.recurrence_frequency === "weekly"
                           ? "Semanal"
                           : appointment.recurrence_frequency === "biweekly"
-                          ? "Quinzenal"
-                          : appointment.recurrence_frequency === "monthly"
-                          ? "Mensal"
-                          : "Recorrente"
+                            ? "Quinzenal"
+                            : appointment.recurrence_frequency === "monthly"
+                              ? "Mensal"
+                              : "Recorrente"
                       }
                       size="small"
                       color="primary"
                       variant="outlined"
-                      sx={{ height: 22, fontSize: "0.7rem", fontWeight: 600, "& .MuiChip-label": { px: 0.8 }, "& .MuiChip-icon": { ml: 0.5, mr: -0.2 } }}
+                      sx={{
+                        height: 22,
+                        fontSize: "0.7rem",
+                        fontWeight: 600,
+                        "& .MuiChip-label": { px: 0.8 },
+                        "& .MuiChip-icon": { ml: 0.5, mr: -0.2 },
+                      }}
                     />
                   )}
                 </Box>
@@ -699,7 +754,9 @@ const AppointmentDetailsModal = ({
                   {appointment.status === "completed" && (
                     <AppointmentPaymentChip
                       isPaid={appointment.is_paid}
-                      isFullyPackageCovered={appointment.is_fully_package_covered}
+                      isFullyPackageCovered={
+                        appointment.is_fully_package_covered
+                      }
                       size="small"
                     />
                   )}
@@ -818,7 +875,10 @@ const AppointmentDetailsModal = ({
                           loading={loadingAction === "confirm"}
                           disabled={!!loadingAction}
                           size="small"
-                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
+                          sx={{
+                            flex: { xs: 1.5, sm: "initial" },
+                            fontWeight: 700,
+                          }}
                         >
                           Confirmar
                         </Button>
@@ -877,7 +937,10 @@ const AppointmentDetailsModal = ({
                           loading={loadingAction === "start"}
                           disabled={!!loadingAction}
                           onClick={() => handleAction(appointment, "start")}
-                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
+                          sx={{
+                            flex: { xs: 1.5, sm: "initial" },
+                            fontWeight: 700,
+                          }}
                         >
                           Iniciar Serviços
                         </Button>
@@ -935,7 +998,10 @@ const AppointmentDetailsModal = ({
                           loading={loadingAction === "complete"}
                           disabled={!!loadingAction}
                           onClick={() => handleAction(appointment, "complete")}
-                          sx={{ flex: { xs: 1.5, sm: "initial" }, fontWeight: 700 }}
+                          sx={{
+                            flex: { xs: 1.5, sm: "initial" },
+                            fontWeight: 700,
+                          }}
                         >
                           Finalizar
                         </Button>
@@ -964,20 +1030,57 @@ const AppointmentDetailsModal = ({
                       </Typography>
 
                       {isAllRemoved ? (
-                        <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, color: "text.secondary" }}>
-                            <CheckCircle2 size={18} color={theme.palette.text.secondary} />
-                            <Typography variant="body2" fontWeight={600} color="text.secondary">
+                        <Box
+                          sx={{
+                            display: "flex",
+                            flexDirection: "column",
+                            gap: 0.75,
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              color: "text.secondary",
+                            }}
+                          >
+                            <CheckCircle2
+                              size={18}
+                              color={theme.palette.text.secondary}
+                            />
+                            <Typography
+                              variant="body2"
+                              fontWeight={600}
+                              color="text.secondary"
+                            >
                               Atendimento concluído sem cobrança pendente.
                             </Typography>
                           </Box>
-                          <Box sx={{ pl: 3.2, display: "flex", flexDirection: "column", gap: 0.5 }}>
-                            <Typography variant="caption" color="text.secondary">
+                          <Box
+                            sx={{
+                              pl: 3.2,
+                              display: "flex",
+                              flexDirection: "column",
+                              gap: 0.5,
+                            }}
+                          >
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
                               Todos os serviços foram dispensados da cobrança:
                             </Typography>
                             {removedServices.map((s, idx) => (
-                              <Typography key={`rem-all-${idx}`} variant="caption" color="text.secondary">
-                                • <strong>{s.name}</strong> {s.removal_reason ? `(${s.removal_reason})` : "dispensado no caixa"}
+                              <Typography
+                                key={`rem-all-${idx}`}
+                                variant="caption"
+                                color="text.secondary"
+                              >
+                                • <strong>{s.name}</strong>{" "}
+                                {s.removal_reason
+                                  ? `(${s.removal_reason})`
+                                  : "dispensado no caixa"}
                               </Typography>
                             ))}
                           </Box>
@@ -1003,7 +1106,9 @@ const AppointmentDetailsModal = ({
                           ))}
 
                           {remainingBalances.length > 0 && (
-                            <Box sx={{ mb: billableCount > 0 ? 1.5 : 0, pl: 3.5 }}>
+                            <Box
+                              sx={{ mb: billableCount > 0 ? 1.5 : 0, pl: 3.5 }}
+                            >
                               <Box
                                 sx={{
                                   display: "flex",
@@ -1117,8 +1222,17 @@ const AppointmentDetailsModal = ({
                                 color: "text.disabled",
                               }}
                             >
-                              <Dot color={theme.palette.text.disabled} size={16} />
-                              <Typography variant="body2" sx={{ color: "text.disabled", textDecoration: "line-through" }}>
+                              <Dot
+                                color={theme.palette.text.disabled}
+                                size={16}
+                              />
+                              <Typography
+                                variant="body2"
+                                sx={{
+                                  color: "text.disabled",
+                                  textDecoration: "line-through",
+                                }}
+                              >
                                 {s.name}
                               </Typography>
                               <Chip
@@ -1129,7 +1243,8 @@ const AppointmentDetailsModal = ({
                                   height: 18,
                                   fontSize: 10,
                                   px: 0.5,
-                                  bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                                  bgcolor: (theme) =>
+                                    alpha(theme.palette.warning.main, 0.08),
                                   borderColor: "warning.light",
                                   color: "warning.dark",
                                   fontWeight: 700,
@@ -1144,14 +1259,18 @@ const AppointmentDetailsModal = ({
                     <Box
                       sx={{
                         display: "flex",
-                        justifyContent: isOwnerOrAdmin ? "space-between" : "flex-end",
+                        justifyContent: isOwnerOrAdmin
+                          ? "space-between"
+                          : "flex-end",
                         alignItems: "center",
                         gap: 1,
                         flexWrap: "wrap",
                       }}
                     >
                       {isOwnerOrAdmin && (
-                        <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                        <Box
+                          sx={{ display: "flex", gap: 1, alignItems: "center" }}
+                        >
                           {appointment.status !== "completed" && (
                             <Button
                               variant="outlined"
@@ -1164,7 +1283,10 @@ const AppointmentDetailsModal = ({
                                 fontWeight: 700,
                                 fontSize: "0.8rem",
                                 whiteSpace: "nowrap",
-                                "&:hover": { borderColor: "#9CA3AF", bgcolor: "#F3F4F6" },
+                                "&:hover": {
+                                  borderColor: "#9CA3AF",
+                                  bgcolor: "#F3F4F6",
+                                },
                               }}
                             >
                               Editar
@@ -1187,7 +1309,9 @@ const AppointmentDetailsModal = ({
                         </Box>
                       )}
 
-                      <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                      <Box
+                        sx={{ display: "flex", gap: 1, alignItems: "center" }}
+                      >
                         {appointment.is_paid ? (
                           <Chip
                             label="PAGO"
@@ -1204,7 +1328,8 @@ const AppointmentDetailsModal = ({
                             sx={{
                               fontWeight: 800,
                               px: 1,
-                              bgcolor: (theme) => alpha(theme.palette.warning.main, 0.08),
+                              bgcolor: (theme) =>
+                                alpha(theme.palette.warning.main, 0.08),
                               borderColor: "warning.light",
                               color: "warning.dark",
                             }}
@@ -1293,7 +1418,11 @@ const AppointmentDetailsModal = ({
           {availablePackages.length > 0 && (
             <Box sx={{ mt: 2 }}>
               <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
+                <Typography
+                  variant="h5"
+                  fontWeight={600}
+                  sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}
+                >
                   Pacotes Disponíveis
                 </Typography>
                 <Chip
@@ -1310,7 +1439,16 @@ const AppointmentDetailsModal = ({
                 />
               </Box>
 
-              <Box sx={{ mt: 1, width: "100%", minWidth: 0, display: "flex", flexDirection: "column", gap: 1.5 }}>
+              <Box
+                sx={{
+                  mt: 1,
+                  width: "100%",
+                  minWidth: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: 1.5,
+                }}
+              >
                 {availablePackages.map((pkg) => (
                   <CustomCard
                     key={pkg.id}
@@ -1350,7 +1488,13 @@ const AppointmentDetailsModal = ({
                       </Typography>
                     </Box>
 
-                    <Box sx={{ display: "flex", flexDirection: "column", gap: 0.75 }}>
+                    <Box
+                      sx={{
+                        display: "flex",
+                        flexDirection: "column",
+                        gap: 0.75,
+                      }}
+                    >
                       {pkg.credits?.map((credit) => (
                         <Box
                           key={credit.id}
@@ -1416,18 +1560,37 @@ const AppointmentDetailsModal = ({
           )}
         </Box>
 
-        <Box className="coluna-2" sx={{ width: { xs: "100%", md: "50%" }, minWidth: 0 }}>
+        <Box
+          className="coluna-2"
+          sx={{ width: { xs: "100%", md: "50%" }, minWidth: 0 }}
+        >
           <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
+            <Typography
+              variant="h5"
+              fontWeight={600}
+              sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}
+            >
               Pets & Serviços
             </Typography>
-            <Typography variant="h5" fontWeight={600} sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}>
+            <Typography
+              variant="h5"
+              fontWeight={600}
+              sx={{ fontSize: { xs: "1.1rem", sm: "1.3rem" } }}
+            >
               {formattedTotal}
             </Typography>
           </Box>
           <Box sx={{ mt: 1, display: "flex", gap: 2, flexDirection: "column" }}>
             {appointment.items.map((item) => (
-              <CustomCard key={item.id} sx={{ px: { xs: 1.5, sm: 2 }, py: 1, width: "100%", minWidth: 0 }}>
+              <CustomCard
+                key={item.id}
+                sx={{
+                  px: { xs: 1.5, sm: 2 },
+                  py: 1,
+                  width: "100%",
+                  minWidth: 0,
+                }}
+              >
                 <Box
                   sx={{
                     display: "flex",
@@ -1532,25 +1695,44 @@ const AppointmentDetailsModal = ({
                 )}
 
                 <Divider sx={{ my: 1 }} />
-                <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 0.5 }}>
+                <Box
+                  sx={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    mb: 0.5,
+                  }}
+                >
                   <Typography variant="h6" fontWeight={500}>
                     Serviços do pet
                   </Typography>
-                  {!appointment.is_paid && appointment.status !== "canceled" && appointment.status !== "no_show" && (
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      startIcon={<Plus size={14} />}
-                      onClick={() => {
-                        setSelectedNewServiceId(null);
-                        setSelectedNewEmployeeIds([]);
-                        setAddServicePet({ petId: item.pet.id, petName: item.pet.name });
-                      }}
-                      sx={{ fontSize: "0.75rem", py: 0.25, px: 1, height: 26, borderRadius: 1.5, fontWeight: 600 }}
-                    >
-                      Adicionar serviço
-                    </Button>
-                  )}
+                  {!appointment.is_paid &&
+                    appointment.status !== "canceled" &&
+                    appointment.status !== "no_show" && (
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        startIcon={<Plus size={14} />}
+                        onClick={() => {
+                          setSelectedNewServiceId(null);
+                          setSelectedNewEmployeeIds([]);
+                          setAddServicePet({
+                            petId: item.pet.id,
+                            petName: item.pet.name,
+                          });
+                        }}
+                        sx={{
+                          fontSize: "0.75rem",
+                          py: 0.25,
+                          px: 1,
+                          height: 26,
+                          borderRadius: 1.5,
+                          fontWeight: 600,
+                        }}
+                      >
+                        Adicionar serviço
+                      </Button>
+                    )}
                 </Box>
                 <Box>
                   {item.services.map((s) => {
@@ -1608,9 +1790,19 @@ const AppointmentDetailsModal = ({
                               />
                             )}
                             {s.is_removed && (
-                              <Tooltip title={s.removal_reason ? `${s.removal_reason}${s.removed_at ? ` em ${dayjs(s.removed_at).format("DD/MM/YYYY HH:mm")}` : ""}` : "Dispensado da cobrança no caixa"}>
+                              <Tooltip
+                                title={
+                                  s.removal_reason
+                                    ? `${s.removal_reason}${s.removed_at ? ` em ${dayjs(s.removed_at).format("DD/MM/YYYY HH:mm")}` : ""}`
+                                    : "Dispensado da cobrança no caixa"
+                                }
+                              >
                                 <Chip
-                                  label={s.billing_status === "canceled" ? "Cancelado" : "Não Cobrado"}
+                                  label={
+                                    s.billing_status === "canceled"
+                                      ? "Cancelado"
+                                      : "Não Cobrado"
+                                  }
                                   size="small"
                                   color="default"
                                   variant="outlined"
@@ -1618,25 +1810,45 @@ const AppointmentDetailsModal = ({
                                     height: 18,
                                     fontSize: 10,
                                     px: 0.5,
-                                    bgcolor: (theme) => alpha(s.billing_status === "canceled" ? theme.palette.error.main : theme.palette.warning.main, 0.08),
-                                    borderColor: s.billing_status === "canceled" ? "error.light" : "warning.light",
-                                    color: s.billing_status === "canceled" ? "error.dark" : "warning.dark",
+                                    bgcolor: (theme) =>
+                                      alpha(
+                                        s.billing_status === "canceled"
+                                          ? theme.palette.error.main
+                                          : theme.palette.warning.main,
+                                        0.08,
+                                      ),
+                                    borderColor:
+                                      s.billing_status === "canceled"
+                                        ? "error.light"
+                                        : "warning.light",
+                                    color:
+                                      s.billing_status === "canceled"
+                                        ? "error.dark"
+                                        : "warning.dark",
                                     fontWeight: 700,
                                   }}
                                 />
                               </Tooltip>
                             )}
                           </Box>
-                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 0.75,
+                            }}
+                          >
                             <Typography
                               variant="body2"
                               sx={{
-                                textDecoration: (coveredServiceKeys.has(key) || s.is_removed)
-                                  ? "line-through"
-                                  : "none",
-                                color: (coveredServiceKeys.has(key) || s.is_removed)
-                                  ? "text.disabled"
-                                  : "text.primary",
+                                textDecoration:
+                                  coveredServiceKeys.has(key) || s.is_removed
+                                    ? "line-through"
+                                    : "none",
+                                color:
+                                  coveredServiceKeys.has(key) || s.is_removed
+                                    ? "text.disabled"
+                                    : "text.primary",
                               }}
                             >
                               {coveredServiceKeys.has(key) &&
@@ -1662,7 +1874,8 @@ const AppointmentDetailsModal = ({
                               appointment.status !== "canceled" &&
                               appointment.status !== "no_show" &&
                               !s.is_package_covered &&
-                              (item.services.length > 1 || appointment.items.length > 1) && (
+                              (item.services.length > 1 ||
+                                appointment.items.length > 1) && (
                                 <Tooltip title="Remover este serviço">
                                   <IconButton
                                     size="small"
@@ -1699,9 +1912,13 @@ const AppointmentDetailsModal = ({
                             >
                               <Typography
                                 variant="caption"
-                                sx={{ minWidth: { xs: "unset", sm: "80px" }, mt: { xs: 0, sm: 0.5 } }}
+                                sx={{
+                                  minWidth: { xs: "unset", sm: "80px" },
+                                  mt: { xs: 0, sm: 0.5 },
+                                }}
                               >
-                                Profissional{selectedEmployees.length > 1 ? "s" : ""}:
+                                Profissional
+                                {selectedEmployees.length > 1 ? "s" : ""}:
                               </Typography>
                               <Box
                                 sx={{
@@ -1717,21 +1934,31 @@ const AppointmentDetailsModal = ({
                                   sx={{ width: "100%" }}
                                   options={activeEmployees}
                                   filterOptions={(options, state) => {
-                                    const input = state.inputValue.toLowerCase();
-                                    return options.filter((option) =>
-                                      option.name.toLowerCase().includes(input)
-                                    ).slice(0, employeeLimit);
+                                    const input =
+                                      state.inputValue.toLowerCase();
+                                    return options
+                                      .filter((option) =>
+                                        option.name
+                                          .toLowerCase()
+                                          .includes(input),
+                                      )
+                                      .slice(0, employeeLimit);
                                   }}
                                   onInputChange={(_, __, reason) => {
-                                    if (reason === "input") setEmployeeLimit(20);
+                                    if (reason === "input")
+                                      setEmployeeLimit(20);
                                   }}
                                   ListboxProps={{
                                     onScroll: (event: React.SyntheticEvent) => {
                                       const listboxNode = event.currentTarget;
-                                      if (listboxNode.scrollTop + listboxNode.clientHeight >= listboxNode.scrollHeight - 10) {
+                                      if (
+                                        listboxNode.scrollTop +
+                                          listboxNode.clientHeight >=
+                                        listboxNode.scrollHeight - 10
+                                      ) {
                                         setEmployeeLimit((prev) => prev + 20);
                                       }
-                                    }
+                                    },
                                   }}
                                   getOptionLabel={(option) => option.name}
                                   isOptionEqualToValue={(option, value) =>
@@ -1739,7 +1966,9 @@ const AppointmentDetailsModal = ({
                                   }
                                   value={selectedEmployees}
                                   onChange={(_: any, val: any) => {
-                                    const newEmpIds: number[] = (val || []).map((e: any) => Number(e.id));
+                                    const newEmpIds: number[] = (val || []).map(
+                                      (e: any) => Number(e.id),
+                                    );
                                     const newAssignments = {
                                       ...localAssignments,
                                       [key]: newEmpIds,
@@ -1755,7 +1984,8 @@ const AppointmentDetailsModal = ({
                                       return {
                                         appointment_item_id: itemId,
                                         service_id: svcId,
-                                        employee_id: empIds.length > 0 ? empIds[0] : null,
+                                        employee_id:
+                                          empIds.length > 0 ? empIds[0] : null,
                                         employee_ids: empIds,
                                       };
                                     });
@@ -1764,48 +1994,85 @@ const AppointmentDetailsModal = ({
                                   }}
                                   renderTags={(tagValue, getTagProps) => {
                                     const maxVisible = 2;
-                                    const visibleTags = tagValue.slice(0, maxVisible);
-                                    const hiddenCount = tagValue.length - maxVisible;
+                                    const visibleTags = tagValue.slice(
+                                      0,
+                                      maxVisible,
+                                    );
+                                    const hiddenCount =
+                                      tagValue.length - maxVisible;
                                     return (
-                                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
+                                      <Box
+                                        sx={{
+                                          display: "flex",
+                                          flexWrap: "wrap",
+                                          gap: 0.5,
+                                        }}
+                                      >
                                         {visibleTags.map((option, index) => {
-                                          const hasComm = checkHasCommission(option.id, s.id);
+                                          const hasComm = checkHasCommission(
+                                            option.id,
+                                            s.id,
+                                          );
                                           return (
                                             <Chip
                                               {...getTagProps({ index })}
                                               key={option.id}
                                               label={option.name}
                                               size="small"
-                                              color={!hasComm ? "warning" : "default"}
+                                              color={
+                                                !hasComm ? "warning" : "default"
+                                              }
                                               sx={{
                                                 maxWidth: 160,
                                                 height: 24,
                                                 fontSize: "0.75rem",
-                                                "& .MuiChip-label": { overflow: "hidden", textOverflow: "ellipsis" }
+                                                "& .MuiChip-label": {
+                                                  overflow: "hidden",
+                                                  textOverflow: "ellipsis",
+                                                },
                                               }}
                                             />
                                           );
                                         })}
                                         {hiddenCount > 0 && (
-                                          <Tooltip title={tagValue.slice(maxVisible).map((o) => o.name).join(", ")}>
+                                          <Tooltip
+                                            title={tagValue
+                                              .slice(maxVisible)
+                                              .map((o) => o.name)
+                                              .join(", ")}
+                                          >
                                             <Chip
                                               label={`+${hiddenCount}`}
                                               size="small"
-                                              sx={{ height: 24, fontSize: "0.75rem", bgcolor: "grey.200", fontWeight: 600 }}
+                                              sx={{
+                                                height: 24,
+                                                fontSize: "0.75rem",
+                                                bgcolor: "grey.200",
+                                                fontWeight: 600,
+                                              }}
                                             />
                                           </Tooltip>
                                         )}
                                       </Box>
                                     );
                                   }}
-                                  renderOption={(props: any, option: any, { selected }: any) => {
+                                  renderOption={(
+                                    props: any,
+                                    option: any,
+                                    { selected }: any,
+                                  ) => {
                                     const hasComm = checkHasCommission(
                                       option.id,
                                       s.id,
                                     );
-                                    const { key: optKey, ...otherProps } = props;
+                                    const { key: optKey, ...otherProps } =
+                                      props;
                                     return (
-                                      <li key={option.id} {...otherProps} style={{ padding: "6px 12px" }}>
+                                      <li
+                                        key={option.id}
+                                        {...otherProps}
+                                        style={{ padding: "6px 12px" }}
+                                      >
                                         <Box
                                           sx={{
                                             display: "flex",
@@ -1816,12 +2083,27 @@ const AppointmentDetailsModal = ({
                                           }}
                                         >
                                           {/* Lado Esquerdo: Checkbox + Nome + Cargo */}
-                                          <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
-                                            <Checkbox size="small" checked={selected} disableRipple sx={{ p: 0.25 }} />
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              gap: 1,
+                                              minWidth: 0,
+                                              flex: 1,
+                                            }}
+                                          >
+                                            <Checkbox
+                                              size="small"
+                                              checked={selected}
+                                              disableRipple
+                                              sx={{ p: 0.25 }}
+                                            />
                                             <Typography
                                               variant="body2"
                                               sx={{
-                                                fontWeight: selected ? 600 : 500,
+                                                fontWeight: selected
+                                                  ? 600
+                                                  : 500,
                                                 color: "text.primary",
                                                 fontSize: "0.86rem",
                                                 overflow: "hidden",
@@ -1834,7 +2116,10 @@ const AppointmentDetailsModal = ({
                                             {option.role && (
                                               <Chip
                                                 size="small"
-                                                label={ROLE_LABELS[option.role] || option.role}
+                                                label={
+                                                  ROLE_LABELS[option.role] ||
+                                                  option.role
+                                                }
                                                 sx={{
                                                   height: 18,
                                                   fontSize: "0.68rem",
@@ -1905,7 +2190,11 @@ const AppointmentDetailsModal = ({
                                   renderInput={(params: any) => (
                                     <TextField
                                       {...params}
-                                      placeholder={selectedEmployees.length === 0 ? "Selecionar profissional(is)..." : ""}
+                                      placeholder={
+                                        selectedEmployees.length === 0
+                                          ? "Selecionar profissional(is)..."
+                                          : ""
+                                      }
                                       error={uncommissionedEmps.length > 0}
                                       sx={{
                                         "& .MuiInputBase-root": {
@@ -1930,7 +2219,10 @@ const AppointmentDetailsModal = ({
                                     <AlertTriangle
                                       size={12}
                                       color={theme.palette.warning.main}
-                                      style={{ marginTop: "2px", flexShrink: 0 }}
+                                      style={{
+                                        marginTop: "2px",
+                                        flexShrink: 0,
+                                      }}
                                     />
                                     <Typography
                                       variant="caption"
@@ -1938,7 +2230,12 @@ const AppointmentDetailsModal = ({
                                       fontWeight={600}
                                       sx={{ lineHeight: 1.2 }}
                                     >
-                                      Aviso: {uncommissionedEmps.map((e) => e.name).join(", ")} não possui regra de comissão cadastrada para este serviço.
+                                      Aviso:{" "}
+                                      {uncommissionedEmps
+                                        .map((e) => e.name)
+                                        .join(", ")}{" "}
+                                      não possui regra de comissão cadastrada
+                                      para este serviço.
                                     </Typography>
                                   </Box>
                                 )}
@@ -1962,7 +2259,15 @@ const AppointmentDetailsModal = ({
                                       fontWeight={600}
                                       sx={{ lineHeight: 1.2 }}
                                     >
-                                      {selectedEmployees.length} profissionais vinculados: a comissão deste serviço será dividida igualmente ({(100 / selectedEmployees.length).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% para cada).
+                                      {selectedEmployees.length} profissionais
+                                      vinculados: a comissão deste serviço será
+                                      dividida igualmente (
+                                      {(
+                                        100 / selectedEmployees.length
+                                      ).toLocaleString("pt-BR", {
+                                        maximumFractionDigits: 1,
+                                      })}
+                                      % para cada).
                                     </Typography>
                                   </Box>
                                 )}
@@ -1979,7 +2284,10 @@ const AppointmentDetailsModal = ({
                                       <AlertTriangle
                                         size={12}
                                         color={theme.palette.warning.main}
-                                        style={{ marginTop: "2px", flexShrink: 0 }}
+                                        style={{
+                                          marginTop: "2px",
+                                          flexShrink: 0,
+                                        }}
                                       />
                                       <Typography
                                         variant="caption"
@@ -2014,7 +2322,7 @@ const AppointmentDetailsModal = ({
                       {item.services
                         .reduce((acc, s) => {
                           const key = `${item.id}-${s.id}`;
-                          return (coveredServiceKeys.has(key) || s.is_removed)
+                          return coveredServiceKeys.has(key) || s.is_removed
                             ? acc
                             : acc + s.price_cents / 100;
                         }, 0)
@@ -2145,42 +2453,75 @@ const AppointmentDetailsModal = ({
       {addServicePet && (
         <Dialog
           open={Boolean(addServicePet)}
-          onClose={() => !addServiceMutation.isPending && setAddServicePet(null)}
+          onClose={() =>
+            !addServiceMutation.isPending && setAddServicePet(null)
+          }
           maxWidth="xs"
           fullWidth
         >
           <DialogTitle sx={{ fontWeight: 700, pb: 1 }}>
             Adicionar Serviço para {addServicePet.petName}
           </DialogTitle>
-          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+          >
             <Box>
-              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.5 }}
+              >
                 Selecione o Serviço *
               </Typography>
               <Autocomplete
                 size="small"
                 options={(() => {
-                  const petObj = appointment.items.find((it) => it.pet.id === addServicePet.petId)?.pet;
+                  const petObj = appointment.items.find(
+                    (it) => it.pet.id === addServicePet.petId,
+                  )?.pet;
                   const active = tenantServices.filter((s) => s.is_active);
-                  return petObj ? getServicesForPet(active, petObj as any) : active;
+                  return petObj
+                    ? getServicesForPet(active, petObj as any)
+                    : active;
                 })()}
                 getOptionLabel={(option) => formatServiceLabel(option)}
                 isOptionEqualToValue={(option, val) => option.id === val.id}
                 onChange={(_, val) => setSelectedNewServiceId(val?.id || null)}
                 renderInput={(params) => (
-                  <TextField {...params} placeholder="Pesquisar serviço..." autoFocus />
+                  <TextField
+                    {...params}
+                    placeholder="Pesquisar serviço..."
+                    autoFocus
+                  />
                 )}
                 renderOption={(props, option) => {
                   const { ...rest } = props;
                   const hasCredit = clientPackages.some(
                     (pkg) =>
                       pkg.is_active &&
-                      (!pkg.pets || pkg.pets.length === 0 || pkg.pets.some((p) => p.id === addServicePet.petId)) &&
-                      pkg.credits?.some((c) => c.service_id === option.id && c.remaining_qty > 0)
+                      (!pkg.pets ||
+                        pkg.pets.length === 0 ||
+                        pkg.pets.some((p) => p.id === addServicePet.petId)) &&
+                      pkg.credits?.some(
+                        (c) =>
+                          c.service_id === option.id && c.remaining_qty > 0,
+                      ),
                   );
                   return (
-                    <li {...rest} key={option.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px" }}>
-                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                    <li
+                      {...rest}
+                      key={option.id}
+                      style={{
+                        display: "flex",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        padding: "8px 12px",
+                      }}
+                    >
+                      <Box
+                        sx={{ display: "flex", alignItems: "center", gap: 1 }}
+                      >
                         <Typography variant="body2" fontWeight={500}>
                           {formatServiceLabel(option)}
                         </Typography>
@@ -2195,8 +2536,15 @@ const AppointmentDetailsModal = ({
                           />
                         )}
                       </Box>
-                      <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                        {(option.price_cents / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        fontWeight={600}
+                      >
+                        {(option.price_cents / 100).toLocaleString("pt-BR", {
+                          style: "currency",
+                          currency: "BRL",
+                        })}
                       </Typography>
                     </li>
                   );
@@ -2205,7 +2553,12 @@ const AppointmentDetailsModal = ({
             </Box>
 
             <Box>
-              <Typography variant="caption" fontWeight={600} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                fontWeight={600}
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.5 }}
+              >
                 Profissional(is) (opcional)
               </Typography>
               <Autocomplete
@@ -2214,8 +2567,12 @@ const AppointmentDetailsModal = ({
                 options={activeEmployees}
                 getOptionLabel={(option) => option.name}
                 isOptionEqualToValue={(option, val) => option.id === val.id}
-                value={activeEmployees.filter((e) => selectedNewEmployeeIds.includes(e.id))}
-                onChange={(_, val) => setSelectedNewEmployeeIds((val || []).map((e: any) => e.id))}
+                value={activeEmployees.filter((e) =>
+                  selectedNewEmployeeIds.includes(e.id),
+                )}
+                onChange={(_, val) =>
+                  setSelectedNewEmployeeIds((val || []).map((e: any) => e.id))
+                }
                 renderTags={(tagValue, getTagProps) => {
                   const maxVisible = 2;
                   const visibleTags = tagValue.slice(0, maxVisible);
@@ -2233,16 +2590,30 @@ const AppointmentDetailsModal = ({
                             label={option.name}
                             size="small"
                             color={!hasComm ? "warning" : "default"}
-                            sx={{ maxWidth: 140, height: 22, fontSize: "0.75rem" }}
+                            sx={{
+                              maxWidth: 140,
+                              height: 22,
+                              fontSize: "0.75rem",
+                            }}
                           />
                         );
                       })}
                       {hiddenCount > 0 && (
-                        <Tooltip title={tagValue.slice(maxVisible).map((o) => o.name).join(", ")}>
+                        <Tooltip
+                          title={tagValue
+                            .slice(maxVisible)
+                            .map((o) => o.name)
+                            .join(", ")}
+                        >
                           <Chip
                             label={`+${hiddenCount}`}
                             size="small"
-                            sx={{ height: 22, fontSize: "0.75rem", bgcolor: "grey.200", fontWeight: 600 }}
+                            sx={{
+                              height: 22,
+                              fontSize: "0.75rem",
+                              bgcolor: "grey.200",
+                              fontWeight: 600,
+                            }}
                           />
                         </Tooltip>
                       )}
@@ -2255,7 +2626,11 @@ const AppointmentDetailsModal = ({
                     : true;
                   const { key, ...otherProps } = props;
                   return (
-                    <li key={option.id} {...otherProps} style={{ padding: "6px 12px" }}>
+                    <li
+                      key={option.id}
+                      {...otherProps}
+                      style={{ padding: "6px 12px" }}
+                    >
                       <Box
                         sx={{
                           display: "flex",
@@ -2266,8 +2641,21 @@ const AppointmentDetailsModal = ({
                         }}
                       >
                         {/* Lado Esquerdo: Checkbox + Nome + Cargo */}
-                        <Box sx={{ display: "flex", alignItems: "center", gap: 1, minWidth: 0, flex: 1 }}>
-                          <Checkbox size="small" checked={selected} disableRipple sx={{ p: 0.25 }} />
+                        <Box
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 1,
+                            minWidth: 0,
+                            flex: 1,
+                          }}
+                        >
+                          <Checkbox
+                            size="small"
+                            checked={selected}
+                            disableRipple
+                            sx={{ p: 0.25 }}
+                          />
                           <Typography
                             variant="body2"
                             sx={{
@@ -2299,8 +2687,8 @@ const AppointmentDetailsModal = ({
                         </Box>
 
                         {/* Lado Direito: Status de Comissao */}
-                        {selectedNewServiceId && (
-                          hasComm ? (
+                        {selectedNewServiceId &&
+                          (hasComm ? (
                             <Box
                               sx={{
                                 display: "inline-flex",
@@ -2348,8 +2736,7 @@ const AppointmentDetailsModal = ({
                                 Sem comissão
                               </Box>
                             </Tooltip>
-                          )
-                        )}
+                          ))}
                       </Box>
                     </li>
                   );
@@ -2357,7 +2744,11 @@ const AppointmentDetailsModal = ({
                 renderInput={(params) => (
                   <TextField
                     {...params}
-                    placeholder={selectedNewEmployeeIds.length === 0 ? "Selecione o(s) profissional(is)..." : ""}
+                    placeholder={
+                      selectedNewEmployeeIds.length === 0
+                        ? "Selecione o(s) profissional(is)..."
+                        : ""
+                    }
                     sx={{
                       "& .MuiInputBase-root": {
                         flexWrap: "wrap",
@@ -2389,7 +2780,10 @@ const AppointmentDetailsModal = ({
                   addServiceMutation.mutate({
                     petId: addServicePet.petId,
                     serviceId: selectedNewServiceId,
-                    employeeId: selectedNewEmployeeIds.length > 0 ? selectedNewEmployeeIds[0] : undefined,
+                    employeeId:
+                      selectedNewEmployeeIds.length > 0
+                        ? selectedNewEmployeeIds[0]
+                        : undefined,
                     employeeIds: selectedNewEmployeeIds,
                   });
                 }
@@ -2418,7 +2812,10 @@ const AppointmentDetailsModal = ({
             <Typography variant="body2" color="text.secondary">
               Tem certeza de que deseja remover{" "}
               <strong>{serviceToRemove.name}</strong> deste agendamento
-              {appointment.status === "completed" ? " e da comanda em aberto no caixa" : ""}?
+              {appointment.status === "completed"
+                ? " e da comanda em aberto no caixa"
+                : ""}
+              ?
             </Typography>
           </DialogContent>
           <DialogActions sx={{ p: 2, pt: 1 }}>
@@ -2450,30 +2847,64 @@ const AppointmentDetailsModal = ({
       {cancelCompletedOpen && (
         <Dialog
           open={cancelCompletedOpen}
-          onClose={() => !cancelCompletedMutation.isPending && setCancelCompletedOpen(false)}
+          onClose={() =>
+            !cancelCompletedMutation.isPending && setCancelCompletedOpen(false)
+          }
           maxWidth="sm"
           fullWidth
         >
-          <DialogTitle sx={{ fontWeight: 800, display: "flex", alignItems: "center", gap: 1, color: "error.main" }}>
+          <DialogTitle
+            sx={{
+              fontWeight: 800,
+              display: "flex",
+              alignItems: "center",
+              gap: 1,
+              color: "error.main",
+            }}
+          >
             <AlertTriangle size={22} color="#DC2626" />
             Cancelar Agendamento Finalizado?
           </DialogTitle>
-          <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}>
+          <DialogContent
+            sx={{ display: "flex", flexDirection: "column", gap: 2, pt: 1 }}
+          >
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
               <strong>Atenção:</strong> Este agendamento já foi finalizado
               {appointment.is_paid ? " e pago no caixa" : ""}. Ao cancelar:
-              <ul style={{ margin: "6px 0 0 18px", padding: 0, fontSize: "0.82rem" }}>
+              <ul
+                style={{
+                  margin: "6px 0 0 18px",
+                  padding: 0,
+                  fontSize: "0.82rem",
+                }}
+              >
                 {appointment.is_paid && (
-                  <li>A venda no caixa será cancelada e o valor estornado (para dinheiro, saída no caixa).</li>
+                  <li>
+                    A venda no caixa será cancelada e o valor estornado (para
+                    dinheiro, saída no caixa).
+                  </li>
                 )}
-                <li>Créditos de pacotes utilizados serão devolvidos ao cliente.</li>
-                <li>Comissões dos profissionais serão canceladas para não poluir relatórios e o DRE.</li>
-                <li>O agendamento passará para o status <strong>Cancelado</strong>.</li>
+                <li>
+                  Créditos de pacotes utilizados serão devolvidos ao cliente.
+                </li>
+                <li>
+                  Comissões dos profissionais serão canceladas para não poluir
+                  relatórios e o DRE.
+                </li>
+                <li>
+                  O agendamento passará para o status <strong>Cancelado</strong>
+                  .
+                </li>
               </ul>
             </Alert>
 
             <Box>
-              <Typography variant="caption" fontWeight={700} color="text.secondary" sx={{ display: "block", mb: 0.5 }}>
+              <Typography
+                variant="caption"
+                fontWeight={700}
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.5 }}
+              >
                 Motivo do cancelamento (opcional)
               </Typography>
               <TextField
@@ -2500,7 +2931,11 @@ const AppointmentDetailsModal = ({
               color="error"
               loading={cancelCompletedMutation.isPending}
               disabled={cancelCompletedMutation.isPending}
-              onClick={() => cancelCompletedMutation.mutate(cancelCompletedReason.trim() || undefined)}
+              onClick={() =>
+                cancelCompletedMutation.mutate(
+                  cancelCompletedReason.trim() || undefined,
+                )
+              }
               sx={{ fontWeight: 700 }}
             >
               Sim, Cancelar e Estornar
@@ -2519,7 +2954,9 @@ const AppointmentDetailsModal = ({
           }}
           onSuccess={async () => {
             await queryClient.invalidateQueries({ queryKey: ["appointments"] });
-            await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
+            await queryClient.invalidateQueries({
+              queryKey: ["dashboard-startup"],
+            });
           }}
         />
       )}
