@@ -32,6 +32,7 @@ import PublicBookingPage from "./pages/PublicBookingPage";
 import DREReportPage from "./pages/DREReportPage";
 import OperationalResultPage from "./pages/OperationalResultPage";
 import FinancialBillsPage from "./pages/FinancialBillsPage";
+import DaycarePage from "./pages/DaycarePage";
 
 import { usePermission } from "./hooks/usePermission";
 
@@ -110,6 +111,8 @@ export default function AppRoutes() {
         }
       >
         <Route path="/dashboard" element={<PermissionRoute module="dashboard"><Home /></PermissionRoute>} />
+        <Route path="/creche" element={<PermissionRoute module="daycare"><DaycarePage /></PermissionRoute>} />
+        <Route path="/daycare" element={<PermissionRoute module="daycare"><DaycarePage /></PermissionRoute>} />
         <Route path="/financial" element={<Navigate to="/reports?category=vendas&subtab=extrato" replace />} />
         <Route path="/pos" element={<PermissionRoute module="pos"><POSPage /></PermissionRoute>} />
         <Route path="/inventory" element={<PermissionRoute module="inventory"><InventoryPage /></PermissionRoute>} />

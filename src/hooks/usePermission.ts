@@ -3,6 +3,7 @@ import { useAuth } from "./useAuth";
 
 export type SystemModuleId =
   | "dashboard"
+  | "daycare"
   | "clients"
   | "pets"
   | "services"
@@ -21,6 +22,7 @@ export type SystemModuleId =
 
 export const DEFAULT_EMPLOYEE_PERMISSIONS: SystemModuleId[] = [
   "dashboard",
+  "daycare",
   "clients",
   "pets",
   "services",
@@ -37,6 +39,7 @@ export const SYSTEM_MODULES: {
   path: string;
 }[] = [
   { id: "dashboard", label: "Início", section: "INÍCIO", path: "/dashboard" },
+  { id: "daycare", label: "Creche", section: "INÍCIO", path: "/creche" },
   { id: "clients", label: "Clientes", section: "CADASTROS", path: "/registration/clients" },
   { id: "pets", label: "Pets", section: "CADASTROS", path: "/registration/pets" },
   { id: "services", label: "Serviços", section: "CADASTROS", path: "/registration/services" },

@@ -16,7 +16,8 @@ import {
   X,
   User,
   ChevronDown,
-  Home,
+  Scissors,
+  HouseHeart,
   ShoppingCart,
   Users,
   PawPrint,
@@ -53,10 +54,17 @@ interface TopNavItem {
 const topNavItems: TopNavItem[] = [
   {
     id: "home",
-    label: "Início",
-    icon: Home,
+    label: "Banho & Tosa",
+    icon: Scissors,
     path: "/dashboard",
     module: "dashboard",
+  },
+  {
+    id: "daycare",
+    label: "Creche",
+    icon: HouseHeart,
+    path: "/creche",
+    module: "daycare",
   },
   {
     id: "pos",

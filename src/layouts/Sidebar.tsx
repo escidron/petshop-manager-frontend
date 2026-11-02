@@ -5,7 +5,8 @@ import { usePermission } from "../hooks/usePermission";
 import { useNavigate } from "react-router-dom";
 import SidebarItem, { type SidebarItemConfig } from "./SidebarItem";
 import {
-  Home,
+  Scissors,
+  HouseHeart,
   Users,
   PawPrint,
   ClipboardList,
@@ -31,10 +32,17 @@ const menuSections: { title: string; items: SidebarItemConfig[] }[] = [
     items: [
       {
         id: "home",
-        label: "Início",
-        icon: <Home size={20} />,
+        label: "Banho & Tosa",
+        icon: <Scissors size={20} />,
         path: "/dashboard",
         module: "dashboard",
+      },
+      {
+        id: "daycare",
+        label: "Creche",
+        icon: <HouseHeart size={20} />,
+        path: "/creche",
+        module: "daycare",
       },
     ],
   },
