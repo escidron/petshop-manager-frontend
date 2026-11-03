@@ -38,6 +38,7 @@ export function appointmentToFormData(
     items: appointment.items.map((item) => ({
       pet_id: item.pet.id,
       service_ids: item.services.map((service) => service.id),
+      recurrence: recurrence ? { ...recurrence } : undefined,
     })),
     recurrence,
   };
