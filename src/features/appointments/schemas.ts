@@ -2,9 +2,31 @@
 
 import { z } from "zod";
 
+export const appointmentRecurrenceSchema = z
+  .object({
+    frequency: z.enum(["weekly", "biweekly", "monthly"]),
+    occurrences: z.coerce.number().min(2, "Mínimo 2"),
+  })
+  .superRefine((data, ctx) => {
+    const max =
+      data.frequency === "weekly"
+        ? 52
+        : data.frequency === "biweekly"
+        ? 26
+        : 12;
+    if (data.occurrences > max) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `Máximo de ${max} (1 ano)`,
+        path: ["occurrences"],
+      });
+    }
+  });
+
 export const appointmentItemSchema = z.object({
   pet_id: z.number().min(1, "Pet é obrigatório"),
   service_ids: z.array(z.number()),
+  recurrence: appointmentRecurrenceSchema.optional().nullable(),
 });
 
 export const appointmentSchema = z
@@ -24,27 +46,7 @@ export const appointmentSchema = z
       .array(appointmentItemSchema)
       .min(1, "Adicione pelo menos um pet"),
 
-    recurrence: z
-      .object({
-        frequency: z.enum(["weekly", "biweekly", "monthly"]),
-        occurrences: z.coerce.number().min(2, "Mínimo 2"),
-      })
-      .superRefine((data, ctx) => {
-        const max =
-          data.frequency === "weekly"
-            ? 52
-            : data.frequency === "biweekly"
-            ? 26
-            : 12;
-        if (data.occurrences > max) {
-          ctx.addIssue({
-            code: z.ZodIssueCode.custom,
-            message: `Máximo de ${max} (1 ano)`,
-            path: ["occurrences"],
-          });
-        }
-      })
-      .optional(),
+    recurrence: appointmentRecurrenceSchema.optional().nullable(),
   })
   .superRefine((data, ctx) => {
     const validItems = (data.items || []).filter(
