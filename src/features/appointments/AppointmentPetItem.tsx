@@ -3,19 +3,31 @@ import {
   Autocomplete,
   Box,
   Checkbox,
+  Chip,
+  FormControl,
   FormControlLabel,
+  IconButton,
+  MenuItem,
+  Radio,
+  RadioGroup,
+  Select,
+  Switch,
   TextField,
+  Tooltip,
   Typography,
+  alpha,
 } from "@mui/material";
 import { Button } from "../../components/Button/Button";
-import { Plus, Trash } from "lucide-react";
-import { Controller, type Control, type UseFormSetValue } from "react-hook-form";
+import { CalendarCheck, Plus, Trash2 } from "lucide-react";
+import { Controller, type Control, type UseFormSetValue, useWatch } from "react-hook-form";
 import type { Pet } from "../pets/types";
 import type { Service } from "../tenant_services/types";
 import type { AppointmentFormData } from "./types";
 import { getServicesForPet } from "../../utils/serviceMatcher";
 import { formatPrice, formatServiceLabel } from "../../utils/formatServiceLabel";
 import type { ClientPackage } from "../client_packages/types";
+import dayjs from "dayjs";
+import theme from "../../theme";
 
 type Props = {
   index: number;
@@ -25,12 +37,15 @@ type Props = {
   watchedClientId: number | null | undefined;
   pets: Pet[];
   services: Service[];
-  items: { pet_id: number; service_ids: number[] }[];
+  items: { pet_id: number; service_ids: number[]; recurrence?: any }[];
   clientPackages: ClientPackage[];
   onCreatePet?: (index: number, clientId: number) => void;
   onCreateService?: (index: number) => void;
   onRemove: () => void;
   isOnlyPet: boolean;
+  scheduledDate?: dayjs.Dayjs | null;
+  mode?: "create" | "edit";
+  trigger?: any;
 };
 
 export default function AppointmentPetItem({
@@ -47,6 +62,9 @@ export default function AppointmentPetItem({
   onCreateService,
   onRemove,
   isOnlyPet,
+  scheduledDate,
+  mode = "create",
+  trigger,
 }: Props) {
   const [petListLimit, setPetListLimit] = useState(20);
   const [serviceListLimit, setServiceListLimit] = useState(20);
@@ -56,6 +74,87 @@ export default function AppointmentPetItem({
   // Watch the selected pet_id for this specific row using the items prop
   const currentPetId = items[index]?.pet_id;
   const currentPet = pets?.find((p) => p.id === currentPetId);
+
+  // Recorrência individual por pet
+  const itemRecurrence = useWatch({
+    control,
+    name: `items.${index}.recurrence` as any,
+  });
+  const isPetRecurrent = Boolean(itemRecurrence);
+  const recurrenceFrequency = itemRecurrence?.frequency || "weekly";
+  const recurrenceOccurrences = itemRecurrence?.occurrences || 4;
+
+  const maxOccurrences =
+    recurrenceFrequency === "weekly"
+      ? 52
+      : recurrenceFrequency === "biweekly"
+      ? 26
+      : 12;
+
+  const [recurrenceEndType, setRecurrenceEndType] = useState<"occurrences" | "never">(
+    itemRecurrence?.occurrences === maxOccurrences ? "never" : "occurrences"
+  );
+
+  const handleToggleRecurrence = (checked: boolean) => {
+    if (checked) {
+      setValue(`items.${index}.recurrence`, {
+        frequency: "weekly",
+        occurrences: 4,
+      });
+      setRecurrenceEndType("occurrences");
+    } else {
+      setValue(`items.${index}.recurrence`, undefined);
+    }
+  };
+
+  const handleFrequencyChange = (newFreq: "weekly" | "biweekly" | "monthly") => {
+    const max = newFreq === "weekly" ? 52 : newFreq === "biweekly" ? 26 : 12;
+    const newOccurrences =
+      recurrenceEndType === "never"
+        ? max
+        : Math.min(Number(recurrenceOccurrences) || 4, max);
+    setValue(`items.${index}.recurrence`, {
+      frequency: newFreq,
+      occurrences: newOccurrences,
+    });
+    trigger?.(`items.${index}.recurrence.occurrences`);
+  };
+
+  const handleEndTypeChange = (type: "occurrences" | "never") => {
+    setRecurrenceEndType(type);
+    if (type === "never") {
+      setValue(`items.${index}.recurrence.occurrences`, maxOccurrences);
+    } else {
+      setValue(
+        `items.${index}.recurrence.occurrences`,
+        Math.min(Number(recurrenceOccurrences) || 4, maxOccurrences)
+      );
+    }
+    trigger?.(`items.${index}.recurrence.occurrences`);
+  };
+
+  const petSummaryDates = useMemo(() => {
+    if (!isPetRecurrent || !scheduledDate) return null;
+    const start = dayjs(scheduledDate);
+    if (!start.isValid()) return null;
+
+    const count = Number(recurrenceOccurrences) || 2;
+    const dates = [];
+    const computeCount = Math.min(count, 6);
+    for (let i = 0; i < computeCount; i++) {
+      if (recurrenceFrequency === "weekly") dates.push(start.add(i, "week"));
+      else if (recurrenceFrequency === "biweekly") dates.push(start.add(i * 2, "week"));
+      else if (recurrenceFrequency === "monthly") dates.push(start.add(i * 4, "week"));
+    }
+    return {
+      dates: dates.map((d) => ({
+        day: d.format("DD"),
+        month: d.format("MMM").toLowerCase(),
+      })),
+      total: count,
+      remaining: count > 6 ? count - 6 : 0,
+    };
+  }, [isPetRecurrent, scheduledDate, recurrenceFrequency, recurrenceOccurrences]);
 
   // Calculate available packages and credits dynamically
   const packageCreditsByServiceId = useMemo(() => {
@@ -140,11 +239,12 @@ export default function AppointmentPetItem({
       sx={{
         display: "flex",
         flexDirection: "column",
-        gap: 1,
+        gap: 1.25,
         mb: 2,
         p: 2,
-        border: "1px solid #eee",
-        borderRadius: 2,
+        border: "1px solid #E2E8F0",
+        borderRadius: 2.5,
+        bgcolor: "#FFFFFF",
       }}
     >
       {/* PET */}
@@ -428,6 +528,7 @@ export default function AppointmentPetItem({
         </Button>
       </Box>
 
+      {/* CHECKBOX MOSTRAR TODOS OS SERVIÇOS */}
       <FormControlLabel
         sx={{ width: "fit-content", my: 0 }}
         control={
@@ -452,16 +553,289 @@ export default function AppointmentPetItem({
         }}
       />
 
-      {!isOnlyPet && (
-        <Button
-          startIcon={<Trash size={15} />}
-          variant="outlined"
-          color="error"
-          sx={{ width: "fit-content", mx: "auto" }}
-          onClick={onRemove}
+      {/* LINHA DE REPETIÇÃO INDIVIDUAL DO PET + LIXEIRA NA DIREITA */}
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          pt: 1.25,
+          borderTop: "1px dashed",
+          borderColor: "divider",
+          mt: 0.5,
+        }}
+      >
+        {/* Esquerda: Switch e label fino */}
+        <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+          <Switch
+            size="small"
+            checked={isPetRecurrent}
+            onChange={(e) => handleToggleRecurrence(e.target.checked)}
+            color="primary"
+          />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+            <Typography
+              variant="body2"
+              fontWeight={600}
+              color="text.primary"
+              sx={{ fontSize: { xs: "0.82rem", sm: "0.88rem" } }}
+            >
+              Repetir agendamento
+            </Typography>
+            {mode === "edit" && isPetRecurrent && (
+              <Chip
+                size="small"
+                label="Recorrência ativa"
+                color="primary"
+                variant="outlined"
+                sx={{ fontSize: "0.7rem", height: 20 }}
+              />
+            )}
+          </Box>
+        </Box>
+
+        {/* Direita: Apenas o ícone da lixeira */}
+        {!isOnlyPet ? (
+          <Tooltip title="Remover pet do agendamento">
+            <IconButton
+              size="small"
+              onClick={onRemove}
+              sx={{
+                color: "error.main",
+                p: 0.75,
+                borderRadius: 1.5,
+                border: "1px solid",
+                borderColor: (theme) => alpha(theme.palette.error.main, 0.25),
+                bgcolor: (theme) => alpha(theme.palette.error.main, 0.04),
+                "&:hover": {
+                  bgcolor: (theme) => alpha(theme.palette.error.main, 0.12),
+                  borderColor: "error.main",
+                },
+              }}
+            >
+              <Trash2 size={16} />
+            </IconButton>
+          </Tooltip>
+        ) : null}
+      </Box>
+
+      {/* BLOCO DE CONFIGURAÇÃO DE RECORRÊNCIA DO PET */}
+      {isPetRecurrent && (
+        <Box
+          sx={{
+            mt: 0.75,
+            p: 1.5,
+            borderRadius: 2,
+            bgcolor: "#F8FAFC",
+            border: "1px solid",
+            borderColor: "divider",
+            display: "flex",
+            flexDirection: "column",
+            gap: 1.5,
+          }}
         >
-          Remover Pet do Agendamento
-        </Button>
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 2,
+              justifyContent: "space-between",
+              alignItems: "flex-start",
+            }}
+          >
+            {/* Repete (Frequência) */}
+            <FormControl sx={{ minWidth: { xs: "100%", sm: "200px" }, flex: 1 }}>
+              <Typography
+                variant="caption"
+                sx={{ color: "text.primary", mb: 0.75, fontWeight: 600, display: "block" }}
+              >
+                Repete
+              </Typography>
+              <Controller
+                name={`items.${index}.recurrence.frequency` as any}
+                control={control}
+                render={({ field }) => (
+                  <Select
+                    {...field}
+                    value={field.value || "weekly"}
+                    size="small"
+                    onChange={(e) => {
+                      field.onChange(e);
+                      handleFrequencyChange(e.target.value as any);
+                    }}
+                    sx={{
+                      bgcolor: "white",
+                      fontSize: "0.85rem",
+                      ".MuiSelect-select": { display: "flex", alignItems: "center", gap: 1 },
+                    }}
+                  >
+                    <MenuItem value="weekly">
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CalendarCheck size={16} color={theme.palette.primary.main} />
+                        Toda semana
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="biweekly">
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CalendarCheck size={16} color={theme.palette.primary.main} />
+                        A cada 15 dias
+                      </Box>
+                    </MenuItem>
+                    <MenuItem value="monthly">
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                        <CalendarCheck size={16} color={theme.palette.primary.main} />
+                        Todo mês
+                      </Box>
+                    </MenuItem>
+                  </Select>
+                )}
+              />
+            </FormControl>
+
+            {/* Termina */}
+            <FormControl sx={{ minWidth: { xs: "100%", sm: "200px" } }}>
+              <Typography
+                variant="caption"
+                sx={{ color: "text.primary", mb: 0.75, fontWeight: 600, display: "block" }}
+              >
+                Termina
+              </Typography>
+              <RadioGroup
+                value={recurrenceEndType}
+                onChange={(e) => handleEndTypeChange(e.target.value as any)}
+              >
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                    <FormControlLabel
+                      value="occurrences"
+                      control={
+                        <Radio
+                          size="small"
+                          disableRipple
+                          sx={{ color: theme.palette.primary.main, p: 0.5 }}
+                        />
+                      }
+                      label={
+                        <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
+                          Após
+                        </Typography>
+                      }
+                      sx={{ mr: 1, my: 0 }}
+                    />
+                    <Controller
+                      name={`items.${index}.recurrence.occurrences` as any}
+                      control={control}
+                      render={({ field, fieldState }) => (
+                        <Box sx={{ display: "flex", alignItems: "center" }}>
+                          <TextField
+                            {...field}
+                            value={field.value ?? 4}
+                            type="number"
+                            size="small"
+                            sx={{ bgcolor: "white", width: "70px", mr: 1 }}
+                            inputProps={{
+                              min: 2,
+                              max: maxOccurrences,
+                              maxLength: 3,
+                              style: { padding: "4px 8px", fontSize: "0.85rem" },
+                            }}
+                            disabled={recurrenceEndType !== "occurrences"}
+                            onChange={(e) => {
+                              let val = e.target.value;
+                              if (val.length > 3) val = val.slice(0, 3);
+                              field.onChange(val);
+                              trigger?.(`items.${index}.recurrence.occurrences`);
+                            }}
+                            error={!!fieldState.error}
+                          />
+                          <Typography
+                            variant="body2"
+                            color="text.primary"
+                            sx={{ fontSize: "0.85rem" }}
+                          >
+                            agendamentos
+                          </Typography>
+                        </Box>
+                      )}
+                    />
+                  </Box>
+
+                  <FormControlLabel
+                    value="never"
+                    control={
+                      <Radio
+                        size="small"
+                        disableRipple
+                        sx={{ color: theme.palette.primary.main, p: 0.5 }}
+                      />
+                    }
+                    label={
+                      <Typography variant="body2" sx={{ fontSize: "0.85rem" }}>
+                        Nunca
+                      </Typography>
+                    }
+                    sx={{ my: 0 }}
+                  />
+                </Box>
+              </RadioGroup>
+            </FormControl>
+          </Box>
+
+          {/* Prévia de datas */}
+          {petSummaryDates && petSummaryDates.dates.length > 0 && (
+            <Box sx={{ mt: 0.5, pt: 1, borderTop: "1px dashed #e2e8f0" }}>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: "block", mb: 0.75, fontSize: "0.8rem" }}
+              >
+                Serão criados <b>{petSummaryDates.total}</b> agendamentos para este pet, um por{" "}
+                {recurrenceFrequency === "weekly"
+                  ? "semana"
+                  : recurrenceFrequency === "biweekly"
+                  ? "quinzena"
+                  : "mês"}
+                :
+              </Typography>
+              <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75 }}>
+                {petSummaryDates.dates.map((d, i) => (
+                  <Box
+                    key={i}
+                    sx={{
+                      bgcolor: "white",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      color: "text.primary",
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1.5,
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                      textTransform: "capitalize",
+                    }}
+                  >
+                    {d.day} {d.month}
+                  </Box>
+                ))}
+                {petSummaryDates.remaining > 0 && (
+                  <Box
+                    sx={{
+                      bgcolor: alpha(theme.palette.primary.main, 0.08),
+                      color: "primary.main",
+                      px: 1,
+                      py: 0.25,
+                      borderRadius: 1.5,
+                      fontSize: "0.75rem",
+                      fontWeight: 600,
+                    }}
+                  >
+                    +{petSummaryDates.remaining} datas
+                  </Box>
+                )}
+              </Box>
+            </Box>
+          )}
+        </Box>
       )}
     </Box>
   );

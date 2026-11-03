@@ -122,11 +122,36 @@ export default function AppointmentModal({
     setIsSubmitting(true);
     try {
       if (mode === "create") {
-        await createAppointment(data);
+        const hasAnyRecurrence = data.items.some((i) => Boolean(i.recurrence));
+        if (data.items.length > 1 && hasAnyRecurrence) {
+          // Recorrência individual por pet: cria uma chamada para cada pet
+          for (const item of data.items) {
+            await createAppointment({
+              client_id: data.client_id,
+              scheduled_at: data.scheduled_at,
+              notes: data.notes,
+              items: [{ pet_id: item.pet_id, service_ids: item.service_ids }],
+              recurrence: item.recurrence || undefined,
+            });
+          }
+        } else {
+          // Caso padrão (1 pet ou múltiplos pets sem recorrência):
+          const itemRecurrence = data.items[0]?.recurrence || data.recurrence || undefined;
+          await createAppointment({
+            client_id: data.client_id,
+            scheduled_at: data.scheduled_at,
+            notes: data.notes,
+            items: data.items.map((i) => ({ pet_id: i.pet_id, service_ids: i.service_ids })),
+            recurrence: itemRecurrence,
+          });
+        }
       } else {
-        const removeRecurrence = Boolean(appointment?.recurrence_id && !data.recurrence);
+        const itemRecurrence = data.items[0]?.recurrence || data.recurrence || undefined;
+        const removeRecurrence = Boolean(appointment?.recurrence_id && !itemRecurrence);
         await updateAppointment(appointment!.id, {
           ...data,
+          items: data.items.map((i) => ({ pet_id: i.pet_id, service_ids: i.service_ids })),
+          recurrence: itemRecurrence,
           update_all_future: updateAllFuture,
           remove_recurrence: removeRecurrence,
         });
@@ -151,7 +176,10 @@ export default function AppointmentModal({
   };
 
   const proceedSubmit = (data: AppointmentFormData) => {
-    if (mode === "edit" && (appointment?.recurrence_id || data.recurrence)) {
+    const hasRecurrence = Boolean(
+      data.recurrence || data.items.some((i) => Boolean(i.recurrence))
+    );
+    if (mode === "edit" && (appointment?.recurrence_id || hasRecurrence)) {
       setPendingFormData(data);
       setEditRecurrenceConfirmOpen(true);
       return;

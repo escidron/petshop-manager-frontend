@@ -304,7 +304,7 @@ const ClientePersonalInfo = ({
                       sx={{ height: 20, fontSize: "0.7rem", fontWeight: 700 }}
                     />
                   </Box>
-                  <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.25 }}>
+                  <Typography variant="body2" color="text.secondary" sx={{ display: "block", mt: 0.35, fontSize: "0.85rem" }}>
                     Próximo:{" "}
                     <b>
                       {new Date(refAppt.scheduled_at).toLocaleDateString("pt-BR")} às{" "}
@@ -313,7 +313,28 @@ const ClientePersonalInfo = ({
                         minute: "2-digit",
                       })}
                     </b>
-                    {petNamesLabel ? ` • Pet: ${petNamesLabel}` : ""}
+                    {petNamesLabel && (
+                      <Box
+                        component="span"
+                        sx={{
+                          ml: 0.75,
+                          color: "text.primary",
+                          fontWeight: 600,
+                        }}
+                      >
+                        • Pet:{" "}
+                        <Box
+                          component="span"
+                          sx={{
+                            fontSize: "0.95rem",
+                            fontWeight: 700,
+                            color: "text.primary",
+                          }}
+                        >
+                          {petNamesLabel}
+                        </Box>
+                      </Box>
+                    )}
                   </Typography>
                 </Box>
               </Box>
