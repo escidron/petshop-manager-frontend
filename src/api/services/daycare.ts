@@ -12,6 +12,10 @@ import type {
   DaycareTaskUpdatePayload,
   PetHealthRecord,
   PetHealthRecordCreatePayload,
+  DaycareReportData,
+  DaycarePackage,
+  DaycarePackageCreatePayload,
+  DaycarePackageUpdatePayload,
 } from "../../features/daycare/types";
 
 export const listDaycareModalities = async (
@@ -154,3 +158,54 @@ export const deletePetHealthRecord = async (
 ): Promise<void> => {
   await apiClient.delete(`/api/v1/daycare/health-records/${recordId}`);
 };
+
+export const updateDaycareStayReport = async (
+  stayId: number,
+  reportData: DaycareReportData
+): Promise<DaycareStay> => {
+  const response = await apiClient.patch<DaycareStay>(
+    `/api/v1/daycare/${stayId}/report`,
+    { report_data: reportData }
+  );
+  return response.data;
+};
+
+export const listDaycarePackages = async (
+  onlyActive = false
+): Promise<DaycarePackage[]> => {
+  const response = await apiClient.get<DaycarePackage[]>(
+    "/api/v1/daycare/packages",
+    {
+      params: { only_active: onlyActive },
+    }
+  );
+  return response.data;
+};
+
+export const createDaycarePackage = async (
+  payload: DaycarePackageCreatePayload
+): Promise<DaycarePackage> => {
+  const response = await apiClient.post<DaycarePackage>(
+    "/api/v1/daycare/packages",
+    payload
+  );
+  return response.data;
+};
+
+export const updateDaycarePackage = async (
+  packageId: number,
+  payload: DaycarePackageUpdatePayload
+): Promise<DaycarePackage> => {
+  const response = await apiClient.put<DaycarePackage>(
+    `/api/v1/daycare/packages/${packageId}`,
+    payload
+  );
+  return response.data;
+};
+
+export const deleteDaycarePackage = async (
+  packageId: number
+): Promise<void> => {
+  await apiClient.delete(`/api/v1/daycare/packages/${packageId}`);
+};
+

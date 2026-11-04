@@ -203,13 +203,6 @@ export default function InventoryPage() {
           variant="contained"
           startIcon={<Plus size={18} />}
           onClick={() => handleOpenAdjust()}
-          sx={{
-            minHeight: 42,
-            fontWeight: 700,
-            borderRadius: 2,
-            whiteSpace: "nowrap",
-            px: 2,
-          }}
         >
           Ajuste Avulso
         </Button>

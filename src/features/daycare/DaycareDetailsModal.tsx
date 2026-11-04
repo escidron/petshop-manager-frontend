@@ -13,6 +13,7 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import {
+  AlertCircle,
   Ban,
   Check,
   CheckCircle2,
@@ -23,7 +24,6 @@ import {
   LogIn,
   LogOut,
   Mars,
-  MessageCircle,
   Pencil,
   Pill,
   Play,
@@ -48,6 +48,8 @@ import { useAuth } from "../../hooks/useAuth";
 import theme from "../../theme";
 import ClientePersonalInfo from "../clients/ClientePersonalInfo";
 import { AppointmentStatusChip } from "../appointments/AppointmentStatusChip";
+import DaycareReportSection from "./DaycareReportSection";
+
 import type { Appointment } from "../appointments/types";
 import type { Client } from "../clients/types";
 import type { Pet } from "../pets/types";
@@ -166,7 +168,7 @@ export default function DaycareDetailsModal({
   onEdit,
   onDelete,
   onToggleTask,
-  onSendWhatsApp,
+  onSendWhatsApp: _onSendWhatsApp,
   isLoadingAction,
 }: Props) {
   const navigate = useNavigate();
@@ -571,61 +573,115 @@ export default function DaycareDetailsModal({
                       borderColor: "divider",
                     }}
                   >
-                    <Typography variant="subtitle2" fontWeight={700} mb={0.5}>
+                    <Typography variant="subtitle2" fontWeight={700} mb={1}>
                       Resumo da Finalização
                     </Typography>
-                    {stay.covered_quantity > 0 ? (
-                      <Typography variant="body2" color="success.main" fontWeight={600}>
-                        ✓ {stay.covered_quantity} crédito(s) debitado(s) do pacote.
-                      </Typography>
-                    ) : totalCents > 0 ? (
-                      <Typography variant="body2" color="text.secondary">
-                        Enviado para comanda em aberto no Caixa ({formattedTotal}).
-                      </Typography>
-                    ) : (
-                      <Typography variant="body2" color="text.secondary">
-                        Estadia finalizada.
-                      </Typography>
-                    )}
+
+                    {allStays.map((s) => {
+                      const serviceName =
+                        s.service?.name ||
+                        s.modality?.name ||
+                        (s.stay_type === "daily" ? "Diária Creche" : "Creche");
+                      const petLabel =
+                        allStays.length > 1 && s.pet?.name ? ` — ${s.pet.name}` : "";
+                      const sPriceCents =
+                        s.total_price_cents > 0
+                          ? s.total_price_cents
+                          : s.service?.price_cents
+                          ? (s.service.price_cents || 0) * (s.quantity || 1)
+                          : s.modality?.price_cents
+                          ? (s.modality.price_cents || 0) * (s.quantity || 1)
+                          : 0;
+                      const sFormattedPrice = (sPriceCents / 100).toLocaleString("pt-BR", {
+                        style: "currency",
+                        currency: "BRL",
+                      });
+
+                      if (s.is_package_covered || s.covered_quantity > 0) {
+                        return (
+                          <Box
+                            key={`cov-${s.id}`}
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                              mb: 0.5,
+                              color: "success.main",
+                            }}
+                          >
+                            <Check size={18} strokeWidth={3} />
+                            <Typography variant="body2">
+                              <strong>
+                                {serviceName}
+                                {petLabel}
+                              </strong>{" "}
+                              debitado do pacote.
+                            </Typography>
+                          </Box>
+                        );
+                      }
+
+                      return (
+                        <Box
+                          key={`bil-${s.id}`}
+                          sx={{
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "space-between",
+                            gap: 1,
+                            mb: 0.5,
+                            p: 0.5,
+                            borderRadius: 1,
+                            bgcolor: "action.hover",
+                            color: "warning.main",
+                          }}
+                        >
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              gap: 1,
+                            }}
+                          >
+                            <AlertCircle size={18} />
+                            <Typography variant="body2">
+                              <strong>
+                                {serviceName}
+                                {petLabel}
+                              </strong>{" "}
+                              pendente de pagamento no caixa.
+                            </Typography>
+                          </Box>
+                          <Typography variant="body2" fontWeight={700} color="text.primary">
+                            {sFormattedPrice}
+                          </Typography>
+                        </Box>
+                      );
+                    })}
                   </Box>
 
                   <Box
                     sx={{
                       display: "flex",
-                      justifyContent: "space-between",
+                      justifyContent: isOwnerOrAdmin ? "space-between" : "flex-end",
                       alignItems: "center",
                       flexWrap: "wrap",
                       gap: 1,
                     }}
                   >
-                    <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap" }}>
-                      {isOwnerOrAdmin && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<RotateCcw size={14} />}
-                          disabled={isLoadingAction}
-                          onClick={() => onAction(stay, "reopen")}
-                        >
-                          Reabrir
-                        </Button>
-                      )}
+                    {isOwnerOrAdmin && (
                       <Button
+                        variant="outlined"
                         size="small"
-                        startIcon={<MessageCircle size={15} />}
-                        onClick={() => onSendWhatsApp(stay)}
-                        sx={{
-                          bgcolor: "#16a34a",
-                          color: "white",
-                          "&:hover": { bgcolor: "#15803d" },
-                          fontWeight: 700,
-                        }}
+                        startIcon={<RotateCcw size={14} />}
+                        disabled={isLoadingAction}
+                        onClick={() => onAction(stay, "reopen")}
                       >
-                        Boletim no WhatsApp
+                        Reabrir
                       </Button>
-                    </Box>
+                    )}
 
-                    {!stay.is_package_covered && totalCents > 0 && (
+                    {!stay.is_package_covered && totalCents > 0 ? (
                       <Button
                         size="small"
                         color="primary"
@@ -638,6 +694,15 @@ export default function DaycareDetailsModal({
                       >
                         Ir para o Caixa
                       </Button>
+                    ) : (
+                      <Chip
+                        label="PAGO"
+                        color="success"
+                        size="small"
+                        variant="filled"
+                        icon={<ShoppingBag size={13} />}
+                        sx={{ fontWeight: 900, px: 1 }}
+                      />
                     )}
                   </Box>
                 </Box>
@@ -1130,6 +1195,12 @@ export default function DaycareDetailsModal({
                         </Box>
                       </Box>
                     )}
+
+                    {/* BOLETIM DIÁRIO DA CRECHE (Acompanhamento em Tempo Real) */}
+                    <DaycareReportSection
+                      stay={curStay}
+                      appointment={curPetAppointment}
+                    />
                   </CustomCard>
                 );
               })}

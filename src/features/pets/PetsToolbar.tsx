@@ -37,14 +37,6 @@ export default function PetsToolbar({
       <Button
         startIcon={<Plus size={18} />}
         onClick={onCreate}
-        sx={{
-          width: { xs: "100%", md: "auto" },
-          minHeight: 42,
-          fontWeight: 700,
-          borderRadius: 2,
-          whiteSpace: "nowrap",
-          px: 2,
-        }}
       >
         Novo Pet
       </Button>

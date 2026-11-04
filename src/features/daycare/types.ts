@@ -124,6 +124,7 @@ export interface DaycareStay {
   is_package_covered: boolean;
   recurrence_id?: string | null;
   recurrence_rule?: Record<string, any> | null;
+  report_data?: DaycareReportData | null;
   client: Client;
   pet: Pet;
   modality?: DaycareModality | null;
@@ -197,3 +198,65 @@ export interface PetHealthRecordCreatePayload {
   expires_at?: string | null;
   notes?: string | null;
 }
+
+export type DaycareFeedingStatus = "ate_all" | "ate_half" | "ate_little" | "did_not_eat";
+export type DaycareMedicationStatus = "took_all" | "with_food" | "refused" | "not_needed";
+export type DaycarePeeStatus = "normal" | "little" | "none";
+export type DaycarePoopStatus = "normal" | "loose" | "none";
+
+export interface DaycareReportData {
+  feeding_status?: DaycareFeedingStatus | null;
+  feeding_obs?: string | null;
+  medication_status?: DaycareMedicationStatus | null;
+  medication_obs?: string | null;
+  pee_status?: DaycarePeeStatus | null;
+  poop_status?: DaycarePoopStatus | null;
+  mood_tags?: string[] | null;
+  best_friend?: string | null;
+  caretaker_notes?: string | null;
+  updated_at?: string | null;
+}
+
+export interface DaycarePackage {
+  id: number;
+  name: string;
+  price_cents: number;
+  is_monthly: boolean;
+  frequency?: number | null;
+  days_quantity?: number | null;
+  validity_days?: number | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface DaycarePackageCreatePayload {
+  name: string;
+  price_cents: number;
+  is_monthly: boolean;
+  frequency?: number | null;
+  days_quantity?: number | null;
+  validity_days?: number | null;
+  is_active?: boolean;
+}
+
+export interface DaycarePackageUpdatePayload {
+  name?: string;
+  price_cents?: number;
+  is_monthly?: boolean;
+  frequency?: number | null;
+  days_quantity?: number | null;
+  validity_days?: number | null;
+  is_active?: boolean;
+}
+
+export interface DaycarePackageFormData {
+  name: string;
+  price_cents: number;
+  is_monthly: boolean;
+  frequency?: number | null;
+  days_quantity?: number | null;
+  validity_days?: number | null;
+  is_active: boolean;
+}
+

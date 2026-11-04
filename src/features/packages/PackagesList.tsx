@@ -1,4 +1,4 @@
-import { Box, Typography } from "@mui/material";
+import { Box } from "@mui/material";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { listPackages, deletePackage } from "../../api/services/packages";
 import { Plus, Search } from "lucide-react";
@@ -7,9 +7,9 @@ import PackageForm from "./PackageForm";
 import PackageTable from "./PackageTable";
 import { useToast } from "../../hooks/useToast";
 import type { Package } from "./types";
-import { Button } from "../../components/Button/Button";
 import PackageDeleteModal from "./PackageDeleteModal";
 import CustomTextField from "../../components/Textfield/CustomTextfield";
+import { Button } from "../../components/Button/Button";
 
 export default function PackagesList() {
   const queryClient = useQueryClient();
@@ -71,15 +71,6 @@ export default function PackagesList() {
 
   return (
     <Box>
-      <Box sx={{ mb: 2 }}>
-        <Typography variant="h5" fontWeight="bold">
-          Pacotes e Combos
-        </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Gerencie seus pacotes promocionais de produtos e serviços.
-        </Typography>
-      </Box>
-
       <Box
         mb={2}
         display="flex"
@@ -102,13 +93,6 @@ export default function PackagesList() {
         <Button
           startIcon={<Plus size={18} />}
           onClick={() => setIsFormOpen(true)}
-          sx={{
-            minHeight: 42,
-            fontWeight: 700,
-            borderRadius: 2,
-            whiteSpace: "nowrap",
-            px: 2,
-          }}
         >
           Novo Pacote
         </Button>
