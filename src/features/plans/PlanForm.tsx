@@ -448,11 +448,11 @@ const PlanForm = ({ onSubmit, selectedPackage: initialPackage }: Props) => {
               : "Plano Data Pet Pro (Sem pacote WhatsApp adicional)"}
           </Typography>
           <Typography sx={{ fontSize: "0.88rem", color: "#64748B", mt: 0.4 }}>
-            1º ao 6º mês:{" "}
+            1º mês:{" "}
             <Box component="span" sx={{ fontWeight: 800, color: "#16A34A" }}>
               {selectedPkgData ? `${selectedPkgData.price}/mês` : "R$ 0,00 (Grátis)"}
             </Box>{" "}
-            • A partir do 7º mês:{" "}
+            • A partir do 2º mês:{" "}
             <Box component="span" sx={{ fontWeight: 800, color: "#0F172A" }}>
               R$ {selectedPkgData ? formatCurrency(149.9 + selectedPkgData.priceNum) : "149,90"}/mês
             </Box>
