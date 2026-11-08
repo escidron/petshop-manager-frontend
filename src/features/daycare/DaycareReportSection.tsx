@@ -103,6 +103,7 @@ export default function DaycareReportSection({
   // Inicia colapsado/fechado por padrão
   const [isOpen, setIsOpen] = useState(false);
   const [report, setReport] = useState<DaycareReportData>(() => stay.report_data || {});
+  const [showManualMed, setShowManualMed] = useState(false);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved">("idle");
   const [isDownloadingPDF, setIsDownloadingPDF] = useState(false);
   const saveTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -198,8 +199,13 @@ export default function DaycareReportSection({
     }
   };
 
-  // Identifica se há medicação registrada nas tarefas da estadia
+  // Identifica se há medicação registrada nas tarefas da estadia ou no boletim
   const medTasks = (stay.tasks || []).filter((t) => t.task_type === "medication");
+  const shouldShowMedication =
+    medTasks.length > 0 ||
+    Boolean(report.medication_status) ||
+    Boolean(report.medication_obs && report.medication_obs.trim().length > 0) ||
+    showManualMed;
 
   return (
     <Box
@@ -315,7 +321,7 @@ export default function DaycareReportSection({
       {/* CORPO EXPANSÍVEL DO BOLETIM */}
       <Collapse in={isOpen} timeout="auto" unmountOnExit>
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.75, mt: 1.5, px: 0.5 }}>
-          {/* 1. ALIMENTAÇÃO RÁPIDA (ÍCONES LUCIDE COLORIDOS) */}
+          {/* 1. ALIMENTAÇÃO (ÍCONES LUCIDE COLORIDOS) */}
           <Box
             sx={{
               p: 1.5,
@@ -331,7 +337,7 @@ export default function DaycareReportSection({
               <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
                 <Utensils size={15} color="#ea580c" />
                 <Typography variant="body2" fontWeight={700} fontSize="0.8rem">
-                  Alimentação Rápida
+                  Alimentação
                 </Typography>
               </Box>
               {stay.food_info && (
@@ -386,7 +392,7 @@ export default function DaycareReportSection({
 
             <TextField
               size="small"
-              placeholder="Obs. rápida da alimentação (opcional)..."
+              placeholder="Obs. da alimentação (opcional)..."
               value={report.feeding_obs || ""}
               onChange={(e) => handleTextChange("feeding_obs", e.target.value)}
               fullWidth
@@ -402,92 +408,118 @@ export default function DaycareReportSection({
             />
           </Box>
 
-          {/* 2. MEDICAÇÃO RÁPIDA (ÍCONES LUCIDE COLORIDOS) */}
-          <Box
-            sx={{
-              p: 1.5,
-              borderRadius: 2,
-              bgcolor: "#F8FAFC",
-              border: "1px solid #E2E8F0",
-              display: "flex",
-              flexDirection: "column",
-              gap: 1.25,
-            }}
-          >
-            <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-              <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
-                <Pill size={15} color="#7C3AED" />
-                <Typography variant="body2" fontWeight={700} fontSize="0.8rem">
-                  Medicação
-                </Typography>
-              </Box>
-              {medTasks.length > 0 && (
-                <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                  {medTasks.map((t) => `${t.scheduled_time} - ${t.title}`).join(", ")}
-                </Typography>
-              )}
-            </Box>
-
-            <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1 }}>
-              {MEDICATION_OPTIONS.map((opt) => {
-                const isSelected = report.medication_status === opt.value;
-                const IconComponent = opt.icon;
-                return (
-                  <Box
-                    key={opt.value}
-                    onClick={() => handleMedicationClick(opt.value)}
-                    sx={{
-                      p: 1,
-                      borderRadius: 1.5,
-                      border: "1.5px solid",
-                      borderColor: isSelected ? opt.color : "#E2E8F0",
-                      bgcolor: isSelected ? alpha(opt.color, 0.1) : "white",
-                      cursor: "pointer",
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      gap: 0.5,
-                      transition: "all 0.15s ease",
-                      "&:hover": {
-                        borderColor: opt.color,
-                        bgcolor: alpha(opt.color, 0.05),
-                      },
-                    }}
-                  >
-                    <IconComponent size={18} color={opt.color} />
-                    <Typography
-                      variant="caption"
-                      fontSize="0.72rem"
-                      fontWeight={isSelected ? 700 : 500}
-                      color={isSelected ? opt.color : "text.secondary"}
-                      textAlign="center"
-                      lineHeight={1.1}
-                    >
-                      {opt.label}
-                    </Typography>
-                  </Box>
-                );
-              })}
-            </Box>
-
-            <TextField
-              size="small"
-              placeholder="Obs. da medicação (opcional)..."
-              value={report.medication_obs || ""}
-              onChange={(e) => handleTextChange("medication_obs", e.target.value)}
-              fullWidth
-              slotProps={{
-                input: {
-                  sx: {
-                    fontSize: "0.8rem",
-                    bgcolor: "white",
-                    borderRadius: 1.5,
-                  },
-                },
+          {/* 2. MEDICAÇÃO (EXIBIDA QUANDO HÁ MEDICAÇÃO OU SOLICITADA) */}
+          {shouldShowMedication ? (
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 2,
+                bgcolor: "#F8FAFC",
+                border: "1px solid #E2E8F0",
+                display: "flex",
+                flexDirection: "column",
+                gap: 1.25,
               }}
-            />
-          </Box>
+            >
+              <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                  <Pill size={15} color="#7C3AED" />
+                  <Typography variant="body2" fontWeight={700} fontSize="0.8rem">
+                    Medicação
+                  </Typography>
+                </Box>
+                {medTasks.length > 0 && (
+                  <Typography variant="caption" color="text.secondary" fontWeight={600}>
+                    {medTasks
+                      .map((t) => `Horário: ${t.scheduled_time} • Remédio: ${t.title}`)
+                      .join(" | ")}
+                  </Typography>
+                )}
+              </Box>
+
+              <Box sx={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 1 }}>
+                {MEDICATION_OPTIONS.map((opt) => {
+                  const isSelected = report.medication_status === opt.value;
+                  const IconComponent = opt.icon;
+                  return (
+                    <Box
+                      key={opt.value}
+                      onClick={() => handleMedicationClick(opt.value)}
+                      sx={{
+                        p: 1,
+                        borderRadius: 1.5,
+                        border: "1.5px solid",
+                        borderColor: isSelected ? opt.color : "#E2E8F0",
+                        bgcolor: isSelected ? alpha(opt.color, 0.1) : "white",
+                        cursor: "pointer",
+                        display: "flex",
+                        flexDirection: "column",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        gap: 0.5,
+                        transition: "all 0.15s ease",
+                        "&:hover": {
+                          borderColor: opt.color,
+                          bgcolor: alpha(opt.color, 0.05),
+                        },
+                      }}
+                    >
+                      <IconComponent size={18} color={opt.color} />
+                      <Typography
+                        variant="caption"
+                        fontSize="0.72rem"
+                        fontWeight={isSelected ? 700 : 500}
+                        color={isSelected ? opt.color : "text.secondary"}
+                        textAlign="center"
+                        lineHeight={1.1}
+                      >
+                        {opt.label}
+                      </Typography>
+                    </Box>
+                  );
+                })}
+              </Box>
+
+              <TextField
+                size="small"
+                placeholder="Obs. da medicação (opcional)..."
+                value={report.medication_obs || ""}
+                onChange={(e) => handleTextChange("medication_obs", e.target.value)}
+                fullWidth
+                slotProps={{
+                  input: {
+                    sx: {
+                      fontSize: "0.8rem",
+                      bgcolor: "white",
+                      borderRadius: 1.5,
+                    },
+                  },
+                }}
+              />
+            </Box>
+          ) : (
+            <Box sx={{ display: "flex", justifyContent: "flex-start" }}>
+              <Chip
+                icon={<Pill size={13} color="#7C3AED" />}
+                label="+ Registrar medicação no boletim"
+                size="small"
+                variant="outlined"
+                onClick={() => setShowManualMed(true)}
+                sx={{
+                  fontSize: "0.73rem",
+                  fontWeight: 600,
+                  color: "#6D28D9",
+                  borderColor: "#DDD6FE",
+                  bgcolor: "#F5F3FF",
+                  cursor: "pointer",
+                  "&:hover": {
+                    bgcolor: "#EDE9FE",
+                    borderColor: "#C4B5FD",
+                  },
+                }}
+              />
+            </Box>
+          )}
 
           {/* 3. NECESSIDADES FISIOLÓGICAS (XIXI & COCÔ SEM EMOJIS) */}
           <Box
@@ -629,11 +661,11 @@ export default function DaycareReportSection({
             </Box>
           </Box>
 
-          {/* 5. RECADINHO DOS TIOS DA CRECHE */}
+          {/* 5. OBSERVAÇÕES */}
           <TextField
             size="small"
-            label="Recadinho dos Tios da Creche"
-            placeholder="Como foi o dia do pet, brincadeiras, carinhos, recado para o tutor..."
+            label="Observações"
+            placeholder="Observações sobre o dia do pet (opcional)..."
             multiline
             rows={2}
             value={report.caretaker_notes || ""}

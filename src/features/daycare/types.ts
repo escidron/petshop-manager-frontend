@@ -106,6 +106,7 @@ export interface DaycareStay {
   client_id: number;
   pet_id: number;
   modality_id?: number | null;
+  package_id?: number | null;
   service_id?: number | null;
   stay_type: DaycareStayType;
   quantity: number;
@@ -128,6 +129,7 @@ export interface DaycareStay {
   client: Client;
   pet: Pet;
   modality?: DaycareModality | null;
+  package?: DaycarePackage | null;
   service?: DaycareServiceSummary | null;
   tasks: DaycareTask[];
   created_at: string;
@@ -152,6 +154,7 @@ export interface DaycareStayCreatePayload {
   client_id: number;
   pet_id: number;
   modality_id?: number | null;
+  package_id?: number | null;
   service_id?: number | null;
   stay_type: DaycareStayType;
   quantity: number;
@@ -167,6 +170,7 @@ export interface DaycareStayCreatePayload {
 
 export interface DaycareStayUpdatePayload {
   modality_id?: number | null;
+  package_id?: number | null;
   service_id?: number | null;
   stay_type?: DaycareStayType;
   quantity?: number;

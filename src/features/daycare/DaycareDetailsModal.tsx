@@ -579,6 +579,7 @@ export default function DaycareDetailsModal({
 
                     {allStays.map((s) => {
                       const serviceName =
+                        s.package?.name ||
                         s.service?.name ||
                         s.modality?.name ||
                         (s.stay_type === "daily" ? "Diária Creche" : "Creche");
@@ -945,7 +946,51 @@ export default function DaycareDetailsModal({
 
                     <Divider sx={{ my: 1.25, borderColor: "#F1F5F9" }} />
 
-                    {/* SERVIÇO / MODALIDADE */}
+                    {/* SERVIÇO / MODALIDADE / PACOTE */}
+                    {curStay.package && (
+                      <Box sx={{ mb: 0.5 }}>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            display: "block",
+                            fontWeight: 700,
+                            color: "text.secondary",
+                            textTransform: "uppercase",
+                            letterSpacing: "0.5px",
+                            fontSize: "0.7rem",
+                            mb: 0.5,
+                          }}
+                        >
+                          Pacote Contratado
+                        </Typography>
+                        <Box
+                          sx={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            py: 0.25,
+                          }}
+                        >
+                          <Box sx={{ display: "flex", alignItems: "center", gap: 0.75 }}>
+                            <Typography variant="body2" fontWeight={600}>
+                              {curStay.package.name}
+                            </Typography>
+                            <Chip
+                              label="pacote"
+                              size="small"
+                              color="success"
+                              variant="outlined"
+                              icon={<ShoppingBag size={10} />}
+                              sx={{ height: 18, fontSize: 10, px: 0.5 }}
+                            />
+                          </Box>
+                          <Typography variant="body2" fontWeight={700} color="success.main">
+                            Incluso no Pacote
+                          </Typography>
+                        </Box>
+                      </Box>
+                    )}
+
                     {curStay.modality && (
                       <Box sx={{ mb: 0.5 }}>
                         <Typography

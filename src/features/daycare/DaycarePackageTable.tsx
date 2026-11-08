@@ -11,7 +11,7 @@ import TablePagination from "@mui/material/TablePagination";
 import TableRow from "@mui/material/TableRow";
 import Paper from "@mui/material/Paper";
 import IconButton from "@mui/material/IconButton";
-import { Typography, Skeleton, Chip, useMediaQuery } from "@mui/material";
+import { Typography, Skeleton, useMediaQuery } from "@mui/material";
 import {
   ChevronLeft,
   ChevronRight,
@@ -19,8 +19,6 @@ import {
   ChevronsRight,
   Pencil,
   Trash2,
-  Calendar,
-  Layers,
 } from "lucide-react";
 import type { DaycarePackage } from "./types";
 import { formatBRLFromCents } from "../../utils/masks";
@@ -187,9 +185,7 @@ export default function DaycarePackageTable({
                     {pkg.name}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" sx={{ display: "block", mt: 0.2 }}>
-                    {pkg.is_monthly
-                      ? `${pkg.frequency || 1}x na semana`
-                      : `${pkg.days_quantity || 1} diária(s)${pkg.validity_days ? ` • val. ${pkg.validity_days} dias` : ""}`}
+                    {pkg.frequency || 1}x na semana
                   </Typography>
                 </Box>
 
@@ -205,42 +201,30 @@ export default function DaycarePackageTable({
                   p: 1,
                   display: "flex",
                   alignItems: "center",
-                  justifyContent: "space-between",
-                  flexWrap: "wrap",
-                  gap: 0.75,
+                  justifyContent: "flex-end",
+                  gap: 0.5,
                 }}
               >
-                <Chip
+                <IconButton
                   size="small"
-                  icon={pkg.is_monthly ? <Calendar size={13} /> : <Layers size={13} />}
-                  label={pkg.is_monthly ? "Mensalidade" : "Cartela Avulsa"}
-                  variant="outlined"
-                  color={pkg.is_monthly ? "primary" : "default"}
-                  sx={{ height: 22, fontSize: "0.72rem", fontWeight: 700 }}
-                />
-
-                <Box sx={{ display: "flex", gap: 0.5 }}>
-                  <IconButton
-                    size="small"
-                    sx={{ color: "primary.main" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onEdit?.(pkg);
-                    }}
-                  >
-                    <Pencil size={16} />
-                  </IconButton>
-                  <IconButton
-                    size="small"
-                    sx={{ color: "error.main" }}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDelete?.(pkg);
-                    }}
-                  >
-                    <Trash2 size={16} />
-                  </IconButton>
-                </Box>
+                  sx={{ color: "primary.main" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit?.(pkg);
+                  }}
+                >
+                  <Pencil size={16} />
+                </IconButton>
+                <IconButton
+                  size="small"
+                  sx={{ color: "error.main" }}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete?.(pkg);
+                  }}
+                >
+                  <Trash2 size={16} />
+                </IconButton>
               </Box>
             </Paper>
           ))
@@ -293,20 +277,7 @@ export default function DaycarePackageTable({
                 fontSize: "0.875rem",
               }}
             >
-              Tipo
-            </TableCell>
-
-            <TableCell
-              align="left"
-              sx={{
-                backgroundColor: "secondary.main",
-                fontWeight: 600,
-                color: "text.primary",
-                py: 1.25,
-                fontSize: "0.875rem",
-              }}
-            >
-              Frequência / Diárias
+              Frequência Semanal
             </TableCell>
 
             <TableCell
@@ -327,7 +298,6 @@ export default function DaycarePackageTable({
           {isLoading ? (
             Array.from({ length: 5 }).map((_, i) => (
               <TableRow key={`skeleton-${i}`}>
-                <TableCell><Skeleton variant="text" /></TableCell>
                 <TableCell><Skeleton variant="text" /></TableCell>
                 <TableCell><Skeleton variant="text" /></TableCell>
                 <TableCell><Skeleton variant="text" /></TableCell>
@@ -360,20 +330,8 @@ export default function DaycarePackageTable({
                   R$ {formatBRLFromCents(row.price_cents)}
                 </TableCell>
                 <TableCell align="left">
-                  <Chip
-                    size="small"
-                    icon={row.is_monthly ? <Calendar size={13} /> : <Layers size={13} />}
-                    label={row.is_monthly ? "Mensalidade" : "Cartela Avulsa"}
-                    variant="outlined"
-                    color={row.is_monthly ? "primary" : "default"}
-                    sx={{ fontWeight: 700, fontSize: "0.75rem", height: 24 }}
-                  />
-                </TableCell>
-                <TableCell align="left">
                   <Typography variant="body2" color="text.secondary">
-                    {row.is_monthly
-                      ? `${row.frequency || 1}x na semana`
-                      : `${row.days_quantity || 1} diária(s)${row.validity_days ? ` • val. ${row.validity_days} dias` : ""}`}
+                    {row.frequency || 1}x na semana
                   </Typography>
                 </TableCell>
                 <TableCell align="right">
@@ -416,12 +374,12 @@ export default function DaycarePackageTable({
           )}
           {emptyRows > 0 && (
             <TableRow style={{ height: 53 * emptyRows }}>
-              <TableCell colSpan={5} />
+              <TableCell colSpan={4} />
             </TableRow>
           )}
           {!isLoading && packages.length === 0 && (
             <TableRow>
-              <TableCell colSpan={5} align="center" sx={{ py: 6 }}>
+              <TableCell colSpan={4} align="center" sx={{ py: 6 }}>
                 <Typography color="text.disabled" variant="body1">
                   Nenhum pacote cadastrado ainda.
                 </Typography>
@@ -433,7 +391,7 @@ export default function DaycarePackageTable({
           <TableRow>
             <TablePagination
               rowsPerPageOptions={[5, 10, 25, { label: "Tudo", value: -1 }]}
-              colSpan={5}
+              colSpan={4}
               count={packages.length}
               rowsPerPage={rowsPerPage}
               page={page}

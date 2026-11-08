@@ -70,16 +70,22 @@ export default function DaycarePackageFormModal({
 
   const [rawPrice, setRawPrice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errors, setErrors] = useState<{
+    name?: string;
+    price_cents?: string;
+    frequency?: string;
+  }>({});
 
   useEffect(() => {
+    setErrors({});
     if (pkg) {
       setFormData({
         name: pkg.name || "",
         price_cents: pkg.price_cents || 0,
-        is_monthly: pkg.is_monthly ?? true,
+        is_monthly: true,
         frequency: pkg.frequency ?? null,
-        days_quantity: pkg.days_quantity ?? null,
-        validity_days: pkg.validity_days ?? null,
+        days_quantity: null,
+        validity_days: null,
         is_active: pkg.is_active ?? true,
       });
       setRawPrice(pkg.price_cents ? formatBRLFromCents(pkg.price_cents) : "");
@@ -107,24 +113,31 @@ export default function DaycarePackageFormModal({
     const cents = parseInt(rawDigits, 10);
     setRawPrice(formatBRLFromCents(cents));
     setFormData((prev) => ({ ...prev, price_cents: cents }));
+    if (cents > 0 && errors.price_cents) {
+      setErrors((prev) => ({ ...prev, price_cents: undefined }));
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    const newErrors: {
+      name?: string;
+      price_cents?: string;
+      frequency?: string;
+    } = {};
+
     if (!formData.name.trim()) {
-      toast.error("Informe o nome do pacote.");
-      return;
+      newErrors.name = "O nome do pacote é obrigatório";
     }
     if (formData.price_cents <= 0) {
-      toast.error("Informe um preço válido para o pacote.");
-      return;
+      newErrors.price_cents = "O preço deve ser maior que zero";
     }
-    if (formData.is_monthly && !formData.frequency) {
-      toast.error("Selecione a frequência semanal.");
-      return;
+    if (!formData.frequency) {
+      newErrors.frequency = "Selecione a frequência semanal";
     }
-    if (!formData.is_monthly && (!formData.days_quantity || formData.days_quantity <= 0)) {
-      toast.error("Informe a quantidade de diárias do pacote.");
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
       return;
     }
 
@@ -133,10 +146,10 @@ export default function DaycarePackageFormModal({
       const payload = {
         name: formData.name.trim(),
         price_cents: formData.price_cents,
-        is_monthly: formData.is_monthly,
-        frequency: formData.is_monthly ? formData.frequency : null,
-        days_quantity: !formData.is_monthly ? formData.days_quantity : null,
-        validity_days: !formData.is_monthly ? formData.validity_days : null,
+        is_monthly: true,
+        frequency: formData.frequency,
+        days_quantity: null,
+        validity_days: null,
         is_active: formData.is_active,
       };
 
@@ -210,20 +223,21 @@ export default function DaycarePackageFormModal({
             <Grid size={{ xs: 12, sm: 8 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}>
-                  Nome do Pacote *
+                  Nome do Pacote
                 </FormLabel>
                 <CustomTextField
-                  placeholder={
-                    formData.is_monthly
-                      ? "ex: Pacote Mensal 5x"
-                      : "ex: Cartela 10 Diárias"
-                  }
+                  placeholder="ex: Pacote Mensal 3x"
                   value={formData.name}
-                  onChange={(e) =>
-                    setFormData((prev) => ({ ...prev, name: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setFormData((prev) => ({ ...prev, name: val }));
+                    if (val.trim() && errors.name) {
+                      setErrors((prev) => ({ ...prev, name: undefined }));
+                    }
+                  }}
+                  error={!!errors.name}
+                  helperText={errors.name}
                   fullWidth
-                  required
                 />
               </FormControl>
             </Grid>
@@ -231,12 +245,14 @@ export default function DaycarePackageFormModal({
             <Grid size={{ xs: 12, sm: 4 }}>
               <FormControl fullWidth>
                 <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}>
-                  Preço do Pacote *
+                  Preço do Pacote
                 </FormLabel>
                 <TextField
                   value={rawPrice}
                   size="small"
                   placeholder="0,00"
+                  error={!!errors.price_cents}
+                  helperText={errors.price_cents}
                   slotProps={{
                     input: {
                       startAdornment: (
@@ -256,126 +272,53 @@ export default function DaycarePackageFormModal({
                   }}
                   onChange={handlePriceChange}
                   fullWidth
-                  required
                 />
               </FormControl>
             </Grid>
 
-            {/* Linha 2: Frequência (se mensal) OU Diárias + Validade (se avulso) */}
-            {formData.is_monthly ? (
-              <Grid size={{ xs: 12, sm: 12 }}>
-                <FormControl fullWidth>
-                  <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}>
-                    Frequência Semanal *
-                  </FormLabel>
-                  <TextField
-                    select
-                    size="small"
-                    value={formData.frequency ?? ""}
-                    slotProps={{
-                      select: {
-                        displayEmpty: true,
-                      },
-                    }}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        frequency: e.target.value ? Number(e.target.value) : null,
-                      }))
+            {/* Linha 2: Frequência Semanal */}
+            <Grid size={{ xs: 12, sm: 12 }}>
+              <FormControl fullWidth>
+                <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}>
+                  Frequência Semanal
+                </FormLabel>
+                <TextField
+                  select
+                  size="small"
+                  value={formData.frequency ?? ""}
+                  error={!!errors.frequency}
+                  helperText={errors.frequency}
+                  slotProps={{
+                    select: {
+                      displayEmpty: true,
+                    },
+                  }}
+                  onChange={(e) => {
+                    const val = e.target.value ? Number(e.target.value) : null;
+                    setFormData((prev) => ({
+                      ...prev,
+                      frequency: val,
+                    }));
+                    if (val && errors.frequency) {
+                      setErrors((prev) => ({ ...prev, frequency: undefined }));
                     }
-                    fullWidth
-                  >
-                    <MenuItem value="" disabled sx={{ color: "text.disabled" }}>
-                      Selecione a frequência...
+                  }}
+                  fullWidth
+                >
+                  <MenuItem value="" disabled sx={{ color: "text.disabled" }}>
+                    Selecione a frequência...
+                  </MenuItem>
+                  {FREQUENCY_OPTIONS.map((opt) => (
+                    <MenuItem key={opt.value} value={opt.value}>
+                      {opt.label}
                     </MenuItem>
-                    {FREQUENCY_OPTIONS.map((opt) => (
-                      <MenuItem key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </MenuItem>
-                    ))}
-                  </TextField>
-                </FormControl>
-              </Grid>
-            ) : (
-              <>
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}>
-                      Quantidade de Diárias *
-                    </FormLabel>
-                    <TextField
-                      type="number"
-                      size="small"
-                      placeholder="ex: 10"
-                      value={formData.days_quantity ?? ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          days_quantity: e.target.value
-                            ? parseInt(e.target.value, 10)
-                            : null,
-                        }))
-                      }
-                      fullWidth
-                      slotProps={{
-                        htmlInput: { min: 1 },
-                      }}
-                    />
-                  </FormControl>
-                </Grid>
-
-                <Grid size={{ xs: 12, sm: 6 }}>
-                  <FormControl fullWidth>
-                    <FormLabel sx={{ color: "text.primary", mb: 0.5, fontWeight: 500 }}>
-                      Validade (dias)
-                    </FormLabel>
-                    <TextField
-                      type="number"
-                      size="small"
-                      placeholder="ex: 30"
-                      helperText="Deixe vazio para validade infinita"
-                      value={formData.validity_days ?? ""}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          validity_days: e.target.value
-                            ? parseInt(e.target.value, 10)
-                            : null,
-                        }))
-                      }
-                      fullWidth
-                    />
-                  </FormControl>
-                </Grid>
-              </>
-            )}
-
-            {/* Linha 3: Switches com layout espaçado e claro */}
-            <Grid size={{ xs: 12, sm: 6 }}>
-              <FormControlLabel
-                control={
-                  <Switch
-                    checked={formData.is_monthly}
-                    onChange={(e) =>
-                      setFormData((prev) => ({
-                        ...prev,
-                        is_monthly: e.target.checked,
-                        frequency: null,
-                        days_quantity: null,
-                        validity_days: null,
-                      }))
-                    }
-                  />
-                }
-                label={
-                  <Typography variant="body2" fontWeight={500} color="text.primary">
-                    Pacote Mensal Recorrente
-                  </Typography>
-                }
-              />
+                  ))}
+                </TextField>
+              </FormControl>
             </Grid>
 
-            <Grid size={{ xs: 12, sm: 6 }}>
+            {/* Linha 3: Switch Pacote Ativo */}
+            <Grid size={{ xs: 12, sm: 12 }}>
               <FormControlLabel
                 control={
                   <Switch
