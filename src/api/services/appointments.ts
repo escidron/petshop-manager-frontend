@@ -222,21 +222,6 @@ export const buildClientRecurrenceSeries = (
     const frequency: "weekly" | "biweekly" | "monthly" =
       freqRaw === "monthly" ? "monthly" : freqRaw === "biweekly" ? "biweekly" : "weekly";
 
-    const petIds = Array.from(
-      new Set(
-        lastAppt.items
-          ?.map((it) => it.pet?.id)
-          .filter((id): id is number => typeof id === "number") || []
-      )
-    );
-    const petNames = Array.from(
-      new Set(
-        lastAppt.items
-          ?.map((it) => it.pet?.name)
-          .filter((name): name is string => Boolean(name)) || []
-      )
-    );
-
     const upcoming = list.filter(
       (a) =>
         (a.status === "pending" || a.status === "confirmed" || a.status === "in_progress") &&
@@ -245,16 +230,34 @@ export const buildClientRecurrenceSeries = (
 
     if (upcoming.length > 0) {
       const nextAppt = upcoming[0];
+      const activeItems = (nextAppt.items || []).filter((it) => !it.pet?.is_deceased);
 
-      result.push({
-        recurrence_id: recId,
-        frequency,
-        representative_appointment: nextAppt,
-        next_appointment: nextAppt,
-        last_appointment: lastAppt,
-        pet_ids: petIds,
-        pet_names: petNames,
-      });
+      const petIds = Array.from(
+        new Set(
+          activeItems
+            .map((it) => it.pet?.id)
+            .filter((id): id is number => typeof id === "number")
+        )
+      );
+      const petNames = Array.from(
+        new Set(
+          activeItems
+            .map((it) => it.pet?.name)
+            .filter((name): name is string => Boolean(name))
+        )
+      );
+
+      if (petIds.length > 0) {
+        result.push({
+          recurrence_id: recId,
+          frequency,
+          representative_appointment: nextAppt,
+          next_appointment: nextAppt,
+          last_appointment: lastAppt,
+          pet_ids: petIds,
+          pet_names: petNames,
+        });
+      }
     }
   }
 

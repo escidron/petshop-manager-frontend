@@ -168,6 +168,7 @@ const AppointmentListItem = ({ appointment, openDetails }: Props) => {
                   }}
                 >
                   {item.pet.name}
+                  {item.pet.is_deceased ? " 🖤" : ""}
                 </Typography>
                 {index < appointment.items.length - 1 && (
                   <Typography variant="body2" color="text.disabled" sx={{ fontSize: "0.75rem" }}>

@@ -1598,7 +1598,7 @@ const AppointmentDetailsModal = ({
                     alignItems: "center",
                   }}
                 >
-                  <Box sx={{ display: "flex", alignItems: "center" }}>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, flexWrap: "wrap" }}>
                     <Typography
                       variant="h6"
                       fontWeight={500}
@@ -1609,16 +1609,28 @@ const AppointmentDetailsModal = ({
                     </Typography>
 
                     {item.pet.breed && (
-                      <>
-                        ,
-                        <Typography
-                          variant="body2"
-                          color={theme.palette.text.disabled}
-                          sx={{ mt: 1, ml: 0.5 }}
-                        >
-                          {item.pet.breed}
-                        </Typography>
-                      </>
+                      <Typography
+                        variant="body2"
+                        color={theme.palette.text.disabled}
+                        sx={{ mt: 0.5 }}
+                      >
+                        • {item.pet.breed}
+                      </Typography>
+                    )}
+
+                    {item.pet.is_deceased && (
+                      <Chip
+                        label="Óbito 🖤"
+                        size="small"
+                        sx={{
+                          bgcolor: "rgba(0, 0, 0, 0.65)",
+                          color: "#fff",
+                          fontWeight: 600,
+                          height: 20,
+                          fontSize: "0.7rem",
+                          px: 0.5,
+                        }}
+                      />
                     )}
                   </Box>
                   {item.pet.gender &&

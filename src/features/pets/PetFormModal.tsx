@@ -92,6 +92,11 @@ export default function PetFormModal({
 
     await queryClient.invalidateQueries({ queryKey: PETS_QUERY_KEY });
     await queryClient.invalidateQueries({ queryKey: CLIENTS_QUERY_KEY });
+    await queryClient.invalidateQueries({ queryKey: ["appointments"] });
+    await queryClient.invalidateQueries({ queryKey: ["highlighted-days"] });
+    await queryClient.invalidateQueries({ queryKey: ["daycare-stays"] });
+    await queryClient.invalidateQueries({ queryKey: ["daycare-highlighted-days"] });
+    await queryClient.invalidateQueries({ queryKey: ["waiting-list"] });
     await queryClient.invalidateQueries({ queryKey: ["dashboard-startup"] });
     await queryClient.invalidateQueries({ queryKey: ["pos-startup"] });
     await queryClient.invalidateQueries({ queryKey: ["pos-client"] });
