@@ -276,7 +276,7 @@ const ClientePersonalInfo = ({
                 gap: 1.5,
               }}
             >
-              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5 }}>
+              <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1.5, minWidth: 0, flex: 1 }}>
                 <Box
                   sx={{
                     p: 1,
@@ -292,7 +292,7 @@ const ClientePersonalInfo = ({
                 >
                   <Repeat size={20} />
                 </Box>
-                <Box>
+                <Box sx={{ minWidth: 0, flex: 1 }}>
                   <Box sx={{ display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
                     <Typography variant="subtitle2" fontWeight={700} color="text.primary">
                       Recorrência Ativa
@@ -313,29 +313,29 @@ const ClientePersonalInfo = ({
                         minute: "2-digit",
                       })}
                     </b>
-                    {petNamesLabel && (
+                  </Typography>
+                  {petNamesLabel && (
+                    <Typography
+                      variant="body2"
+                      sx={{
+                        display: "block",
+                        mt: 0.2,
+                        fontSize: "0.85rem",
+                        color: "text.secondary",
+                      }}
+                    >
+                      Pet:{" "}
                       <Box
                         component="span"
                         sx={{
-                          ml: 0.75,
+                          fontWeight: 700,
                           color: "text.primary",
-                          fontWeight: 600,
                         }}
                       >
-                        • Pet:{" "}
-                        <Box
-                          component="span"
-                          sx={{
-                            fontSize: "0.95rem",
-                            fontWeight: 700,
-                            color: "text.primary",
-                          }}
-                        >
-                          {petNamesLabel}
-                        </Box>
+                        {petNamesLabel}
                       </Box>
-                    )}
-                  </Typography>
+                    </Typography>
+                  )}
                 </Box>
               </Box>
 
@@ -347,12 +347,15 @@ const ClientePersonalInfo = ({
                   startIcon={<Pencil size={14} />}
                   onClick={() => onManageRecurrence(series.representative_appointment)}
                   sx={{
-                    alignSelf: { xs: "stretch", sm: "auto" },
+                    alignSelf: { xs: "stretch", sm: "center" },
                     borderRadius: 2,
                     textTransform: "none",
                     fontWeight: 600,
                     fontSize: "0.8rem",
-                    px: 2,
+                    px: 1.75,
+                    py: 0.75,
+                    whiteSpace: "nowrap",
+                    flexShrink: 0,
                   }}
                 >
                   Gerenciar Recorrência
