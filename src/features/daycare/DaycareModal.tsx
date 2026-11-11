@@ -439,7 +439,13 @@ export default function DaycareModal({
   const handleChangePackage = (pkg: DaycarePackage | null) => {
     setSelectedPackageId(pkg ? pkg.id : null);
     if (pkg?.is_monthly && pkg.frequency && selectedWeekdays.length > pkg.frequency) {
-      setSelectedWeekdays((prev) => prev.slice(0, pkg.frequency!));
+      setSelectedWeekdays((prev) => {
+        const next = prev.slice(0, pkg.frequency!);
+        if (next.length > 0) {
+          setScheduledDate((cur) => snapDateToNextAllowedWeekday(cur, next));
+        }
+        return next;
+      });
     }
   };
 
@@ -447,11 +453,29 @@ export default function DaycareModal({
     baseDate: Dayjs | null,
     allowedDays: number[]
   ): Dayjs => {
-    const start = baseDate?.isValid() ? baseDate : dayjs();
+    const start = (baseDate?.isValid() ? baseDate : dayjs()).startOf("day");
     if (allowedDays.length === 0) return start;
-    if (allowedDays.includes(start.day())) return start;
-    for (let i = 1; i <= 7; i++) {
-      const candidate = start.add(i, "day");
+
+    const minDate = (initialDate ? dayjs(initialDate) : dayjs()).startOf("day");
+    const offsetFromMonday = (start.day() + 6) % 7;
+    const weekMonday = start.subtract(offsetFromMonday, "day");
+
+    // 1. Procura o primeiro dia selecionado dentro da própria semana (Seg -> Dom),
+    // garantindo que ao remarcar um dia anterior da mesma semana (ex: Seg) a data volte para ele.
+    for (let i = 0; i < 7; i++) {
+      const candidate = weekMonday.add(i, "day");
+      if (
+        !candidate.isBefore(minDate, "day") &&
+        allowedDays.includes(candidate.day())
+      ) {
+        return candidate;
+      }
+    }
+
+    // 2. Caso nenhum dia selecionado na semana atual esteja disponível a partir de minDate,
+    // avança a partir de minDate até o próximo dia permitido.
+    for (let i = 0; i <= 7; i++) {
+      const candidate = minDate.add(i, "day");
       if (allowedDays.includes(candidate.day())) {
         return candidate;
       }
