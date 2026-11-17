@@ -17,6 +17,7 @@ import SalesSummaryReport from "../features/reports/SalesSummaryReport";
 import FinancialReportPage from "./FinancialReportPage";
 import CommissionReportPage from "./CommissionReportPage";
 import InventoryReportPage from "./InventoryReportPage";
+import ClientsPetsReport from "../features/reports/ClientsPetsReport";
 
 dayjs.locale("pt-br");
 
@@ -122,198 +123,201 @@ export default function ReportsPage() {
           <Tab label="Extrato" value="extrato" />
           <Tab label="Comissões" value="comissoes" />
           <Tab label="Estoque" value="estoque" />
+          <Tab label="Clientes & Pets" value="clientes-pets" />
         </Tabs>
       </Box>
 
       {/* Barra de Filtros de Data */}
-      <Paper
-        elevation={0}
-        sx={{
-          p: { xs: 1.5, sm: 2 },
-          mb: 3,
-          borderRadius: 2.5,
-          border: "1px solid",
-          borderColor: "divider",
-          bgcolor: "#FFFFFF",
-        }}
-      >
-        <Box
+      {activeTab !== "clientes-pets" && (
+        <Paper
+          elevation={0}
           sx={{
-            display: "flex",
-            flexDirection: { xs: "column", lg: "row" },
-            gap: { xs: 1.75, lg: 3 },
-            alignItems: { xs: "stretch", lg: "center" },
-            justifyContent: "space-between",
+            p: { xs: 1.5, sm: 2 },
+            mb: 3,
+            borderRadius: 2.5,
+            border: "1px solid",
+            borderColor: "divider",
+            bgcolor: "#FFFFFF",
           }}
         >
-          {/* Quick Month Buttons Row (Inicia rolado para a direita para mostrar o mês atual) */}
           <Box
-            ref={monthsContainerRef}
             sx={{
               display: "flex",
-              gap: 1,
-              overflowX: "auto",
-              pb: { xs: 0.5, lg: 0 },
-              scrollbarWidth: "none",
-              "&::-webkit-scrollbar": { display: "none" },
-              alignItems: "center",
+              flexDirection: { xs: "column", lg: "row" },
+              gap: { xs: 1.75, lg: 3 },
+              alignItems: { xs: "stretch", lg: "center" },
+              justifyContent: "space-between",
             }}
           >
-            {months.map((m) => {
-              const isActive =
-                startDate &&
-                endDate &&
-                startDate.month() === m.month &&
-                startDate.year() === m.year &&
-                endDate.month() === m.month &&
-                endDate.year() === m.year &&
-                startDate.date() === 1;
-              return (
-                <Button
-                  key={m.label}
-                  variant={isActive ? "contained" : "outlined"}
-                  color={isActive ? "success" : "inherit"}
-                  size="small"
-                  onClick={() => handleSelectMonth(m)}
-                  sx={{
-                    minWidth: 54,
-                    height: 32,
-                    fontWeight: 700,
-                    borderRadius: 2,
-                    textTransform: "none",
-                    flexShrink: 0,
-                    fontSize: "0.8rem",
-                  }}
-                >
-                  {m.label}
-                </Button>
-              );
-            })}
-          </Box>
-
-          {/* Seleção de Período Personalizado com Calendário Padronizado */}
-          <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+            {/* Quick Month Buttons Row (Inicia rolado para a direita para mostrar o mês atual) */}
             <Box
+              ref={monthsContainerRef}
               sx={{
-                display: "grid",
-                gridTemplateColumns: { xs: "1fr 1fr", sm: "160px 160px" },
-                gap: 1.25,
+                display: "flex",
+                gap: 1,
+                overflowX: "auto",
+                pb: { xs: 0.5, lg: 0 },
+                scrollbarWidth: "none",
+                "&::-webkit-scrollbar": { display: "none" },
                 alignItems: "center",
-                width: { xs: "100%", lg: "auto" },
               }}
             >
-              <DatePicker
-                label="De"
-                format="DD/MM/YYYY"
-                value={startDate}
-                onChange={(val) => setStartDate(val)}
-                dayOfWeekFormatter={(day: Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": {
-                        color: "#3d4048 !important",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      },
-                      "& .MuiPickersDay-root": {
-                        color: "#3d4048 !important",
-                        "&.Mui-selected": {
-                          color: "white !important",
-                          bgcolor: "#313485 !important",
-                        },
-                      },
-                      "& .MuiPickersCalendarHeader-label": {
-                        color: "#3d4048 !important",
-                      },
-                      "& .MuiPickersArrowSwitcher-button": {
-                        color: "#3d4048 !important",
-                      },
-                    },
-                  },
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    placeholder: "DD/MM/AAAA",
-                    sx: {
-                      bgcolor: "#FAFAFA",
-                      "& .MuiInputBase-input": {
-                        fontSize: { xs: "0.8rem", sm: "0.85rem" },
-                        whiteSpace: "nowrap",
-                        py: 1,
-                        px: { xs: 0.75, sm: 1 },
-                      },
-                      "& .MuiInputAdornment-root": {
-                        ml: 0.25,
-                      },
-                      "& .MuiIconButton-root": {
-                        p: 0.5,
-                      },
-                    },
-                  },
-                }}
-              />
-              <DatePicker
-                label="Até"
-                format="DD/MM/YYYY"
-                value={endDate}
-                onChange={(val) => setEndDate(val)}
-                dayOfWeekFormatter={(day: Dayjs) => {
-                  const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
-                  return days[day.day()];
-                }}
-                slotProps={{
-                  popper: {
-                    sx: {
-                      "& .MuiDayCalendar-weekDayLabel": {
-                        color: "#3d4048 !important",
-                        fontWeight: 700,
-                        fontSize: "0.75rem",
-                      },
-                      "& .MuiPickersDay-root": {
-                        color: "#3d4048 !important",
-                        "&.Mui-selected": {
-                          color: "white !important",
-                          bgcolor: "#313485 !important",
-                        },
-                      },
-                      "& .MuiPickersCalendarHeader-label": {
-                        color: "#3d4048 !important",
-                      },
-                      "& .MuiPickersArrowSwitcher-button": {
-                        color: "#3d4048 !important",
-                      },
-                    },
-                  },
-                  textField: {
-                    size: "small",
-                    fullWidth: true,
-                    placeholder: "DD/MM/AAAA",
-                    sx: {
-                      bgcolor: "#FAFAFA",
-                      "& .MuiInputBase-input": {
-                        fontSize: { xs: "0.8rem", sm: "0.85rem" },
-                        whiteSpace: "nowrap",
-                        py: 1,
-                        px: { xs: 0.75, sm: 1 },
-                      },
-                      "& .MuiInputAdornment-root": {
-                        ml: 0.25,
-                      },
-                      "& .MuiIconButton-root": {
-                        p: 0.5,
-                      },
-                    },
-                  },
-                }}
-              />
+              {months.map((m) => {
+                const isActive =
+                  startDate &&
+                  endDate &&
+                  startDate.month() === m.month &&
+                  startDate.year() === m.year &&
+                  endDate.month() === m.month &&
+                  endDate.year() === m.year &&
+                  startDate.date() === 1;
+                return (
+                  <Button
+                    key={m.label}
+                    variant={isActive ? "contained" : "outlined"}
+                    color={isActive ? "success" : "inherit"}
+                    size="small"
+                    onClick={() => handleSelectMonth(m)}
+                    sx={{
+                      minWidth: 54,
+                      height: 32,
+                      fontWeight: 700,
+                      borderRadius: 2,
+                      textTransform: "none",
+                      flexShrink: 0,
+                      fontSize: "0.8rem",
+                    }}
+                  >
+                    {m.label}
+                  </Button>
+                );
+              })}
             </Box>
-          </LocalizationProvider>
-        </Box>
-      </Paper>
+
+            {/* Seleção de Período Personalizado com Calendário Padronizado */}
+            <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
+              <Box
+                sx={{
+                  display: "grid",
+                  gridTemplateColumns: { xs: "1fr 1fr", sm: "160px 160px" },
+                  gap: 1.25,
+                  alignItems: "center",
+                  width: { xs: "100%", lg: "auto" },
+                }}
+              >
+                <DatePicker
+                  label="De"
+                  format="DD/MM/YYYY"
+                  value={startDate}
+                  onChange={(val) => setStartDate(val)}
+                  dayOfWeekFormatter={(day: Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                    return days[day.day()];
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#3d4048 !important",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#3d4048 !important",
+                          "&.Mui-selected": {
+                            color: "white !important",
+                            bgcolor: "#313485 !important",
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#3d4048 !important",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#3d4048 !important",
+                        },
+                      },
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                      sx: {
+                        bgcolor: "#FAFAFA",
+                        "& .MuiInputBase-input": {
+                          fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                          whiteSpace: "nowrap",
+                          py: 1,
+                          px: { xs: 0.75, sm: 1 },
+                        },
+                        "& .MuiInputAdornment-root": {
+                          ml: 0.25,
+                        },
+                        "& .MuiIconButton-root": {
+                          p: 0.5,
+                        },
+                      },
+                    },
+                  }}
+                />
+                <DatePicker
+                  label="Até"
+                  format="DD/MM/YYYY"
+                  value={endDate}
+                  onChange={(val) => setEndDate(val)}
+                  dayOfWeekFormatter={(day: Dayjs) => {
+                    const days = ["dom", "seg", "ter", "qua", "qui", "sex", "sab"];
+                    return days[day.day()];
+                  }}
+                  slotProps={{
+                    popper: {
+                      sx: {
+                        "& .MuiDayCalendar-weekDayLabel": {
+                          color: "#3d4048 !important",
+                          fontWeight: 700,
+                          fontSize: "0.75rem",
+                        },
+                        "& .MuiPickersDay-root": {
+                          color: "#3d4048 !important",
+                          "&.Mui-selected": {
+                            color: "white !important",
+                            bgcolor: "#313485 !important",
+                          },
+                        },
+                        "& .MuiPickersCalendarHeader-label": {
+                          color: "#3d4048 !important",
+                        },
+                        "& .MuiPickersArrowSwitcher-button": {
+                          color: "#3d4048 !important",
+                        },
+                      },
+                    },
+                    textField: {
+                      size: "small",
+                      fullWidth: true,
+                      placeholder: "DD/MM/AAAA",
+                      sx: {
+                        bgcolor: "#FAFAFA",
+                        "& .MuiInputBase-input": {
+                          fontSize: { xs: "0.8rem", sm: "0.85rem" },
+                          whiteSpace: "nowrap",
+                          py: 1,
+                          px: { xs: 0.75, sm: 1 },
+                        },
+                        "& .MuiInputAdornment-root": {
+                          ml: 0.25,
+                        },
+                        "& .MuiIconButton-root": {
+                          p: 0.5,
+                        },
+                      },
+                    },
+                  }}
+                />
+              </Box>
+            </LocalizationProvider>
+          </Box>
+        </Paper>
+      )}
 
       {/* Render Active Content */}
       <Box>
@@ -345,6 +349,10 @@ export default function ReportsPage() {
             endDate={endDate}
             hideFilters={true}
           />
+        )}
+
+        {activeTab === "clientes-pets" && (
+          <ClientsPetsReport />
         )}
       </Box>
     </Box>

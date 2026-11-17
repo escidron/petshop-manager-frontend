@@ -76,4 +76,84 @@ export const setProfilePhoto = async (petId: number, photoId: number) => {
   );
   return response.data;
 };
+
+export interface ClientPetReportItem {
+  pet_id: number;
+  pet_name: string;
+  species: string;
+  species_label: string;
+  breed?: string | null;
+  gender?: string | null;
+  gender_label: string;
+  size?: string | null;
+  coat_type?: string | null;
+  coat_type_label?: string | null;
+  coat_color?: string | null;
+  is_neutered?: boolean | null;
+  age?: number | null;
+  age_unit?: string | null;
+  age_unit_label?: string | null;
+  birth_date?: string | null;
+  is_active: boolean;
+  is_deceased: boolean;
+  notes?: string | null;
+  client_id: number;
+  client_name: string;
+  client_phone?: string | null;
+  client_phone_secondary?: string | null;
+  last_service_date?: string | null;
+  last_service_name?: string | null;
+}
+
+export interface ClientPetReportResponse {
+  items: ClientPetReportItem[];
+  total: number;
+  total_active_pets: number;
+  total_unique_clients: number;
+}
+
+export const fetchClientsPetsReport = async (params?: {
+  is_active?: boolean;
+  search?: string;
+  limit?: number;
+  offset?: number;
+}): Promise<ClientPetReportResponse> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.is_active !== undefined) queryParams.is_active = params.is_active;
+  if (params?.search) queryParams.search = params.search;
+  if (params?.limit !== undefined) queryParams.limit = params.limit;
+  if (params?.offset !== undefined) queryParams.offset = params.offset;
+
+  const response = await apiClient.get<ClientPetReportResponse>(
+    "/api/v1/pets/reports/clients-pets",
+    { params: queryParams }
+  );
+  return response.data;
+};
+
+export const exportClientsPetsReport = async (params?: {
+  is_active?: boolean;
+  search?: string;
+}): Promise<void> => {
+  const queryParams: Record<string, any> = {};
+  if (params?.is_active !== undefined) queryParams.is_active = params.is_active;
+  if (params?.search) queryParams.search = params.search;
+
+  const response = await apiClient.get("/api/v1/pets/reports/clients-pets/export", {
+    params: queryParams,
+    responseType: "blob",
+  });
+
+  const blob = new Blob([response.data], {
+    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  });
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "relatorio_clientes_pets.xlsx");
+  document.body.appendChild(link);
+  link.click();
+  link.parentNode?.removeChild(link);
+  window.URL.revokeObjectURL(url);
+};
 
